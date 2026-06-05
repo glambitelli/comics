@@ -1,6 +1,6 @@
 {
-  "name": "Fumetto",
-  "short_name": "Fumetto",
+  "name": "Inkflow",
+  "short_name": "Inkflow",
   "description": "Pipeline e tracker per progetti fumetto",
   "start_url": "./index.html",
   "display": "standalone",
