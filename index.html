@@ -51,8 +51,6 @@ body{background:var(--sand);color:var(--ink);font-family:'Nunito',sans-serif;fon
 .card-meta{font-size:12px;color:var(--ink3);margin-top:2px;font-weight:500}
 .card-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0}
 .card-pct{font-size:18px;font-weight:700;color:var(--coral)}
-.card-del{font-size:11px;color:var(--ink3);background:none;border:none;cursor:pointer;padding:2px 6px;border-radius:6px;transition:color .15s,background .15s}
-.card-del:active{color:var(--coral);background:var(--coral-pale)}
 .new-btn{width:100%;padding:16px;border-radius:var(--r);border:2px dashed var(--sand3);background:transparent;color:var(--ink3);font-family:'Nunito',sans-serif;font-size:14px;font-weight:600;cursor:pointer;margin-top:4px;transition:border-color .2s,color .2s}
 .new-btn:active{border-color:var(--coral);color:var(--coral)}
 
@@ -93,7 +91,7 @@ body{background:var(--sand);color:var(--ink);font-family:'Nunito',sans-serif;fon
 .deadline-input:focus{border-color:var(--ocean)}
 .countdown-box{display:flex;gap:8px;flex-wrap:wrap}
 .countdown-pill{flex:1;min-width:80px;background:var(--sand);border-radius:12px;padding:10px 8px;text-align:center}
-.countdown-num{font-size:24px;font-weight:800;font-family:'Playfair Display',serif;line-height:1}
+.countdown-num{font-size:28px;font-weight:700;font-family:'Nunito',sans-serif;line-height:1}
 .countdown-unit{font-size:10px;font-weight:600;color:var(--ink3);letter-spacing:.06em;text-transform:uppercase;margin-top:2px}
 .countdown-pill.urgent .countdown-num{color:var(--coral)}
 .countdown-pill.ok .countdown-num{color:var(--moss)}
@@ -103,7 +101,7 @@ body{background:var(--sand);color:var(--ink);font-family:'Nunito',sans-serif;fon
 .velocity-block{background:var(--white);border-radius:var(--r);margin-bottom:12px;overflow:hidden;box-shadow:var(--shadow);border:1.5px solid var(--sand2);padding:16px}
 .vel-row{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
 .vel-stat{flex:1;min-width:80px;background:var(--sand);border-radius:12px;padding:12px 10px;text-align:center}
-.vel-num{font-size:22px;font-weight:800;font-family:'Playfair Display',serif;line-height:1;color:var(--ink)}
+.vel-num{font-size:26px;font-weight:700;font-family:'Nunito',sans-serif;line-height:1;color:var(--ink)}
 .vel-num.good{color:var(--moss)}
 .vel-num.warn{color:var(--gold)}
 .vel-num.bad{color:var(--coral)}
@@ -279,12 +277,9 @@ body{background:var(--sand);color:var(--ink);font-family:'Nunito',sans-serif;fon
         <div class="phase-chev open" id="ph1-chev">▾</div>
       </div>
       <div class="phase-body open" id="ph1-body">
-        <div class="step-item" onclick="toggleStep(this)"><div class="step-chk">✓</div><div class="step-cnt"><div class="step-nm">Scintilla <span class="tag wm">mattina</span></div><div class="step-ds">Prima immagine, atmosfera, frase di partenza. Scrivi senza filtrare.</div></div></div>
-        <div class="step-item" onclick="toggleStep(this)"><div class="step-chk">✓</div><div class="step-cnt"><div class="step-nm">Moodboard visiva <span class="tag wm">mattina</span></div><div class="step-ds">Immagini che catturano l'atmosfera. Il "colore emotivo" della storia.</div></div></div>
-        <div class="step-item" onclick="toggleStep(this)"><div class="step-chk">✓</div><div class="step-cnt"><div class="step-nm">Soggetto <span class="tag wm">mattina</span></div><div class="step-ds">Chi, cosa vuole, cosa glielo impedisce, come finisce. Max mezza pagina.</div></div></div>
-        <div class="step-item" onclick="toggleStep(this)"><div class="step-chk">✓</div><div class="step-cnt"><div class="step-nm">Struttura a 3 atti <span class="tag wm">mattina</span></div><div class="step-ds">Atto 1 (pp. 1–2) · Atto 2 (pp. 3–8) · Atto 3 (pp. 9–10).</div></div></div>
-        <div class="step-item" onclick="toggleStep(this)"><div class="step-chk">✓</div><div class="step-cnt"><div class="step-nm">Sceneggiatura visiva <span class="tag we">mattina o sera</span></div><div class="step-ds">Per ogni pagina: cosa si vede + dialogo minimo. Scrivi per immagini.</div></div></div>
-        <div class="phase-tip">🔍 Identifica qui le sfide visive (elementi nuovi) — diventano i bozzetti preparatori della Fase 2.</div>
+        <div class="step-item" onclick="toggleStep(this)"><div class="step-chk">✓</div><div class="step-cnt"><div class="step-nm">Moodboard visiva <span class="tag wm">mattina</span></div><div class="step-ds">Immagini che catturano l'atmosfera. Il "colore emotivo" della storia prima di scrivere.</div></div></div>
+        <div class="step-item" onclick="toggleStep(this)"><div class="step-chk">✓</div><div class="step-cnt"><div class="step-nm">Soggetto <span class="tag wm">mattina</span></div><div class="step-ds">Chi è il protagonista, cosa vuole, cosa glielo impedisce, come finisce. Max mezza pagina.</div></div></div>
+        <div class="step-item" onclick="toggleStep(this)"><div class="step-chk">✓</div><div class="step-cnt"><div class="step-nm">Struttura a 3 atti <span class="tag wm">mattina</span></div><div class="step-ds">Atto 1 (pp. 1–2) · Atto 2 (pp. 3–8) · Atto 3 (pp. 9–10). Assegna le pagine.</div></div></div>
       </div>
     </div>
 
@@ -296,9 +291,8 @@ body{background:var(--sand);color:var(--ink);font-family:'Nunito',sans-serif;fon
         <div class="phase-chev" id="ph2-chev">▾</div>
       </div>
       <div class="phase-body" id="ph2-body">
-        <div class="step-item" onclick="toggleStep(this)"><div class="step-chk">✓</div><div class="step-cnt"><div class="step-nm">Reference e bozzetti prep. <span class="tag wm">mattina</span></div><div class="step-ds">3–5 bozzetti per ogni elemento nuovo. Non perfetti, solo sicuri.</div></div></div>
-        <div class="step-item" onclick="toggleStep(this)"><div class="step-chk">✓</div><div class="step-cnt"><div class="step-nm">Layout di tutte le tavole <span class="tag we">mattina o sera</span></div><div class="step-ds">Composizione vignette, ritmo visivo. Tutte, in sequenza, prima di iniziare.</div></div></div>
-        <div class="step-item" onclick="toggleStep(this)"><div class="step-chk">✓</div><div class="step-cnt"><div class="step-nm">Stile e palette <span class="tag wm">mattina</span></div><div class="step-ds">Tratto, uso dei neri, densità retini, approccio balloon. Decidi ora.</div></div></div>
+        <div class="step-item" onclick="toggleStep(this)"><div class="step-chk">✓</div><div class="step-cnt"><div class="step-nm">Reference <span class="tag wm">mattina</span></div><div class="step-ds">Ricerca online o street photography. Raccogli tutto il materiale visivo di riferimento per il progetto.</div></div></div>
+        <div class="step-item" onclick="toggleStep(this)"><div class="step-chk">✓</div><div class="step-cnt"><div class="step-nm">Layouts <span class="tag ws">sera</span></div><div class="step-ds">Composizione vignette e ritmo visivo. Tutte le tavole in sequenza, prima di iniziare la realizzazione.</div></div></div>
       </div>
     </div>
 
@@ -324,10 +318,15 @@ body{background:var(--sand);color:var(--ink);font-family:'Nunito',sans-serif;fon
     </div>
 
     <!-- NOTE -->
-    <div style="margin-top:20px;padding-bottom:8px">
+    <div style="margin-top:20px">
       <div class="sec-label">Note progetto</div>
       <textarea class="note-area" id="notes" placeholder="Script, dialoghi, riferimenti ad autori, idee…"></textarea>
       <div class="save-hint">Salvato automaticamente ☁️</div>
+    </div>
+
+    <!-- ELIMINA PROGETTO -->
+    <div style="margin-top:28px;padding-bottom:8px;text-align:center">
+      <button onclick="confirmDeleteCurrent()" style="background:none;border:1.5px solid var(--sand3);border-radius:12px;padding:12px 24px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:600;color:var(--ink3);cursor:pointer;transition:all .2s">🗑 Elimina progetto</button>
     </div>
 
   </div>
@@ -404,7 +403,6 @@ function renderHome(){
       </div>
       <div class="card-right">
         <div class="card-pct">${pct}%</div>
-        <button class="card-del" onclick="confirmDelete(event,'${p.id}')">🗑 elimina</button>
       </div>`;
     card.onclick=()=>openProject(p.id);
     scroll.insertBefore(card,newBtn);
@@ -426,10 +424,18 @@ function confirmDelete(e,id){
   document.getElementById('confirm-modal').classList.add('open');
 }
 function closeConfirm(){document.getElementById('confirm-modal').classList.remove('open');deleteId=null;}
+function confirmDeleteCurrent(){
+  const p=getProject(currentId);if(!p)return;
+  deleteId=currentId;
+  document.getElementById('confirm-text').textContent=`Eliminare "${p.title}"? L'operazione non è reversibile.`;
+  document.getElementById('confirm-modal').classList.add('open');
+}
 document.getElementById('confirm-ok').onclick=()=>{
   if(!deleteId)return;
+  const wasCurrentProject=deleteId===currentId;
   db.projects=db.projects.filter(p=>p.id!==deleteId);
-  saveDB();closeConfirm();renderHome();
+  saveDB();closeConfirm();
+  if(wasCurrentProject)goHome();else renderHome();
 };
 document.getElementById('confirm-modal').addEventListener('click',e=>{if(e.target===e.currentTarget)closeConfirm()});
 
@@ -659,15 +665,15 @@ function drawChart(p,v){
 
 /* ── PROGRESS ── */
 function calcPct(p){
-  const total=8+(p.numTav||10);
+  const total=5+(p.numTav||10);
   let done=Object.values(p.steps||{}).filter(Boolean).length;
   done+=Object.values(p.tavole||{}).filter(v=>v>=4).length;
   return total?Math.round(done/total*100):0;
 }
-function getPhaseIndex(p){const d=Object.values(p.steps||{}).filter(Boolean).length;if(d<5)return 0;if(d<8)return 1;return 2;}
+function getPhaseIndex(p){const d=Object.values(p.steps||{}).filter(Boolean).length;if(d<3)return 0;if(d<5)return 1;return 2;}
 function updateProgress(p){
   const pct=calcPct(p);
-  const total=8+(p.numTav||10);
+  const total=5+(p.numTav||10);
   const done=Object.values(p.steps||{}).filter(Boolean).length+Object.values(p.tavole||{}).filter(v=>v>=4).length;
   document.getElementById('prog-fill').style.width=pct+'%';
   document.getElementById('prog-lbl').textContent=done+' / '+total+' step';
@@ -676,9 +682,9 @@ function updateProgress(p){
   const ph1d=document.querySelectorAll('#ph1 .step-chk.done').length;
   const ph2d=document.querySelectorAll('#ph2 .step-chk.done').length;
   const tavDone=Object.values(p.tavole||{}).filter(v=>v>=4).length;
-  document.getElementById('ph1-badge').textContent=ph1d===5?'completata ✓':'in corso';
-  document.getElementById('ph2-badge').textContent=ph2d===3?'completata ✓':ph1d===5?'in corso':'non iniziata';
-  document.getElementById('ph3-badge').textContent=tavDone===p.numTav?'completata ✓':ph1d===5&&ph2d===3?'in corso':'non iniziata';
+  document.getElementById('ph1-badge').textContent=ph1d===3?'completata ✓':'in corso';
+  document.getElementById('ph2-badge').textContent=ph2d===2?'completata ✓':ph1d===3?'in corso':'non iniziata';
+  document.getElementById('ph3-badge').textContent=tavDone===p.numTav?'completata ✓':ph1d===3&&ph2d===2?'in corso':'non iniziata';
 }
 
 /* ── EVENTS ── */
