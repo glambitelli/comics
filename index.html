@@ -10,20 +10,21 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
 <title>Inkflow</title>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Nunito:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@600;700&family=Nunito:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{
-  --sand:#f5edd8;--sand2:#e8d9b8;--sand3:#d4b86a;
-  --ocean:#74AEB1;--ocean-deep:#157876;--ocean-pale:#c8e8ea;
-  --coral:#e07a5f;--coral-pale:#f9ded7;
-  --gold:#EAA020;--gold-pale:#faeac0;
+  /* Palette spiaggia con stella marina */
+  --sand:#f2e8d0;--sand2:#e8d9b8;--sand3:#c8a96e;
+  --beige:#d4c4a0;--beige-light:#ece0c8;
+  --ocean:#7ec4cc;--ocean-deep:#4a8fa8;--ocean-pale:#d8eef2;
+  --coral:#c8521a;--coral-mid:#d4753a;--coral-pale:#f5e0d4;
+  --gold:#e8b840;--gold-pale:#f8efc0;
   --moss:#4a8a6a;--moss-pale:#c8e8d8;
-  --brown:#57411B;--sky:#1a9fd4;
-  --ink:#2a2018;--ink2:#6a5e50;--ink3:#a89880;
-  --white:#fffdf8;
+  --ink:#1a1410;--ink2:#5a4e40;--ink3:#9a8e80;
+  --white:#fdfaf4;
   --r:14px;--r-sm:10px;
-  --shadow:0 2px 14px rgba(21,120,118,.12);
-  --shadow-lg:0 8px 32px rgba(21,120,118,.18);
+  --shadow:0 2px 14px rgba(200,82,26,.10);
+  --shadow-lg:0 8px 32px rgba(200,82,26,.15);
   --safe-top:env(safe-area-inset-top,0px);
   --safe-bot:env(safe-area-inset-bottom,0px);
 }
@@ -34,18 +35,18 @@ body{background:var(--sand);color:var(--ink);font-family:'Nunito',sans-serif;fon
 .screen.active{display:flex}
 
 /* SYNC INDICATOR */
-.sync-dot{width:7px;height:7px;border-radius:50%;background:#aaa;display:inline-block;margin-left:6px;vertical-align:middle;transition:background .3s}
-.sync-dot.ok{background:#4a8a6a}
-.sync-dot.saving{background:#EAA020;animation:pulse .8s infinite}
-.sync-dot.error{background:#e07a5f}
+.sync-dot{width:7px;height:7px;border-radius:50%;background:var(--beige);display:inline-block;margin-left:6px;vertical-align:middle;transition:background .3s}
+.sync-dot.ok{background:var(--moss)}
+.sync-dot.saving{background:var(--gold);animation:pulse .8s infinite}
+.sync-dot.error{background:var(--coral)}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 
 /* HOME */
-#screen-home .home-header{background:linear-gradient(150deg,#0d5e5c 0%,#157876 45%,#1a9fd4 100%);padding:calc(28px + var(--safe-top)) 24px 28px;position:relative;overflow:hidden;flex-shrink:0;border-radius:0 0 28px 28px}
-.home-header::before{content:'';position:absolute;bottom:-40px;right:-40px;width:140px;height:140px;background:rgba(255,255,255,.12);border-radius:50%}
-.home-header::after{content:'';position:absolute;bottom:10px;right:30px;width:70px;height:70px;background:rgba(255,255,255,.08);border-radius:50%}
-.home-title{font-size:42px;font-weight:800;color:#fff;letter-spacing:-.01em;font-family:'Playfair Display',serif;line-height:1.1}
-.home-sub{font-size:12px;color:rgba(255,255,255,.55);margin-top:2px;font-weight:400;letter-spacing:.02em}
+#screen-home .home-header{background:var(--beige-light);padding:calc(28px + var(--safe-top)) 24px 24px;position:relative;overflow:hidden;flex-shrink:0;border-radius:0 0 28px 28px;border-bottom:2px solid var(--beige)}
+.home-header::before{content:'';position:absolute;bottom:-30px;right:-20px;width:100px;height:100px;background:rgba(200,82,26,.06);border-radius:50%}
+.home-header::after{content:'';position:absolute;top:-20px;right:40px;width:60px;height:60px;background:rgba(126,196,204,.12);border-radius:50%}
+.home-title{font-size:44px;font-weight:700;color:var(--ink);letter-spacing:.01em;font-family:'Oswald',sans-serif;line-height:1.05;text-transform:uppercase}
+.home-sub{font-size:10px;color:var(--ink3);margin-top:3px;font-weight:400;letter-spacing:.08em;text-transform:lowercase}
 .home-scroll{flex:1;overflow-y:auto;padding:20px 18px calc(20px + var(--safe-bot))}
 .project-card{background:var(--white);border-radius:var(--r);padding:16px;margin-bottom:12px;cursor:pointer;box-shadow:var(--shadow);display:flex;align-items:center;gap:14px;border:1.5px solid transparent;transition:border-color .2s,box-shadow .2s}
 .project-card:active{border-color:var(--coral);box-shadow:var(--shadow-lg)}
@@ -55,18 +56,18 @@ body{background:var(--sand);color:var(--ink);font-family:'Nunito',sans-serif;fon
 .card-meta{font-size:12px;color:var(--ink3);margin-top:2px;font-weight:500}
 .card-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0}
 .card-pct{font-size:18px;font-weight:700}
-.new-btn{width:100%;padding:16px;border-radius:var(--r);border:2px dashed var(--sand3);background:transparent;color:var(--ink3);font-family:'Nunito',sans-serif;font-size:14px;font-weight:600;cursor:pointer;margin-top:4px;transition:border-color .2s,color .2s}
+.new-btn{width:100%;padding:16px;border-radius:var(--r);border:2px dashed var(--beige);background:transparent;color:var(--ink3);font-family:'Nunito',sans-serif;font-size:14px;font-weight:600;cursor:pointer;margin-top:4px;transition:border-color .2s,color .2s}
 .new-btn:active{border-color:var(--coral);color:var(--coral)}
 
 /* PROJECT HEADER */
-.proj-header{background:linear-gradient(150deg,#0d5e5c 0%,#157876 45%,#1a9fd4 100%);padding:calc(20px + var(--safe-top)) 20px 20px;flex-shrink:0;position:relative;overflow:hidden;border-radius:0 0 24px 24px}
-.proj-header::before{content:'';position:absolute;bottom:-30px;right:-30px;width:110px;height:110px;background:rgba(255,255,255,.1);border-radius:50%}
-.back-btn{font-size:13px;color:rgba(255,255,255,.75);font-weight:600;background:none;border:none;cursor:pointer;padding:0;margin-bottom:10px;display:flex;align-items:center;gap:4px}
-.back-btn:active{color:#fff}
-.proj-title-edit{font-size:24px;font-weight:700;color:#fff;letter-spacing:-.01em;background:transparent;border:none;outline:none;width:100%;border-bottom:2px solid transparent;transition:border-color .2s;font-family:'Playfair Display',serif}
-.proj-title-edit:focus{border-bottom-color:rgba(255,255,255,.5)}
-.proj-meta{font-size:12px;color:rgba(255,255,255,.65);display:flex;gap:14px;flex-wrap:wrap;margin-top:8px;font-weight:500}
-.proj-meta span{color:rgba(255,255,255,.95);font-weight:700}
+.proj-header{background:var(--beige-light);padding:calc(20px + var(--safe-top)) 20px 20px;flex-shrink:0;position:relative;overflow:hidden;border-radius:0 0 24px 24px;border-bottom:2px solid var(--beige)}
+.proj-header::before{content:'';position:absolute;bottom:-30px;right:-30px;width:110px;height:110px;background:rgba(200,82,26,.06);border-radius:50%}
+.back-btn{font-size:12px;color:var(--ink3);font-weight:600;background:none;border:none;cursor:pointer;padding:0;margin-bottom:10px;display:flex;align-items:center;gap:4px;letter-spacing:.04em;text-transform:lowercase}
+.back-btn:active{color:var(--coral)}
+.proj-title-edit{font-size:26px;font-weight:700;color:var(--ink);letter-spacing:.01em;background:transparent;border:none;outline:none;width:100%;border-bottom:2px solid transparent;transition:border-color .2s;font-family:'Oswald',sans-serif;text-transform:uppercase}
+.proj-title-edit:focus{border-bottom-color:var(--coral)}
+.proj-meta{font-size:12px;color:var(--ink3);display:flex;gap:14px;flex-wrap:wrap;margin-top:8px;font-weight:500}
+.proj-meta span{color:var(--ink);font-weight:700}
 
 /* PROGRESS */
 .prog-bar-wrap{background:var(--white);padding:12px 20px;border-bottom:1px solid var(--sand2);display:flex;align-items:center;gap:12px;flex-shrink:0}
@@ -80,7 +81,7 @@ body{background:var(--sand);color:var(--ink);font-family:'Nunito',sans-serif;fon
 .sec-label::after{content:'';flex:1;height:1.5px;background:var(--sand3);border-radius:1px}
 
 /* MICROTASK */
-.microtask-box{background:linear-gradient(135deg,#2a1a0a 0%,#57411B 100%);border-radius:var(--r);padding:16px 18px;margin-bottom:20px;box-shadow:var(--shadow-lg)}
+.microtask-box{background:linear-gradient(135deg,#3a1a08 0%,#c8521a 100%);border-radius:var(--r);padding:16px 18px;margin-bottom:20px;box-shadow:var(--shadow-lg)}
 .mt-label{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);margin-bottom:8px}
 .mt-input{background:transparent;border:none;color:#fff;font-family:'Nunito',sans-serif;font-size:16px;font-weight:500;width:100%;outline:none;border-bottom:1.5px solid rgba(255,255,255,.15);padding-bottom:8px}
 .mt-input::placeholder{color:rgba(255,255,255,.3)}
@@ -187,17 +188,17 @@ body{background:var(--sand);color:var(--ink);font-family:'Nunito',sans-serif;fon
 .field-input:focus{border-color:var(--ocean)}
 .modal-actions{display:flex;gap:10px;padding:4px 22px 0}
 .btn-cancel{flex:1;padding:14px;border-radius:14px;border:1.5px solid var(--sand3);background:var(--sand);color:var(--ink2);font-size:14px;font-weight:600;cursor:pointer;font-family:'Nunito',sans-serif}
-.btn-create{flex:2;padding:14px;border-radius:14px;border:none;background:linear-gradient(135deg,var(--coral),var(--gold));color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:'Nunito',sans-serif;box-shadow:0 4px 16px rgba(234,160,32,.3)}
+.btn-create{flex:2;padding:14px;border-radius:14px;border:none;background:linear-gradient(135deg,var(--coral),var(--gold));color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:'Nunito',sans-serif;box-shadow:0 4px 16px rgba(200,82,26,.3)}
 .btn-create:active{transform:scale(.98)}
 .confirm-modal{background:var(--white);border-radius:24px 24px 0 0;width:100%;max-width:500px;padding-bottom:calc(20px + var(--safe-bot));box-shadow:var(--shadow-lg)}
 .btn-danger{flex:2;padding:14px;border-radius:14px;border:none;background:var(--coral);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:'Nunito',sans-serif}
 
 /* LOADING */
-.loading-screen{position:fixed;inset:0;background:linear-gradient(150deg,#0d5e5c,#157876,#1a9fd4);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:200;transition:opacity .4s}
+.loading-screen{position:fixed;inset:0;background:var(--beige-light);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:200;transition:opacity .4s}
 .loading-screen.hidden{opacity:0;pointer-events:none}
-.loading-title{font-family:'Playfair Display',serif;font-size:48px;font-weight:800;color:#fff;margin-bottom:8px}
-.loading-sub{font-size:13px;color:rgba(255,255,255,.6);margin-bottom:32px}
-.loading-spinner{width:32px;height:32px;border:3px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite}
+.loading-title{font-family:'Oswald',sans-serif;font-size:52px;font-weight:700;color:var(--ink);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px}
+.loading-sub{font-size:12px;color:var(--ink3);margin-bottom:32px;letter-spacing:.06em;text-transform:lowercase}
+.loading-spinner{width:28px;height:28px;border:3px solid var(--beige);border-top-color:var(--coral);border-radius:50%;animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 </style>
 </head>
@@ -206,7 +207,7 @@ body{background:var(--sand);color:var(--ink);font-family:'Nunito',sans-serif;fon
 <!-- LOADING -->
 <div class="loading-screen" id="loading">
   <div class="loading-title">Inkflow</div>
-  <div class="loading-sub">Sincronizzazione in corso…</div>
+  <div class="loading-sub">sincronizzazione in corso…</div>
   <div class="loading-spinner"></div>
 </div>
 
@@ -214,7 +215,7 @@ body{background:var(--sand);color:var(--ink);font-family:'Nunito',sans-serif;fon
 <div class="screen" id="screen-home">
   <div class="home-header">
     <div class="home-title">Inkflow</div>
-    <div class="home-sub">Pipeline · Tracker · Micro-task <span class="sync-dot" id="sync-dot"></span></div>
+    <div class="home-sub">pipeline · tracker · micro-task <span class="sync-dot" id="sync-dot"></span></div>
   </div>
   <div class="home-scroll" id="home-scroll">
     <div style="height:16px"></div>
@@ -295,8 +296,8 @@ body{background:var(--sand);color:var(--ink);font-family:'Nunito',sans-serif;fon
         <div class="phase-chev" id="ph2-chev">▾</div>
       </div>
       <div class="phase-body" id="ph2-body">
-        <div class="step-item" onclick="toggleStep(this)"><div class="step-chk">✓</div><div class="step-cnt"><div class="step-nm">Reference <span class="tag wm">mattina</span></div><div class="step-ds">Ricerca online o street photography. Raccogli il materiale visivo di riferimento per il progetto.</div></div></div>
         <div class="step-item" onclick="toggleStep(this)"><div class="step-chk">✓</div><div class="step-cnt"><div class="step-nm">Layouts <span class="tag ws">sera</span></div><div class="step-ds">Composizione vignette e ritmo visivo. Tutte le tavole in sequenza, prima di iniziare la realizzazione.</div></div></div>
+        <div class="step-item" onclick="toggleStep(this)"><div class="step-chk">✓</div><div class="step-cnt"><div class="step-nm">Reference <span class="tag wm">mattina</span></div><div class="step-ds">Ricerca online o street photography. Raccogli il materiale visivo di riferimento per il progetto.</div></div></div>
       </div>
     </div>
 
