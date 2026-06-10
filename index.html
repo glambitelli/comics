@@ -6,14 +6,13 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Inkflow">
-<meta name="theme-color" content="#e8d5b0">
+<meta name="theme-color" content="#157876">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
 <title>Inkflow</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Nunito:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{
-  /* Palette spiaggia vibrante */
   --sand:#f5edd8;--sand2:#e8d9b8;--sand3:#d4b86a;
   --ocean:#74AEB1;--ocean-deep:#157876;--ocean-pale:#c8e8ea;
   --coral:#e07a5f;--coral-pale:#f9ded7;
@@ -34,12 +33,15 @@ body{background:var(--sand);color:var(--ink);font-family:'Nunito',sans-serif;fon
 .screen{display:none;flex-direction:column;height:100%;overflow:hidden}
 .screen.active{display:flex}
 
+/* SYNC INDICATOR */
+.sync-dot{width:7px;height:7px;border-radius:50%;background:#aaa;display:inline-block;margin-left:6px;vertical-align:middle;transition:background .3s}
+.sync-dot.ok{background:#4a8a6a}
+.sync-dot.saving{background:#EAA020;animation:pulse .8s infinite}
+.sync-dot.error{background:#e07a5f}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
 /* HOME */
-#screen-home .home-header{
-  background:linear-gradient(150deg,#0d5e5c 0%,#157876 45%,#1a9fd4 100%);
-  padding:calc(28px + var(--safe-top)) 24px 28px;
-  position:relative;overflow:hidden;flex-shrink:0;border-radius:0 0 28px 28px;
-}
+#screen-home .home-header{background:linear-gradient(150deg,#0d5e5c 0%,#157876 45%,#1a9fd4 100%);padding:calc(28px + var(--safe-top)) 24px 28px;position:relative;overflow:hidden;flex-shrink:0;border-radius:0 0 28px 28px}
 .home-header::before{content:'';position:absolute;bottom:-40px;right:-40px;width:140px;height:140px;background:rgba(255,255,255,.12);border-radius:50%}
 .home-header::after{content:'';position:absolute;bottom:10px;right:30px;width:70px;height:70px;background:rgba(255,255,255,.08);border-radius:50%}
 .home-title{font-size:42px;font-weight:800;color:#fff;letter-spacing:-.01em;font-family:'Playfair Display',serif;line-height:1.1}
@@ -52,7 +54,7 @@ body{background:var(--sand);color:var(--ink);font-family:'Nunito',sans-serif;fon
 .card-title{font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink)}
 .card-meta{font-size:12px;color:var(--ink3);margin-top:2px;font-weight:500}
 .card-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0}
-.card-pct{font-size:18px;font-weight:700;color:var(--coral)}
+.card-pct{font-size:18px;font-weight:700}
 .new-btn{width:100%;padding:16px;border-radius:var(--r);border:2px dashed var(--sand3);background:transparent;color:var(--ink3);font-family:'Nunito',sans-serif;font-size:14px;font-weight:600;cursor:pointer;margin-top:4px;transition:border-color .2s,color .2s}
 .new-btn:active{border-color:var(--coral);color:var(--coral)}
 
@@ -66,7 +68,7 @@ body{background:var(--sand);color:var(--ink);font-family:'Nunito',sans-serif;fon
 .proj-meta{font-size:12px;color:rgba(255,255,255,.65);display:flex;gap:14px;flex-wrap:wrap;margin-top:8px;font-weight:500}
 .proj-meta span{color:rgba(255,255,255,.95);font-weight:700}
 
-/* PROGRESS BAR */
+/* PROGRESS */
 .prog-bar-wrap{background:var(--white);padding:12px 20px;border-bottom:1px solid var(--sand2);display:flex;align-items:center;gap:12px;flex-shrink:0}
 .prog-bar{flex:1;height:6px;background:var(--sand2);border-radius:3px;overflow:hidden}
 .prog-fill{height:100%;background:linear-gradient(90deg,var(--coral),var(--gold));border-radius:3px;transition:width .4s}
@@ -84,7 +86,7 @@ body{background:var(--sand);color:var(--ink);font-family:'Nunito',sans-serif;fon
 .mt-input::placeholder{color:rgba(255,255,255,.3)}
 .mt-hint{font-size:11px;color:rgba(255,255,255,.35);margin-top:8px;font-weight:500}
 
-/* DEADLINE BLOCK */
+/* DEADLINE */
 .deadline-block{background:var(--white);border-radius:var(--r);margin-bottom:12px;overflow:hidden;box-shadow:var(--shadow);border:1.5px solid var(--sand2)}
 .deadline-inner{padding:16px}
 .deadline-row{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap}
@@ -99,25 +101,20 @@ body{background:var(--sand);color:var(--ink);font-family:'Nunito',sans-serif;fon
 .countdown-pill.ok .countdown-num{color:var(--moss)}
 .countdown-pill.warn .countdown-num{color:var(--gold)}
 
-/* VELOCITY BLOCK */
+/* VELOCITY */
 .velocity-block{background:var(--white);border-radius:var(--r);margin-bottom:12px;overflow:hidden;box-shadow:var(--shadow);border:1.5px solid var(--sand2);padding:16px}
 .vel-row{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
 .vel-stat{flex:1;min-width:80px;background:var(--sand);border-radius:12px;padding:12px 10px;text-align:center}
 .vel-num{font-size:20px;font-weight:700;font-family:'Nunito',sans-serif;line-height:1;color:var(--ink)}
-.vel-num.good{color:var(--moss)}
-.vel-num.warn{color:var(--gold)}
-.vel-num.bad{color:var(--coral)}
+.vel-num.good{color:var(--moss)}.vel-num.warn{color:var(--gold)}.vel-num.bad{color:var(--coral)}
 .vel-unit{font-size:10px;font-weight:600;color:var(--ink3);letter-spacing:.05em;text-transform:uppercase;margin-top:3px}
 .vel-alert{border-radius:10px;padding:10px 12px;font-size:12px;font-weight:600;line-height:1.5;margin-bottom:12px}
 .vel-alert.ok{background:var(--moss-pale);color:#2a5a2a}
 .vel-alert.warn{background:var(--gold-pale);color:#7a5010}
 .vel-alert.bad{background:var(--coral-pale);color:#8a3020}
-
-/* MINI CHART */
 .chart-wrap{overflow-x:auto;padding-bottom:4px}
-.chart-svg{display:block}
 
-/* PHASE BLOCKS */
+/* PHASES */
 .phase-block{background:var(--white);border-radius:var(--r);margin-bottom:12px;overflow:hidden;box-shadow:var(--shadow);border:1.5px solid var(--sand2)}
 .phase-hdr{display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;transition:background .15s}
 .phase-hdr:active{background:var(--sand)}
@@ -132,7 +129,7 @@ body{background:var(--sand);color:var(--ink);font-family:'Nunito',sans-serif;fon
 .step-item:last-child{border-bottom:none}
 .step-item:active{background:var(--sand)}
 .step-chk{width:22px;height:22px;border-radius:50%;border:2px solid var(--sand3);flex-shrink:0;display:flex;align-items:center;justify-content:center;margin-top:1px;font-size:12px;color:transparent;transition:all .2s}
-.step-chk.done{background:var(--moss);border-color:var(--moss);color:#fff;box-shadow:0 2px 8px rgba(122,171,122,.35)}
+.step-chk.done{background:var(--moss);border-color:var(--moss);color:#fff;box-shadow:0 2px 8px rgba(74,138,106,.35)}
 .step-cnt{flex:1}
 .step-nm{font-size:13px;font-weight:700;margin-bottom:2px;color:var(--ink)}
 .step-nm.done{color:var(--ink3);text-decoration:line-through}
@@ -149,7 +146,7 @@ body{background:var(--sand);color:var(--ink);font-family:'Nunito',sans-serif;fon
 .tav-btn{aspect-ratio:3/4;border-radius:12px;border:2px solid var(--sand2);background:var(--sand);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;transition:all .2s}
 .tav-btn:active{transform:scale(.96)}
 .tav-btn.sel{border-color:var(--coral);background:var(--coral-pale);box-shadow:0 2px 10px rgba(224,122,95,.25)}
-.tav-btn.done-t{border-color:var(--moss);background:var(--moss-pale);box-shadow:0 2px 10px rgba(122,171,122,.25)}
+.tav-btn.done-t{border-color:var(--moss);background:var(--moss-pale)}
 .tav-n{font-size:17px;font-weight:700;color:var(--ink)}
 .tav-s{font-size:9px;font-weight:600;letter-spacing:.02em;text-align:center;line-height:1.3;color:var(--ink2)}
 .tav-btn.done-t .tav-n,.tav-btn.done-t .tav-s{color:var(--moss)}
@@ -158,8 +155,7 @@ body{background:var(--sand);color:var(--ink);font-family:'Nunito',sans-serif;fon
 .tav-detail-title{font-size:12px;font-weight:700;color:var(--coral);margin-bottom:10px;letter-spacing:.04em;text-transform:uppercase}
 .tav-pills{display:flex;flex-wrap:wrap;gap:7px}
 .tav-pill{font-size:12px;font-weight:600;padding:6px 14px;border-radius:20px;border:2px solid var(--sand3);cursor:pointer;background:var(--white);color:var(--ink2);transition:all .15s}
-.tav-pill:active{transform:scale(.96)}
-.tav-pill.sel-p{background:var(--coral);color:#fff;border-color:var(--coral);box-shadow:0 2px 8px rgba(224,122,95,.3)}
+.tav-pill.sel-p{background:var(--coral);color:#fff;border-color:var(--coral)}
 .tav-pill.done-p{background:var(--moss);color:#fff;border-color:var(--moss)}
 
 /* SFIDE */
@@ -169,16 +165,16 @@ body{background:var(--sand);color:var(--ink);font-family:'Nunito',sans-serif;fon
 .sfida-ref{font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;cursor:pointer;border:1.5px solid;transition:all .15s}
 .sfida-ref.yes{background:var(--ocean-pale);color:var(--ocean-deep);border-color:var(--ocean)}
 .sfida-ref.no{background:var(--sand);color:var(--ink3);border-color:var(--sand3)}
-.sfida-rm{font-size:14px;color:var(--ink3);background:none;border:none;cursor:pointer;padding:2px 4px;line-height:1}
+.sfida-rm{font-size:14px;color:var(--ink3);background:none;border:none;cursor:pointer;padding:2px 4px}
 
 /* NOTE */
-.note-area{width:100%;background:var(--white);border:1.5px solid var(--sand2);border-radius:var(--r);padding:14px;font-family:'Nunito',sans-serif;font-size:13px;color:var(--ink);resize:vertical;min-height:90px;outline:none;line-height:1.65;box-shadow:var(--shadow);font-weight:400}
+.note-area{width:100%;background:var(--white);border:1.5px solid var(--sand2);border-radius:var(--r);padding:14px;font-family:'Nunito',sans-serif;font-size:13px;color:var(--ink);resize:vertical;min-height:90px;outline:none;line-height:1.65;box-shadow:var(--shadow)}
 .note-area:focus{border-color:var(--ocean)}
 .note-area::placeholder{color:var(--ink3)}
 .save-hint{font-size:11px;color:var(--ink3);margin-top:6px;text-align:right;font-weight:500}
 
-/* MODAL */
-.modal-overlay{position:fixed;inset:0;background:rgba(61,53,48,.45);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:none;align-items:flex-end;justify-content:center;z-index:100}
+/* MODALS */
+.modal-overlay{position:fixed;inset:0;background:rgba(42,32,24,.45);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:none;align-items:flex-end;justify-content:center;z-index:100}
 .modal-overlay.open{display:flex}
 .modal{background:var(--white);border-radius:24px 24px 0 0;width:100%;max-width:500px;overflow:hidden;padding-bottom:calc(20px + var(--safe-bot));box-shadow:var(--shadow-lg)}
 .modal-handle{width:40px;height:4px;background:var(--sand3);border-radius:2px;margin:14px auto 0}
@@ -191,22 +187,34 @@ body{background:var(--sand);color:var(--ink);font-family:'Nunito',sans-serif;fon
 .field-input:focus{border-color:var(--ocean)}
 .modal-actions{display:flex;gap:10px;padding:4px 22px 0}
 .btn-cancel{flex:1;padding:14px;border-radius:14px;border:1.5px solid var(--sand3);background:var(--sand);color:var(--ink2);font-size:14px;font-weight:600;cursor:pointer;font-family:'Nunito',sans-serif}
-.btn-create{flex:2;padding:14px;border-radius:14px;border:none;background:linear-gradient(135deg,#e07a5f,#EAA020);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:'Nunito',sans-serif;box-shadow:0 4px 16px rgba(234,160,32,.35)}
+.btn-create{flex:2;padding:14px;border-radius:14px;border:none;background:linear-gradient(135deg,var(--coral),var(--gold));color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:'Nunito',sans-serif;box-shadow:0 4px 16px rgba(234,160,32,.3)}
 .btn-create:active{transform:scale(.98)}
-
-/* CONFIRM MODAL */
 .confirm-modal{background:var(--white);border-radius:24px 24px 0 0;width:100%;max-width:500px;padding-bottom:calc(20px + var(--safe-bot));box-shadow:var(--shadow-lg)}
-.confirm-modal .modal-head h3{color:var(--coral)}
 .btn-danger{flex:2;padding:14px;border-radius:14px;border:none;background:var(--coral);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:'Nunito',sans-serif}
+
+/* LOADING */
+.loading-screen{position:fixed;inset:0;background:linear-gradient(150deg,#0d5e5c,#157876,#1a9fd4);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:200;transition:opacity .4s}
+.loading-screen.hidden{opacity:0;pointer-events:none}
+.loading-title{font-family:'Playfair Display',serif;font-size:48px;font-weight:800;color:#fff;margin-bottom:8px}
+.loading-sub{font-size:13px;color:rgba(255,255,255,.6);margin-bottom:32px}
+.loading-spinner{width:32px;height:32px;border:3px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
 </style>
 </head>
 <body>
 
+<!-- LOADING -->
+<div class="loading-screen" id="loading">
+  <div class="loading-title">Inkflow</div>
+  <div class="loading-sub">Sincronizzazione in corso…</div>
+  <div class="loading-spinner"></div>
+</div>
+
 <!-- HOME -->
-<div class="screen active" id="screen-home">
+<div class="screen" id="screen-home">
   <div class="home-header">
     <div class="home-title">Inkflow</div>
-    <div class="home-sub">Pipeline · Tracker · Micro-task</div>
+    <div class="home-sub">Pipeline · Tracker · Micro-task <span class="sync-dot" id="sync-dot"></span></div>
   </div>
   <div class="home-scroll" id="home-scroll">
     <div style="height:16px"></div>
@@ -229,10 +237,8 @@ body{background:var(--sand);color:var(--ink);font-family:'Nunito',sans-serif;fon
     <div class="prog-bar"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
     <div class="prog-lbl" id="prog-lbl">0 / 0</div>
   </div>
-
   <div class="proj-scroll">
 
-    <!-- TASK DI STASERA -->
     <div style="margin-bottom:20px;margin-top:4px">
       <div class="sec-label">Task di stasera</div>
       <div class="microtask-box">
@@ -242,10 +248,8 @@ body{background:var(--sand);color:var(--ink);font-family:'Nunito',sans-serif;fon
       </div>
     </div>
 
-    <!-- DEADLINE & VELOCITÀ -->
     <div style="margin-bottom:20px">
       <div class="sec-label">Deadline</div>
-
       <div class="deadline-block">
         <div class="deadline-inner">
           <div class="deadline-row">
@@ -259,7 +263,6 @@ body{background:var(--sand);color:var(--ink);font-family:'Nunito',sans-serif;fon
           <div class="countdown-box" id="countdown-box"></div>
         </div>
       </div>
-
       <div class="velocity-block" id="velocity-block">
         <div class="vel-row" id="vel-stats"></div>
         <div id="vel-alert"></div>
@@ -268,7 +271,6 @@ body{background:var(--sand);color:var(--ink);font-family:'Nunito',sans-serif;fon
       </div>
     </div>
 
-    <!-- PIPELINE -->
     <div class="sec-label">Pipeline</div>
 
     <div class="phase-block" id="ph1">
@@ -293,7 +295,7 @@ body{background:var(--sand);color:var(--ink);font-family:'Nunito',sans-serif;fon
         <div class="phase-chev" id="ph2-chev">▾</div>
       </div>
       <div class="phase-body" id="ph2-body">
-        <div class="step-item" onclick="toggleStep(this)"><div class="step-chk">✓</div><div class="step-cnt"><div class="step-nm">Reference <span class="tag wm">mattina</span></div><div class="step-ds">Ricerca online o street photography. Raccogli tutto il materiale visivo di riferimento per il progetto.</div></div></div>
+        <div class="step-item" onclick="toggleStep(this)"><div class="step-chk">✓</div><div class="step-cnt"><div class="step-nm">Reference <span class="tag wm">mattina</span></div><div class="step-ds">Ricerca online o street photography. Raccogli il materiale visivo di riferimento per il progetto.</div></div></div>
         <div class="step-item" onclick="toggleStep(this)"><div class="step-chk">✓</div><div class="step-cnt"><div class="step-nm">Layouts <span class="tag ws">sera</span></div><div class="step-ds">Composizione vignette e ritmo visivo. Tutte le tavole in sequenza, prima di iniziare la realizzazione.</div></div></div>
       </div>
     </div>
@@ -312,29 +314,26 @@ body{background:var(--sand);color:var(--ink);font-family:'Nunito',sans-serif;fon
       </div>
     </div>
 
-    <!-- SFIDE -->
     <div style="margin-top:8px">
       <div class="sec-label">Sfide visive</div>
       <div id="sfide-list"></div>
       <button class="new-btn" style="margin-top:4px" onclick="addSfida()">+ Aggiungi elemento nuovo</button>
     </div>
 
-    <!-- NOTE -->
     <div style="margin-top:20px">
       <div class="sec-label">Note progetto</div>
       <textarea class="note-area" id="notes" placeholder="Script, dialoghi, riferimenti ad autori, idee…"></textarea>
-      <div class="save-hint">Salvato automaticamente ☁️</div>
+      <div class="save-hint" id="save-hint">Sincronizzato ☁️</div>
     </div>
 
-    <!-- ELIMINA PROGETTO -->
     <div style="margin-top:28px;padding-bottom:8px;text-align:center">
-      <button onclick="confirmDeleteCurrent()" style="background:none;border:1.5px solid var(--sand3);border-radius:12px;padding:12px 24px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:600;color:var(--ink3);cursor:pointer;transition:all .2s">🗑 Elimina progetto</button>
+      <button onclick="confirmDeleteCurrent()" style="background:none;border:1.5px solid var(--sand3);border-radius:12px;padding:12px 24px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:600;color:var(--ink3);cursor:pointer">🗑 Elimina progetto</button>
     </div>
 
   </div>
 </div>
 
-<!-- MODAL NUOVO PROGETTO -->
+<!-- MODAL NUOVO -->
 <div class="modal-overlay" id="modal">
   <div class="modal">
     <div class="modal-handle"></div>
@@ -352,11 +351,11 @@ body{background:var(--sand);color:var(--ink);font-family:'Nunito',sans-serif;fon
   </div>
 </div>
 
-<!-- MODAL CONFERMA ELIMINAZIONE -->
+<!-- MODAL CONFERMA ELIMINA -->
 <div class="modal-overlay" id="confirm-modal">
   <div class="confirm-modal">
     <div class="modal-handle"></div>
-    <div class="modal-head"><h3>Elimina progetto</h3><p id="confirm-text">Sei sicuro? L'operazione non è reversibile.</p></div>
+    <div class="modal-head"><h3 style="color:var(--coral)">Elimina progetto</h3><p id="confirm-text"></p></div>
     <div class="modal-actions" style="padding:0 22px 0">
       <button class="btn-cancel" onclick="closeConfirm()">Annulla</button>
       <button class="btn-danger" id="confirm-ok">Elimina</button>
@@ -365,18 +364,33 @@ body{background:var(--sand);color:var(--ink);font-family:'Nunito',sans-serif;fon
   </div>
 </div>
 
-<script>
-const DB_KEY='inkflow_v1';
-let db={projects:[]};
-let currentId=null;
-let deleteId=null;
+<!-- FIREBASE -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, doc, onSnapshot, setDoc, deleteDoc, serverTimestamp }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-function loadDB(){try{const s=localStorage.getItem(DB_KEY);if(s)db=JSON.parse(s);}catch(e){}}
-function saveDB(){try{localStorage.setItem(DB_KEY,JSON.stringify(db));}catch(e){}}
-function getProject(id){return db.projects.find(p=>p.id===id)}
+const firebaseConfig = {
+  apiKey: "AIzaSyAF5S6pdwlMZ_Lezghu171EpwR2oWW6wbc",
+  authDomain: "inkflow-95f2f.firebaseapp.com",
+  projectId: "inkflow-95f2f",
+  storageBucket: "inkflow-95f2f.firebasestorage.app",
+  messagingSenderId: "323774526281",
+  appId: "1:323774526281:web:a9365b3136435d69e66098"
+};
 
-// Palette colori + emoji per identificare ogni progetto
-const PROJECT_PALETTE=[
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const COL = 'projects';
+
+// ── STATE ──
+let projects = [];
+let currentId = null;
+let deleteId = null;
+let saveTimer = null;
+
+const PHASE_NAMES = ['Sviluppo','Pre-produzione','Realizzazione'];
+const PROJECT_PALETTE = [
   {emoji:'🌊',bg:'#157876',light:'#c8e8ea'},
   {emoji:'🔥',bg:'#e07a5f',light:'#f9ded7'},
   {emoji:'⚡',bg:'#EAA020',light:'#faeac0'},
@@ -387,36 +401,99 @@ const PROJECT_PALETTE=[
   {emoji:'🏔️',bg:'#4a6a8a',light:'#d0e0f0'},
 ];
 
-function newProject(title,numTav){
-  const idx=db.projects.length % PROJECT_PALETTE.length;
-  const pal=PROJECT_PALETTE[idx];
-  return{id:Date.now().toString(),title:title||'Nuovo progetto',numTav:parseInt(numTav)||10,
-    microtask:'',steps:{},tavole:{},sfide:[],notes:'',selectedTav:null,
-    dateStart:'',dateEnd:'',createdAt:new Date().toLocaleDateString('it-IT'),
-    emoji:pal.emoji,color:pal.bg,colorLight:pal.light};
+function syncDot(state){
+  const d = document.getElementById('sync-dot');
+  if(d){d.className='sync-dot '+state;}
+}
+function saveHint(msg){
+  const h = document.getElementById('save-hint');
+  if(h) h.textContent = msg;
 }
 
-/* ── HOME ── */
-const PHASE_NAMES=['Sviluppo','Pre-produzione','Realizzazione'];
+// ── FIRESTORE REALTIME LISTENER ──
+onSnapshot(collection(db, COL), snapshot => {
+  projects = snapshot.docs.map(d => ({id: d.id, ...d.data()}));
+  projects.sort((a,b) => (a.createdAt||0) > (b.createdAt||0) ? 1 : -1);
+  syncDot('ok');
+  renderHome();
+  // if a project is open, refresh it
+  if(currentId){
+    const p = getProject(currentId);
+    if(p) restoreProject(p);
+  }
+  // hide loading
+  const loading = document.getElementById('loading');
+  if(loading && !loading.classList.contains('hidden')){
+    loading.classList.add('hidden');
+    document.getElementById('screen-home').classList.add('active');
+    setTimeout(()=>loading.remove(), 500);
+  }
+}, err => {
+  console.error(err);
+  syncDot('error');
+  // hide loading anyway
+  const loading = document.getElementById('loading');
+  if(loading && !loading.classList.contains('hidden')){
+    loading.classList.add('hidden');
+    document.getElementById('screen-home').classList.add('active');
+  }
+});
 
+function getProject(id){ return projects.find(p => p.id === id); }
+
+async function saveProject(p){
+  syncDot('saving');
+  saveHint('Salvataggio…');
+  try{
+    const {id, ...data} = p;
+    await setDoc(doc(db, COL, id), {...data, updatedAt: serverTimestamp()});
+    syncDot('ok');
+    saveHint('Sincronizzato ☁️');
+  } catch(e){
+    syncDot('error');
+    saveHint('Errore salvataggio');
+    console.error(e);
+  }
+}
+
+function scheduleSave(p){
+  clearTimeout(saveTimer);
+  syncDot('saving');
+  saveTimer = setTimeout(() => saveProject(p), 800);
+}
+
+function newProjectObj(title, numTav){
+  const idx = projects.length % PROJECT_PALETTE.length;
+  const pal = PROJECT_PALETTE[idx];
+  return {
+    id: Date.now().toString(),
+    title: title||'Nuovo progetto',
+    numTav: parseInt(numTav)||10,
+    microtask:'', steps:{}, tavole:{}, sfide:[], notes:'',
+    selectedTav: null, dateStart:'', dateEnd:'',
+    emoji: pal.emoji, color: pal.bg, colorLight: pal.light,
+    createdAt: Date.now()
+  };
+}
+
+// ── HOME ──
 function renderHome(){
-  const scroll=document.getElementById('home-scroll');
-  scroll.querySelectorAll('.project-card').forEach(c=>c.remove());
-  const newBtn=scroll.querySelector('.new-btn');
-  db.projects.forEach(p=>{
-    const pct=calcPct(p);
-    const phIdx=getPhaseIndex(p);
-    const daysLeft=calcDaysLeft(p);
-    const dStr=daysLeft!==null?(daysLeft<0?`${Math.abs(daysLeft)}gg scaduto`:`${daysLeft}gg`):'';
-    // colore progetto — fallback per progetti vecchi
-    const bgColor=p.color||'#157876';
-    const lightColor=p.colorLight||'#c8e8ea';
-    const emoji=p.emoji||'🎨';
-    const card=document.createElement('div');
-    card.className='project-card';
-    card.style.borderLeft=`4px solid ${bgColor}`;
-    card.innerHTML=`
-      <div class="card-dot" style="background:${lightColor};color:${bgColor}">${emoji}</div>
+  const scroll = document.getElementById('home-scroll');
+  scroll.querySelectorAll('.project-card').forEach(c => c.remove());
+  const newBtn = scroll.querySelector('.new-btn');
+  projects.forEach(p => {
+    const pct = calcPct(p);
+    const phIdx = getPhaseIndex(p);
+    const daysLeft = calcDaysLeft(p);
+    const dStr = daysLeft!==null?(daysLeft<0?`${Math.abs(daysLeft)}gg scaduto`:`${daysLeft}gg`):'';
+    const bgColor = p.color||'#157876';
+    const lightColor = p.colorLight||'#c8e8ea';
+    const emoji = p.emoji||'🎨';
+    const card = document.createElement('div');
+    card.className = 'project-card';
+    card.style.borderLeft = `4px solid ${bgColor}`;
+    card.innerHTML = `
+      <div class="card-dot" style="background:${lightColor}">${emoji}</div>
       <div class="card-info">
         <div class="card-title">${p.title}</div>
         <div class="card-meta">${PHASE_NAMES[phIdx]} · ${p.numTav} tavole${dStr?' · ⏱ '+dStr:''}</div>
@@ -424,269 +501,256 @@ function renderHome(){
       <div class="card-right">
         <div class="card-pct" style="color:${bgColor}">${pct}%</div>
       </div>`;
-    card.onclick=()=>openProject(p.id);
-    scroll.insertBefore(card,newBtn);
+    card.onclick = () => openProject(p.id);
+    scroll.insertBefore(card, newBtn);
   });
 }
 
 function goHome(){
   document.getElementById('screen-project').classList.remove('active');
   document.getElementById('screen-home').classList.add('active');
-  renderHome();
 }
 
-/* ── DELETE ── */
-function confirmDelete(e,id){
-  e.stopPropagation();
-  deleteId=id;
-  const p=getProject(id);
-  document.getElementById('confirm-text').textContent=`Eliminare "${p.title}"? L'operazione non è reversibile.`;
-  document.getElementById('confirm-modal').classList.add('open');
-}
-function closeConfirm(){document.getElementById('confirm-modal').classList.remove('open');deleteId=null;}
+// ── DELETE ──
 function confirmDeleteCurrent(){
-  const p=getProject(currentId);if(!p)return;
-  deleteId=currentId;
-  document.getElementById('confirm-text').textContent=`Eliminare "${p.title}"? L'operazione non è reversibile.`;
+  const p = getProject(currentId); if(!p) return;
+  deleteId = currentId;
+  document.getElementById('confirm-text').textContent = `Eliminare "${p.title}"? L'operazione non è reversibile.`;
   document.getElementById('confirm-modal').classList.add('open');
 }
-document.getElementById('confirm-ok').onclick=()=>{
-  if(!deleteId)return;
-  const wasCurrentProject=deleteId===currentId;
-  db.projects=db.projects.filter(p=>p.id!==deleteId);
-  saveDB();closeConfirm();
-  if(wasCurrentProject)goHome();else renderHome();
+function closeConfirm(){ document.getElementById('confirm-modal').classList.remove('open'); deleteId=null; }
+document.getElementById('confirm-ok').onclick = async () => {
+  if(!deleteId) return;
+  const wasCurrentProject = deleteId === currentId;
+  try{
+    await deleteDoc(doc(db, COL, deleteId));
+  } catch(e){ console.error(e); }
+  closeConfirm();
+  if(wasCurrentProject) goHome();
 };
-document.getElementById('confirm-modal').addEventListener('click',e=>{if(e.target===e.currentTarget)closeConfirm()});
+document.getElementById('confirm-modal').addEventListener('click', e => { if(e.target===e.currentTarget) closeConfirm(); });
 
-/* ── MODAL NUOVO ── */
+// ── MODAL NUOVO ──
 function openNewModal(){
   document.getElementById('new-title').value='';
   document.getElementById('new-tav').value='10';
   document.getElementById('modal').classList.add('open');
   setTimeout(()=>document.getElementById('new-title').focus(),200);
 }
-function closeModal(){document.getElementById('modal').classList.remove('open')}
-function createProject(){
-  const title=document.getElementById('new-title').value.trim()||'Nuovo progetto';
-  const tav=document.getElementById('new-tav').value;
-  const p=newProject(title,tav);
-  db.projects.push(p);saveDB();closeModal();openProject(p.id);
+function closeModal(){ document.getElementById('modal').classList.remove('open'); }
+async function createProject(){
+  const title = document.getElementById('new-title').value.trim()||'Nuovo progetto';
+  const tav = document.getElementById('new-tav').value;
+  const p = newProjectObj(title, tav);
+  closeModal();
+  await saveProject(p);
+  openProject(p.id);
 }
-document.getElementById('modal').addEventListener('click',e=>{if(e.target===e.currentTarget)closeModal()});
-document.getElementById('new-title').addEventListener('keydown',e=>{if(e.key==='Enter')createProject()});
+document.getElementById('modal').addEventListener('click', e => { if(e.target===e.currentTarget) closeModal(); });
+document.getElementById('new-title').addEventListener('keydown', e => { if(e.key==='Enter') createProject(); });
 
-/* ── PROJECT ── */
+// ── PROJECT ──
 function openProject(id){
-  currentId=id;
+  currentId = id;
+  const p = getProject(id);
+  if(!p) return;
   document.getElementById('screen-home').classList.remove('active');
   document.getElementById('screen-project').classList.add('active');
-  restoreProject(getProject(id));
+  restoreProject(p);
 }
 
 function restoreProject(p){
-  document.getElementById('proj-title').value=p.title;
-  document.getElementById('meta-tav').textContent=p.numTav;
-  document.getElementById('microtask').value=p.microtask||'';
-  document.getElementById('notes').value=p.notes||'';
-  document.getElementById('date-start').value=p.dateStart||'';
-  document.getElementById('date-end').value=p.dateEnd||'';
-  document.querySelectorAll('.step-item').forEach(el=>{
-    const chk=el.querySelector('.step-chk');
-    const nm=el.querySelector('.step-nm');
-    const key=nm.textContent.trim().slice(0,30);
-    const done=!!(p.steps&&p.steps[key]);
-    chk.classList.toggle('done',done);nm.classList.toggle('done',done);
+  document.getElementById('proj-title').value = p.title||'';
+  document.getElementById('meta-tav').textContent = p.numTav;
+  document.getElementById('microtask').value = p.microtask||'';
+  document.getElementById('notes').value = p.notes||'';
+  document.getElementById('date-start').value = p.dateStart||'';
+  document.getElementById('date-end').value = p.dateEnd||'';
+  document.querySelectorAll('.step-item').forEach(el => {
+    const chk = el.querySelector('.step-chk');
+    const nm = el.querySelector('.step-nm');
+    const key = nm.textContent.trim().slice(0,30);
+    const done = !!(p.steps && p.steps[key]);
+    chk.classList.toggle('done', done);
+    nm.classList.toggle('done', done);
   });
-  renderTavole(p);renderSfide(p);updateProgress(p);renderDeadline(p);renderVelocity(p);
+  renderTavole(p); renderSfide(p); updateProgress(p); renderDeadline(p); renderVelocity(p);
 }
 
 function togglePhase(id){
   const body=document.getElementById(id+'-body');
   const chev=document.getElementById(id+'-chev');
   const open=body.classList.contains('open');
-  body.classList.toggle('open',!open);chev.classList.toggle('open',!open);
+  body.classList.toggle('open',!open); chev.classList.toggle('open',!open);
 }
 
 function toggleStep(el){
-  const p=getProject(currentId);if(!p)return;
-  const chk=el.querySelector('.step-chk');const nm=el.querySelector('.step-nm');
+  const p=getProject(currentId); if(!p) return;
+  const chk=el.querySelector('.step-chk');
+  const nm=el.querySelector('.step-nm');
   const isDone=chk.classList.contains('done');
-  chk.classList.toggle('done',!isDone);nm.classList.toggle('done',!isDone);
+  chk.classList.toggle('done',!isDone); nm.classList.toggle('done',!isDone);
   const key=nm.textContent.trim().slice(0,30);
-  if(!p.steps)p.steps={};p.steps[key]=!isDone;
-  saveDB();updateProgress(p);renderVelocity(p);
+  if(!p.steps) p.steps={};
+  p.steps[key]=!isDone;
+  scheduleSave(p); updateProgress(p);
 }
 
-/* ── TAVOLE ── */
+// ── TAVOLE ──
 const TAV_LABELS=['Matite','Inchiostro','Retini','Balloon','Finita'];
 
 function renderTavole(p){
-  const grid=document.getElementById('tav-grid');grid.innerHTML='';
+  const grid=document.getElementById('tav-grid'); grid.innerHTML='';
   for(let i=1;i<=p.numTav;i++){
     const stage=p.tavole&&p.tavole[i]!=null?p.tavole[i]:0;
     const btn=document.createElement('div');
     btn.className='tav-btn'+(p.selectedTav===i?' sel':'')+(stage>=4?' done-t':'');
     btn.innerHTML=`<div class="tav-n">${i}</div><div class="tav-s">${TAV_LABELS[stage]}</div>`;
-    btn.onclick=()=>selectTav(i);grid.appendChild(btn);
+    btn.onclick=()=>selectTav(i); grid.appendChild(btn);
   }
   renderTavDetail(p);
 }
-function selectTav(n){const p=getProject(currentId);if(!p)return;p.selectedTav=p.selectedTav===n?null:n;saveDB();renderTavole(p);}
+function selectTav(n){
+  const p=getProject(currentId); if(!p) return;
+  p.selectedTav=p.selectedTav===n?null:n;
+  renderTavole(p);
+}
 function renderTavDetail(p){
   const det=document.getElementById('tav-detail');
   if(!p.selectedTav){det.classList.remove('open');return;}
   det.classList.add('open');
   document.getElementById('tav-detail-title').textContent='Tavola '+p.selectedTav;
-  const pills=document.getElementById('tav-pills');pills.innerHTML='';
+  const pills=document.getElementById('tav-pills'); pills.innerHTML='';
   const current=p.tavole&&p.tavole[p.selectedTav]!=null?p.tavole[p.selectedTav]:0;
   TAV_LABELS.forEach((lbl,i)=>{
     const pill=document.createElement('div');
     pill.className='tav-pill'+(i===current?' sel-p':'')+(i<current?' done-p':'');
     pill.textContent=lbl;
-    pill.onclick=()=>{if(!p.tavole)p.tavole={};p.tavole[p.selectedTav]=i;saveDB();renderTavole(p);updateProgress(p);renderVelocity(p);};
+    pill.onclick=()=>{
+      if(!p.tavole) p.tavole={};
+      p.tavole[p.selectedTav]=i;
+      scheduleSave(p); renderTavole(p); updateProgress(p); renderVelocity(p);
+    };
     pills.appendChild(pill);
   });
 }
 
-/* ── SFIDE ── */
+// ── SFIDE ──
 function renderSfide(p){
-  const list=document.getElementById('sfide-list');list.innerHTML='';
+  const list=document.getElementById('sfide-list'); list.innerHTML='';
   (p.sfide||[]).forEach((s,i)=>{
-    const row=document.createElement('div');row.className='sfida-row';
-    row.innerHTML=`<div class="step-chk ${s.done?'done':''}">✓</div><div class="sfida-text ${s.done?'done':''}">${s.text}</div><button class="sfida-ref ${s.ref?'yes':'no'}" onclick="toggleSfidaRef(${i})">${s.ref?'ref ✓':'ref?'}</button><button class="sfida-rm" onclick="removeSfida(${i})">×</button>`;
-    row.querySelector('.step-chk').onclick=()=>toggleSfidaDone(i);
+    const row=document.createElement('div'); row.className='sfida-row';
+    row.innerHTML=`<div class="step-chk ${s.done?'done':''}">✓</div><div class="sfida-text ${s.done?'done':''}">${s.text}</div><button class="sfida-ref ${s.ref?'yes':'no'}" onclick="window._toggleRef(${i})">${s.ref?'ref ✓':'ref?'}</button><button class="sfida-rm" onclick="window._removeSfida(${i})">×</button>`;
+    row.querySelector('.step-chk').onclick=()=>window._toggleSfidaDone(i);
     list.appendChild(row);
   });
 }
-function addSfida(){const p=getProject(currentId);if(!p)return;const text=prompt('Elemento nuovo da disegnare:');if(!text||!text.trim())return;if(!p.sfide)p.sfide=[];p.sfide.push({text:text.trim(),done:false,ref:false});saveDB();renderSfide(p);}
-function toggleSfidaDone(i){const p=getProject(currentId);if(!p||!p.sfide)return;p.sfide[i].done=!p.sfide[i].done;saveDB();renderSfide(p);}
-function toggleSfidaRef(i){const p=getProject(currentId);if(!p||!p.sfide)return;p.sfide[i].ref=!p.sfide[i].ref;saveDB();renderSfide(p);}
-function removeSfida(i){const p=getProject(currentId);if(!p||!p.sfide)return;p.sfide.splice(i,1);saveDB();renderSfide(p);}
+function addSfida(){
+  const p=getProject(currentId); if(!p) return;
+  const text=prompt('Elemento nuovo da disegnare:');
+  if(!text||!text.trim()) return;
+  if(!p.sfide) p.sfide=[];
+  p.sfide.push({text:text.trim(),done:false,ref:false});
+  scheduleSave(p); renderSfide(p);
+}
+window._toggleSfidaDone=i=>{const p=getProject(currentId);if(!p||!p.sfide)return;p.sfide[i].done=!p.sfide[i].done;scheduleSave(p);renderSfide(p);};
+window._toggleRef=i=>{const p=getProject(currentId);if(!p||!p.sfide)return;p.sfide[i].ref=!p.sfide[i].ref;scheduleSave(p);renderSfide(p);};
+window._removeSfida=i=>{const p=getProject(currentId);if(!p||!p.sfide)return;p.sfide.splice(i,1);scheduleSave(p);renderSfide(p);};
 
-/* ── DEADLINE ── */
+// ── DEADLINE ──
 function calcDaysLeft(p){
-  if(!p.dateEnd)return null;
-  const end=new Date(p.dateEnd);const now=new Date();
-  now.setHours(0,0,0,0);end.setHours(0,0,0,0);
+  if(!p.dateEnd) return null;
+  const end=new Date(p.dateEnd); const now=new Date();
+  now.setHours(0,0,0,0); end.setHours(0,0,0,0);
   return Math.round((end-now)/(1000*60*60*24));
 }
 function saveDates(){
-  const p=getProject(currentId);if(!p)return;
+  const p=getProject(currentId); if(!p) return;
   p.dateStart=document.getElementById('date-start').value;
   p.dateEnd=document.getElementById('date-end').value;
-  saveDB();renderDeadline(p);renderVelocity(p);
+  scheduleSave(p); renderDeadline(p); renderVelocity(p);
 }
 function renderDeadline(p){
   const box=document.getElementById('countdown-box');
   const days=calcDaysLeft(p);
   if(days===null){box.innerHTML='<div style="font-size:12px;color:var(--ink3);font-weight:500">Imposta una deadline per vedere il countdown</div>';return;}
   const absDays=Math.abs(days);
-  const weeks=Math.floor(absDays/7);
-  const remDays=absDays%7;
+  const weeks=Math.floor(absDays/7); const remDays=absDays%7;
   const cls=days<0?'urgent':days<14?'warn':'ok';
   const label=days<0?'giorni scaduto':'giorni mancanti';
   box.innerHTML=`
-    <div class="countdown-pill ${cls}">
-      <div class="countdown-num">${absDays}</div>
-      <div class="countdown-unit">${label}</div>
-    </div>
-    <div class="countdown-pill">
-      <div class="countdown-num" style="color:var(--ink2)">${weeks}</div>
-      <div class="countdown-unit">settimane</div>
-    </div>
-    <div class="countdown-pill">
-      <div class="countdown-num" style="color:var(--ink2)">${remDays}</div>
-      <div class="countdown-unit">giorni extra</div>
-    </div>`;
+    <div class="countdown-pill ${cls}"><div class="countdown-num">${absDays}</div><div class="countdown-unit">${label}</div></div>
+    <div class="countdown-pill"><div class="countdown-num" style="color:var(--ink2)">${weeks}</div><div class="countdown-unit">settimane</div></div>
+    <div class="countdown-pill"><div class="countdown-num" style="color:var(--ink2)">${remDays}</div><div class="countdown-unit">giorni extra</div></div>`;
 }
 
-/* ── VELOCITY ── */
+// ── VELOCITY ──
 function calcVelocity(p){
   const tavDone=Object.values(p.tavole||{}).filter(v=>v>=4).length;
-  if(!p.dateStart)return{tavDone,weeksElapsed:0,actual:0,needed:null,target:null};
-  const start=new Date(p.dateStart);const now=new Date();
+  if(!p.dateStart) return{tavDone,weeksElapsed:0,actual:0,needed:null};
+  const start=new Date(p.dateStart); const now=new Date();
   const weeksElapsed=Math.max(1,Math.round((now-start)/(1000*60*60*24*7)));
   const actual=+(tavDone/weeksElapsed).toFixed(1);
   let needed=null;
   if(p.dateEnd){
     const end=new Date(p.dateEnd);
     const weeksLeft=Math.max(0.5,Math.round((end-now)/(1000*60*60*24*7)));
-    const remaining=p.numTav-tavDone;
-    needed=+(remaining/weeksLeft).toFixed(1);
+    needed=+((p.numTav-tavDone)/weeksLeft).toFixed(1);
   }
-  return{tavDone,weeksElapsed,actual,needed,target:2};
+  return{tavDone,weeksElapsed,actual,needed};
 }
-
 function renderVelocity(p){
   const v=calcVelocity(p);
-  // stats
-  const statsEl=document.getElementById('vel-stats');
   const cls=v.actual>=2?'good':v.actual>=1?'warn':'bad';
   const neededHtml=v.needed!==null?`<div class="vel-stat"><div class="vel-num ${v.needed>3?'bad':v.needed>2?'warn':'good'}">${v.needed}</div><div class="vel-unit">tav/sett necessarie</div></div>`:'';
-  statsEl.innerHTML=`
+  document.getElementById('vel-stats').innerHTML=`
     <div class="vel-stat"><div class="vel-num">${v.tavDone}</div><div class="vel-unit">tavole finite</div></div>
     <div class="vel-stat"><div class="vel-num ${cls}">${v.actual}</div><div class="vel-unit">tav/sett media</div></div>
     <div class="vel-stat"><div class="vel-num">${p.numTav-v.tavDone}</div><div class="vel-unit">rimanenti</div></div>
     ${neededHtml}`;
-  // alert
   const alertEl=document.getElementById('vel-alert');
   if(v.needed!==null){
     const diff=v.needed-v.actual;
-    if(diff<=0){alertEl.innerHTML=`<div class="vel-alert ok">✅ Sei in anticipo — ritmo attuale sufficiente per la deadline.</div>`;}
-    else if(diff<=1){alertEl.innerHTML=`<div class="vel-alert warn">⚠️ Devi aumentare il ritmo di circa ${diff.toFixed(1)} tav/sett per rispettare la deadline.</div>`;}
-    else{alertEl.innerHTML=`<div class="vel-alert bad">🔴 Sei in ritardo di ${diff.toFixed(1)} tav/sett. Valuta di spostare la deadline o aumentare il ritmo.</div>`;}
-  }else{alertEl.innerHTML='';}
-  // chart
+    if(diff<=0) alertEl.innerHTML=`<div class="vel-alert ok">✅ Sei in anticipo — ritmo attuale sufficiente per la deadline.</div>`;
+    else if(diff<=1) alertEl.innerHTML=`<div class="vel-alert warn">⚠️ Devi aumentare il ritmo di ${diff.toFixed(1)} tav/sett per rispettare la deadline.</div>`;
+    else alertEl.innerHTML=`<div class="vel-alert bad">🔴 Sei in ritardo di ${diff.toFixed(1)} tav/sett. Valuta di spostare la deadline.</div>`;
+  } else { alertEl.innerHTML=''; }
   drawChart(p,v);
 }
-
 function drawChart(p,v){
   const canvas=document.getElementById('chart-canvas');
-  const wrap=canvas.parentElement;
-  const W=Math.max(wrap.clientWidth-4,300);
-  const H=80;
-  canvas.width=W;canvas.height=H;
+  const W=Math.max(canvas.parentElement.clientWidth-4,280);
+  const H=80; canvas.width=W; canvas.height=H;
   const ctx=canvas.getContext('2d');
   ctx.clearRect(0,0,W,H);
-  const total=p.numTav;
-  const done=v.tavDone;
-  const barH=20;const barY=(H-barH)/2;
-  // background
-  ctx.fillStyle='#ede0c4';
-  ctx.beginPath();ctx.roundRect(0,barY,W,barH,10);ctx.fill();
-  // progress
-  if(done>0){
-    const pw=Math.round((done/total)*W);
+  const barH=20; const barY=(H-barH)/2;
+  ctx.fillStyle='#e8d9b8';
+  ctx.beginPath(); ctx.roundRect(0,barY,W,barH,10); ctx.fill();
+  if(v.tavDone>0){
+    const pw=Math.round((v.tavDone/p.numTav)*W);
     const grad=ctx.createLinearGradient(0,0,pw,0);
-    grad.addColorStop(0,'#e07a5f');grad.addColorStop(1,'#d4a853');
+    grad.addColorStop(0,'#e07a5f'); grad.addColorStop(1,'#EAA020');
     ctx.fillStyle=grad;
-    ctx.beginPath();ctx.roundRect(0,barY,pw,barH,10);ctx.fill();
+    ctx.beginPath(); ctx.roundRect(0,barY,pw,barH,10); ctx.fill();
   }
-  // target line (based on deadline)
   if(p.dateStart&&p.dateEnd){
-    const start=new Date(p.dateStart);const end=new Date(p.dateEnd);const now=new Date();
-    const totalMs=end-start;const elapsedMs=now-start;
-    const pct=Math.min(1,Math.max(0,elapsedMs/totalMs));
+    const start=new Date(p.dateStart); const end=new Date(p.dateEnd); const now=new Date();
+    const pct=Math.min(1,Math.max(0,(now-start)/(end-start)));
     const tx=Math.round(pct*W);
-    // clamp label so it never clips at edges
-    const labelW=28;
-    const labelX=Math.min(Math.max(tx,labelW/2+2),W-labelW/2-2);
-    ctx.strokeStyle='#4a9fa5';ctx.lineWidth=2;ctx.setLineDash([4,3]);
-    ctx.beginPath();ctx.moveTo(tx,barY-6);ctx.lineTo(tx,barY+barH+6);ctx.stroke();
+    const lx=Math.min(Math.max(tx,16),W-16);
+    ctx.strokeStyle='#157876'; ctx.lineWidth=2; ctx.setLineDash([4,3]);
+    ctx.beginPath(); ctx.moveTo(tx,barY-6); ctx.lineTo(tx,barY+barH+6); ctx.stroke();
     ctx.setLineDash([]);
-    ctx.fillStyle='#4a9fa5';ctx.font='bold 10px sans-serif';ctx.textAlign='center';
-    ctx.fillText('oggi',labelX,barY-8);
+    ctx.fillStyle='#157876'; ctx.font='bold 10px sans-serif'; ctx.textAlign='center';
+    ctx.fillText('oggi',lx,barY-9);
   }
-  // labels
-  ctx.fillStyle='#3d3530';ctx.font='bold 11px Nunito,sans-serif';ctx.textAlign='left';
-  ctx.fillText(`${done} / ${total} tavole`,4,barY+barH+16);
-  ctx.textAlign='right';
-  ctx.fillStyle='#b0a090';
-  ctx.fillText(`${Math.round((done/total)*100)}%`,W-2,barY+barH+16);
+  ctx.fillStyle='#2a2018'; ctx.font='bold 11px sans-serif'; ctx.textAlign='left';
+  ctx.fillText(`${v.tavDone} / ${p.numTav} tavole`,4,barY+barH+16);
+  ctx.textAlign='right'; ctx.fillStyle='#a89880';
+  ctx.fillText(`${Math.round((v.tavDone/p.numTav)*100)}%`,W-2,barY+barH+16);
 }
 
-/* ── PROGRESS ── */
+// ── PROGRESS ──
 function calcPct(p){
   const total=5+(p.numTav||10);
   let done=Object.values(p.steps||{}).filter(Boolean).length;
@@ -710,16 +774,18 @@ function updateProgress(p){
   document.getElementById('ph3-badge').textContent=tavDone===p.numTav?'completata ✓':ph1d===3&&ph2d===2?'in corso':'non iniziata';
 }
 
-/* ── EVENTS ── */
-document.getElementById('proj-title').addEventListener('input',e=>{const p=getProject(currentId);if(!p)return;p.title=e.target.value;saveDB();});
-document.getElementById('microtask').addEventListener('input',e=>{const p=getProject(currentId);if(!p)return;p.microtask=e.target.value;saveDB();});
-document.getElementById('notes').addEventListener('input',e=>{const p=getProject(currentId);if(!p)return;p.notes=e.target.value;saveDB();});
+// ── EVENTS ──
+document.getElementById('proj-title').addEventListener('input',e=>{const p=getProject(currentId);if(!p)return;p.title=e.target.value;scheduleSave(p);});
+document.getElementById('microtask').addEventListener('input',e=>{const p=getProject(currentId);if(!p)return;p.microtask=e.target.value;scheduleSave(p);});
+document.getElementById('notes').addEventListener('input',e=>{const p=getProject(currentId);if(!p)return;p.notes=e.target.value;scheduleSave(p);});
 
-/* ── INIT ── */
-loadDB();
-if(db.projects.length===0){db.projects.push(newProject('Primo progetto',10));saveDB();}
-renderHome();
-if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js').catch(()=>{});}
+// ── EXPOSE GLOBALS ──
+window.openNewModal=openNewModal; window.closeModal=closeModal; window.createProject=createProject;
+window.goHome=goHome; window.openProject=openProject; window.togglePhase=togglePhase;
+window.toggleStep=toggleStep; window.selectTav=selectTav; window.addSfida=addSfida;
+window.saveDates=saveDates; window.confirmDeleteCurrent=confirmDeleteCurrent; window.closeConfirm=closeConfirm;
+
+if('serviceWorker' in navigator){ navigator.serviceWorker.register('./sw.js').catch(()=>{}); }
 </script>
 </body>
 </html>
