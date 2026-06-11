@@ -43,10 +43,10 @@ body{background:var(--sand);color:var(--ink);font-family:'Nunito',sans-serif;fon
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 
 /* HOME */
-#screen-home .home-header{background:var(--white);padding:calc(24px + var(--safe-top)) 24px 14px;position:relative;overflow:hidden;flex-shrink:0;border-radius:0 0 28px 28px;border-bottom:3px solid var(--sky);display:flex;flex-direction:column}
+#screen-home .home-header{background:var(--white);padding:calc(24px + var(--safe-top)) 24px 10px;position:relative;overflow:hidden;flex-shrink:0;border-radius:0 0 28px 28px;border-bottom:3px solid var(--sky);display:flex;flex-direction:column;justify-content:space-between}
 .home-header::before{content:'';position:absolute;top:0;left:0;right:0;height:5px;background:linear-gradient(90deg,var(--coral),var(--gold),var(--green),var(--sky))}
-.home-title{font-size:46px;font-weight:400;color:var(--ink);letter-spacing:-.01em;font-family:'Castoro',serif;line-height:1.0;flex:1}
-.home-sub{font-size:10px;color:var(--ink3);margin-top:6px;font-weight:400;letter-spacing:.1em;text-transform:lowercase;align-self:flex-start}
+.home-title{font-size:46px;font-weight:700;color:var(--ink);letter-spacing:-.01em;font-family:'Castoro',serif;line-height:1.0}
+.home-sub{font-size:9px;color:var(--ink3);margin-top:4px;margin-bottom:2px;font-weight:400;letter-spacing:.12em;text-transform:lowercase;align-self:flex-start}
 .home-scroll{flex:1;overflow-y:auto;padding:20px 18px calc(20px + var(--safe-bot))}
 .project-card{background:var(--white);border-radius:var(--r);padding:16px;margin-bottom:12px;cursor:pointer;box-shadow:var(--shadow);display:flex;align-items:center;gap:14px;border:1.5px solid var(--sand2);transition:border-color .2s,box-shadow .2s}
 .project-card:active{border-color:var(--coral);box-shadow:var(--shadow-lg)}
@@ -240,7 +240,7 @@ body{background:var(--sand);color:var(--ink);font-family:'Nunito',sans-serif;fon
 <div class="screen" id="screen-home">
   <div class="home-header">
     <div class="home-title">Inkflow</div>
-    <div class="home-sub">pipeline · tracker · micro-task <span class="sync-dot" id="sync-dot"></span></div>
+    <div class="home-sub">pipeline · tavole · inchiostro <span class="sync-dot" id="sync-dot"></span></div>
   </div>
   <div class="home-scroll" id="home-scroll">
     <div style="height:16px"></div>
