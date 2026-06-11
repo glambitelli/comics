@@ -73,75 +73,86 @@ onSnapshot(collection(db, COL), snapshot => {
 
 function getProject(id){ return projects.find(p => p.id === id); }
 
-// ── GEM DRAWING (PS1 style) ──
+// ── GEM DRAWING — pietra grezza incastonata, stile Legend of Dragoon ──
 function drawGem(canvas, hex){
-  const s=canvas.width; // 76px logical
+  const s=canvas.width;
   const ctx=canvas.getContext('2d');
-  const cx=s/2, cy=s/2, r=s/2-2;
-
-  // Base gem color layers
+  const cx=s/2, cy=s/2, r=s/2-1;
   const {r:cr,g:cg,b:cb}=hexToRgb(hex);
 
-  // Outer ring — dark stone/metal bezel
+  // Incastonatura in pietra — bordo irregolare scuro, non metallico
   ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2);
-  const bezel=ctx.createRadialGradient(cx,cy,r*0.7,cx,cy,r);
-  bezel.addColorStop(0,'rgba(0,0,0,0)');
-  bezel.addColorStop(0.85,`rgba(${Math.max(0,cr-60)},${Math.max(0,cg-60)},${Math.max(0,cb-60)},.6)`);
-  bezel.addColorStop(1,'rgba(0,0,0,.8)');
-  ctx.fillStyle=bezel; ctx.fill();
+  const stone=ctx.createRadialGradient(cx-r*.1,cy-r*.1,r*.55,cx,cy,r);
+  stone.addColorStop(0,'rgba(0,0,0,0)');
+  stone.addColorStop(0.72,`rgba(${Math.max(0,cr-90)},${Math.max(0,cg-90)},${Math.max(0,cb-90)},.55)`);
+  stone.addColorStop(0.88,`rgba(${Math.max(0,cr-120)},${Math.max(0,cg-120)},${Math.max(0,cb-120)},.85)`);
+  stone.addColorStop(1,'rgba(20,14,8,.95)');
+  ctx.fillStyle=stone; ctx.fill();
 
-  // Main gem body
-  ctx.beginPath(); ctx.arc(cx,cy,r*0.82,0,Math.PI*2);
-  const body=ctx.createRadialGradient(cx-r*0.2,cy-r*0.2,0,cx,cy,r*0.82);
-  body.addColorStop(0,`rgba(${Math.min(255,cr+80)},${Math.min(255,cg+80)},${Math.min(255,cb+80)},1)`);
-  body.addColorStop(0.4,`rgba(${cr},${cg},${cb},1)`);
-  body.addColorStop(1,`rgba(${Math.max(0,cr-80)},${Math.max(0,cg-80)},${Math.max(0,cb-80)},1)`);
+  // Corpo gemma — colore profondo, non saturato, con variazione interna irregolare
+  const gr=r*0.76;
+  ctx.beginPath(); ctx.arc(cx,cy,gr,0,Math.PI*2);
+  const body=ctx.createRadialGradient(cx-gr*.25,cy-gr*.3,gr*.05,cx+gr*.1,cy+gr*.1,gr);
+  body.addColorStop(0,`rgb(${Math.min(255,cr+55)},${Math.min(255,cg+45)},${Math.min(255,cb+35)})`);
+  body.addColorStop(0.35,`rgb(${cr},${cg},${cb})`);
+  body.addColorStop(0.7,`rgb(${Math.max(0,cr-45)},${Math.max(0,cg-45)},${Math.max(0,cb-40)})`);
+  body.addColorStop(1,`rgb(${Math.max(0,cr-90)},${Math.max(0,cg-85)},${Math.max(0,cb-75)})`);
   ctx.fillStyle=body; ctx.fill();
 
-  // Facet lines — PS1 gem angular cuts
-  ctx.strokeStyle=`rgba(255,255,255,.18)`;
-  ctx.lineWidth=1;
-  const facets=6;
-  for(let i=0;i<facets;i++){
-    const angle=(i/facets)*Math.PI*2;
+  // Faccette — tagli geometrici stile gemma medievale, non troppo precisi
+  const nf=8;
+  ctx.save();
+  ctx.beginPath(); ctx.arc(cx,cy,gr,0,Math.PI*2); ctx.clip();
+  for(let i=0;i<nf;i++){
+    const a=(i/nf)*Math.PI*2 - Math.PI/nf;
+    const a2=((i+1)/nf)*Math.PI*2 - Math.PI/nf;
+    const mid=(a+a2)/2;
+    // ogni faccetta alterna luce e ombra in modo irregolare
+    const even=i%2===0;
     ctx.beginPath();
     ctx.moveTo(cx,cy);
-    ctx.lineTo(cx+Math.cos(angle)*r*0.78, cy+Math.sin(angle)*r*0.78);
-    ctx.stroke();
-  }
-
-  // Dark facet shadows
-  ctx.strokeStyle=`rgba(0,0,0,.12)`;
-  ctx.lineWidth=1;
-  for(let i=0;i<facets;i++){
-    const a1=(i/facets)*Math.PI*2;
-    const a2=((i+1)/facets)*Math.PI*2;
+    ctx.lineTo(cx+Math.cos(a)*gr, cy+Math.sin(a)*gr);
+    ctx.lineTo(cx+Math.cos(mid)*gr*1.02, cy+Math.sin(mid)*gr*1.02);
+    ctx.lineTo(cx+Math.cos(a2)*gr, cy+Math.sin(a2)*gr);
+    ctx.closePath();
+    ctx.fillStyle=even
+      ? `rgba(0,0,0,${.10+Math.abs(Math.sin(i*1.7))*.08})`
+      : `rgba(255,255,255,${.04+Math.abs(Math.cos(i*1.3))*.05})`;
+    ctx.fill();
+    // linea di separazione faccetta — sottile, come un'incisione
     ctx.beginPath();
-    ctx.moveTo(cx+Math.cos(a1)*r*0.4, cy+Math.sin(a1)*r*0.4);
-    ctx.lineTo(cx+Math.cos(a1)*r*0.78, cy+Math.sin(a1)*r*0.78);
-    ctx.lineTo(cx+Math.cos(a2)*r*0.78, cy+Math.sin(a2)*r*0.78);
+    ctx.moveTo(cx,cy);
+    ctx.lineTo(cx+Math.cos(a)*gr, cy+Math.sin(a)*gr);
+    ctx.strokeStyle='rgba(0,0,0,.22)';
+    ctx.lineWidth=.7;
     ctx.stroke();
   }
+  ctx.restore();
 
-  // Outer ring detail (tribal/stone texture suggestion)
-  ctx.beginPath(); ctx.arc(cx,cy,r*0.86,0,Math.PI*2);
-  ctx.strokeStyle=`rgba(${Math.min(255,cr+40)},${Math.min(255,cg+40)},${Math.min(255,cb+40)},.3)`;
-  ctx.lineWidth=1.5; ctx.stroke();
+  // Striatura interna — come venature nella pietra
+  ctx.save();
+  ctx.beginPath(); ctx.arc(cx,cy,gr*.9,0,Math.PI*2); ctx.clip();
+  for(let i=0;i<3;i++){
+    const ang=-0.6+i*.5;
+    ctx.beginPath();
+    ctx.moveTo(cx+Math.cos(ang)*gr*.1, cy+Math.sin(ang)*gr*.1);
+    ctx.lineTo(cx+Math.cos(ang+Math.PI)*gr*.65, cy+Math.sin(ang+Math.PI)*gr*.65);
+    ctx.strokeStyle=`rgba(255,255,255,${.06-.015*i})`;
+    ctx.lineWidth=1.5-i*.3;
+    ctx.stroke();
+  }
+  ctx.restore();
 
-  // Main highlight — top-left glint
-  const hi=ctx.createRadialGradient(cx-r*0.28,cy-r*0.3,0,cx-r*0.28,cy-r*0.3,r*0.38);
-  hi.addColorStop(0,'rgba(255,255,255,.75)');
-  hi.addColorStop(0.5,'rgba(255,255,255,.2)');
+  // Riflesso opaco — non un punto luminoso ma una zona più chiara, come cera
+  const hx=cx-gr*.22, hy=cy-gr*.26;
+  const hi=ctx.createRadialGradient(hx,hy,0,hx,hy,gr*.42);
+  hi.addColorStop(0,`rgba(255,252,240,.32)`);
+  hi.addColorStop(0.6,`rgba(255,248,220,.08)`);
   hi.addColorStop(1,'rgba(255,255,255,0)');
-  ctx.beginPath(); ctx.arc(cx,cy,r*0.82,0,Math.PI*2);
-  ctx.fillStyle=hi; ctx.fill();
-
-  // Small secondary glint bottom-right
-  const hi2=ctx.createRadialGradient(cx+r*0.3,cy+r*0.32,0,cx+r*0.3,cy+r*0.32,r*0.18);
-  hi2.addColorStop(0,'rgba(255,255,255,.4)');
-  hi2.addColorStop(1,'rgba(255,255,255,0)');
-  ctx.beginPath(); ctx.arc(cx,cy,r*0.82,0,Math.PI*2);
-  ctx.fillStyle=hi2; ctx.fill();
+  ctx.save();
+  ctx.beginPath(); ctx.arc(cx,cy,gr,0,Math.PI*2); ctx.clip();
+  ctx.fillStyle=hi; ctx.fillRect(0,0,s,s);
+  ctx.restore();
 }
 function hexToRgb(hex){
   const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
