@@ -50,7 +50,7 @@ body{background:var(--sand);color:var(--ink);font-family:'Nunito',sans-serif;fon
 .home-scroll{flex:1;overflow-y:auto;padding:20px 18px calc(20px + var(--safe-bot))}
 .project-card{background:var(--white);border-radius:var(--r);padding:16px;margin-bottom:12px;cursor:pointer;box-shadow:var(--shadow);display:flex;align-items:center;gap:14px;border:1.5px solid var(--sand2);transition:border-color .2s,box-shadow .2s}
 .project-card:active{border-color:var(--coral);box-shadow:var(--shadow-lg)}
-.card-dot{width:36px;height:36px;border-radius:50%;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+.card-dot{width:38px;height:38px;border-radius:50%;flex-shrink:0;position:relative;border:2px solid rgba(0,0,0,.18);box-shadow:0 2px 6px rgba(0,0,0,.25),inset 0 1px 2px rgba(255,255,255,.35),inset 0 -2px 4px rgba(0,0,0,.25)}
 .card-info{flex:1;min-width:0}
 .card-title{font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink)}
 .card-meta{font-size:12px;color:var(--ink3);margin-top:2px;font-weight:500}
@@ -141,7 +141,31 @@ body{background:var(--sand);color:var(--ink);font-family:'Nunito',sans-serif;fon
 .we{background:var(--green-pale);color:#2a6a2a}
 .phase-tip{margin:4px 16px 14px;background:var(--gold-pale);border-left:3px solid var(--gold);padding:9px 12px;border-radius:0 8px 8px 0;font-size:12px;color:var(--ink2);line-height:1.55;font-weight:500}
 
-/* TAVOLE */
+/* STORY FIELDS */
+.story-field{background:var(--white);border-radius:var(--r);margin-bottom:12px;overflow:hidden;box-shadow:var(--shadow);border:1.5px solid var(--sand2)}
+.story-field-header{display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;transition:background .15s}
+.story-field-header:active{background:var(--sand)}
+.story-field-body{border-top:1.5px solid var(--sand2);padding:14px 16px;display:none}
+.story-field-body.open{display:block}
+.story-textarea{width:100%;background:var(--sand);border:1.5px solid var(--sand3);border-radius:10px;padding:12px;font-family:'Nunito',sans-serif;font-size:13px;color:var(--ink);resize:none;outline:none;line-height:1.65;transition:border-color .2s}
+.story-textarea:focus{border-color:var(--sky)}
+.char-count{font-size:10px;color:var(--ink3);text-align:right;margin-top:4px;font-weight:600}
+/* 3-ACT BOARD */
+.act-board{display:flex;flex-direction:column;gap:10px}
+.act-col{border-radius:10px;overflow:hidden;border:1.5px solid var(--sand3)}
+.act-col-header{padding:8px 12px;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;display:flex;align-items:center;justify-content:space-between}
+.act-col-body{padding:8px;display:flex;flex-direction:column;gap:6px;min-height:48px}
+.scene-card{background:var(--white);border-radius:8px;padding:9px 10px;font-size:12px;color:var(--ink);line-height:1.5;border:1px solid var(--sand2);display:flex;gap:8px;align-items:flex-start;cursor:grab}
+.scene-card.dragging{opacity:.4}
+.scene-handle{color:var(--ink3);font-size:14px;cursor:grab;flex-shrink:0;padding-top:1px;user-select:none}
+.scene-text{flex:1;outline:none;font-family:'Nunito',sans-serif;font-size:12px;color:var(--ink);background:transparent;border:none;resize:none;line-height:1.5;min-height:18px}
+.scene-del{color:var(--ink3);font-size:14px;cursor:pointer;flex-shrink:0;background:none;border:none;padding:0;line-height:1}
+.scene-del:active{color:var(--coral)}
+.add-scene-btn{width:100%;padding:7px;border-radius:7px;border:1.5px dashed var(--sand3);background:transparent;font-family:'Nunito',sans-serif;font-size:12px;color:var(--ink3);cursor:pointer;transition:border-color .15s,color .15s}
+.add-scene-btn:active{border-color:var(--sky);color:var(--sky-deep)}
+.plot-point-divider{display:flex;align-items:center;gap:8px;padding:4px 0}
+.plot-point-divider::before,.plot-point-divider::after{content:'';flex:1;height:1.5px;background:var(--coral);opacity:.5}
+.plot-point-label{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--coral);white-space:nowrap}
 .tav-hint{font-size:12px;color:var(--ink3);padding:12px 16px 6px;font-weight:500}
 .tav-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:8px;padding:6px 16px 14px}
 .tav-btn{aspect-ratio:3/4;border-radius:12px;border:2px solid var(--sand2);background:var(--sand);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;transition:all .2s}
@@ -284,8 +308,21 @@ body{background:var(--sand);color:var(--ink);font-family:'Nunito',sans-serif;fon
       </div>
       <div class="phase-body open" id="ph1-body">
         <div class="step-item" onclick="toggleStep(this)"><div class="step-chk">✓</div><div class="step-cnt"><div class="step-nm">Moodboard visiva <span class="tag wm">mattina</span></div><div class="step-ds">Immagini che catturano l'atmosfera. Il "colore emotivo" della storia prima di scrivere.</div></div></div>
-        <div class="step-item" onclick="toggleStep(this)"><div class="step-chk">✓</div><div class="step-cnt"><div class="step-nm">Soggetto <span class="tag wm">mattina</span></div><div class="step-ds">Chi è il protagonista, cosa vuole, cosa glielo impedisce, come finisce. Max mezza pagina.</div></div></div>
-        <div class="step-item" onclick="toggleStep(this)"><div class="step-chk">✓</div><div class="step-cnt"><div class="step-nm">Struttura a 3 atti <span class="tag wm">mattina</span></div><div class="step-ds">Atto 1 (pp. 1–2) · Atto 2 (pp. 3–8) · Atto 3 (pp. 9–10). Assegna le pagine.</div></div></div>
+
+        <!-- SOGGETTO -->
+        <div class="step-item" onclick="toggleStep(this)" id="step-soggetto"><div class="step-chk">✓</div><div class="step-cnt"><div class="step-nm">Soggetto <span class="tag wm">mattina</span></div><div class="step-ds">Chi è il protagonista, cosa vuole, cosa glielo impedisce, come finisce.</div></div></div>
+        <div style="padding:0 16px 12px" id="soggetto-wrap">
+          <textarea class="story-textarea" id="soggetto-text" rows="5" maxlength="800" placeholder="Scrivi il soggetto qui — chi è il protagonista, cosa vuole, cosa glielo impedisce, come finisce. Max 800 caratteri." oninput="saveStoryField('soggetto',this.value);updateCharCount('soggetto-count',this.value,800)"></textarea>
+          <div class="char-count" id="soggetto-count">0 / 800</div>
+        </div>
+
+        <!-- STRUTTURA 3 ATTI -->
+        <div class="step-item" onclick="toggleStep(this)" id="step-struttura"><div class="step-chk">✓</div><div class="step-cnt"><div class="step-nm">Struttura a 3 atti <span class="tag wm">mattina</span></div><div class="step-ds">Setup → Plot Point 1 → Confrontation → Plot Point 2 → Resolution.</div></div></div>
+        <div style="padding:0 16px 14px" id="struttura-wrap">
+          <div class="act-board" id="act-board">
+            <!-- rendered by JS -->
+          </div>
+        </div>
       </div>
     </div>
 
@@ -444,7 +481,76 @@ onSnapshot(collection(db, COL), snapshot => {
 
 function getProject(id){ return projects.find(p => p.id === id); }
 
-// ── COLOR HELPERS ──
+// ── GEM DRAWING (PS1 style) ──
+function drawGem(canvas, hex){
+  const s=canvas.width; // 76px logical
+  const ctx=canvas.getContext('2d');
+  const cx=s/2, cy=s/2, r=s/2-2;
+
+  // Base gem color layers
+  const {r:cr,g:cg,b:cb}=hexToRgb(hex);
+
+  // Outer ring — dark stone/metal bezel
+  ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2);
+  const bezel=ctx.createRadialGradient(cx,cy,r*0.7,cx,cy,r);
+  bezel.addColorStop(0,'rgba(0,0,0,0)');
+  bezel.addColorStop(0.85,`rgba(${Math.max(0,cr-60)},${Math.max(0,cg-60)},${Math.max(0,cb-60)},.6)`);
+  bezel.addColorStop(1,'rgba(0,0,0,.8)');
+  ctx.fillStyle=bezel; ctx.fill();
+
+  // Main gem body
+  ctx.beginPath(); ctx.arc(cx,cy,r*0.82,0,Math.PI*2);
+  const body=ctx.createRadialGradient(cx-r*0.2,cy-r*0.2,0,cx,cy,r*0.82);
+  body.addColorStop(0,`rgba(${Math.min(255,cr+80)},${Math.min(255,cg+80)},${Math.min(255,cb+80)},1)`);
+  body.addColorStop(0.4,`rgba(${cr},${cg},${cb},1)`);
+  body.addColorStop(1,`rgba(${Math.max(0,cr-80)},${Math.max(0,cg-80)},${Math.max(0,cb-80)},1)`);
+  ctx.fillStyle=body; ctx.fill();
+
+  // Facet lines — PS1 gem angular cuts
+  ctx.strokeStyle=`rgba(255,255,255,.18)`;
+  ctx.lineWidth=1;
+  const facets=6;
+  for(let i=0;i<facets;i++){
+    const angle=(i/facets)*Math.PI*2;
+    ctx.beginPath();
+    ctx.moveTo(cx,cy);
+    ctx.lineTo(cx+Math.cos(angle)*r*0.78, cy+Math.sin(angle)*r*0.78);
+    ctx.stroke();
+  }
+
+  // Dark facet shadows
+  ctx.strokeStyle=`rgba(0,0,0,.12)`;
+  ctx.lineWidth=1;
+  for(let i=0;i<facets;i++){
+    const a1=(i/facets)*Math.PI*2;
+    const a2=((i+1)/facets)*Math.PI*2;
+    ctx.beginPath();
+    ctx.moveTo(cx+Math.cos(a1)*r*0.4, cy+Math.sin(a1)*r*0.4);
+    ctx.lineTo(cx+Math.cos(a1)*r*0.78, cy+Math.sin(a1)*r*0.78);
+    ctx.lineTo(cx+Math.cos(a2)*r*0.78, cy+Math.sin(a2)*r*0.78);
+    ctx.stroke();
+  }
+
+  // Outer ring detail (tribal/stone texture suggestion)
+  ctx.beginPath(); ctx.arc(cx,cy,r*0.86,0,Math.PI*2);
+  ctx.strokeStyle=`rgba(${Math.min(255,cr+40)},${Math.min(255,cg+40)},${Math.min(255,cb+40)},.3)`;
+  ctx.lineWidth=1.5; ctx.stroke();
+
+  // Main highlight — top-left glint
+  const hi=ctx.createRadialGradient(cx-r*0.28,cy-r*0.3,0,cx-r*0.28,cy-r*0.3,r*0.38);
+  hi.addColorStop(0,'rgba(255,255,255,.75)');
+  hi.addColorStop(0.5,'rgba(255,255,255,.2)');
+  hi.addColorStop(1,'rgba(255,255,255,0)');
+  ctx.beginPath(); ctx.arc(cx,cy,r*0.82,0,Math.PI*2);
+  ctx.fillStyle=hi; ctx.fill();
+
+  // Small secondary glint bottom-right
+  const hi2=ctx.createRadialGradient(cx+r*0.3,cy+r*0.32,0,cx+r*0.3,cy+r*0.32,r*0.18);
+  hi2.addColorStop(0,'rgba(255,255,255,.4)');
+  hi2.addColorStop(1,'rgba(255,255,255,0)');
+  ctx.beginPath(); ctx.arc(cx,cy,r*0.82,0,Math.PI*2);
+  ctx.fillStyle=hi2; ctx.fill();
+}
 function hexToRgb(hex){
   const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
   return{r,g,b};
@@ -515,8 +621,30 @@ function exportPDF(){
       </div>`).join('')}
     </div>` : '';
 
-  // Notes
-  const notesHTML = p.notes ? `
+  // Soggetto
+  const soggettoHTML = p.story&&p.story.soggetto ? `
+    <div style="margin-bottom:20px">
+      <div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#888;margin-bottom:8px;padding-bottom:4px;border-bottom:2px solid ${color}">Soggetto</div>
+      <div style="font-size:13px;color:#444;line-height:1.7;white-space:pre-wrap">${p.story.soggetto}</div>
+    </div>` : '';
+
+  // 3-act structure
+  const acts=p.story&&p.story.acts;
+  const actColors={setup:'#4ab8d8',confrontation:'#f0c020',resolution:'#48a848'};
+  const actLabels={setup:'Setup',confrontation:'Confrontation',resolution:'Resolution'};
+  const storyHTML = acts ? `
+    <div style="margin-bottom:20px">
+      <div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#888;margin-bottom:8px;padding-bottom:4px;border-bottom:2px solid ${color}">Struttura a 3 atti</div>
+      ${['setup','confrontation','resolution'].map((actId,i)=>{
+        const scenes=acts[actId]||[];
+        const ac=actColors[actId];
+        return `<div style="margin-bottom:12px">
+          <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:${ac};margin-bottom:6px;padding:4px 8px;background:${ac}18;border-radius:6px;display:inline-block">${actLabels[actId]}</div>
+          ${scenes.filter(s=>s.trim()).map(s=>`<div style="padding:6px 10px;border-left:3px solid ${ac};margin-bottom:4px;font-size:13px;color:#444;line-height:1.6;border-radius:0 6px 6px 0;background:#fafafa">${s}</div>`).join('')}
+          ${i<2?`<div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#e84848;margin:8px 0;opacity:.7">— Plot Point ${i+1} —</div>`:''}
+        </div>`;
+      }).join('')}
+    </div>` : '';
     <div style="margin-top:20px">
       <div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#888;margin-bottom:8px;padding-bottom:4px;border-bottom:2px solid ${color}">Note</div>
       <div style="font-size:13px;color:#444;line-height:1.7;white-space:pre-wrap">${p.notes}</div>
@@ -593,6 +721,8 @@ function exportPDF(){
     </table>
   </div>
 
+  ${soggettoHTML}
+  ${storyHTML}
   ${sfideHTML}
   ${notesHTML}
 
@@ -661,8 +791,14 @@ function renderHome(){
     const card = document.createElement('div');
     card.className = 'project-card';
     card.style.borderLeft = `4px solid ${bgColor}`;
-    card.innerHTML = `
-      <div class="card-dot" style="background:radial-gradient(circle at 35% 35%, ${lighten(bgColor)}, ${bgColor} 60%, ${darken(bgColor)})"></div>
+    // Draw PS1-style gem on canvas
+    const gemCanvas = document.createElement('canvas');
+    gemCanvas.width=76; gemCanvas.height=76;
+    gemCanvas.style.cssText='width:38px;height:38px;border-radius:50%;flex-shrink:0;border:2px solid rgba(0,0,0,.2);box-shadow:0 2px 8px rgba(0,0,0,.3),inset 0 1px 3px rgba(255,255,255,.4)';
+    drawGem(gemCanvas, bgColor);
+    const cardInner = document.createElement('div');
+    cardInner.style.cssText='display:flex;align-items:center;gap:14px;flex:1;min-width:0';
+    cardInner.innerHTML=`
       <div class="card-info">
         <div class="card-title">${p.title}</div>
         <div class="card-meta">${PHASE_NAMES[phIdx]} · ${p.numTav} tavole${dStr?' · ⏱ '+dStr:''}</div>
@@ -670,6 +806,8 @@ function renderHome(){
       <div class="card-right">
         <div class="card-pct" style="color:${bgColor}">${pct}%</div>
       </div>`;
+    card.appendChild(gemCanvas);
+    card.appendChild(cardInner);
     card.onclick = () => openProject(p.id);
     scroll.insertBefore(card, newBtn);
   });
@@ -743,7 +881,7 @@ function restoreProject(p){
     chk.classList.toggle('done', done);
     nm.classList.toggle('done', done);
   });
-  renderTavole(p); renderSfide(p); updateProgress(p); renderDeadline(p); renderVelocity(p);
+  renderTavole(p); renderSfide(p); updateProgress(p); renderDeadline(p); renderVelocity(p); restoreStoryFields(p);
 }
 
 function togglePhase(id){
@@ -826,7 +964,134 @@ window._toggleSfidaDone=i=>{const p=getProject(currentId);if(!p||!p.sfide)return
 window._toggleRef=i=>{const p=getProject(currentId);if(!p||!p.sfide)return;p.sfide[i].ref=!p.sfide[i].ref;scheduleSave(p);renderSfide(p);};
 window._removeSfida=i=>{const p=getProject(currentId);if(!p||!p.sfide)return;p.sfide.splice(i,1);scheduleSave(p);renderSfide(p);};
 
-// ── DEADLINE ──
+// ── STORY FIELDS ──
+const ACT_CONFIG=[
+  {id:'setup',label:'Setup',color:'#4ab8d8',light:'#d0eefc',pp_after:'Plot Point 1'},
+  {id:'confrontation',label:'Confrontation',color:'#f0c020',light:'#fdf0b0',pp_after:'Plot Point 2'},
+  {id:'resolution',label:'Resolution',color:'#48a848',light:'#c8ecc8',pp_after:null},
+];
+
+function saveStoryField(field,value){
+  const p=getProject(currentId);if(!p)return;
+  if(!p.story)p.story={};
+  p.story[field]=value;
+  scheduleSave(p);
+}
+
+function updateCharCount(elId,value,max){
+  const el=document.getElementById(elId);
+  if(el) el.textContent=`${value.length} / ${max}`;
+}
+
+function restoreStoryFields(p){
+  const soggetto=document.getElementById('soggetto-text');
+  if(soggetto){
+    soggetto.value=(p.story&&p.story.soggetto)||'';
+    updateCharCount('soggetto-count',soggetto.value,800);
+  }
+  renderActBoard(p);
+}
+
+function renderActBoard(p){
+  const board=document.getElementById('act-board');
+  if(!board)return;
+  if(!p.story)p.story={};
+  if(!p.story.acts){
+    p.story.acts={setup:[],confrontation:[],resolution:[]};
+  }
+  board.innerHTML='';
+  ACT_CONFIG.forEach((act,ai)=>{
+    const scenes=p.story.acts[act.id]||[];
+    const col=document.createElement('div');
+    col.className='act-col';
+    col.style.borderColor=act.color+'66';
+    col.innerHTML=`
+      <div class="act-col-header" style="background:${act.light};color:${act.color}">
+        <span>${act.label}</span>
+        <span style="font-size:10px;font-weight:500;opacity:.7">${scenes.length} scene</span>
+      </div>
+      <div class="act-col-body" id="act-body-${act.id}" data-act="${act.id}">
+        ${scenes.map((sc,i)=>sceneCardHTML(act.id,i,sc)).join('')}
+        <button class="add-scene-btn" onclick="addScene('${act.id}')">+ aggiungi scena</button>
+      </div>`;
+    board.appendChild(col);
+    if(act.pp_after){
+      const div=document.createElement('div');
+      div.className='plot-point-divider';
+      div.innerHTML=`<div class="plot-point-label">⬡ ${act.pp_after}</div>`;
+      board.appendChild(div);
+    }
+  });
+  // re-attach drag events
+  attachDrag(p);
+}
+
+function sceneCardHTML(actId,idx,text){
+  return `<div class="scene-card" draggable="true" data-act="${actId}" data-idx="${idx}">
+    <span class="scene-handle">⠿</span>
+    <textarea class="scene-text" rows="2" placeholder="Descrivi la scena…" onblur="updateScene('${actId}',${idx},this.value)" oninput="autoResize(this)">${text||''}</textarea>
+    <button class="scene-del" onclick="deleteScene('${actId}',${idx})">×</button>
+  </div>`;
+}
+
+function autoResize(el){
+  el.style.height='auto';
+  el.style.height=el.scrollHeight+'px';
+}
+
+function addScene(actId){
+  const p=getProject(currentId);if(!p)return;
+  if(!p.story)p.story={};
+  if(!p.story.acts)p.story.acts={setup:[],confrontation:[],resolution:[]};
+  p.story.acts[actId].push('');
+  scheduleSave(p);renderActBoard(p);
+  // focus last textarea in that act
+  const body=document.getElementById('act-body-'+actId);
+  if(body){const tas=body.querySelectorAll('.scene-text');if(tas.length)tas[tas.length-1].focus();}
+}
+
+function updateScene(actId,idx,value){
+  const p=getProject(currentId);if(!p||!p.story||!p.story.acts)return;
+  p.story.acts[actId][idx]=value;
+  scheduleSave(p);
+}
+
+function deleteScene(actId,idx){
+  const p=getProject(currentId);if(!p||!p.story||!p.story.acts)return;
+  p.story.acts[actId].splice(idx,1);
+  scheduleSave(p);renderActBoard(p);
+}
+
+function attachDrag(p){
+  let dragAct=null,dragIdx=null;
+  document.querySelectorAll('.scene-card').forEach(card=>{
+    card.addEventListener('dragstart',e=>{
+      dragAct=card.dataset.act; dragIdx=parseInt(card.dataset.idx);
+      setTimeout(()=>card.classList.add('dragging'),0);
+    });
+    card.addEventListener('dragend',()=>card.classList.remove('dragging'));
+  });
+  document.querySelectorAll('.act-col-body').forEach(body=>{
+    body.addEventListener('dragover',e=>{e.preventDefault();});
+    body.addEventListener('drop',e=>{
+      e.preventDefault();
+      if(dragAct===null||dragIdx===null)return;
+      const targetAct=body.dataset.act;
+      // find drop position
+      const cards=[...body.querySelectorAll('.scene-card')];
+      let dropIdx=cards.length;
+      cards.forEach((c,i)=>{
+        const rect=c.getBoundingClientRect();
+        if(e.clientY<rect.top+rect.height/2) dropIdx=Math.min(dropIdx,i);
+      });
+      if(!p.story||!p.story.acts)return;
+      const scene=p.story.acts[dragAct].splice(dragIdx,1)[0];
+      p.story.acts[targetAct].splice(dropIdx,0,scene);
+      dragAct=null;dragIdx=null;
+      scheduleSave(p);renderActBoard(p);
+    });
+  });
+}
 function calcDaysLeft(p){
   if(!p.dateEnd) return null;
   const end=new Date(p.dateEnd); const now=new Date();
@@ -888,34 +1153,48 @@ function renderVelocity(p){
 }
 function drawChart(p,v){
   const canvas=document.getElementById('chart-canvas');
-  const W=Math.max(canvas.parentElement.clientWidth-4,280);
-  const H=80; canvas.width=W; canvas.height=H;
+  const wrap=canvas.parentElement;
+  const dpr=window.devicePixelRatio||1;
+  const W=Math.max(wrap.clientWidth-4,280);
+  const H=80;
+  canvas.width=Math.round(W*dpr); canvas.height=Math.round(H*dpr);
+  canvas.style.width=W+'px'; canvas.style.height=H+'px';
   const ctx=canvas.getContext('2d');
+  ctx.scale(dpr,dpr);
   ctx.clearRect(0,0,W,H);
-  const barH=20; const barY=(H-barH)/2;
-  ctx.fillStyle='#e8d9b8';
-  ctx.beginPath(); ctx.roundRect(0,barY,W,barH,10); ctx.fill();
+  const barH=22; const barY=(H-barH)/2;
+  // Background bar
+  ctx.fillStyle='#e8e0d0';
+  ctx.beginPath(); ctx.roundRect(0,barY,W,barH,11); ctx.fill();
+  // Progress fill
   if(v.tavDone>0){
     const pw=Math.round((v.tavDone/p.numTav)*W);
     const grad=ctx.createLinearGradient(0,0,pw,0);
-    grad.addColorStop(0,'#e07a5f'); grad.addColorStop(1,'#EAA020');
+    grad.addColorStop(0,'#e84848'); grad.addColorStop(1,'#f0c020');
     ctx.fillStyle=grad;
-    ctx.beginPath(); ctx.roundRect(0,barY,pw,barH,10); ctx.fill();
+    ctx.beginPath(); ctx.roundRect(0,barY,pw,barH,11); ctx.fill();
+    // Shine
+    const shine=ctx.createLinearGradient(0,barY,0,barY+barH*0.5);
+    shine.addColorStop(0,'rgba(255,255,255,.22)'); shine.addColorStop(1,'rgba(255,255,255,0)');
+    ctx.fillStyle=shine;
+    ctx.beginPath(); ctx.roundRect(2,barY+1,pw-4,barH*0.45,9); ctx.fill();
   }
+  // Today marker
   if(p.dateStart&&p.dateEnd){
     const start=new Date(p.dateStart); const end=new Date(p.dateEnd); const now=new Date();
     const pct=Math.min(1,Math.max(0,(now-start)/(end-start)));
     const tx=Math.round(pct*W);
-    const lx=Math.min(Math.max(tx,16),W-16);
-    ctx.strokeStyle='#157876'; ctx.lineWidth=2; ctx.setLineDash([4,3]);
-    ctx.beginPath(); ctx.moveTo(tx,barY-6); ctx.lineTo(tx,barY+barH+6); ctx.stroke();
+    const lx=Math.min(Math.max(tx,18),W-18);
+    ctx.strokeStyle='#2a88b8'; ctx.lineWidth=2; ctx.setLineDash([4,3]);
+    ctx.beginPath(); ctx.moveTo(tx,barY-7); ctx.lineTo(tx,barY+barH+7); ctx.stroke();
     ctx.setLineDash([]);
-    ctx.fillStyle='#157876'; ctx.font='bold 10px sans-serif'; ctx.textAlign='center';
-    ctx.fillText('oggi',lx,barY-9);
+    ctx.fillStyle='#2a88b8'; ctx.font='bold 11px sans-serif'; ctx.textAlign='center';
+    ctx.fillText('oggi',lx,barY-10);
   }
-  ctx.fillStyle='#2a2018'; ctx.font='bold 11px sans-serif'; ctx.textAlign='left';
+  // Labels
+  ctx.fillStyle='#2a2420'; ctx.font='600 12px sans-serif'; ctx.textAlign='left';
   ctx.fillText(`${v.tavDone} / ${p.numTav} tavole`,4,barY+barH+16);
-  ctx.textAlign='right'; ctx.fillStyle='#a89880';
+  ctx.textAlign='right'; ctx.fillStyle='#9a9088';
   ctx.fillText(`${Math.round((v.tavDone/p.numTav)*100)}%`,W-2,barY+barH+16);
 }
 
@@ -953,7 +1232,9 @@ window.openNewModal=openNewModal; window.closeModal=closeModal; window.createPro
 window.goHome=goHome; window.openProject=openProject; window.togglePhase=togglePhase;
 window.toggleStep=toggleStep; window.selectTav=selectTav; window.addSfida=addSfida;
 window.saveDates=saveDates; window.confirmDeleteCurrent=confirmDeleteCurrent; window.closeConfirm=closeConfirm;
-window.exportPDF=exportPDF;
+window.exportPDF=exportPDF; window.addScene=addScene; window.updateScene=updateScene;
+window.deleteScene=deleteScene; window.autoResize=autoResize; window.saveStoryField=saveStoryField;
+window.updateCharCount=updateCharCount;
 
 if('serviceWorker' in navigator){ navigator.serviceWorker.register('./sw.js').catch(()=>{}); }
 </script>
