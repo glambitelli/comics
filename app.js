@@ -311,6 +311,10 @@ function renderHome(){
     const gemCanvas = document.createElement('canvas');
     gemCanvas.width=76; gemCanvas.height=76;
     gemCanvas.style.cssText='width:38px;height:38px;border-radius:50%;flex-shrink:0;';
+    // Riempi il canvas con il colore della card prima di disegnare
+    const gCtx = gemCanvas.getContext('2d');
+    gCtx.fillStyle = '#fefcf8';
+    gCtx.fillRect(0,0,76,76);
     drawGem(gemCanvas, bgColor);
     const cardInner = document.createElement('div');
     cardInner.style.cssText='display:flex;align-items:center;gap:14px;flex:1;min-width:0';
