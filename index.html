@@ -460,11 +460,11 @@ function hideLoading(){
   }
 }
 
-// Timeout fallback — apre l'app dopo 5 secondi anche senza Firebase
+// Timeout fallback — apre l'app dopo 3 secondi anche senza Firebase
 const loadingTimeout = setTimeout(()=>{
   syncDot('error');
   hideLoading();
-}, 5000);
+}, 3000);
 
 onSnapshot(collection(db, COL), snapshot => {
   clearTimeout(loadingTimeout);
