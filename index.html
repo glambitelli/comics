@@ -1241,7 +1241,7 @@ window.exportPDF=exportPDF; window.addScene=addScene; window.updateScene=updateS
 window.deleteScene=deleteScene; window.autoResize=autoResize; window.saveStoryField=saveStoryField;
 window.updateCharCount=updateCharCount;
 
-if('serviceWorker' in navigator){ navigator.serviceWorker.register('./sw.js').catch(()=>{}); }
+// No service worker — evita problemi di cache
 </script>
 </body>
 </html>
