@@ -310,7 +310,7 @@ function renderHome(){
     // Draw PS1-style gem on canvas
     const gemCanvas = document.createElement('canvas');
     gemCanvas.width=76; gemCanvas.height=76;
-    gemCanvas.style.cssText='width:38px;height:38px;border-radius:50%;flex-shrink:0;border:2px solid rgba(0,0,0,.2);box-shadow:0 2px 8px rgba(0,0,0,.3),inset 0 1px 3px rgba(255,255,255,.4)';
+    gemCanvas.style.cssText='width:38px;height:38px;border-radius:50%;flex-shrink:0;';
     drawGem(gemCanvas, bgColor);
     const cardInner = document.createElement('div');
     cardInner.style.cssText='display:flex;align-items:center;gap:14px;flex:1;min-width:0';
