@@ -401,6 +401,9 @@ function restoreProject(p){
     chk.classList.toggle('done', done);
     nm.classList.toggle('done', done);
   });
+  document.getElementById('music-url').value = p.musicUrl||'';
+  document.getElementById('music-wrap').classList.remove('open');
+  document.getElementById('music-iframe').src = '';
   renderTavole(p); renderSfide(p); updateProgress(p); renderDeadline(p); renderVelocity(p); restoreStoryFields(p);
 }
 
@@ -484,7 +487,29 @@ window._toggleSfidaDone=i=>{const p=getProject(currentId);if(!p||!p.sfide)return
 window._toggleRef=i=>{const p=getProject(currentId);if(!p||!p.sfide)return;p.sfide[i].ref=!p.sfide[i].ref;scheduleSave(p);renderSfide(p);};
 window._removeSfida=i=>{const p=getProject(currentId);if(!p||!p.sfide)return;p.sfide.splice(i,1);scheduleSave(p);renderSfide(p);};
 
-// ── STORY FIELDS ──
+function playMusic(){
+  const input = document.getElementById('music-url');
+  const url = input.value.trim();
+  if(!url) return;
+  // Extract YouTube video ID
+  let videoId = null;
+  const patterns = [
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/,
+    /youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/,
+  ];
+  for(const p of patterns){
+    const m = url.match(p);
+    if(m){ videoId = m[1]; break; }
+  }
+  if(!videoId){ alert('Link YouTube non riconosciuto'); return; }
+  const iframe = document.getElementById('music-iframe');
+  const wrap = document.getElementById('music-wrap');
+  iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1`;
+  wrap.classList.add('open');
+  // Save URL to project
+  const p = getProject(currentId); if(!p) return;
+  p.musicUrl = url; scheduleSave(p);
+}
 const ACT_CONFIG=[
   {id:'setup',label:'Setup',color:'#4ab8d8',light:'#d0eefc',pp_after:'Plot Point 1'},
   {id:'confrontation',label:'Confrontation',color:'#f0c020',light:'#fdf0b0',pp_after:'Plot Point 2'},
@@ -754,6 +779,6 @@ window.toggleStep=toggleStep; window.selectTav=selectTav; window.addSfida=addSfi
 window.saveDates=saveDates; window.confirmDeleteCurrent=confirmDeleteCurrent; window.closeConfirm=closeConfirm;
 window.exportPDF=exportPDF; window.addScene=addScene; window.updateScene=updateScene;
 window.deleteScene=deleteScene; window.autoResize=autoResize; window.saveStoryField=saveStoryField;
-window.updateCharCount=updateCharCount;
+window.updateCharCount=updateCharCount; window.playMusic=playMusic;
 
 // No service worker — evita problemi di cache
