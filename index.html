@@ -141,7 +141,18 @@ body{background:var(--sand);color:var(--ink);font-family:'Nunito',sans-serif;fon
 .we{background:var(--green-pale);color:#2a6a2a}
 .phase-tip{margin:4px 16px 14px;background:var(--gold-pale);border-left:3px solid var(--gold);padding:9px 12px;border-radius:0 8px 8px 0;font-size:12px;color:var(--ink2);line-height:1.55;font-weight:500}
 
-/* MUSIC PLAYER */
+/* REMINDER SETTINGS */
+.reminder-card{background:var(--white);border-radius:var(--r);padding:14px 16px;margin-bottom:12px;box-shadow:var(--shadow);border:1.5px solid var(--sand2)}
+.reminder-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap}
+.reminder-label{font-size:13px;font-weight:600;color:var(--ink);flex:1}
+.reminder-time{background:var(--sand);border:1.5px solid var(--sand3);border-radius:10px;padding:7px 12px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:600;color:var(--ink);outline:none;width:100px}
+.reminder-time:focus{border-color:var(--sky)}
+.reminder-toggle{width:42px;height:24px;appearance:none;-webkit-appearance:none;background:var(--sand3);border-radius:12px;cursor:pointer;position:relative;transition:background .2s;flex-shrink:0}
+.reminder-toggle:checked{background:var(--moss)}
+.reminder-toggle::after{content:'';position:absolute;width:18px;height:18px;background:#fff;border-radius:50%;top:3px;left:3px;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.reminder-toggle:checked::after{left:21px}
+.reminder-status{font-size:11px;color:var(--ink3);margin-top:2px}
+.reminder-test{font-size:11px;padding:5px 10px;border-radius:8px;border:1.5px solid var(--sand3);background:var(--sand);color:var(--ink2);cursor:pointer;font-family:'Nunito',sans-serif;font-weight:600}
 .music-player{background:var(--white);border-radius:var(--r);margin-bottom:12px;overflow:hidden;box-shadow:var(--shadow);border:1.5px solid var(--sand2);padding:14px 16px}
 .music-label{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);margin-bottom:10px}
 .music-url-row{display:flex;gap:8px;margin-bottom:10px}
@@ -252,6 +263,21 @@ body{background:var(--sand);color:var(--ink);font-family:'Nunito',sans-serif;fon
   </div>
   <div class="home-scroll" id="home-scroll">
     <div style="height:16px"></div>
+
+    <!-- REMINDER SETTINGS -->
+    <div class="reminder-card">
+      <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);margin-bottom:10px">🔔 Reminder mattina</div>
+      <div class="reminder-row">
+        <div class="reminder-label">Ogni giorno alle</div>
+        <input class="reminder-time" type="time" id="reminder-time" value="08:20" onchange="saveReminderSettings()"/>
+        <input class="reminder-toggle" type="checkbox" id="reminder-toggle" onchange="saveReminderSettings()"/>
+      </div>
+      <div class="reminder-status" id="reminder-status">Reminder disattivato</div>
+      <div style="margin-top:8px">
+        <button class="reminder-test" onclick="testNotification()">Invia notifica di test</button>
+      </div>
+    </div>
+
     <button class="new-btn" onclick="openNewModal()">+ Nuovo progetto</button>
   </div>
 </div>

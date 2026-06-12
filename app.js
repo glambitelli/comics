@@ -826,5 +826,129 @@ window.saveDates=saveDates; window.confirmDeleteCurrent=confirmDeleteCurrent; wi
 window.exportPDF=exportPDF; window.addScene=addScene; window.updateScene=updateScene;
 window.deleteScene=deleteScene; window.autoResize=autoResize; window.saveStoryField=saveStoryField;
 window.updateCharCount=updateCharCount;
+window.saveReminderSettings=saveReminderSettings; window.testNotification=testNotification;
 
-// No service worker — evita problemi di cache
+// ── NOTIFICATIONS ──
+let swReg = null;
+
+async function initNotifications(){
+  if(!('serviceWorker' in navigator) || !('Notification' in window)) return;
+  try {
+    swReg = await navigator.serviceWorker.register('./sw.js');
+    restoreReminderUI();
+    scheduleNextReminder();
+  } catch(e){ console.warn('SW failed:', e); }
+}
+
+function restoreReminderUI(){
+  const time = localStorage.getItem('inkflow_reminder_time') || '08:20';
+  const enabled = localStorage.getItem('inkflow_reminder_enabled') === 'true';
+  const timeEl = document.getElementById('reminder-time');
+  const toggleEl = document.getElementById('reminder-toggle');
+  if(timeEl) timeEl.value = time;
+  if(toggleEl) toggleEl.checked = enabled;
+  updateReminderStatus();
+}
+
+function saveReminderSettings(){
+  const time = document.getElementById('reminder-time').value;
+  const enabled = document.getElementById('reminder-toggle').checked;
+  localStorage.setItem('inkflow_reminder_time', time);
+  localStorage.setItem('inkflow_reminder_enabled', enabled);
+
+  if(enabled){
+    requestNotificationPermission().then(granted => {
+      if(granted){
+        scheduleNextReminder();
+        updateReminderStatus();
+      } else {
+        document.getElementById('reminder-toggle').checked = false;
+        localStorage.setItem('inkflow_reminder_enabled', 'false');
+        updateReminderStatus();
+      }
+    });
+  } else {
+    updateReminderStatus();
+  }
+}
+
+async function requestNotificationPermission(){
+  if(Notification.permission === 'granted') return true;
+  const perm = await Notification.requestPermission();
+  return perm === 'granted';
+}
+
+function scheduleNextReminder(){
+  const enabled = localStorage.getItem('inkflow_reminder_enabled') === 'true';
+  if(!enabled || !swReg) return;
+  if(Notification.permission !== 'granted') return;
+
+  const time = localStorage.getItem('inkflow_reminder_time') || '08:20';
+  const [h, m] = time.split(':').map(Number);
+
+  const now = new Date();
+  const next = new Date();
+  next.setHours(h, m, 0, 0);
+  if(next <= now) next.setDate(next.getDate() + 1);
+
+  const delay = next - now;
+
+  // Cancella eventuale timer precedente
+  const prevTimer = window._reminderTimer;
+  if(prevTimer) clearTimeout(prevTimer);
+
+  window._reminderTimer = setTimeout(() => {
+    if(swReg && swReg.active){
+      swReg.active.postMessage({
+        type: 'SCHEDULE_NOTIFICATION',
+        title: 'Inkflow ✏️',
+        body: 'Buongiorno! Scrivi il task di stasera prima di iniziare la giornata.',
+        delay: 0
+      });
+    }
+    // Riprogramma per il giorno dopo
+    scheduleNextReminder();
+  }, delay);
+}
+
+function updateReminderStatus(){
+  const el = document.getElementById('reminder-status');
+  if(!el) return;
+  const enabled = localStorage.getItem('inkflow_reminder_enabled') === 'true';
+  const time = localStorage.getItem('inkflow_reminder_time') || '08:20';
+  const perm = ('Notification' in window) ? Notification.permission : 'unsupported';
+
+  if(perm === 'unsupported'){
+    el.textContent = 'Notifiche non supportate su questo browser';
+    el.style.color = 'var(--ink3)';
+  } else if(!enabled){
+    el.textContent = 'Reminder disattivato';
+    el.style.color = 'var(--ink3)';
+  } else if(perm === 'denied'){
+    el.textContent = '⚠️ Permesso negato — abilita le notifiche nelle impostazioni del browser';
+    el.style.color = 'var(--coral)';
+  } else if(perm === 'granted'){
+    el.textContent = `✓ Reminder attivo ogni giorno alle ${time}`;
+    el.style.color = 'var(--moss)';
+  } else {
+    el.textContent = 'Salva per attivare e concedere il permesso';
+    el.style.color = 'var(--gold)';
+  }
+}
+
+async function testNotification(){
+  const granted = await requestNotificationPermission();
+  if(!granted){ alert('Permesso notifiche non concesso'); return; }
+  if(swReg && swReg.active){
+    swReg.active.postMessage({
+      type: 'SCHEDULE_NOTIFICATION',
+      title: 'Inkflow ✏️',
+      body: 'Test! Questo è il reminder del mattino.',
+      delay: 2000
+    });
+  } else {
+    new Notification('Inkflow ✏️', { body: 'Test! Questo è il reminder del mattino.', icon: './icon-192.png' });
+  }
+}
+
+initNotifications();
