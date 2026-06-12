@@ -831,9 +831,7 @@ window.saveDates=saveDates; window.confirmDeleteCurrent=confirmDeleteCurrent; wi
 window.exportPDF=exportPDF; window.addScene=addScene; window.updateScene=updateScene;
 window.deleteScene=deleteScene; window.autoResize=autoResize; window.saveStoryField=saveStoryField;
 window.updateCharCount=updateCharCount; window.saveReminderSettings=saveReminderSettings;
-window.testNotification=testNotification; window.enterEveningMode=enterEveningMode;
-window.exitEveningMode=exitEveningMode; window.markEveningDone=markEveningDone;
-window.saveReminderSettings=saveReminderSettings; window.testNotification=testNotification;
+window.testNotification=testNotification;
 
 // ── EVENING MODE ──
 function enterEveningMode(){
@@ -908,6 +906,11 @@ function toggleEveningDone(id, card, check){
 }
 
 function markEveningDone(){ exitEveningMode(); }
+
+// Esponi evening mode dopo che le funzioni sono definite
+window.enterEveningMode=enterEveningMode;
+window.exitEveningMode=exitEveningMode;
+window.markEveningDone=markEveningDone;
 
 // ── VELOCITY STORICA ──
 function recordTavola(p, tavNum){
