@@ -401,9 +401,6 @@ function restoreProject(p){
     chk.classList.toggle('done', done);
     nm.classList.toggle('done', done);
   });
-  document.getElementById('music-url').value = p.musicUrl||'';
-  document.getElementById('music-wrap').classList.remove('open');
-  document.getElementById('music-iframe').src = '';
   renderTavole(p); renderSfide(p); updateProgress(p); renderDeadline(p); renderVelocity(p); restoreStoryFields(p);
 }
 
@@ -487,33 +484,10 @@ window._toggleSfidaDone=i=>{const p=getProject(currentId);if(!p||!p.sfide)return
 window._toggleRef=i=>{const p=getProject(currentId);if(!p||!p.sfide)return;p.sfide[i].ref=!p.sfide[i].ref;scheduleSave(p);renderSfide(p);};
 window._removeSfida=i=>{const p=getProject(currentId);if(!p||!p.sfide)return;p.sfide.splice(i,1);scheduleSave(p);renderSfide(p);};
 
-function playMusic(){
-  const input = document.getElementById('music-url');
-  const url = input.value.trim();
-  if(!url) return;
-  // Extract YouTube video ID
-  let videoId = null;
-  const patterns = [
-    /(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/,
-    /youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/,
-  ];
-  for(const p of patterns){
-    const m = url.match(p);
-    if(m){ videoId = m[1]; break; }
-  }
-  if(!videoId){ alert('Link YouTube non riconosciuto'); return; }
-  const iframe = document.getElementById('music-iframe');
-  const wrap = document.getElementById('music-wrap');
-  iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1`;
-  wrap.classList.add('open');
-  // Save URL to project
-  const p = getProject(currentId); if(!p) return;
-  p.musicUrl = url; scheduleSave(p);
-}
 const ACT_CONFIG=[
-  {id:'setup',label:'Setup',color:'#4ab8d8',light:'#d0eefc',pp_after:'Plot Point 1'},
-  {id:'confrontation',label:'Confrontation',color:'#f0c020',light:'#fdf0b0',pp_after:'Plot Point 2'},
-  {id:'resolution',label:'Resolution',color:'#48a848',light:'#c8ecc8',pp_after:null},
+  {id:'setup',     label:'Setup',        color:'#4ab8d8',light:'#d0eefc', pp_after:'Plot Point 1', inciting:true},
+  {id:'confrontation',label:'Confrontation',color:'#f0c020',light:'#fdf0b0',pp_after:'Plot Point 2', inciting:false},
+  {id:'resolution',label:'Resolution',   color:'#48a848',light:'#c8ecc8', pp_after:null,            inciting:false},
 ];
 
 function saveStoryField(field,value){
@@ -541,42 +515,106 @@ function renderActBoard(p){
   const board=document.getElementById('act-board');
   if(!board)return;
   if(!p.story)p.story={};
-  if(!p.story.acts){
-    p.story.acts={setup:[],confrontation:[],resolution:[]};
-  }
+  if(!p.story.acts) p.story.acts={setup:[],confrontation:[],resolution:[]};
+  if(!p.story.pp) p.story.pp={pp1:'',pp2:'',inciting:''};
+
   board.innerHTML='';
   ACT_CONFIG.forEach((act,ai)=>{
     const scenes=p.story.acts[act.id]||[];
+
     const col=document.createElement('div');
     col.className='act-col';
     col.style.borderColor=act.color+'66';
-    col.innerHTML=`
-      <div class="act-col-header" style="background:${act.light};color:${act.color}">
-        <span>${act.label}</span>
-        <span style="font-size:10px;font-weight:500;opacity:.7">${scenes.length} scene</span>
-      </div>
-      <div class="act-col-body" id="act-body-${act.id}" data-act="${act.id}">
-        ${scenes.map((sc,i)=>sceneCardHTML(act.id,i,sc)).join('')}
-        <button class="add-scene-btn" onclick="addScene('${act.id}')">+ aggiungi scena</button>
-      </div>`;
+
+    // Header
+    const hdr=document.createElement('div');
+    hdr.className='act-col-header';
+    hdr.style.cssText=`background:${act.light};color:${act.color}`;
+    hdr.innerHTML=`<span>${act.label}</span><span style="font-size:10px;font-weight:500;opacity:.7">${scenes.length} scene</span>`;
+    col.appendChild(hdr);
+
+    // Inciting Incident field (solo in Setup)
+    if(act.inciting){
+      const inc=document.createElement('div');
+      inc.style.cssText='padding:8px 12px 4px;';
+      inc.innerHTML=`<div style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:${act.color};margin-bottom:4px">Inciting Incident</div>
+        <textarea class="story-textarea" style="font-size:12px;min-height:44px;" placeholder="L'evento che mette in moto la storia…" oninput="saveStoryField('pp_inciting',this.value)">${p.story.pp.inciting||''}</textarea>`;
+      col.appendChild(inc);
+    }
+
+    // Scene body — costruita senza innerHTML per evitare il bug focus
+    const body=document.createElement('div');
+    body.className='act-col-body';
+    body.id='act-body-'+act.id;
+    body.dataset.act=act.id;
+
+    scenes.forEach((sc,i)=>{
+      body.appendChild(makeSceneCard(act.id, i, sc, p));
+    });
+
+    const addBtn=document.createElement('button');
+    addBtn.className='add-scene-btn';
+    addBtn.textContent='+ aggiungi scena';
+    addBtn.onclick=()=>addScene(act.id);
+    body.appendChild(addBtn);
+    col.appendChild(body);
     board.appendChild(col);
+
+    // Plot Point divider con campo di testo
     if(act.pp_after){
+      const ppKey = ai===0 ? 'pp1' : 'pp2';
       const div=document.createElement('div');
       div.className='plot-point-divider';
-      div.innerHTML=`<div class="plot-point-label">⬡ ${act.pp_after}</div>`;
+      div.style.flexDirection='column';
+      div.style.alignItems='stretch';
+      div.style.gap='6px';
+      div.innerHTML=`
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="flex:1;height:1.5px;background:var(--coral);opacity:.5"></div>
+          <div class="plot-point-label">⬡ ${act.pp_after}</div>
+          <div style="flex:1;height:1.5px;background:var(--coral);opacity:.5"></div>
+        </div>
+        <textarea class="story-textarea" style="font-size:12px;min-height:44px;" placeholder="Descrivi il ${act.pp_after}…" oninput="saveStoryField('pp_${ppKey}',this.value)">${p.story.pp[ppKey]||''}</textarea>`;
       board.appendChild(div);
     }
   });
-  // re-attach drag events
+
   attachDrag(p);
 }
 
-function sceneCardHTML(actId,idx,text){
-  return `<div class="scene-card" draggable="true" data-act="${actId}" data-idx="${idx}">
-    <span class="scene-handle">⠿</span>
-    <textarea class="scene-text" rows="2" placeholder="Descrivi la scena…" onblur="updateScene('${actId}',${idx},this.value)" oninput="autoResize(this)">${text||''}</textarea>
-    <button class="scene-del" onclick="deleteScene('${actId}',${idx})">×</button>
-  </div>`;
+function makeSceneCard(actId, idx, text, p){
+  const card=document.createElement('div');
+  card.className='scene-card';
+  card.draggable=true;
+  card.dataset.act=actId;
+  card.dataset.idx=idx;
+
+  const handle=document.createElement('span');
+  handle.className='scene-handle';
+  handle.textContent='⠿';
+
+  // Textarea costruita via DOM — evita il bug del focus con innerHTML
+  const ta=document.createElement('textarea');
+  ta.className='scene-text';
+  ta.rows=2;
+  ta.placeholder='Descrivi la scena…';
+  ta.value=text||'';
+  ta.addEventListener('input', function(){
+    autoResize(this);
+    if(!p.story||!p.story.acts)return;
+    p.story.acts[actId][idx]=this.value;
+    scheduleSave(p);
+  });
+
+  const del=document.createElement('button');
+  del.className='scene-del';
+  del.textContent='×';
+  del.onclick=()=>deleteScene(actId,idx);
+
+  card.appendChild(handle);
+  card.appendChild(ta);
+  card.appendChild(del);
+  return card;
 }
 
 function autoResize(el){
@@ -589,10 +627,19 @@ function addScene(actId){
   if(!p.story)p.story={};
   if(!p.story.acts)p.story.acts={setup:[],confrontation:[],resolution:[]};
   p.story.acts[actId].push('');
-  scheduleSave(p);renderActBoard(p);
-  // focus last textarea in that act
+  scheduleSave(p);
+  // Aggiungi la card senza fare re-render completo — evita il bug focus
   const body=document.getElementById('act-body-'+actId);
-  if(body){const tas=body.querySelectorAll('.scene-text');if(tas.length)tas[tas.length-1].focus();}
+  if(body){
+    const addBtn=body.querySelector('.add-scene-btn');
+    const idx=p.story.acts[actId].length-1;
+    const card=makeSceneCard(actId,idx,'',p);
+    body.insertBefore(card,addBtn);
+    card.querySelector('.scene-text').focus();
+  }
+  // Aggiorna contatore scene nell'header
+  const hdr=body.closest('.act-col').querySelector('.act-col-header span:last-child');
+  if(hdr) hdr.textContent=p.story.acts[actId].length+' scene';
 }
 
 function updateScene(actId,idx,value){
@@ -622,7 +669,6 @@ function attachDrag(p){
       e.preventDefault();
       if(dragAct===null||dragIdx===null)return;
       const targetAct=body.dataset.act;
-      // find drop position
       const cards=[...body.querySelectorAll('.scene-card')];
       let dropIdx=cards.length;
       cards.forEach((c,i)=>{
@@ -779,6 +825,6 @@ window.toggleStep=toggleStep; window.selectTav=selectTav; window.addSfida=addSfi
 window.saveDates=saveDates; window.confirmDeleteCurrent=confirmDeleteCurrent; window.closeConfirm=closeConfirm;
 window.exportPDF=exportPDF; window.addScene=addScene; window.updateScene=updateScene;
 window.deleteScene=deleteScene; window.autoResize=autoResize; window.saveStoryField=saveStoryField;
-window.updateCharCount=updateCharCount; window.playMusic=playMusic;
+window.updateCharCount=updateCharCount;
 
 // No service worker — evita problemi di cache
