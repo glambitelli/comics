@@ -934,14 +934,12 @@ function renderVelocityHistory(p){
   const legend = document.getElementById('history-legend');
   if(!canvas) return;
 
-  // Auto-popola il log dalle tavole già segnate come Finita (retrocompatibilità)
+  // Auto-popola il log dalle tavole già segnate come Finita
   if(!p.velocityLog) p.velocityLog = [];
   Object.entries(p.tavole||{}).forEach(([num, stage])=>{
     if(stage >= 4){
       const n = parseInt(num);
-      const alreadyLogged = p.velocityLog.some(e => e.tav === n);
-      if(!alreadyLogged){
-        // Usa la data di inizio progetto come stima, o oggi
+      if(!p.velocityLog.some(e => e.tav === n)){
         p.velocityLog.push({ tav: n, date: p.createdAt ? p.createdAt + n*86400000 : Date.now() });
       }
     }
@@ -949,99 +947,137 @@ function renderVelocityHistory(p){
 
   const log = p.velocityLog || [];
 
-  // Aspetta che il canvas abbia larghezza reale
-  const W = canvas.offsetWidth || canvas.parentElement?.offsetWidth || 300;
+  // Misura il parent dopo il layout
+  const parent = canvas.parentElement;
+  const W = Math.max(parent.offsetWidth - 32, 200);
   const H = 110;
   const dpr = window.devicePixelRatio||1;
   canvas.width = Math.round(W*dpr);
   canvas.height = Math.round(H*dpr);
   canvas.style.width = W+'px';
   canvas.style.height = H+'px';
+  canvas.style.display = 'block';
   const ctx = canvas.getContext('2d');
   ctx.scale(dpr,dpr);
   ctx.clearRect(0,0,W,H);
-
-  if(log.length === 0){
-    ctx.fillStyle = '#c8b898';
-    ctx.font = '12px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('Nessuna tavola completata ancora', W/2, H/2+4);
-    if(legend) legend.textContent = '';
-    return;
-  }
 
   // Raggruppa per settimana (lunedì)
   const weekMap = {};
   log.forEach(entry => {
     const d = new Date(entry.date);
     const day = d.getDay();
-    const diff = (day === 0 ? -6 : 1 - day);
     const monday = new Date(d);
-    monday.setDate(d.getDate() + diff);
+    monday.setDate(d.getDate() + (day === 0 ? -6 : 1 - day));
     monday.setHours(0,0,0,0);
-    const key = monday.getTime();
-    weekMap[key] = (weekMap[key]||0) + 1;
+    weekMap[monday.getTime()] = (weekMap[monday.getTime()]||0) + 1;
   });
 
-  // Ultimi 12 settimane
+  // Ultime 10 settimane
   const now = new Date();
   const thisMonday = new Date(now);
-  const dayOfWeek = now.getDay();
-  thisMonday.setDate(now.getDate() + (dayOfWeek === 0 ? -6 : 1 - dayOfWeek));
+  const dow = now.getDay();
+  thisMonday.setDate(now.getDate() + (dow === 0 ? -6 : 1 - dow));
   thisMonday.setHours(0,0,0,0);
 
   const weeks = [];
-  for(let i = 11; i >= 0; i--){
+  for(let i = 9; i >= 0; i--){
     const d = new Date(thisMonday);
     d.setDate(d.getDate() - i*7);
     weeks.push({ date: d, count: weekMap[d.getTime()]||0 });
   }
 
-  const maxCount = Math.max(...weeks.map(w=>w.count), 2);
-  const barArea = H - 30;
-  const barW = Math.floor((W - 16) / weeks.length);
-  const gap = 3;
+  const maxCount = Math.max(...weeks.map(w=>w.count), 3);
+  const padL = 12, padR = 12, padT = 18, padB = 24;
+  const chartW = W - padL - padR;
+  const chartH = H - padT - padB;
 
-  weeks.forEach((w, i) => {
-    const x = 8 + i * barW;
-    const bH = w.count > 0 ? Math.max(5, Math.round((w.count/maxCount)*barArea)) : 3;
-    const y = barArea - bH + 4;
-    const isThisWeek = i === 11;
+  // Griglia orizzontale leggera
+  ctx.strokeStyle = '#e8e0d0';
+  ctx.lineWidth = 1;
+  [1,2,3].forEach(v => {
+    if(v > maxCount) return;
+    const y = padT + chartH - (v/maxCount)*chartH;
+    ctx.setLineDash([3,4]);
+    ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(W-padR, y); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#c8b898';
+    ctx.font = '8px sans-serif'; ctx.textAlign = 'right';
+    ctx.fillText(v, padL-2, y+3);
+  });
 
-    ctx.fillStyle = isThisWeek ? '#4ab8d8'
-      : w.count >= 2 ? '#48a848'
-      : w.count === 1 ? '#f0c020'
-      : '#e8e0d0';
+  // Punti X e coordinate Y
+  const pts = weeks.map((w, i) => ({
+    x: padL + (i/(weeks.length-1))*chartW,
+    y: padT + chartH - (w.count/maxCount)*chartH,
+    count: w.count,
+    date: w.date,
+    isNow: i === weeks.length-1,
+  }));
+
+  // Area sotto la linea — fill morbido
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x, padT+chartH);
+  pts.forEach(pt => ctx.lineTo(pt.x, pt.y));
+  ctx.lineTo(pts[pts.length-1].x, padT+chartH);
+  ctx.closePath();
+  const areaGrad = ctx.createLinearGradient(0, padT, 0, padT+chartH);
+  areaGrad.addColorStop(0, 'rgba(74,184,216,.18)');
+  areaGrad.addColorStop(1, 'rgba(74,184,216,.02)');
+  ctx.fillStyle = areaGrad;
+  ctx.fill();
+
+  // Linea principale
+  ctx.beginPath();
+  pts.forEach((pt, i) => i === 0 ? ctx.moveTo(pt.x, pt.y) : ctx.lineTo(pt.x, pt.y));
+  ctx.strokeStyle = '#4ab8d8';
+  ctx.lineWidth = 2;
+  ctx.lineJoin = 'round';
+  ctx.setLineDash([]);
+  ctx.stroke();
+
+  // Linea obiettivo 2 tav/sett
+  const targetY = padT + chartH - (2/maxCount)*chartH;
+  ctx.setLineDash([4,3]);
+  ctx.strokeStyle = 'rgba(232,72,72,.35)';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(padL, targetY); ctx.lineTo(W-padR, targetY); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = 'rgba(232,72,72,.5)';
+  ctx.font = '8px sans-serif'; ctx.textAlign = 'right';
+  ctx.fillText('obiettivo', W-padR, targetY-3);
+
+  // Punti + etichette
+  pts.forEach((pt, i) => {
+    const color = pt.isNow ? '#2a88b8' : pt.count >= 2 ? '#48a848' : pt.count === 1 ? '#f0c020' : '#c8b898';
+
+    // Punto
     ctx.beginPath();
-    ctx.roundRect(x + gap/2, y, barW - gap, bH, 3);
+    ctx.arc(pt.x, pt.y, pt.count > 0 ? 4 : 2.5, 0, Math.PI*2);
+    ctx.fillStyle = color;
     ctx.fill();
-
-    if(w.count > 0){
-      ctx.fillStyle = isThisWeek ? '#2a88b8' : '#5a5048';
-      ctx.font = `bold 10px sans-serif`;
-      ctx.textAlign = 'center';
-      ctx.fillText(w.count, x + barW/2, y - 3);
+    if(pt.count > 0){
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
     }
 
-    if(i % 3 === 0 || i === 11){
+    // Numero sopra il punto se > 0
+    if(pt.count > 0){
+      ctx.fillStyle = color;
+      ctx.font = `bold 10px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.fillText(pt.count, pt.x, pt.y - 8);
+    }
+
+    // Label data sotto (ogni 2 + ultima)
+    if(i % 2 === 0 || i === weeks.length-1){
       ctx.fillStyle = '#9a9088';
       ctx.font = `9px sans-serif`;
       ctx.textAlign = 'center';
-      const label = i === 11 ? 'ora' : `${w.date.getDate()}/${w.date.getMonth()+1}`;
-      ctx.fillText(label, x + barW/2, H - 4);
+      const label = i === weeks.length-1 ? 'ora' : `${pt.date.getDate()}/${pt.date.getMonth()+1}`;
+      ctx.fillText(label, pt.x, H - 4);
     }
   });
-
-  // Linea obiettivo 2 tav/sett
-  const targetY = barArea - Math.round((2/maxCount)*barArea) + 4;
-  ctx.strokeStyle = 'rgba(232,72,72,.4)';
-  ctx.lineWidth = 1;
-  ctx.setLineDash([4,3]);
-  ctx.beginPath(); ctx.moveTo(8, targetY); ctx.lineTo(W-8, targetY); ctx.stroke();
-  ctx.setLineDash([]);
-  ctx.fillStyle = 'rgba(232,72,72,.55)';
-  ctx.font = '9px sans-serif'; ctx.textAlign = 'right';
-  ctx.fillText('obiettivo 2/sett', W-10, targetY - 3);
 
   const total = log.length;
   const activeWeeks = weeks.filter(w=>w.count>0).length;

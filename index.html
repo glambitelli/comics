@@ -157,8 +157,8 @@ body{background:var(--sand);color:var(--ink);font-family:'Nunito',sans-serif;fon
   flex-shrink:0;border-bottom:1px solid rgba(255,255,255,.06);
 }
 .evening-title{
-  font-family:'Castoro',serif;font-size:28px;font-weight:400;
-  color:rgba(255,255,255,.88);letter-spacing:-.01em;
+  font-family:'Castoro',serif;font-size:32px;font-weight:700;
+  color:rgba(255,255,255,.92);letter-spacing:-.01em;line-height:1;
 }
 .evening-close{
   background:none;border:1px solid rgba(255,255,255,.12);
@@ -474,7 +474,10 @@ body{background:var(--sand);color:var(--ink);font-family:'Nunito',sans-serif;fon
 <div class="screen" id="screen-evening">
   <div class="evening-bg">
     <div class="evening-header">
-      <div class="evening-title">🌙 Stasera</div>
+      <div>
+        <div class="evening-title">Inkflow</div>
+        <div style="font-size:9px;color:rgba(255,255,255,.4);letter-spacing:.12em;text-transform:lowercase;margin-top:1px">pipeline · tracker · storyboard</div>
+      </div>
       <button class="evening-close" onclick="exitEveningMode()">← esci</button>
     </div>
     <div class="evening-scroll" id="evening-list"></div>
