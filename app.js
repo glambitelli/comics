@@ -537,6 +537,7 @@ function restoreStoryFields(p){
     updateCharCount('soggetto-count',soggetto.value,800);
   }
   renderActBoard(p);
+  restoreWorldFields(p);
 }
 
 function renderActBoard(p){
@@ -877,7 +878,9 @@ window.deleteScene=deleteScene; window.autoResize=autoResize; window.saveStoryFi
 window.updateCharCount=updateCharCount; window.saveReminderSettings=saveReminderSettings;
 window.testNotification=testNotification; window.updatePlanner=updatePlanner;
 window.applyPlanner=applyPlanner; window.openPlannerModal=openPlannerModal;
-window.closePlannerModal=closePlannerModal;
+window.closePlannerModal=closePlannerModal; window.toggleSubsection=toggleSubsection;
+window.addCharacter=addCharacter; window.deleteCharacter=deleteCharacter;
+window.toggleCharCard=toggleCharCard;
 
 // ── EVENING MODE ──
 function enterEveningMode(){
@@ -895,15 +898,10 @@ function renderEveningList(){
   const list = document.getElementById('evening-list');
   list.innerHTML = '';
 
-  // Stars counter — solo emoji + numero
+  // Aggiorna HUD stelle
   const totalStars = parseInt(localStorage.getItem('inkflow_stars')||'0');
-  const starsEl = document.createElement('div');
-  starsEl.className = 'evening-stars';
-  starsEl.id = 'evening-stars';
-  starsEl.innerHTML = `
-    <span class="evening-stars-emoji">⭐</span>
-    <span class="evening-stars-count" id="stars-count">${totalStars}</span>`;
-  list.appendChild(starsEl);
+  const hudCount = document.getElementById('stars-count');
+  if(hudCount) hudCount.textContent = totalStars;
 
   // Storico task completate
   const history = JSON.parse(localStorage.getItem('inkflow_task_history')||'[]');
@@ -1004,6 +1002,14 @@ function completeEveningTask(id, card){
     const stars = parseInt(localStorage.getItem('inkflow_stars')||'0') + 1;
     localStorage.setItem('inkflow_stars', stars);
     localStorage.setItem(todayKey, '1');
+    // Aggiorna HUD subito con animazione
+    const hud = document.getElementById('stars-count');
+    if(hud){
+      hud.textContent = stars;
+      hud.style.transform = 'scale(1.5)';
+      hud.style.transition = 'transform .25s';
+      setTimeout(()=>hud.style.transform='scale(1)', 300);
+    }
   }
 
   // Animazione card → poi re-render
@@ -1035,7 +1041,128 @@ window.markEveningDone=markEveningDone;
 window.clearStars=clearStars;
 window.clearTaskHistory=clearTaskHistory;
 
-// ── PIANIFICATORE FASI ──
+// ── PERSONAGGI, AMBIENTAZIONE, TONO ──
+function toggleSubsection(id){
+  const body = document.getElementById(id+'-body');
+  const chev = document.getElementById(id+'-chev');
+  if(!body) return;
+  const open = body.classList.contains('open');
+  body.classList.toggle('open', !open);
+  if(chev) chev.classList.toggle('open', !open);
+}
+
+function restoreWorldFields(p){
+  const world = document.getElementById('world-text');
+  const tone = document.getElementById('tone-text');
+  if(world) world.value = (p.story&&p.story.world)||'';
+  if(tone) tone.value = (p.story&&p.story.tone)||'';
+  renderCharacters(p);
+}
+
+function renderCharacters(p){
+  const list = document.getElementById('chars-list');
+  if(!list) return;
+  if(!p.story) p.story={};
+  if(!p.story.characters) p.story.characters=[];
+  list.innerHTML='';
+  p.story.characters.forEach((ch,i)=>{
+    const card = document.createElement('div');
+    card.className='char-card';
+    const hdr = document.createElement('div');
+    hdr.className='char-card-header';
+    hdr.onclick=()=>toggleCharCard(i);
+    hdr.innerHTML=`
+      <span class="char-card-name" id="char-name-display-${i}">${ch.name||'Personaggio'}</span>
+      <span class="char-card-role">${ch.role||''}</span>
+      <button class="char-card-del" onclick="event.stopPropagation();deleteCharacter(${i})">×</button>`;
+    const body = document.createElement('div');
+    body.className='char-card-body';
+    body.id='char-body-'+i;
+    // Nome
+    const nameField = makeCharField('Nome', ch.name||'', 'name', i);
+    // Ruolo
+    const roleField = makeCharField('Ruolo nella storia', ch.role||'', 'role', i);
+    // Descrizione
+    const descField = makeCharFieldTextarea('Descrizione', ch.desc||'', 'desc', i);
+    body.appendChild(nameField);
+    body.appendChild(roleField);
+    body.appendChild(descField);
+    card.appendChild(hdr);
+    card.appendChild(body);
+    list.appendChild(card);
+  });
+}
+
+function makeCharField(label, value, field, idx){
+  const wrap = document.createElement('div');
+  wrap.className='char-field';
+  wrap.innerHTML=`<div class="char-field-label">${label}</div>`;
+  const input = document.createElement('input');
+  input.className='char-input';
+  input.type='text';
+  input.value=value;
+  input.placeholder=label+'…';
+  input.addEventListener('input', function(){
+    const p=getProject(currentId); if(!p||!p.story||!p.story.characters) return;
+    p.story.characters[idx][field]=this.value;
+    if(field==='name'){
+      const disp=document.getElementById('char-name-display-'+idx);
+      if(disp) disp.textContent=this.value||'Personaggio';
+    }
+    scheduleSave(p);
+  });
+  wrap.appendChild(input);
+  return wrap;
+}
+
+function makeCharFieldTextarea(label, value, field, idx){
+  const wrap = document.createElement('div');
+  wrap.className='char-field';
+  wrap.innerHTML=`<div class="char-field-label">${label}</div>`;
+  const ta = document.createElement('textarea');
+  ta.className='char-input story-textarea';
+  ta.style.minHeight='70px';
+  ta.rows=3;
+  ta.value=value;
+  ta.placeholder='Descrivi il personaggio — aspetto fisico, personalità, background…';
+  ta.addEventListener('input', function(){
+    const p=getProject(currentId); if(!p||!p.story||!p.story.characters) return;
+    p.story.characters[idx][field]=this.value;
+    scheduleSave(p);
+  });
+  wrap.appendChild(ta);
+  return wrap;
+}
+
+function toggleCharCard(i){
+  const body=document.getElementById('char-body-'+i);
+  if(!body) return;
+  body.classList.toggle('open');
+}
+
+function addCharacter(){
+  const p=getProject(currentId); if(!p) return;
+  if(!p.story) p.story={};
+  if(!p.story.characters) p.story.characters=[];
+  p.story.characters.push({name:'',role:'',desc:''});
+  scheduleSave(p);
+  renderCharacters(p);
+  // Apri l'ultima card aggiunta
+  setTimeout(()=>{
+    const idx=p.story.characters.length-1;
+    const body=document.getElementById('char-body-'+idx);
+    if(body) body.classList.add('open');
+    const nameInput=body&&body.querySelector('.char-input');
+    if(nameInput) nameInput.focus();
+  },50);
+}
+
+function deleteCharacter(i){
+  const p=getProject(currentId); if(!p||!p.story||!p.story.characters) return;
+  p.story.characters.splice(i,1);
+  scheduleSave(p);
+  renderCharacters(p);
+}
 function updatePlanner(){
   const p = getProject(currentId); if(!p) return;
   const startVal = document.getElementById('date-start').value;

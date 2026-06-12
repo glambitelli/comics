@@ -65,7 +65,7 @@ body{background:var(--sand);color:var(--ink);font-family:'Nunito',sans-serif;fon
 .proj-header::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,var(--coral),var(--gold),var(--green),var(--sky))}
 .back-btn{font-size:12px;color:var(--sky-deep);font-weight:600;background:none;border:none;cursor:pointer;padding:0;margin-bottom:10px;display:flex;align-items:center;gap:4px;letter-spacing:.02em}
 .back-btn:active{color:var(--coral)}
-.proj-title-edit{font-size:26px;font-weight:700;color:var(--ink);letter-spacing:-.01em;background:transparent;border:none;outline:none;width:100%;border-bottom:2px solid transparent;transition:border-color .2s;font-family:'Castoro',serif}
+.proj-title-edit{font-size:30px;font-weight:700;color:var(--ink);background:transparent;border:none;outline:none;width:100%;border-bottom:2px solid transparent;transition:border-color .2s;font-family:'Nunito',sans-serif;letter-spacing:-.01em;-webkit-font-smoothing:antialiased}
 .proj-title-edit:focus{border-bottom-color:var(--sky)}
 .proj-meta{font-size:12px;color:var(--ink2);display:flex;gap:14px;flex-wrap:wrap;margin-top:8px;font-weight:500}
 .proj-meta span{color:var(--ink);font-weight:700}
@@ -185,14 +185,15 @@ body{background:var(--sand);color:var(--ink);font-family:'Nunito',sans-serif;fon
 }
 .evening-close:active{color:rgba(255,255,255,.8)}
 .evening-scroll{flex:1;overflow-y:auto;padding:16px 20px calc(20px + var(--safe-bot))}
-/* Stars counter */
-.evening-stars{
-  display:flex;align-items:center;gap:10px;
-  background:rgba(255,255,255,.06);border-radius:12px;
-  padding:12px 16px;margin-bottom:12px;
+/* Stars HUD */
+.evening-hud{
+  position:absolute;top:calc(18px + var(--safe-top));right:70px;
+  display:flex;align-items:center;gap:4px;
+  background:rgba(255,255,255,.1);border-radius:20px;
+  padding:4px 10px;
 }
-.evening-stars-emoji{font-size:22px}
-.evening-stars-count{font-family:'Castoro',serif;font-size:28px;color:rgba(255,255,255,.92);font-weight:700;line-height:1}
+.evening-hud-star{font-size:12px}
+.evening-hud-count{font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;color:rgba(255,255,255,.9)}
 .evening-completed-section{margin-bottom:12px}
 .evening-completed-label{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.3);margin-bottom:6px;display:flex;align-items:center;justify-content:space-between}
 .evening-completed-clear{font-size:10px;color:rgba(255,255,255,.25);background:none;border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:3px 8px;cursor:pointer;font-family:'Nunito',sans-serif}
@@ -210,7 +211,7 @@ body{background:var(--sand);color:var(--ink);font-family:'Nunito',sans-serif;fon
 .evening-gem{width:32px;height:32px;border-radius:50%;flex-shrink:0;margin-top:2px}
 .evening-card-info{flex:1}
 .evening-proj-name{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;margin-bottom:5px;opacity:.5}
-.evening-task-text{font-family:'Castoro',serif;font-size:20px;color:rgba(255,255,255,.88);line-height:1.35}
+.evening-task-text{font-family:'Castoro',serif;font-size:15px;color:rgba(255,255,255,.88);line-height:1.4}
 .evening-task-empty{font-size:14px;color:rgba(255,255,255,.25);font-style:italic}
 .evening-check{
   width:28px;height:28px;border-radius:50%;flex-shrink:0;
@@ -249,6 +250,29 @@ body{background:var(--sand);color:var(--ink);font-family:'Nunito',sans-serif;fon
 .story-field-header:active{background:var(--sand)}
 .story-field-body{border-top:1.5px solid var(--sand2);padding:14px 16px;display:none}
 .story-field-body.open{display:block}
+/* STORY SUBSECTIONS */
+.story-subsection{border-top:1px solid var(--sand2)}
+.story-subsection-hdr{display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent}
+.story-subsection-hdr:active{background:var(--sand)}
+.story-subsection-icon{font-size:15px;flex-shrink:0}
+.story-subsection-title{font-size:13px;font-weight:700;color:var(--ink);flex:1}
+.story-subsection-chev{font-size:12px;color:var(--ink3);transition:transform .2s}
+.story-subsection-chev.open{transform:rotate(180deg)}
+.story-subsection-body{display:none}
+.story-subsection-body.open{display:block}
+/* CHARACTER CARDS */
+.char-card{margin:0 14px 8px;background:var(--sand);border-radius:10px;border:1.5px solid var(--sand3);overflow:hidden}
+.char-card-header{display:flex;align-items:center;gap:8px;padding:10px 12px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.char-card-name{font-size:13px;font-weight:700;color:var(--ink);flex:1}
+.char-card-role{font-size:11px;color:var(--ink3);font-weight:500}
+.char-card-del{font-size:14px;color:var(--ink3);background:none;border:none;cursor:pointer;padding:2px 4px;line-height:1;flex-shrink:0}
+.char-card-del:active{color:var(--coral)}
+.char-card-body{padding:0 12px 12px;display:none}
+.char-card-body.open{display:block}
+.char-field{margin-bottom:8px}
+.char-field-label{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);margin-bottom:4px}
+.char-input{width:100%;background:var(--white);border:1.5px solid var(--sand3);border-radius:8px;padding:8px 10px;font-family:'Nunito',sans-serif;font-size:13px;color:var(--ink);outline:none;transition:border-color .2s}
+.char-input:focus{border-color:var(--sky)}
 .story-textarea{width:100%;background:var(--sand);border:1.5px solid var(--sand3);border-radius:10px;padding:12px;font-family:'Nunito',sans-serif;font-size:13px;color:var(--ink);resize:none;outline:none;line-height:1.65;transition:border-color .2s}
 .story-textarea:focus{border-color:var(--sky)}
 .char-count{font-size:10px;color:var(--ink3);text-align:right;margin-top:4px;font-weight:600}
@@ -450,6 +474,48 @@ body{background:var(--sand);color:var(--ink);font-family:'Nunito',sans-serif;fon
             <!-- rendered by JS -->
           </div>
         </div>
+
+        <!-- PERSONAGGI -->
+        <div class="story-subsection">
+          <div class="story-subsection-hdr" onclick="toggleSubsection('chars')">
+            <span class="story-subsection-icon">👤</span>
+            <span class="story-subsection-title">Personaggi</span>
+            <span class="story-subsection-chev" id="chars-chev">▾</span>
+          </div>
+          <div class="story-subsection-body open" id="chars-body">
+            <div id="chars-list"></div>
+            <button class="add-scene-btn" style="margin:8px 14px 14px;width:calc(100% - 28px)" onclick="addCharacter()">+ Aggiungi personaggio</button>
+          </div>
+        </div>
+
+        <!-- AMBIENTAZIONE -->
+        <div class="story-subsection">
+          <div class="story-subsection-hdr" onclick="toggleSubsection('world')">
+            <span class="story-subsection-icon">🌍</span>
+            <span class="story-subsection-title">Ambientazione</span>
+            <span class="story-subsection-chev" id="world-chev">▾</span>
+          </div>
+          <div class="story-subsection-body open" id="world-body">
+            <div style="padding:10px 14px 14px">
+              <textarea class="story-textarea" id="world-text" rows="4" maxlength="600" placeholder="Dove e quando si svolge la storia? Che tipo di mondo è? Struttura sociale, atmosfera, elementi distintivi…" oninput="saveStoryField('world',this.value)"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- TONO -->
+        <div class="story-subsection" style="border-bottom:none">
+          <div class="story-subsection-hdr" onclick="toggleSubsection('tone')">
+            <span class="story-subsection-icon">🎨</span>
+            <span class="story-subsection-title">Tono & Atmosfera</span>
+            <span class="story-subsection-chev" id="tone-chev">▾</span>
+          </div>
+          <div class="story-subsection-body open" id="tone-body">
+            <div style="padding:10px 14px 14px">
+              <textarea class="story-textarea" id="tone-text" rows="3" maxlength="400" placeholder="Che atmosfera ha la storia? Riferimenti visivi, tono emotivo, stile narrativo…" oninput="saveStoryField('tone',this.value)"></textarea>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
 
@@ -506,8 +572,12 @@ body{background:var(--sand);color:var(--ink);font-family:'Nunito',sans-serif;fon
     <div class="evening-header">
       <div class="evening-title">Inkflow</div>
       <div class="evening-header-row">
-        <div class="evening-sub">pipeline · tracker · storyboard <span class="sync-dot" style="background:rgba(255,255,255,.2)"></span></div>
+        <div class="evening-sub">pipeline · tracker · storyboard</div>
         <button class="evening-close" onclick="exitEveningMode()">← esci</button>
+      </div>
+      <div class="evening-hud" id="evening-hud">
+        <span class="evening-hud-star">⭐</span>
+        <span class="evening-hud-count" id="stars-count">0</span>
       </div>
     </div>
     <div class="evening-scroll" id="evening-list"></div>
