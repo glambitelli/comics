@@ -850,10 +850,25 @@ function renderEveningList(){
   const list = document.getElementById('evening-list');
   list.innerHTML = '';
 
+  // Stars counter
+  const totalStars = parseInt(localStorage.getItem('inkflow_stars')||'0');
+  const starsEl = document.createElement('div');
+  starsEl.className = 'evening-stars';
+  starsEl.id = 'evening-stars';
+  starsEl.innerHTML = `
+    <span class="evening-stars-emoji">⭐</span>
+    <span class="evening-stars-count" id="stars-count">${totalStars}</span>
+    <span class="evening-stars-label">serate completate</span>
+    <button class="evening-stars-clear" onclick="clearStars()">reset</button>`;
+  list.appendChild(starsEl);
+
   const active = projects.filter(p => p.microtask && p.microtask.trim());
 
   if(active.length === 0){
-    list.innerHTML = `<div class="evening-no-tasks">Nessun task scritto per stasera.<br>Apri un progetto e scrivi cosa farai.</div>`;
+    const empty = document.createElement('div');
+    empty.className = 'evening-no-tasks';
+    empty.innerHTML = 'Nessun task scritto per stasera.<br>Apri un progetto e scrivi cosa farai.';
+    list.appendChild(empty);
     return;
   }
 
@@ -863,13 +878,13 @@ function renderEveningList(){
 
     const card = document.createElement('div');
     card.className = 'evening-card' + (isDone ? ' done-card' : '');
+    card.id = 'ecard-'+p.id;
 
-    // Gemma
     const gemC = document.createElement('canvas');
     gemC.width = 64; gemC.height = 64;
     gemC.className = 'evening-gem';
     const gCtx = gemC.getContext('2d');
-    gCtx.fillStyle = '#1a1610';
+    gCtx.fillStyle = '#0e2a5a';
     gCtx.fillRect(0,0,64,64);
     drawGem(gemC, color);
 
@@ -899,11 +914,38 @@ function getTodayKey(){
 function toggleEveningDone(id, card, check){
   const p = getProject(id); if(!p) return;
   const today = getTodayKey();
-  const isDone = p.eveningDone === today;
-  p.eveningDone = isDone ? '' : today;
-  check.classList.toggle('done', !isDone);
-  card.classList.toggle('done-card', !isDone);
+  const wasDone = p.eveningDone === today;
+  p.eveningDone = wasDone ? '' : today;
+  check.classList.toggle('done', !wasDone);
+  card.classList.toggle('done-card', !wasDone);
   scheduleSave(p);
+
+  // Aggiorna stelle — incrementa solo se non era già fatto oggi
+  if(!wasDone){
+    // Controlla se questa è la prima task completata oggi (non doppio conteggio)
+    const todayKey = 'inkflow_starred_'+today;
+    const alreadyStarred = localStorage.getItem(todayKey);
+    if(!alreadyStarred){
+      const stars = parseInt(localStorage.getItem('inkflow_stars')||'0') + 1;
+      localStorage.setItem('inkflow_stars', stars);
+      localStorage.setItem(todayKey, '1');
+      const el = document.getElementById('stars-count');
+      if(el){
+        el.textContent = stars;
+        // Animazione
+        el.style.transform = 'scale(1.4)';
+        el.style.transition = 'transform .3s';
+        setTimeout(()=>el.style.transform='scale(1)', 300);
+      }
+    }
+  }
+}
+
+function clearStars(){
+  if(!confirm('Resettare il contatore stelle?')) return;
+  localStorage.setItem('inkflow_stars', '0');
+  const el = document.getElementById('stars-count');
+  if(el) el.textContent = '0';
 }
 
 function markEveningDone(){ exitEveningMode(); }
@@ -912,6 +954,7 @@ function markEveningDone(){ exitEveningMode(); }
 window.enterEveningMode=enterEveningMode;
 window.exitEveningMode=exitEveningMode;
 window.markEveningDone=markEveningDone;
+window.clearStars=clearStars;
 
 // ── VELOCITY STORICA ──
 function recordTavola(p, tavNum){

@@ -152,22 +152,38 @@ body{background:var(--sand);color:var(--ink);font-family:'Nunito',sans-serif;fon
   overflow:hidden;
 }
 .evening-header{
-  padding:calc(28px + var(--safe-top)) 24px 20px;
-  display:flex;align-items:center;justify-content:space-between;
-  flex-shrink:0;border-bottom:1px solid rgba(255,255,255,.06);
+  padding:calc(24px + var(--safe-top)) 24px 10px;
+  position:relative;overflow:hidden;flex-shrink:0;
+  border-radius:0 0 28px 28px;
+  border-bottom:3px solid rgba(74,184,216,.5);
+  display:flex;flex-direction:column;justify-content:space-between;
 }
+.evening-header::before{content:'';position:absolute;top:0;left:0;right:0;height:5px;background:linear-gradient(90deg,var(--coral),var(--gold),var(--green),var(--sky))}
 .evening-title{
-  font-family:'Castoro',serif;font-size:32px;font-weight:700;
-  color:rgba(255,255,255,.92);letter-spacing:-.01em;line-height:1;
+  font-family:'Castoro',serif;font-size:46px;font-weight:700;
+  color:rgba(255,255,255,.92);letter-spacing:-.01em;line-height:1;margin-bottom:2px;
 }
+.evening-header-row{display:flex;align-items:center;justify-content:space-between}
+.evening-sub{font-size:9px;color:rgba(255,255,255,.4);font-weight:400;letter-spacing:.12em;text-transform:lowercase}
 .evening-close{
-  background:none;border:1px solid rgba(255,255,255,.12);
-  border-radius:20px;padding:6px 14px;
-  color:rgba(255,255,255,.4);font-family:'Nunito',sans-serif;
+  background:none;border:1px solid rgba(255,255,255,.15);
+  border-radius:20px;padding:5px 12px;
+  color:rgba(255,255,255,.45);font-family:'Nunito',sans-serif;
   font-size:12px;cursor:pointer;letter-spacing:.04em;
 }
-.evening-close:active{color:rgba(255,255,255,.7)}
+.evening-close:active{color:rgba(255,255,255,.8)}
 .evening-scroll{flex:1;overflow-y:auto;padding:16px 20px calc(20px + var(--safe-bot))}
+/* Stars counter */
+.evening-stars{
+  display:flex;align-items:center;gap:8px;
+  background:rgba(255,255,255,.06);border-radius:12px;
+  padding:10px 14px;margin-bottom:12px;
+}
+.evening-stars-emoji{font-size:18px}
+.evening-stars-count{font-family:'Castoro',serif;font-size:22px;color:rgba(255,255,255,.9);font-weight:700}
+.evening-stars-label{font-size:11px;color:rgba(255,255,255,.4);font-weight:500}
+.evening-stars-clear{margin-left:auto;font-size:11px;color:rgba(255,255,255,.25);background:none;border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:4px 8px;cursor:pointer;font-family:'Nunito',sans-serif}
+.evening-stars-clear:active{color:rgba(255,255,255,.6)}
 .evening-card{
   border-radius:14px;padding:18px 20px;margin-bottom:12px;
   border:1px solid rgba(255,255,255,.07);
@@ -474,11 +490,11 @@ body{background:var(--sand);color:var(--ink);font-family:'Nunito',sans-serif;fon
 <div class="screen" id="screen-evening">
   <div class="evening-bg">
     <div class="evening-header">
-      <div>
-        <div class="evening-title">Inkflow</div>
-        <div style="font-size:9px;color:rgba(255,255,255,.4);letter-spacing:.12em;text-transform:lowercase;margin-top:1px">pipeline · tracker · storyboard</div>
+      <div class="evening-title">Inkflow</div>
+      <div class="evening-header-row">
+        <div class="evening-sub">pipeline · tracker · storyboard <span class="sync-dot" style="background:rgba(255,255,255,.2)"></span></div>
+        <button class="evening-close" onclick="exitEveningMode()">← esci</button>
       </div>
-      <button class="evening-close" onclick="exitEveningMode()">← esci</button>
     </div>
     <div class="evening-scroll" id="evening-list"></div>
   </div>
