@@ -15,6 +15,28 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const COL = 'projects';
+const USER_DOC = 'inkflow_user_data'; // documento globale per stelle e storico
+
+// ── USER DATA (stelle + storico) sincronizzati su Firebase ──
+async function saveUserData(){
+  try{
+    const stars = parseInt(localStorage.getItem('inkflow_stars')||'0');
+    const history = JSON.parse(localStorage.getItem('inkflow_task_history')||'[]');
+    await setDoc(doc(db, 'userdata', USER_DOC), { stars, history, updatedAt: serverTimestamp() });
+  } catch(e){ console.warn('saveUserData error:', e); }
+}
+
+async function loadUserData(){
+  try{
+    const { getDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    const snap = await getDoc(doc(db, 'userdata', USER_DOC));
+    if(snap.exists()){
+      const data = snap.data();
+      if(data.stars !== undefined) localStorage.setItem('inkflow_stars', data.stars);
+      if(data.history) localStorage.setItem('inkflow_task_history', JSON.stringify(data.history));
+    }
+  } catch(e){ console.warn('loadUserData error:', e); }
+}
 
 // ── STATE ──
 let projects = [];
@@ -401,10 +423,8 @@ function restoreProject(p){
     chk.classList.toggle('done', done);
     nm.classList.toggle('done', done);
   });
-  document.getElementById('music-url').value = p.musicUrl||'';
-  document.getElementById('music-wrap').classList.remove('open');
-  document.getElementById('music-iframe').src = '';
-  renderTavole(p); renderSfide(p); updateProgress(p); renderDeadline(p); renderVelocity(p); restoreStoryFields(p);
+  renderTavole(p); renderSfide(p); updateProgress(p); renderDeadline(p); renderVelocity(p); restoreStoryFields(p); restorePlanner(p);
+  requestAnimationFrame(() => renderVelocityHistory(p));
 }
 
 function togglePhase(id){
@@ -458,8 +478,13 @@ function renderTavDetail(p){
     pill.textContent=lbl;
     pill.onclick=()=>{
       if(!p.tavole) p.tavole={};
+      const prevStage = p.tavole[p.selectedTav] || 0;
+      const newStage = i;
       p.tavole[p.selectedTav]=i;
-      scheduleSave(p); renderTavole(p); updateProgress(p); renderVelocity(p);
+      // Registra/rimuovi dal velocity log
+      if(newStage >= 4 && prevStage < 4) recordTavola(p, p.selectedTav);
+      if(newStage < 4 && prevStage >= 4) removeTavola(p, p.selectedTav);
+      scheduleSave(p); renderTavole(p); updateProgress(p); renderVelocity(p); renderVelocityHistory(p);
     };
     pills.appendChild(pill);
   });
@@ -487,33 +512,10 @@ window._toggleSfidaDone=i=>{const p=getProject(currentId);if(!p||!p.sfide)return
 window._toggleRef=i=>{const p=getProject(currentId);if(!p||!p.sfide)return;p.sfide[i].ref=!p.sfide[i].ref;scheduleSave(p);renderSfide(p);};
 window._removeSfida=i=>{const p=getProject(currentId);if(!p||!p.sfide)return;p.sfide.splice(i,1);scheduleSave(p);renderSfide(p);};
 
-function playMusic(){
-  const input = document.getElementById('music-url');
-  const url = input.value.trim();
-  if(!url) return;
-  // Extract YouTube video ID
-  let videoId = null;
-  const patterns = [
-    /(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/,
-    /youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/,
-  ];
-  for(const p of patterns){
-    const m = url.match(p);
-    if(m){ videoId = m[1]; break; }
-  }
-  if(!videoId){ alert('Link YouTube non riconosciuto'); return; }
-  const iframe = document.getElementById('music-iframe');
-  const wrap = document.getElementById('music-wrap');
-  iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1`;
-  wrap.classList.add('open');
-  // Save URL to project
-  const p = getProject(currentId); if(!p) return;
-  p.musicUrl = url; scheduleSave(p);
-}
 const ACT_CONFIG=[
-  {id:'setup',label:'Setup',color:'#4ab8d8',light:'#d0eefc',pp_after:'Plot Point 1'},
-  {id:'confrontation',label:'Confrontation',color:'#f0c020',light:'#fdf0b0',pp_after:'Plot Point 2'},
-  {id:'resolution',label:'Resolution',color:'#48a848',light:'#c8ecc8',pp_after:null},
+  {id:'setup',     label:'Setup',        color:'#4ab8d8',light:'#d0eefc', pp_after:'Plot Point 1', inciting:true},
+  {id:'confrontation',label:'Confrontation',color:'#f0c020',light:'#fdf0b0',pp_after:'Plot Point 2', inciting:false},
+  {id:'resolution',label:'Resolution',   color:'#48a848',light:'#c8ecc8', pp_after:null,            inciting:false},
 ];
 
 function saveStoryField(field,value){
@@ -541,42 +543,127 @@ function renderActBoard(p){
   const board=document.getElementById('act-board');
   if(!board)return;
   if(!p.story)p.story={};
-  if(!p.story.acts){
-    p.story.acts={setup:[],confrontation:[],resolution:[]};
-  }
+  if(!p.story.acts) p.story.acts={setup:[],confrontation:[],resolution:[]};
+  if(!p.story.pp) p.story.pp={pp1:'',pp2:'',inciting:''};
+
   board.innerHTML='';
   ACT_CONFIG.forEach((act,ai)=>{
     const scenes=p.story.acts[act.id]||[];
+
     const col=document.createElement('div');
     col.className='act-col';
     col.style.borderColor=act.color+'66';
-    col.innerHTML=`
-      <div class="act-col-header" style="background:${act.light};color:${act.color}">
-        <span>${act.label}</span>
-        <span style="font-size:10px;font-weight:500;opacity:.7">${scenes.length} scene</span>
-      </div>
-      <div class="act-col-body" id="act-body-${act.id}" data-act="${act.id}">
-        ${scenes.map((sc,i)=>sceneCardHTML(act.id,i,sc)).join('')}
-        <button class="add-scene-btn" onclick="addScene('${act.id}')">+ aggiungi scena</button>
-      </div>`;
+
+    // Header
+    const hdr=document.createElement('div');
+    hdr.className='act-col-header';
+    hdr.style.cssText=`background:${act.light};color:${act.color}`;
+    hdr.innerHTML=`<span>${act.label}</span><span style="font-size:10px;font-weight:500;opacity:.7">${scenes.length} scene</span>`;
+    col.appendChild(hdr);
+
+    // Inciting Incident field (solo in Setup) — costruito via DOM
+    if(act.inciting){
+      const inc=document.createElement('div');
+      inc.style.cssText='padding:8px 12px 4px;';
+      const incLabel=document.createElement('div');
+      incLabel.style.cssText=`font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:${act.color};margin-bottom:4px`;
+      incLabel.textContent='Inciting Incident';
+      const incTa=document.createElement('textarea');
+      incTa.className='story-textarea';
+      incTa.style.cssText='font-size:12px;min-height:44px;';
+      incTa.placeholder="L'evento che mette in moto la storia…";
+      incTa.value=p.story.pp.inciting||'';
+      incTa.addEventListener('input', function(){
+        if(!p.story.pp) p.story.pp={pp1:'',pp2:'',inciting:''};
+        p.story.pp.inciting=this.value;
+        scheduleSave(p);
+      });
+      inc.appendChild(incLabel);
+      inc.appendChild(incTa);
+      col.appendChild(inc);
+    }
+
+    // Scene body — costruita senza innerHTML per evitare il bug focus
+    const body=document.createElement('div');
+    body.className='act-col-body';
+    body.id='act-body-'+act.id;
+    body.dataset.act=act.id;
+
+    scenes.forEach((sc,i)=>{
+      body.appendChild(makeSceneCard(act.id, i, sc, p));
+    });
+
+    const addBtn=document.createElement('button');
+    addBtn.className='add-scene-btn';
+    addBtn.textContent='+ aggiungi scena';
+    addBtn.onclick=()=>addScene(act.id);
+    body.appendChild(addBtn);
+    col.appendChild(body);
     board.appendChild(col);
+
+    // Plot Point divider con campo di testo — costruito via DOM
     if(act.pp_after){
+      const ppKey = ai===0 ? 'pp1' : 'pp2';
       const div=document.createElement('div');
       div.className='plot-point-divider';
-      div.innerHTML=`<div class="plot-point-label">⬡ ${act.pp_after}</div>`;
+      div.style.flexDirection='column';
+      div.style.alignItems='stretch';
+      div.style.gap='6px';
+      const ppHeader=document.createElement('div');
+      ppHeader.style.cssText='display:flex;align-items:center;gap:8px';
+      ppHeader.innerHTML=`<div style="flex:1;height:1.5px;background:var(--coral);opacity:.5"></div><div class="plot-point-label">⬡ ${act.pp_after}</div><div style="flex:1;height:1.5px;background:var(--coral);opacity:.5"></div>`;
+      const ppTa=document.createElement('textarea');
+      ppTa.className='story-textarea';
+      ppTa.style.cssText='font-size:12px;min-height:44px;';
+      ppTa.placeholder=`Descrivi il ${act.pp_after}…`;
+      ppTa.value=p.story.pp[ppKey]||'';
+      ppTa.addEventListener('input', function(){
+        if(!p.story.pp) p.story.pp={pp1:'',pp2:'',inciting:''};
+        p.story.pp[ppKey]=this.value;
+        scheduleSave(p);
+      });
+      div.appendChild(ppHeader);
+      div.appendChild(ppTa);
       board.appendChild(div);
     }
   });
-  // re-attach drag events
+
   attachDrag(p);
 }
 
-function sceneCardHTML(actId,idx,text){
-  return `<div class="scene-card" draggable="true" data-act="${actId}" data-idx="${idx}">
-    <span class="scene-handle">⠿</span>
-    <textarea class="scene-text" rows="2" placeholder="Descrivi la scena…" onblur="updateScene('${actId}',${idx},this.value)" oninput="autoResize(this)">${text||''}</textarea>
-    <button class="scene-del" onclick="deleteScene('${actId}',${idx})">×</button>
-  </div>`;
+function makeSceneCard(actId, idx, text, p){
+  const card=document.createElement('div');
+  card.className='scene-card';
+  card.draggable=true;
+  card.dataset.act=actId;
+  card.dataset.idx=idx;
+
+  const handle=document.createElement('span');
+  handle.className='scene-handle';
+  handle.textContent='⠿';
+
+  // Textarea costruita via DOM — evita il bug del focus con innerHTML
+  const ta=document.createElement('textarea');
+  ta.className='scene-text';
+  ta.rows=2;
+  ta.placeholder='Descrivi la scena…';
+  ta.value=text||'';
+  ta.addEventListener('input', function(){
+    autoResize(this);
+    if(!p.story||!p.story.acts)return;
+    p.story.acts[actId][idx]=this.value;
+    scheduleSave(p);
+  });
+
+  const del=document.createElement('button');
+  del.className='scene-del';
+  del.textContent='×';
+  del.onclick=()=>deleteScene(actId,idx);
+
+  card.appendChild(handle);
+  card.appendChild(ta);
+  card.appendChild(del);
+  return card;
 }
 
 function autoResize(el){
@@ -589,10 +676,19 @@ function addScene(actId){
   if(!p.story)p.story={};
   if(!p.story.acts)p.story.acts={setup:[],confrontation:[],resolution:[]};
   p.story.acts[actId].push('');
-  scheduleSave(p);renderActBoard(p);
-  // focus last textarea in that act
+  scheduleSave(p);
+  // Aggiungi la card senza fare re-render completo — evita il bug focus
   const body=document.getElementById('act-body-'+actId);
-  if(body){const tas=body.querySelectorAll('.scene-text');if(tas.length)tas[tas.length-1].focus();}
+  if(body){
+    const addBtn=body.querySelector('.add-scene-btn');
+    const idx=p.story.acts[actId].length-1;
+    const card=makeSceneCard(actId,idx,'',p);
+    body.insertBefore(card,addBtn);
+    card.querySelector('.scene-text').focus();
+  }
+  // Aggiorna contatore scene nell'header
+  const hdr=body.closest('.act-col').querySelector('.act-col-header span:last-child');
+  if(hdr) hdr.textContent=p.story.acts[actId].length+' scene';
 }
 
 function updateScene(actId,idx,value){
@@ -622,7 +718,6 @@ function attachDrag(p){
       e.preventDefault();
       if(dragAct===null||dragIdx===null)return;
       const targetAct=body.dataset.act;
-      // find drop position
       const cards=[...body.querySelectorAll('.scene-card')];
       let dropIdx=cards.length;
       cards.forEach((c,i)=>{
@@ -779,6 +874,604 @@ window.toggleStep=toggleStep; window.selectTav=selectTav; window.addSfida=addSfi
 window.saveDates=saveDates; window.confirmDeleteCurrent=confirmDeleteCurrent; window.closeConfirm=closeConfirm;
 window.exportPDF=exportPDF; window.addScene=addScene; window.updateScene=updateScene;
 window.deleteScene=deleteScene; window.autoResize=autoResize; window.saveStoryField=saveStoryField;
-window.updateCharCount=updateCharCount; window.playMusic=playMusic;
+window.updateCharCount=updateCharCount; window.saveReminderSettings=saveReminderSettings;
+window.testNotification=testNotification; window.updatePlanner=updatePlanner; window.applyPlanner=applyPlanner;
 
-// No service worker — evita problemi di cache
+// ── EVENING MODE ──
+function enterEveningMode(){
+  renderEveningList();
+  document.getElementById('screen-home').classList.remove('active');
+  document.getElementById('screen-evening').classList.add('active');
+}
+
+function exitEveningMode(){
+  document.getElementById('screen-evening').classList.remove('active');
+  document.getElementById('screen-home').classList.add('active');
+}
+
+function renderEveningList(){
+  const list = document.getElementById('evening-list');
+  list.innerHTML = '';
+
+  // Stars counter — solo emoji + numero
+  const totalStars = parseInt(localStorage.getItem('inkflow_stars')||'0');
+  const starsEl = document.createElement('div');
+  starsEl.className = 'evening-stars';
+  starsEl.id = 'evening-stars';
+  starsEl.innerHTML = `
+    <span class="evening-stars-emoji">⭐</span>
+    <span class="evening-stars-count" id="stars-count">${totalStars}</span>`;
+  list.appendChild(starsEl);
+
+  // Storico task completate
+  const history = JSON.parse(localStorage.getItem('inkflow_task_history')||'[]');
+  if(history.length > 0){
+    const histSection = document.createElement('div');
+    histSection.className = 'evening-completed-section';
+    histSection.innerHTML = `
+      <div class="evening-completed-label">
+        <span>Task completate</span>
+        <button class="evening-completed-clear" onclick="clearTaskHistory()">clear</button>
+      </div>
+      ${history.slice().reverse().map(h=>`
+        <div class="evening-completed-item">
+          <span style="color:${h.color||'#4ab8d8'}" class="evening-completed-proj">${h.project}</span>
+          <span style="flex:1">${h.task}</span>
+          <span style="font-size:10px;opacity:.4">${h.date}</span>
+        </div>`).join('')}`;
+    list.appendChild(histSection);
+  }
+
+  // Task correnti da fare
+  const active = projects.filter(p => p.microtask && p.microtask.trim());
+
+  if(active.length === 0 && history.length === 0){
+    const empty = document.createElement('div');
+    empty.className = 'evening-no-tasks';
+    empty.innerHTML = 'Nessun task scritto per stasera.<br>Apri un progetto e scrivi cosa farai.';
+    list.appendChild(empty);
+    return;
+  }
+
+  if(active.length > 0){
+    const activeLabel = document.createElement('div');
+    activeLabel.style.cssText = 'font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.3);margin-bottom:8px;margin-top:4px';
+    activeLabel.textContent = 'Da fare stasera';
+    list.appendChild(activeLabel);
+
+    active.forEach(p => {
+      const color = p.color || '#4ab8d8';
+      const card = document.createElement('div');
+      card.className = 'evening-card';
+      card.id = 'ecard-'+p.id;
+
+      const gemC = document.createElement('canvas');
+      gemC.width = 64; gemC.height = 64;
+      gemC.className = 'evening-gem';
+      const gCtx = gemC.getContext('2d');
+      gCtx.fillStyle = '#0e2a5a';
+      gCtx.fillRect(0,0,64,64);
+      drawGem(gemC, color);
+
+      const info = document.createElement('div');
+      info.className = 'evening-card-info';
+      info.innerHTML = `
+        <div class="evening-proj-name" style="color:${color}">${p.title}</div>
+        <div class="evening-task-text">${p.microtask}</div>`;
+
+      const check = document.createElement('div');
+      check.className = 'evening-check';
+      check.textContent = '✓';
+      check.onclick = () => completeEveningTask(p.id, card);
+
+      card.appendChild(gemC);
+      card.appendChild(info);
+      card.appendChild(check);
+      list.appendChild(card);
+    });
+  }
+}
+
+function getTodayKey(){
+  const d = new Date();
+  return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;
+}
+
+function completeEveningTask(id, card){
+  const p = getProject(id); if(!p) return;
+
+  // Salva nello storico
+  const history = JSON.parse(localStorage.getItem('inkflow_task_history')||'[]');
+  const now = new Date();
+  history.push({
+    project: p.title,
+    task: p.microtask,
+    color: p.color||'#4ab8d8',
+    date: `${now.getDate()}/${now.getMonth()+1}`
+  });
+  localStorage.setItem('inkflow_task_history', JSON.stringify(history));
+
+  // Svuota il campo task nel progetto
+  p.microtask = '';
+  scheduleSave(p);
+
+  // Stella — una per serata
+  const today = getTodayKey();
+  const todayKey = 'inkflow_starred_'+today;
+  if(!localStorage.getItem(todayKey)){
+    const stars = parseInt(localStorage.getItem('inkflow_stars')||'0') + 1;
+    localStorage.setItem('inkflow_stars', stars);
+    localStorage.setItem(todayKey, '1');
+  }
+
+  // Animazione card → poi re-render
+  card.style.transition = 'opacity .3s, transform .3s';
+  card.style.opacity = '0';
+  card.style.transform = 'translateX(20px)';
+  saveUserData();
+  setTimeout(()=> renderEveningList(), 350);
+}
+
+function clearTaskHistory(){
+  localStorage.removeItem('inkflow_task_history');
+  saveUserData();
+  renderEveningList();
+}
+
+function clearStars(){
+  localStorage.setItem('inkflow_stars','0');
+  const el = document.getElementById('stars-count');
+  if(el) el.textContent = '0';
+}
+
+function markEveningDone(){ exitEveningMode(); }
+
+// Esponi evening mode dopo che le funzioni sono definite
+window.enterEveningMode=enterEveningMode;
+window.exitEveningMode=exitEveningMode;
+window.markEveningDone=markEveningDone;
+window.clearStars=clearStars;
+window.clearTaskHistory=clearTaskHistory;
+
+// ── PIANIFICATORE FASI ──
+function updatePlanner(){
+  const p = getProject(currentId); if(!p) return;
+  const startVal = document.getElementById('date-start').value;
+  if(!startVal) return;
+
+  const weeksS = parseFloat(document.getElementById('plan-sviluppo').value)||2;
+  const weeksP = parseFloat(document.getElementById('plan-preprod').value)||2;
+  const velocity = parseFloat(document.getElementById('plan-velocity').value)||2;
+  const numTav = p.numTav||10;
+  const weeksR = Math.ceil(numTav/velocity);
+  const totalWeeks = weeksS + weeksP + weeksR;
+
+  const start = new Date(startVal);
+  const endSviluppo = new Date(start); endSviluppo.setDate(start.getDate() + weeksS*7);
+  const endPreProd = new Date(endSviluppo); endPreProd.setDate(endSviluppo.getDate() + weeksP*7);
+  const endReal = new Date(endPreProd); endReal.setDate(endPreProd.getDate() + weeksR*7);
+
+  const fmt = d => `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`;
+
+  // Summary
+  const summary = document.getElementById('planner-summary');
+  if(summary){
+    summary.innerHTML = `
+      <span style="color:#7F77DD">■ Sviluppo</span> ${fmt(start)} → ${fmt(endSviluppo)} (${weeksS} sett.) &nbsp;
+      <span style="color:#4ab8d8">■ Pre-prod.</span> ${fmt(endSviluppo)} → ${fmt(endPreProd)} (${weeksP} sett.) &nbsp;
+      <span style="color:#48a848">■ Realizzazione</span> ${fmt(endPreProd)} → ${fmt(endReal)} (${weeksR} sett. · ${numTav} tavole a ${velocity}/sett.)
+      <br><strong>Deadline calcolata: ${fmt(endReal)}</strong> · ${totalWeeks} settimane totali`;
+  }
+
+  // Timeline canvas
+  const canvas = document.getElementById('planner-canvas');
+  if(!canvas) return;
+  const dpr = window.devicePixelRatio||1;
+  const W = Math.max(canvas.parentElement.offsetWidth-32, 200);
+  const H = 52;
+  canvas.width = Math.round(W*dpr); canvas.height = Math.round(H*dpr);
+  canvas.style.width = W+'px'; canvas.style.height = H+'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr,dpr);
+  ctx.clearRect(0,0,W,H);
+
+  const phases = [
+    {weeks:weeksS, color:'#7F77DD', light:'#ede8fb', label:'Sviluppo'},
+    {weeks:weeksP, color:'#4ab8d8', light:'#d0eefc', label:'Pre-prod.'},
+    {weeks:weeksR, color:'#48a848', light:'#c8ecc8', label:'Realizz.'},
+  ];
+  const barH = 28; const barY = (H-barH)/2;
+  let x = 0;
+  phases.forEach((ph,i) => {
+    const w = Math.round((ph.weeks/totalWeeks)*W);
+    const isLast = i===phases.length-1;
+    const bw = isLast ? W-x : w;
+    // Background
+    ctx.fillStyle = ph.light;
+    ctx.beginPath();
+    if(i===0) ctx.roundRect(x, barY, bw, barH, [8,0,0,8]);
+    else if(isLast) ctx.roundRect(x, barY, bw, barH, [0,8,8,0]);
+    else ctx.rect(x, barY, bw, barH);
+    ctx.fill();
+    // Color strip top
+    ctx.fillStyle = ph.color;
+    ctx.beginPath();
+    if(i===0) ctx.roundRect(x, barY, bw, 4, [8,0,0,8]);
+    else if(isLast) ctx.roundRect(x, barY, bw, 4, [0,8,8,0]);
+    else ctx.rect(x, barY, bw, 4);
+    ctx.fill();
+    // Label
+    ctx.fillStyle = ph.color;
+    ctx.font = `bold 11px sans-serif`;
+    ctx.textAlign = 'center';
+    if(bw > 40) ctx.fillText(ph.label, x+bw/2, barY+barH-8);
+    // Divider
+    if(!isLast){
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(x+bw-1, barY, 2, barH);
+    }
+    // Settimane sotto
+    ctx.fillStyle = '#9a9088';
+    ctx.font = '9px sans-serif';
+    ctx.textAlign = 'center';
+    if(bw > 30) ctx.fillText(`${ph.weeks}w`, x+bw/2, barY+barH+12);
+    x += bw;
+  });
+
+  // Indicatore oggi
+  const now = new Date();
+  if(now >= start && now <= endReal){
+    const elapsed = (now-start)/(endReal-start);
+    const tx = Math.round(elapsed*W);
+    ctx.strokeStyle = '#e84848';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([3,2]);
+    ctx.beginPath(); ctx.moveTo(tx, barY-4); ctx.lineTo(tx, barY+barH+4); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#e84848';
+    ctx.font = 'bold 8px sans-serif';
+    ctx.textAlign = 'center';
+    const lx = Math.min(Math.max(tx,12), W-12);
+    ctx.fillText('oggi', lx, barY-6);
+  }
+}
+
+function applyPlanner(){
+  const startVal = document.getElementById('date-start').value;
+  if(!startVal){ alert('Imposta prima la data di inizio'); return; }
+  const p = getProject(currentId); if(!p) return;
+
+  const weeksS = parseFloat(document.getElementById('plan-sviluppo').value)||2;
+  const weeksP = parseFloat(document.getElementById('plan-preprod').value)||2;
+  const velocity = parseFloat(document.getElementById('plan-velocity').value)||2;
+  const weeksR = Math.ceil((p.numTav||10)/velocity);
+
+  const start = new Date(startVal);
+  const end = new Date(start);
+  end.setDate(start.getDate() + (weeksS+weeksP+weeksR)*7);
+
+  const toISO = d => d.toISOString().split('T')[0];
+  p.dateEnd = toISO(end);
+  document.getElementById('date-end').value = p.dateEnd;
+  scheduleSave(p);
+  renderDeadline(p);
+  renderVelocity(p);
+
+  // Feedback
+  const btn = document.querySelector('.planner-apply-btn');
+  btn.textContent = '✓ Deadline impostata!';
+  btn.style.background = '#48a848';
+  setTimeout(()=>{
+    btn.textContent = '✓ Usa questa deadline';
+    btn.style.background = '';
+  }, 2000);
+}
+
+function restorePlanner(p){
+  // Ripristina i valori del pianificatore se salvati
+  if(p.plannerSettings){
+    const s = p.plannerSettings;
+    const sv = document.getElementById('plan-sviluppo');
+    const pp = document.getElementById('plan-preprod');
+    const vl = document.getElementById('plan-velocity');
+    if(sv) sv.value = s.sviluppo||2;
+    if(pp) pp.value = s.preprod||2;
+    if(vl) vl.value = s.velocity||2;
+  }
+  requestAnimationFrame(()=>updatePlanner());
+}
+function recordTavola(p, tavNum){
+  // Registra la data di completamento di una tavola
+  if(!p.velocityLog) p.velocityLog = [];
+  // Evita duplicati
+  const alreadyLogged = p.velocityLog.some(e => e.tav === tavNum);
+  if(!alreadyLogged){
+    p.velocityLog.push({ tav: tavNum, date: Date.now() });
+  }
+}
+
+function removeTavola(p, tavNum){
+  if(!p.velocityLog) return;
+  p.velocityLog = p.velocityLog.filter(e => e.tav !== tavNum);
+}
+
+function renderVelocityHistory(p){
+  const canvas = document.getElementById('history-canvas');
+  const legend = document.getElementById('history-legend');
+  if(!canvas) return;
+
+  // Auto-popola il log dalle tavole già segnate come Finita
+  if(!p.velocityLog) p.velocityLog = [];
+  Object.entries(p.tavole||{}).forEach(([num, stage])=>{
+    if(stage >= 4){
+      const n = parseInt(num);
+      if(!p.velocityLog.some(e => e.tav === n)){
+        p.velocityLog.push({ tav: n, date: p.createdAt ? p.createdAt + n*86400000 : Date.now() });
+      }
+    }
+  });
+
+  const log = p.velocityLog || [];
+
+  // Misura il parent dopo il layout
+  const parent = canvas.parentElement;
+  const W = Math.max(parent.offsetWidth - 32, 200);
+  const H = 110;
+  const dpr = window.devicePixelRatio||1;
+  canvas.width = Math.round(W*dpr);
+  canvas.height = Math.round(H*dpr);
+  canvas.style.width = W+'px';
+  canvas.style.height = H+'px';
+  canvas.style.display = 'block';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr,dpr);
+  ctx.clearRect(0,0,W,H);
+
+  // Raggruppa per settimana (lunedì)
+  const weekMap = {};
+  log.forEach(entry => {
+    const d = new Date(entry.date);
+    const day = d.getDay();
+    const monday = new Date(d);
+    monday.setDate(d.getDate() + (day === 0 ? -6 : 1 - day));
+    monday.setHours(0,0,0,0);
+    weekMap[monday.getTime()] = (weekMap[monday.getTime()]||0) + 1;
+  });
+
+  // Ultime 10 settimane
+  const now = new Date();
+  const thisMonday = new Date(now);
+  const dow = now.getDay();
+  thisMonday.setDate(now.getDate() + (dow === 0 ? -6 : 1 - dow));
+  thisMonday.setHours(0,0,0,0);
+
+  const weeks = [];
+  for(let i = 9; i >= 0; i--){
+    const d = new Date(thisMonday);
+    d.setDate(d.getDate() - i*7);
+    weeks.push({ date: d, count: weekMap[d.getTime()]||0 });
+  }
+
+  const maxCount = Math.max(...weeks.map(w=>w.count), 3);
+  const padL = 12, padR = 12, padT = 18, padB = 24;
+  const chartW = W - padL - padR;
+  const chartH = H - padT - padB;
+
+  // Griglia orizzontale leggera
+  ctx.strokeStyle = '#e8e0d0';
+  ctx.lineWidth = 1;
+  [1,2,3].forEach(v => {
+    if(v > maxCount) return;
+    const y = padT + chartH - (v/maxCount)*chartH;
+    ctx.setLineDash([3,4]);
+    ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(W-padR, y); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#c8b898';
+    ctx.font = '8px sans-serif'; ctx.textAlign = 'right';
+    ctx.fillText(v, padL-2, y+3);
+  });
+
+  // Punti X e coordinate Y
+  const pts = weeks.map((w, i) => ({
+    x: padL + (i/(weeks.length-1))*chartW,
+    y: padT + chartH - (w.count/maxCount)*chartH,
+    count: w.count,
+    date: w.date,
+    isNow: i === weeks.length-1,
+  }));
+
+  // Area sotto la linea — fill morbido
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x, padT+chartH);
+  pts.forEach(pt => ctx.lineTo(pt.x, pt.y));
+  ctx.lineTo(pts[pts.length-1].x, padT+chartH);
+  ctx.closePath();
+  const areaGrad = ctx.createLinearGradient(0, padT, 0, padT+chartH);
+  areaGrad.addColorStop(0, 'rgba(74,184,216,.18)');
+  areaGrad.addColorStop(1, 'rgba(74,184,216,.02)');
+  ctx.fillStyle = areaGrad;
+  ctx.fill();
+
+  // Linea principale
+  ctx.beginPath();
+  pts.forEach((pt, i) => i === 0 ? ctx.moveTo(pt.x, pt.y) : ctx.lineTo(pt.x, pt.y));
+  ctx.strokeStyle = '#4ab8d8';
+  ctx.lineWidth = 2;
+  ctx.lineJoin = 'round';
+  ctx.setLineDash([]);
+  ctx.stroke();
+
+  // Linea obiettivo 2 tav/sett
+  const targetY = padT + chartH - (2/maxCount)*chartH;
+  ctx.setLineDash([4,3]);
+  ctx.strokeStyle = 'rgba(232,72,72,.35)';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(padL, targetY); ctx.lineTo(W-padR, targetY); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = 'rgba(232,72,72,.5)';
+  ctx.font = '8px sans-serif'; ctx.textAlign = 'right';
+  ctx.fillText('obiettivo', W-padR, targetY-3);
+
+  // Punti + etichette
+  pts.forEach((pt, i) => {
+    const color = pt.isNow ? '#2a88b8' : pt.count >= 2 ? '#48a848' : pt.count === 1 ? '#f0c020' : '#c8b898';
+
+    // Punto
+    ctx.beginPath();
+    ctx.arc(pt.x, pt.y, pt.count > 0 ? 4 : 2.5, 0, Math.PI*2);
+    ctx.fillStyle = color;
+    ctx.fill();
+    if(pt.count > 0){
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
+
+    // Numero sopra il punto se > 0
+    if(pt.count > 0){
+      ctx.fillStyle = color;
+      ctx.font = `bold 10px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.fillText(pt.count, pt.x, pt.y - 8);
+    }
+
+    // Label data sotto (ogni 2 + ultima)
+    if(i % 2 === 0 || i === weeks.length-1){
+      ctx.fillStyle = '#9a9088';
+      ctx.font = `9px sans-serif`;
+      ctx.textAlign = 'center';
+      const label = i === weeks.length-1 ? 'ora' : `${pt.date.getDate()}/${pt.date.getMonth()+1}`;
+      ctx.fillText(label, pt.x, H - 4);
+    }
+  });
+
+  const total = log.length;
+  const activeWeeks = weeks.filter(w=>w.count>0).length;
+  const avg = activeWeeks > 0 ? (total/activeWeeks).toFixed(1) : '—';
+  if(legend) legend.textContent = `${total} tavole totali · media ${avg} tav/sett`;
+}
+let swReg = null;
+
+async function initNotifications(){
+  if(!('serviceWorker' in navigator) || !('Notification' in window)) return;
+  try {
+    swReg = await navigator.serviceWorker.register('./sw.js');
+    restoreReminderUI();
+    scheduleNextReminder();
+  } catch(e){ console.warn('SW failed:', e); }
+}
+
+function restoreReminderUI(){
+  const time = localStorage.getItem('inkflow_reminder_time') || '08:20';
+  const enabled = localStorage.getItem('inkflow_reminder_enabled') === 'true';
+  const timeEl = document.getElementById('reminder-time');
+  const toggleEl = document.getElementById('reminder-toggle');
+  if(timeEl) timeEl.value = time;
+  if(toggleEl) toggleEl.checked = enabled;
+  updateReminderStatus();
+}
+
+function saveReminderSettings(){
+  const time = document.getElementById('reminder-time').value;
+  const enabled = document.getElementById('reminder-toggle').checked;
+  localStorage.setItem('inkflow_reminder_time', time);
+  localStorage.setItem('inkflow_reminder_enabled', enabled);
+
+  if(enabled){
+    requestNotificationPermission().then(granted => {
+      if(granted){
+        scheduleNextReminder();
+        updateReminderStatus();
+      } else {
+        document.getElementById('reminder-toggle').checked = false;
+        localStorage.setItem('inkflow_reminder_enabled', 'false');
+        updateReminderStatus();
+      }
+    });
+  } else {
+    updateReminderStatus();
+  }
+}
+
+async function requestNotificationPermission(){
+  if(Notification.permission === 'granted') return true;
+  const perm = await Notification.requestPermission();
+  return perm === 'granted';
+}
+
+function scheduleNextReminder(){
+  const enabled = localStorage.getItem('inkflow_reminder_enabled') === 'true';
+  if(!enabled || !swReg) return;
+  if(Notification.permission !== 'granted') return;
+
+  const time = localStorage.getItem('inkflow_reminder_time') || '08:20';
+  const [h, m] = time.split(':').map(Number);
+
+  const now = new Date();
+  const next = new Date();
+  next.setHours(h, m, 0, 0);
+  if(next <= now) next.setDate(next.getDate() + 1);
+
+  const delay = next - now;
+
+  // Cancella eventuale timer precedente
+  const prevTimer = window._reminderTimer;
+  if(prevTimer) clearTimeout(prevTimer);
+
+  window._reminderTimer = setTimeout(() => {
+    if(swReg && swReg.active){
+      swReg.active.postMessage({
+        type: 'SCHEDULE_NOTIFICATION',
+        title: 'Inkflow ✏️',
+        body: 'Buongiorno! Scrivi il task di stasera prima di iniziare la giornata.',
+        delay: 0
+      });
+    }
+    // Riprogramma per il giorno dopo
+    scheduleNextReminder();
+  }, delay);
+}
+
+function updateReminderStatus(){
+  const el = document.getElementById('reminder-status');
+  if(!el) return;
+  const enabled = localStorage.getItem('inkflow_reminder_enabled') === 'true';
+  const time = localStorage.getItem('inkflow_reminder_time') || '08:20';
+  const perm = ('Notification' in window) ? Notification.permission : 'unsupported';
+
+  if(perm === 'unsupported'){
+    el.textContent = 'Notifiche non supportate su questo browser';
+    el.style.color = 'var(--ink3)';
+  } else if(!enabled){
+    el.textContent = 'Reminder disattivato';
+    el.style.color = 'var(--ink3)';
+  } else if(perm === 'denied'){
+    el.textContent = '⚠️ Permesso negato — abilita le notifiche nelle impostazioni del browser';
+    el.style.color = 'var(--coral)';
+  } else if(perm === 'granted'){
+    el.textContent = `✓ Reminder attivo ogni giorno alle ${time}`;
+    el.style.color = 'var(--moss)';
+  } else {
+    el.textContent = 'Salva per attivare e concedere il permesso';
+    el.style.color = 'var(--gold)';
+  }
+}
+
+async function testNotification(){
+  const granted = await requestNotificationPermission();
+  if(!granted){ alert('Permesso notifiche non concesso'); return; }
+  if(swReg && swReg.active){
+    swReg.active.postMessage({
+      type: 'SCHEDULE_NOTIFICATION',
+      title: 'Inkflow ✏️',
+      body: 'Test! Questo è il reminder del mattino.',
+      delay: 2000
+    });
+  } else {
+    new Notification('Inkflow ✏️', { body: 'Test! Questo è il reminder del mattino.', icon: './icon-192.png' });
+  }
+}
+
+// Carica dati utente (stelle/storico) da Firebase
+loadUserData();
+initNotifications();
