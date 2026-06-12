@@ -401,7 +401,7 @@ function restoreProject(p){
     chk.classList.toggle('done', done);
     nm.classList.toggle('done', done);
   });
-  renderTavole(p); renderSfide(p); updateProgress(p); renderDeadline(p); renderVelocity(p); restoreStoryFields(p);
+  renderTavole(p); renderSfide(p); updateProgress(p); renderDeadline(p); renderVelocity(p); restoreStoryFields(p); renderVelocityHistory(p);
 }
 
 function togglePhase(id){
@@ -455,8 +455,13 @@ function renderTavDetail(p){
     pill.textContent=lbl;
     pill.onclick=()=>{
       if(!p.tavole) p.tavole={};
+      const prevStage = p.tavole[p.selectedTav] || 0;
+      const newStage = i;
       p.tavole[p.selectedTav]=i;
-      scheduleSave(p); renderTavole(p); updateProgress(p); renderVelocity(p);
+      // Registra/rimuovi dal velocity log
+      if(newStage >= 4 && prevStage < 4) recordTavola(p, p.selectedTav);
+      if(newStage < 4 && prevStage >= 4) removeTavola(p, p.selectedTav);
+      scheduleSave(p); renderTavole(p); updateProgress(p); renderVelocity(p); renderVelocityHistory(p);
     };
     pills.appendChild(pill);
   });
@@ -825,10 +830,212 @@ window.toggleStep=toggleStep; window.selectTav=selectTav; window.addSfida=addSfi
 window.saveDates=saveDates; window.confirmDeleteCurrent=confirmDeleteCurrent; window.closeConfirm=closeConfirm;
 window.exportPDF=exportPDF; window.addScene=addScene; window.updateScene=updateScene;
 window.deleteScene=deleteScene; window.autoResize=autoResize; window.saveStoryField=saveStoryField;
-window.updateCharCount=updateCharCount;
+window.updateCharCount=updateCharCount; window.saveReminderSettings=saveReminderSettings;
+window.testNotification=testNotification; window.enterEveningMode=enterEveningMode;
+window.exitEveningMode=exitEveningMode; window.markEveningDone=markEveningDone;
 window.saveReminderSettings=saveReminderSettings; window.testNotification=testNotification;
 
-// ── NOTIFICATIONS ──
+// ── EVENING MODE ──
+function enterEveningMode(){
+  renderEveningList();
+  document.getElementById('screen-home').classList.remove('active');
+  document.getElementById('screen-evening').classList.add('active');
+}
+
+function exitEveningMode(){
+  document.getElementById('screen-evening').classList.remove('active');
+  document.getElementById('screen-home').classList.add('active');
+}
+
+function renderEveningList(){
+  const list = document.getElementById('evening-list');
+  list.innerHTML = '';
+
+  const active = projects.filter(p => p.microtask && p.microtask.trim());
+
+  if(active.length === 0){
+    list.innerHTML = `<div class="evening-no-tasks">Nessun task scritto per stasera.<br>Apri un progetto e scrivi cosa farai.</div>`;
+    return;
+  }
+
+  active.forEach(p => {
+    const color = p.color || '#4ab8d8';
+    const isDone = p.eveningDone === getTodayKey();
+
+    const card = document.createElement('div');
+    card.className = 'evening-card' + (isDone ? ' done-card' : '');
+
+    // Gemma
+    const gemC = document.createElement('canvas');
+    gemC.width = 64; gemC.height = 64;
+    gemC.className = 'evening-gem';
+    const gCtx = gemC.getContext('2d');
+    gCtx.fillStyle = '#1a1610';
+    gCtx.fillRect(0,0,64,64);
+    drawGem(gemC, color);
+
+    const info = document.createElement('div');
+    info.className = 'evening-card-info';
+    info.innerHTML = `
+      <div class="evening-proj-name" style="color:${color}">${p.title}</div>
+      <div class="evening-task-text">${p.microtask}</div>`;
+
+    const check = document.createElement('div');
+    check.className = 'evening-check' + (isDone ? ' done' : '');
+    check.textContent = '✓';
+    check.onclick = () => toggleEveningDone(p.id, card, check);
+
+    card.appendChild(gemC);
+    card.appendChild(info);
+    card.appendChild(check);
+    list.appendChild(card);
+  });
+}
+
+function getTodayKey(){
+  const d = new Date();
+  return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;
+}
+
+function toggleEveningDone(id, card, check){
+  const p = getProject(id); if(!p) return;
+  const today = getTodayKey();
+  const isDone = p.eveningDone === today;
+  p.eveningDone = isDone ? '' : today;
+  check.classList.toggle('done', !isDone);
+  card.classList.toggle('done-card', !isDone);
+  scheduleSave(p);
+}
+
+function markEveningDone(){ exitEveningMode(); }
+
+// ── VELOCITY STORICA ──
+function recordTavola(p, tavNum){
+  // Registra la data di completamento di una tavola
+  if(!p.velocityLog) p.velocityLog = [];
+  // Evita duplicati
+  const alreadyLogged = p.velocityLog.some(e => e.tav === tavNum);
+  if(!alreadyLogged){
+    p.velocityLog.push({ tav: tavNum, date: Date.now() });
+  }
+}
+
+function removeTavola(p, tavNum){
+  if(!p.velocityLog) return;
+  p.velocityLog = p.velocityLog.filter(e => e.tav !== tavNum);
+}
+
+function renderVelocityHistory(p){
+  const canvas = document.getElementById('history-canvas');
+  const legend = document.getElementById('history-legend');
+  if(!canvas) return;
+
+  const log = p.velocityLog || [];
+  if(log.length === 0){
+    const dpr = window.devicePixelRatio||1;
+    const W = canvas.parentElement.clientWidth || 280;
+    canvas.width = W*dpr; canvas.height = 100*dpr;
+    canvas.style.width = W+'px'; canvas.style.height = '100px';
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr,dpr);
+    ctx.fillStyle = '#c8b898';
+    ctx.font = '12px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Nessuna tavola completata ancora', W/2, 54);
+    if(legend) legend.textContent = '';
+    return;
+  }
+
+  // Raggruppa per settimana
+  const weekMap = {};
+  log.forEach(entry => {
+    const d = new Date(entry.date);
+    // Lunedì della settimana
+    const day = d.getDay();
+    const diff = (day === 0 ? -6 : 1 - day);
+    const monday = new Date(d);
+    monday.setDate(d.getDate() + diff);
+    monday.setHours(0,0,0,0);
+    const key = monday.getTime();
+    weekMap[key] = (weekMap[key]||0) + 1;
+  });
+
+  // Ultimi 12 settimane
+  const now = new Date();
+  const thisMonday = new Date(now);
+  const dayOfWeek = now.getDay();
+  const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+  thisMonday.setDate(now.getDate() + diffToMonday);
+  thisMonday.setHours(0,0,0,0);
+
+  const weeks = [];
+  for(let i = 11; i >= 0; i--){
+    const d = new Date(thisMonday);
+    d.setDate(d.getDate() - i*7);
+    const key = d.getTime();
+    weeks.push({ date: d, count: weekMap[key]||0 });
+  }
+
+  const maxCount = Math.max(...weeks.map(w=>w.count), 2);
+  const dpr = window.devicePixelRatio||1;
+  const W = canvas.parentElement.clientWidth || 280;
+  const H = 100;
+  canvas.width = W*dpr; canvas.height = H*dpr;
+  canvas.style.width = W+'px'; canvas.style.height = H+'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr,dpr);
+  ctx.clearRect(0,0,W,H);
+
+  const barW = Math.floor((W - 16) / weeks.length);
+  const gap = 3;
+  const barArea = H - 28;
+
+  weeks.forEach((w, i) => {
+    const x = 8 + i * barW;
+    const barH = w.count > 0 ? Math.max(4, Math.round((w.count/maxCount)*barArea)) : 2;
+    const y = barArea - barH + 4;
+
+    // Barra
+    const isThisWeek = i === 11;
+    ctx.fillStyle = isThisWeek ? '#4ab8d8' : w.count >= 2 ? '#48a848' : w.count === 1 ? '#f0c020' : '#e8e0d0';
+    ctx.beginPath();
+    ctx.roundRect(x + gap/2, y, barW - gap, barH, 3);
+    ctx.fill();
+
+    // Numero sopra se > 0
+    if(w.count > 0){
+      ctx.fillStyle = isThisWeek ? '#2a88b8' : '#5a5048';
+      ctx.font = `bold ${10}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.fillText(w.count, x + barW/2, y - 3);
+    }
+
+    // Label settimana (solo ogni 3)
+    if(i % 3 === 0 || i === 11){
+      ctx.fillStyle = '#9a9088';
+      ctx.font = `${9}px sans-serif`;
+      ctx.textAlign = 'center';
+      const label = i === 11 ? 'ora' : `${w.date.getDate()}/${w.date.getMonth()+1}`;
+      ctx.fillText(label, x + barW/2, H - 4);
+    }
+  });
+
+  // Linea obiettivo 2 tav/sett
+  const targetY = barArea - Math.round((2/maxCount)*barArea) + 4;
+  ctx.strokeStyle = 'rgba(232,72,72,.4)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4,3]);
+  ctx.beginPath(); ctx.moveTo(8, targetY); ctx.lineTo(W-8, targetY); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = 'rgba(232,72,72,.6)';
+  ctx.font = '9px sans-serif'; ctx.textAlign = 'right';
+  ctx.fillText('obiettivo 2/sett', W-10, targetY - 3);
+
+  // Totale
+  const total = log.length;
+  const weekAvg = (total / Math.max(1, weeks.filter(w=>w.count>0).length)).toFixed(1);
+  if(legend) legend.textContent = `${total} tavole totali · media ${weekAvg} tav/sett nelle settimane attive`;
+}
 let swReg = null;
 
 async function initNotifications(){

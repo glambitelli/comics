@@ -141,7 +141,57 @@ body{background:var(--sand);color:var(--ink);font-family:'Nunito',sans-serif;fon
 .we{background:var(--green-pale);color:#2a6a2a}
 .phase-tip{margin:4px 16px 14px;background:var(--gold-pale);border-left:3px solid var(--gold);padding:9px 12px;border-radius:0 8px 8px 0;font-size:12px;color:var(--ink2);line-height:1.55;font-weight:500}
 
-/* REMINDER SETTINGS */
+/* VELOCITY HISTORY */
+.velocity-history-block{background:var(--white);border-radius:var(--r);padding:16px;box-shadow:var(--shadow);border:1.5px solid var(--sand2)}
+
+/* EVENING MODE */
+#screen-evening{background:#0e0c0a}
+.evening-bg{
+  flex:1;display:flex;flex-direction:column;
+  background:radial-gradient(ellipse at 50% 0%, #1e1a14 0%, #0e0c0a 70%);
+  overflow:hidden;
+}
+.evening-header{
+  padding:calc(28px + var(--safe-top)) 24px 20px;
+  display:flex;align-items:center;justify-content:space-between;
+  flex-shrink:0;border-bottom:1px solid rgba(255,255,255,.06);
+}
+.evening-title{
+  font-family:'Castoro',serif;font-size:28px;font-weight:400;
+  color:rgba(255,255,255,.88);letter-spacing:-.01em;
+}
+.evening-close{
+  background:none;border:1px solid rgba(255,255,255,.12);
+  border-radius:20px;padding:6px 14px;
+  color:rgba(255,255,255,.4);font-family:'Nunito',sans-serif;
+  font-size:12px;cursor:pointer;letter-spacing:.04em;
+}
+.evening-close:active{color:rgba(255,255,255,.7)}
+.evening-scroll{flex:1;overflow-y:auto;padding:16px 20px calc(20px + var(--safe-bot))}
+.evening-card{
+  border-radius:14px;padding:18px 20px;margin-bottom:12px;
+  border:1px solid rgba(255,255,255,.07);
+  background:rgba(255,255,255,.04);
+  display:flex;align-items:flex-start;gap:14px;
+}
+.evening-card.done-card{opacity:.45}
+.evening-gem{width:32px;height:32px;border-radius:50%;flex-shrink:0;margin-top:2px}
+.evening-card-info{flex:1}
+.evening-proj-name{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;margin-bottom:5px;opacity:.5}
+.evening-task-text{font-family:'Castoro',serif;font-size:20px;color:rgba(255,255,255,.88);line-height:1.35}
+.evening-task-empty{font-size:14px;color:rgba(255,255,255,.25);font-style:italic}
+.evening-check{
+  width:28px;height:28px;border-radius:50%;flex-shrink:0;
+  border:1.5px solid rgba(255,255,255,.2);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;font-size:13px;color:transparent;
+  transition:all .2s;margin-top:2px;
+}
+.evening-check.done{background:rgba(72,168,72,.6);border-color:rgba(72,168,72,.8);color:#fff}
+.evening-no-tasks{
+  text-align:center;padding:60px 20px;
+  color:rgba(255,255,255,.2);font-size:14px;line-height:1.8;
+}
 .reminder-card{background:var(--white);border-radius:var(--r);padding:14px 16px;margin-bottom:12px;box-shadow:var(--shadow);border:1.5px solid var(--sand2)}
 .reminder-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap}
 .reminder-label{font-size:13px;font-weight:600;color:var(--ink);flex:1}
@@ -259,7 +309,10 @@ body{background:var(--sand);color:var(--ink);font-family:'Nunito',sans-serif;fon
 <div class="screen" id="screen-home">
   <div class="home-header">
     <div class="home-title">Inkflow</div>
-    <div class="home-sub">pipeline · tracker · storyboard <span class="sync-dot" id="sync-dot"></span></div>
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div class="home-sub">pipeline · tracker · storyboard <span class="sync-dot" id="sync-dot"></span></div>
+      <button onclick="enterEveningMode()" style="background:linear-gradient(135deg,#1a1410,#2a2018);border:none;border-radius:20px;padding:5px 12px;font-family:'Nunito',sans-serif;font-size:11px;font-weight:700;color:rgba(255,255,255,.7);cursor:pointer;letter-spacing:.04em">🌙 sera</button>
+    </div>
   </div>
   <div class="home-scroll" id="home-scroll">
     <div style="height:16px"></div>
@@ -399,11 +452,32 @@ body{background:var(--sand);color:var(--ink);font-family:'Nunito',sans-serif;fon
       <div class="save-hint" id="save-hint">Sincronizzato ☁️</div>
     </div>
 
+    <!-- VELOCITY STORICA -->
+    <div style="margin-top:20px">
+      <div class="sec-label">Velocità storica</div>
+      <div class="velocity-history-block">
+        <div style="font-size:11px;color:var(--ink3);margin-bottom:10px;font-weight:500">Tavole completate per settimana</div>
+        <canvas id="history-canvas" height="100" style="width:100%;display:block"></canvas>
+        <div id="history-legend" style="font-size:11px;color:var(--ink3);margin-top:6px;text-align:center"></div>
+      </div>
+    </div>
+
     <div style="margin-top:28px;padding-bottom:8px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
-      <button onclick="exportPDF()" style="background:none;border:1.5px solid var(--sky);border-radius:12px;padding:12px 24px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:600;color:var(--sky-deep);cursor:pointer;transition:all .2s">📄 Esporta PDF</button>
+      <button onclick="exportPDF()" style="background:none;border:1.5px solid var(--sky);border-radius:12px;padding:12px 24px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:600;color:var(--sky-deep);cursor:pointer">📄 Esporta PDF</button>
       <button onclick="confirmDeleteCurrent()" style="background:none;border:1.5px solid var(--sand3);border-radius:12px;padding:12px 24px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:600;color:var(--ink3);cursor:pointer">🗑 Elimina progetto</button>
     </div>
 
+  </div>
+</div>
+
+<!-- MODALITÀ SERA -->
+<div class="screen" id="screen-evening">
+  <div class="evening-bg">
+    <div class="evening-header">
+      <div class="evening-title">🌙 Stasera</div>
+      <button class="evening-close" onclick="exitEveningMode()">← esci</button>
+    </div>
+    <div class="evening-scroll" id="evening-list"></div>
   </div>
 </div>
 
