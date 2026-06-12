@@ -401,7 +401,8 @@ function restoreProject(p){
     chk.classList.toggle('done', done);
     nm.classList.toggle('done', done);
   });
-  renderTavole(p); renderSfide(p); updateProgress(p); renderDeadline(p); renderVelocity(p); restoreStoryFields(p); renderVelocityHistory(p);
+  renderTavole(p); renderSfide(p); updateProgress(p); renderDeadline(p); renderVelocity(p); restoreStoryFields(p);
+  requestAnimationFrame(() => renderVelocityHistory(p));
 }
 
 function togglePhase(id){
@@ -933,27 +934,46 @@ function renderVelocityHistory(p){
   const legend = document.getElementById('history-legend');
   if(!canvas) return;
 
+  // Auto-popola il log dalle tavole già segnate come Finita (retrocompatibilità)
+  if(!p.velocityLog) p.velocityLog = [];
+  Object.entries(p.tavole||{}).forEach(([num, stage])=>{
+    if(stage >= 4){
+      const n = parseInt(num);
+      const alreadyLogged = p.velocityLog.some(e => e.tav === n);
+      if(!alreadyLogged){
+        // Usa la data di inizio progetto come stima, o oggi
+        p.velocityLog.push({ tav: n, date: p.createdAt ? p.createdAt + n*86400000 : Date.now() });
+      }
+    }
+  });
+
   const log = p.velocityLog || [];
+
+  // Aspetta che il canvas abbia larghezza reale
+  const W = canvas.offsetWidth || canvas.parentElement?.offsetWidth || 300;
+  const H = 110;
+  const dpr = window.devicePixelRatio||1;
+  canvas.width = Math.round(W*dpr);
+  canvas.height = Math.round(H*dpr);
+  canvas.style.width = W+'px';
+  canvas.style.height = H+'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr,dpr);
+  ctx.clearRect(0,0,W,H);
+
   if(log.length === 0){
-    const dpr = window.devicePixelRatio||1;
-    const W = canvas.parentElement.clientWidth || 280;
-    canvas.width = W*dpr; canvas.height = 100*dpr;
-    canvas.style.width = W+'px'; canvas.style.height = '100px';
-    const ctx = canvas.getContext('2d');
-    ctx.scale(dpr,dpr);
     ctx.fillStyle = '#c8b898';
     ctx.font = '12px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('Nessuna tavola completata ancora', W/2, 54);
+    ctx.fillText('Nessuna tavola completata ancora', W/2, H/2+4);
     if(legend) legend.textContent = '';
     return;
   }
 
-  // Raggruppa per settimana
+  // Raggruppa per settimana (lunedì)
   const weekMap = {};
   log.forEach(entry => {
     const d = new Date(entry.date);
-    // Lunedì della settimana
     const day = d.getDay();
     const diff = (day === 0 ? -6 : 1 - day);
     const monday = new Date(d);
@@ -967,56 +987,45 @@ function renderVelocityHistory(p){
   const now = new Date();
   const thisMonday = new Date(now);
   const dayOfWeek = now.getDay();
-  const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-  thisMonday.setDate(now.getDate() + diffToMonday);
+  thisMonday.setDate(now.getDate() + (dayOfWeek === 0 ? -6 : 1 - dayOfWeek));
   thisMonday.setHours(0,0,0,0);
 
   const weeks = [];
   for(let i = 11; i >= 0; i--){
     const d = new Date(thisMonday);
     d.setDate(d.getDate() - i*7);
-    const key = d.getTime();
-    weeks.push({ date: d, count: weekMap[key]||0 });
+    weeks.push({ date: d, count: weekMap[d.getTime()]||0 });
   }
 
   const maxCount = Math.max(...weeks.map(w=>w.count), 2);
-  const dpr = window.devicePixelRatio||1;
-  const W = canvas.parentElement.clientWidth || 280;
-  const H = 100;
-  canvas.width = W*dpr; canvas.height = H*dpr;
-  canvas.style.width = W+'px'; canvas.style.height = H+'px';
-  const ctx = canvas.getContext('2d');
-  ctx.scale(dpr,dpr);
-  ctx.clearRect(0,0,W,H);
-
+  const barArea = H - 30;
   const barW = Math.floor((W - 16) / weeks.length);
   const gap = 3;
-  const barArea = H - 28;
 
   weeks.forEach((w, i) => {
     const x = 8 + i * barW;
-    const barH = w.count > 0 ? Math.max(4, Math.round((w.count/maxCount)*barArea)) : 2;
-    const y = barArea - barH + 4;
-
-    // Barra
+    const bH = w.count > 0 ? Math.max(5, Math.round((w.count/maxCount)*barArea)) : 3;
+    const y = barArea - bH + 4;
     const isThisWeek = i === 11;
-    ctx.fillStyle = isThisWeek ? '#4ab8d8' : w.count >= 2 ? '#48a848' : w.count === 1 ? '#f0c020' : '#e8e0d0';
+
+    ctx.fillStyle = isThisWeek ? '#4ab8d8'
+      : w.count >= 2 ? '#48a848'
+      : w.count === 1 ? '#f0c020'
+      : '#e8e0d0';
     ctx.beginPath();
-    ctx.roundRect(x + gap/2, y, barW - gap, barH, 3);
+    ctx.roundRect(x + gap/2, y, barW - gap, bH, 3);
     ctx.fill();
 
-    // Numero sopra se > 0
     if(w.count > 0){
       ctx.fillStyle = isThisWeek ? '#2a88b8' : '#5a5048';
-      ctx.font = `bold ${10}px sans-serif`;
+      ctx.font = `bold 10px sans-serif`;
       ctx.textAlign = 'center';
       ctx.fillText(w.count, x + barW/2, y - 3);
     }
 
-    // Label settimana (solo ogni 3)
     if(i % 3 === 0 || i === 11){
       ctx.fillStyle = '#9a9088';
-      ctx.font = `${9}px sans-serif`;
+      ctx.font = `9px sans-serif`;
       ctx.textAlign = 'center';
       const label = i === 11 ? 'ora' : `${w.date.getDate()}/${w.date.getMonth()+1}`;
       ctx.fillText(label, x + barW/2, H - 4);
@@ -1030,14 +1039,14 @@ function renderVelocityHistory(p){
   ctx.setLineDash([4,3]);
   ctx.beginPath(); ctx.moveTo(8, targetY); ctx.lineTo(W-8, targetY); ctx.stroke();
   ctx.setLineDash([]);
-  ctx.fillStyle = 'rgba(232,72,72,.6)';
+  ctx.fillStyle = 'rgba(232,72,72,.55)';
   ctx.font = '9px sans-serif'; ctx.textAlign = 'right';
   ctx.fillText('obiettivo 2/sett', W-10, targetY - 3);
 
-  // Totale
   const total = log.length;
-  const weekAvg = (total / Math.max(1, weeks.filter(w=>w.count>0).length)).toFixed(1);
-  if(legend) legend.textContent = `${total} tavole totali · media ${weekAvg} tav/sett nelle settimane attive`;
+  const activeWeeks = weeks.filter(w=>w.count>0).length;
+  const avg = activeWeeks > 0 ? (total/activeWeeks).toFixed(1) : '—';
+  if(legend) legend.textContent = `${total} tavole totali · media ${avg} tav/sett`;
 }
 let swReg = null;
 
