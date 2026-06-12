@@ -850,21 +850,39 @@ function renderEveningList(){
   const list = document.getElementById('evening-list');
   list.innerHTML = '';
 
-  // Stars counter
+  // Stars counter — solo emoji + numero
   const totalStars = parseInt(localStorage.getItem('inkflow_stars')||'0');
   const starsEl = document.createElement('div');
   starsEl.className = 'evening-stars';
   starsEl.id = 'evening-stars';
   starsEl.innerHTML = `
     <span class="evening-stars-emoji">⭐</span>
-    <span class="evening-stars-count" id="stars-count">${totalStars}</span>
-    <span class="evening-stars-label">serate completate</span>
-    <button class="evening-stars-clear" onclick="clearStars()">reset</button>`;
+    <span class="evening-stars-count" id="stars-count">${totalStars}</span>`;
   list.appendChild(starsEl);
 
+  // Storico task completate
+  const history = JSON.parse(localStorage.getItem('inkflow_task_history')||'[]');
+  if(history.length > 0){
+    const histSection = document.createElement('div');
+    histSection.className = 'evening-completed-section';
+    histSection.innerHTML = `
+      <div class="evening-completed-label">
+        <span>Task completate</span>
+        <button class="evening-completed-clear" onclick="clearTaskHistory()">clear</button>
+      </div>
+      ${history.slice().reverse().map(h=>`
+        <div class="evening-completed-item">
+          <span style="color:${h.color||'#4ab8d8'}" class="evening-completed-proj">${h.project}</span>
+          <span style="flex:1">${h.task}</span>
+          <span style="font-size:10px;opacity:.4">${h.date}</span>
+        </div>`).join('')}`;
+    list.appendChild(histSection);
+  }
+
+  // Task correnti da fare
   const active = projects.filter(p => p.microtask && p.microtask.trim());
 
-  if(active.length === 0){
+  if(active.length === 0 && history.length === 0){
     const empty = document.createElement('div');
     empty.className = 'evening-no-tasks';
     empty.innerHTML = 'Nessun task scritto per stasera.<br>Apri un progetto e scrivi cosa farai.';
@@ -872,38 +890,43 @@ function renderEveningList(){
     return;
   }
 
-  active.forEach(p => {
-    const color = p.color || '#4ab8d8';
-    const isDone = p.eveningDone === getTodayKey();
+  if(active.length > 0){
+    const activeLabel = document.createElement('div');
+    activeLabel.style.cssText = 'font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.3);margin-bottom:8px;margin-top:4px';
+    activeLabel.textContent = 'Da fare stasera';
+    list.appendChild(activeLabel);
 
-    const card = document.createElement('div');
-    card.className = 'evening-card' + (isDone ? ' done-card' : '');
-    card.id = 'ecard-'+p.id;
+    active.forEach(p => {
+      const color = p.color || '#4ab8d8';
+      const card = document.createElement('div');
+      card.className = 'evening-card';
+      card.id = 'ecard-'+p.id;
 
-    const gemC = document.createElement('canvas');
-    gemC.width = 64; gemC.height = 64;
-    gemC.className = 'evening-gem';
-    const gCtx = gemC.getContext('2d');
-    gCtx.fillStyle = '#0e2a5a';
-    gCtx.fillRect(0,0,64,64);
-    drawGem(gemC, color);
+      const gemC = document.createElement('canvas');
+      gemC.width = 64; gemC.height = 64;
+      gemC.className = 'evening-gem';
+      const gCtx = gemC.getContext('2d');
+      gCtx.fillStyle = '#0e2a5a';
+      gCtx.fillRect(0,0,64,64);
+      drawGem(gemC, color);
 
-    const info = document.createElement('div');
-    info.className = 'evening-card-info';
-    info.innerHTML = `
-      <div class="evening-proj-name" style="color:${color}">${p.title}</div>
-      <div class="evening-task-text">${p.microtask}</div>`;
+      const info = document.createElement('div');
+      info.className = 'evening-card-info';
+      info.innerHTML = `
+        <div class="evening-proj-name" style="color:${color}">${p.title}</div>
+        <div class="evening-task-text">${p.microtask}</div>`;
 
-    const check = document.createElement('div');
-    check.className = 'evening-check' + (isDone ? ' done' : '');
-    check.textContent = '✓';
-    check.onclick = () => toggleEveningDone(p.id, card, check);
+      const check = document.createElement('div');
+      check.className = 'evening-check';
+      check.textContent = '✓';
+      check.onclick = () => completeEveningTask(p.id, card);
 
-    card.appendChild(gemC);
-    card.appendChild(info);
-    card.appendChild(check);
-    list.appendChild(card);
-  });
+      card.appendChild(gemC);
+      card.appendChild(info);
+      card.appendChild(check);
+      list.appendChild(card);
+    });
+  }
 }
 
 function getTodayKey(){
@@ -911,39 +934,47 @@ function getTodayKey(){
   return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;
 }
 
-function toggleEveningDone(id, card, check){
+function completeEveningTask(id, card){
   const p = getProject(id); if(!p) return;
-  const today = getTodayKey();
-  const wasDone = p.eveningDone === today;
-  p.eveningDone = wasDone ? '' : today;
-  check.classList.toggle('done', !wasDone);
-  card.classList.toggle('done-card', !wasDone);
+
+  // Salva nello storico
+  const history = JSON.parse(localStorage.getItem('inkflow_task_history')||'[]');
+  const now = new Date();
+  history.push({
+    project: p.title,
+    task: p.microtask,
+    color: p.color||'#4ab8d8',
+    date: `${now.getDate()}/${now.getMonth()+1}`
+  });
+  localStorage.setItem('inkflow_task_history', JSON.stringify(history));
+
+  // Svuota il campo task nel progetto
+  p.microtask = '';
   scheduleSave(p);
 
-  // Aggiorna stelle — incrementa solo se non era già fatto oggi
-  if(!wasDone){
-    // Controlla se questa è la prima task completata oggi (non doppio conteggio)
-    const todayKey = 'inkflow_starred_'+today;
-    const alreadyStarred = localStorage.getItem(todayKey);
-    if(!alreadyStarred){
-      const stars = parseInt(localStorage.getItem('inkflow_stars')||'0') + 1;
-      localStorage.setItem('inkflow_stars', stars);
-      localStorage.setItem(todayKey, '1');
-      const el = document.getElementById('stars-count');
-      if(el){
-        el.textContent = stars;
-        // Animazione
-        el.style.transform = 'scale(1.4)';
-        el.style.transition = 'transform .3s';
-        setTimeout(()=>el.style.transform='scale(1)', 300);
-      }
-    }
+  // Stella — una per serata
+  const today = getTodayKey();
+  const todayKey = 'inkflow_starred_'+today;
+  if(!localStorage.getItem(todayKey)){
+    const stars = parseInt(localStorage.getItem('inkflow_stars')||'0') + 1;
+    localStorage.setItem('inkflow_stars', stars);
+    localStorage.setItem(todayKey, '1');
   }
+
+  // Animazione card → poi re-render
+  card.style.transition = 'opacity .3s, transform .3s';
+  card.style.opacity = '0';
+  card.style.transform = 'translateX(20px)';
+  setTimeout(()=> renderEveningList(), 350);
+}
+
+function clearTaskHistory(){
+  localStorage.removeItem('inkflow_task_history');
+  renderEveningList();
 }
 
 function clearStars(){
-  if(!confirm('Resettare il contatore stelle?')) return;
-  localStorage.setItem('inkflow_stars', '0');
+  localStorage.setItem('inkflow_stars','0');
   const el = document.getElementById('stars-count');
   if(el) el.textContent = '0';
 }
@@ -955,6 +986,7 @@ window.enterEveningMode=enterEveningMode;
 window.exitEveningMode=exitEveningMode;
 window.markEveningDone=markEveningDone;
 window.clearStars=clearStars;
+window.clearTaskHistory=clearTaskHistory;
 
 // ── VELOCITY STORICA ──
 function recordTavola(p, tavNum){
