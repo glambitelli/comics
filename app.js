@@ -875,7 +875,9 @@ window.saveDates=saveDates; window.confirmDeleteCurrent=confirmDeleteCurrent; wi
 window.exportPDF=exportPDF; window.addScene=addScene; window.updateScene=updateScene;
 window.deleteScene=deleteScene; window.autoResize=autoResize; window.saveStoryField=saveStoryField;
 window.updateCharCount=updateCharCount; window.saveReminderSettings=saveReminderSettings;
-window.testNotification=testNotification; window.updatePlanner=updatePlanner; window.applyPlanner=applyPlanner;
+window.testNotification=testNotification; window.updatePlanner=updatePlanner;
+window.applyPlanner=applyPlanner; window.openPlannerModal=openPlannerModal;
+window.closePlannerModal=closePlannerModal;
 
 // ── EVENING MODE ──
 function enterEveningMode(){
@@ -1136,9 +1138,20 @@ function updatePlanner(){
   }
 }
 
-function applyPlanner(){
+function openPlannerModal(){
   const startVal = document.getElementById('date-start').value;
   if(!startVal){ alert('Imposta prima la data di inizio'); return; }
+  document.getElementById('planner-modal').classList.add('open');
+  requestAnimationFrame(()=>updatePlanner());
+}
+
+function closePlannerModal(){
+  document.getElementById('planner-modal').classList.remove('open');
+}
+
+function applyPlanner(){
+  const startVal = document.getElementById('date-start').value;
+  if(!startVal) return;
   const p = getProject(currentId); if(!p) return;
 
   const weeksS = parseFloat(document.getElementById('plan-sviluppo').value)||2;
@@ -1153,22 +1166,21 @@ function applyPlanner(){
   const toISO = d => d.toISOString().split('T')[0];
   p.dateEnd = toISO(end);
   document.getElementById('date-end').value = p.dateEnd;
+
+  // Aggiorna label pulsante deadline
+  const fmt = d => `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`;
+  const btn = document.getElementById('date-end-btn');
+  const lbl = document.getElementById('date-end-label');
+  if(lbl) lbl.textContent = fmt(end);
+  if(btn) btn.style.color = 'var(--ink)';
+
   scheduleSave(p);
   renderDeadline(p);
   renderVelocity(p);
-
-  // Feedback
-  const btn = document.querySelector('.planner-apply-btn');
-  btn.textContent = '✓ Deadline impostata!';
-  btn.style.background = '#48a848';
-  setTimeout(()=>{
-    btn.textContent = '✓ Usa questa deadline';
-    btn.style.background = '';
-  }, 2000);
+  closePlannerModal();
 }
 
 function restorePlanner(p){
-  // Ripristina i valori del pianificatore se salvati
   if(p.plannerSettings){
     const s = p.plannerSettings;
     const sv = document.getElementById('plan-sviluppo');
@@ -1178,7 +1190,17 @@ function restorePlanner(p){
     if(pp) pp.value = s.preprod||2;
     if(vl) vl.value = s.velocity||2;
   }
-  requestAnimationFrame(()=>updatePlanner());
+  // Aggiorna label pulsante deadline
+  const lbl = document.getElementById('date-end-label');
+  const btn = document.getElementById('date-end-btn');
+  if(p.dateEnd && lbl){
+    const d = new Date(p.dateEnd);
+    lbl.textContent = `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`;
+    if(btn) btn.style.color = 'var(--ink)';
+  } else if(lbl){
+    lbl.textContent = 'Pianifica →';
+    if(btn) btn.style.color = 'var(--ink3)';
+  }
 }
 function recordTavola(p, tavNum){
   // Registra la data di completamento di una tavola
