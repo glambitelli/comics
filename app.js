@@ -515,7 +515,7 @@ async function createProject(){
   const p = newProjectObj(title, tav);
   closeModal();
   await saveProject(p);
-  openProject(p.id);
+  // Rimane nella home — il progetto comparirà nella lista
 }
 document.getElementById('modal').addEventListener('click', e => { if(e.target===e.currentTarget) closeModal(); });
 document.getElementById('new-title').addEventListener('keydown', e => { if(e.key==='Enter') createProject(); });
