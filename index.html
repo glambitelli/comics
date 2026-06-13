@@ -384,8 +384,8 @@ body{background:var(--sand);color:var(--ink);font-family:'Nunito',sans-serif;fon
     <div class="home-sub-row">
       <div class="home-sub">pipeline · tracker · storyboard <span class="sync-dot" id="sync-dot"></span></div>
       <div style="display:flex;gap:8px;align-items:center">
-        <button onclick="openSettings()" style="background:none;border:1.5px solid var(--sand3);border-radius:20px;padding:5px 11px;font-family:'Nunito',sans-serif;font-size:13px;cursor:pointer;color:var(--ink3)">⚙️</button>
         <button onclick="enterEveningMode()" style="background:linear-gradient(135deg,#1a1410,#2a2018);border:none;border-radius:20px;padding:5px 12px;font-family:'Nunito',sans-serif;font-size:11px;font-weight:700;color:rgba(255,255,255,.7);cursor:pointer;letter-spacing:.04em">🌙 sera</button>
+        <button onclick="openSettings()" style="background:none;border:1.5px solid var(--sand3);border-radius:20px;padding:5px 11px;font-family:'Nunito',sans-serif;font-size:13px;cursor:pointer;color:var(--ink3)">⚙️</button>
       </div>
     </div>
   </div>
@@ -545,7 +545,7 @@ body{background:var(--sand);color:var(--ink);font-family:'Nunito',sans-serif;fon
 
 <!-- MODALITÀ SERA -->
 <div class="screen" id="screen-evening">
-  <div class="evening-bg">
+  <div class="evening-bg" style="position:relative">
     <div class="evening-header">
       <div class="evening-title">Inkflow</div>
       <div class="evening-header-row">
@@ -553,12 +553,9 @@ body{background:var(--sand);color:var(--ink);font-family:'Nunito',sans-serif;fon
         <button class="evening-close" onclick="exitEveningMode()">← esci</button>
       </div>
     </div>
-    <!-- HUD stelle — in alto a destra sotto l'header -->
-    <div style="position:relative;flex-shrink:0">
-      <div class="evening-hud" id="evening-hud" style="position:absolute;top:10px;right:16px">
-        <span class="evening-hud-star">⭐</span>
-        <span class="evening-hud-count" id="stars-count">0</span>
-      </div>
+    <div class="evening-hud" id="evening-hud" style="position:absolute;top:calc(var(--safe-top) + 22px);right:16px;z-index:10;pointer-events:none">
+      <span class="evening-hud-star">⭐</span>
+      <span class="evening-hud-count" id="stars-count">0</span>
     </div>
     <div class="evening-scroll" id="evening-list"></div>
   </div>
