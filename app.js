@@ -1003,7 +1003,7 @@ function renderEveningList(){
   if(history2.length > 0){
     const clearBtn = document.createElement('div');
     clearBtn.style.cssText = 'text-align:center;margin-top:20px;padding-bottom:8px';
-    clearBtn.innerHTML = `<button onclick="clearTaskHistory()" style="background:none;border:1px solid rgba(255,255,255,.15);border-radius:20px;padding:7px 20px;font-family:'Nunito',sans-serif;font-size:12px;color:rgba(255,255,255,.3);cursor:pointer">Svuota storico task</button>`;
+    clearBtn.innerHTML = `<button onclick="clearTaskHistory()" style="background:none;border:1px solid rgba(255,255,255,.15);border-radius:20px;padding:7px 20px;font-family:'Nunito',sans-serif;font-size:12px;color:rgba(255,255,255,.3);cursor:pointer">clear</button>`;
     list.appendChild(clearBtn);
   }
 
