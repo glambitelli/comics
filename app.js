@@ -15,7 +15,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const COL = 'projects';
-const USER_DOC = 'inkflow_user_data'; // documento globale per stelle e storico
+const USER_DOC = 'inkflow_user_data';
 
 // ── USER DATA (stelle + storico) sincronizzati su Firebase ──
 async function saveUserData(){
@@ -26,15 +26,22 @@ async function saveUserData(){
   } catch(e){ console.warn('saveUserData error:', e); }
 }
 
-async function loadUserData(){
+function loadUserData(){
   try{
-    const { getDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
-    const snap = await getDoc(doc(db, 'userdata', USER_DOC));
-    if(snap.exists()){
-      const data = snap.data();
-      if(data.stars !== undefined) localStorage.setItem('inkflow_stars', data.stars);
-      if(data.history) localStorage.setItem('inkflow_task_history', JSON.stringify(data.history));
-    }
+    onSnapshot(doc(db, 'userdata', USER_DOC), snap => {
+      if(snap.exists()){
+        const data = snap.data();
+        // Aggiorna solo se Firebase ha più stelle di quelle locali (evita di perdere dati)
+        const localStars = parseInt(localStorage.getItem('inkflow_stars')||'0');
+        const remoteStars = data.stars||0;
+        const stars = Math.max(localStars, remoteStars);
+        localStorage.setItem('inkflow_stars', stars);
+        if(data.history) localStorage.setItem('inkflow_task_history', JSON.stringify(data.history));
+        // Aggiorna HUD se visibile
+        const el = document.getElementById('stars-count');
+        if(el) el.textContent = stars;
+      }
+    });
   } catch(e){ console.warn('loadUserData error:', e); }
 }
 
@@ -995,21 +1002,17 @@ function completeEveningTask(id, card){
   p.microtask = '';
   scheduleSave(p);
 
-  // Stella — una per serata
-  const today = getTodayKey();
-  const todayKey = 'inkflow_starred_'+today;
-  if(!localStorage.getItem(todayKey)){
-    const stars = parseInt(localStorage.getItem('inkflow_stars')||'0') + 1;
-    localStorage.setItem('inkflow_stars', stars);
-    localStorage.setItem(todayKey, '1');
-    // Aggiorna HUD subito con animazione
-    const hud = document.getElementById('stars-count');
-    if(hud){
-      hud.textContent = stars;
-      hud.style.transform = 'scale(1.5)';
-      hud.style.transition = 'transform .25s';
-      setTimeout(()=>hud.style.transform='scale(1)', 300);
-    }
+  // Stella — una per ogni task completata
+  const stars = parseInt(localStorage.getItem('inkflow_stars')||'0') + 1;
+  localStorage.setItem('inkflow_stars', stars);
+
+  // Aggiorna HUD con animazione
+  const hud = document.getElementById('stars-count');
+  if(hud){
+    hud.textContent = stars;
+    hud.style.transform = 'scale(1.5)';
+    hud.style.transition = 'transform .25s';
+    setTimeout(()=>hud.style.transform='scale(1)', 300);
   }
 
   // Animazione card → poi re-render
@@ -1053,9 +1056,7 @@ function toggleSubsection(id){
 
 function restoreWorldFields(p){
   const world = document.getElementById('world-text');
-  const tone = document.getElementById('tone-text');
   if(world) world.value = (p.story&&p.story.world)||'';
-  if(tone) tone.value = (p.story&&p.story.tone)||'';
   renderCharacters(p);
 }
 

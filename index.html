@@ -187,8 +187,7 @@ body{background:var(--sand);color:var(--ink);font-family:'Nunito',sans-serif;fon
 .evening-scroll{flex:1;overflow-y:auto;padding:16px 20px calc(20px + var(--safe-bot))}
 /* Stars HUD */
 .evening-hud{
-  position:absolute;top:calc(18px + var(--safe-top));right:70px;
-  display:flex;align-items:center;gap:4px;
+  display:inline-flex;align-items:center;gap:4px;
   background:rgba(255,255,255,.1);border-radius:20px;
   padding:4px 10px;
 }
@@ -467,53 +466,23 @@ body{background:var(--sand);color:var(--ink);font-family:'Nunito',sans-serif;fon
           <div class="char-count" id="soggetto-count">0 / 800</div>
         </div>
 
-        <!-- STRUTTURA 3 ATTI -->
-        <div class="step-item" onclick="toggleStep(this)" id="step-struttura"><div class="step-chk">✓</div><div class="step-cnt"><div class="step-nm">Struttura a 3 atti <span class="tag wm">mattina</span></div><div class="step-ds">Setup → Plot Point 1 → Confrontation → Plot Point 2 → Resolution.</div></div></div>
-        <div style="padding:0 16px 14px" id="struttura-wrap">
-          <div class="act-board" id="act-board">
-            <!-- rendered by JS -->
-          </div>
-        </div>
-
         <!-- PERSONAGGI -->
-        <div class="story-subsection">
-          <div class="story-subsection-hdr" onclick="toggleSubsection('chars')">
-            <span class="story-subsection-icon">👤</span>
-            <span class="story-subsection-title">Personaggi</span>
-            <span class="story-subsection-chev" id="chars-chev">▾</span>
-          </div>
-          <div class="story-subsection-body open" id="chars-body">
-            <div id="chars-list"></div>
-            <button class="add-scene-btn" style="margin:8px 14px 14px;width:calc(100% - 28px)" onclick="addCharacter()">+ Aggiungi personaggio</button>
-          </div>
+        <div class="step-item" onclick="toggleStep(this)"><div class="step-chk">✓</div><div class="step-cnt"><div class="step-nm">Personaggi <span class="tag wm">mattina</span></div><div class="step-ds">Schede dei personaggi — nome, ruolo, descrizione.</div></div></div>
+        <div style="padding:0 0 4px" id="chars-wrap">
+          <div id="chars-list"></div>
+          <button class="add-scene-btn" style="margin:4px 14px 12px;width:calc(100% - 28px)" onclick="addCharacter()">+ Aggiungi personaggio</button>
         </div>
 
         <!-- AMBIENTAZIONE -->
-        <div class="story-subsection">
-          <div class="story-subsection-hdr" onclick="toggleSubsection('world')">
-            <span class="story-subsection-icon">🌍</span>
-            <span class="story-subsection-title">Ambientazione</span>
-            <span class="story-subsection-chev" id="world-chev">▾</span>
-          </div>
-          <div class="story-subsection-body open" id="world-body">
-            <div style="padding:10px 14px 14px">
-              <textarea class="story-textarea" id="world-text" rows="4" maxlength="600" placeholder="Dove e quando si svolge la storia? Che tipo di mondo è? Struttura sociale, atmosfera, elementi distintivi…" oninput="saveStoryField('world',this.value)"></textarea>
-            </div>
-          </div>
+        <div class="step-item" onclick="toggleStep(this)"><div class="step-chk">✓</div><div class="step-cnt"><div class="step-nm">Ambientazione <span class="tag wm">mattina</span></div><div class="step-ds">Dove e quando si svolge la storia. Struttura del mondo.</div></div></div>
+        <div style="padding:0 16px 12px">
+          <textarea class="story-textarea" id="world-text" rows="4" maxlength="600" placeholder="Dove e quando si svolge la storia? Che tipo di mondo è? Struttura sociale, atmosfera, elementi distintivi…" oninput="saveStoryField('world',this.value)"></textarea>
         </div>
 
-        <!-- TONO -->
-        <div class="story-subsection" style="border-bottom:none">
-          <div class="story-subsection-hdr" onclick="toggleSubsection('tone')">
-            <span class="story-subsection-icon">🎨</span>
-            <span class="story-subsection-title">Tono & Atmosfera</span>
-            <span class="story-subsection-chev" id="tone-chev">▾</span>
-          </div>
-          <div class="story-subsection-body open" id="tone-body">
-            <div style="padding:10px 14px 14px">
-              <textarea class="story-textarea" id="tone-text" rows="3" maxlength="400" placeholder="Che atmosfera ha la storia? Riferimenti visivi, tono emotivo, stile narrativo…" oninput="saveStoryField('tone',this.value)"></textarea>
-            </div>
-          </div>
+        <!-- STRUTTURA 3 ATTI -->
+        <div class="step-item" onclick="toggleStep(this)" id="step-struttura"><div class="step-chk">✓</div><div class="step-cnt"><div class="step-nm">Struttura a 3 atti <span class="tag wm">mattina</span></div><div class="step-ds">Setup → Plot Point 1 → Confrontation → Plot Point 2 → Resolution.</div></div></div>
+        <div style="padding:0 16px 14px" id="struttura-wrap">
+          <div class="act-board" id="act-board"></div>
         </div>
 
       </div>
@@ -573,11 +542,13 @@ body{background:var(--sand);color:var(--ink);font-family:'Nunito',sans-serif;fon
       <div class="evening-title">Inkflow</div>
       <div class="evening-header-row">
         <div class="evening-sub">pipeline · tracker · storyboard</div>
-        <button class="evening-close" onclick="exitEveningMode()">← esci</button>
-      </div>
-      <div class="evening-hud" id="evening-hud">
-        <span class="evening-hud-star">⭐</span>
-        <span class="evening-hud-count" id="stars-count">0</span>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="evening-hud" id="evening-hud">
+            <span class="evening-hud-star">⭐</span>
+            <span class="evening-hud-count" id="stars-count">0</span>
+          </div>
+          <button class="evening-close" onclick="exitEveningMode()">← esci</button>
+        </div>
       </div>
     </div>
     <div class="evening-scroll" id="evening-list"></div>
