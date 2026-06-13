@@ -1620,6 +1620,8 @@ function doResetStreak(){
   if(el) el.textContent = '0';
   closeStreakConfirm();
 }
+
+function confirmMicrotask(){
   const p = getProject(currentId); if(!p) return;
   const val = document.getElementById('microtask').value.trim();
   if(!val) return;
