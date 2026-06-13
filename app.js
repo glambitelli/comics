@@ -426,8 +426,37 @@ function openProject(id){
 }
 
 function restoreProject(p){
+  // Colore progetto applicato all'header
+  const color = p.color || '#4ab8d8';
+  const {r:cr, g:cg, b:cb} = hexToRgb(color);
+  // Versione pastello — mescola con bianco all'80%
+  const pasteR = Math.round(cr*0.18 + 255*0.82);
+  const pasteG = Math.round(cg*0.18 + 255*0.82);
+  const pasteB = Math.round(cb*0.18 + 255*0.82);
+  const pastello = `rgb(${pasteR},${pasteG},${pasteB})`;
+  // Luminosità percepita per decidere colore testo
+  const lum = (cr*0.299 + cg*0.587 + cb*0.114) / 255;
+  const textColor = lum > 0.55 ? '#2a2420' : '#fff';
+  const subColor  = lum > 0.55 ? 'rgba(42,36,32,.55)' : 'rgba(255,255,255,.7)';
+
+  const hdr = document.querySelector('.proj-header');
+  if(hdr){
+    hdr.style.background = pastello;
+    hdr.style.borderBottomColor = color;
+  }
+  // Testo adattivo
+  const titleEl = document.getElementById('proj-title');
+  if(titleEl) titleEl.style.color = textColor;
+  const backBtn = document.querySelector('.back-btn');
+  if(backBtn) backBtn.style.color = lum > 0.55 ? '#2a7a9a' : 'rgba(255,255,255,.85)';
+  const metaEl = document.querySelector('.proj-meta');
+  if(metaEl) metaEl.style.color = subColor;
+
   document.getElementById('proj-title').value = p.title||'';
   document.getElementById('meta-tav').textContent = p.numTav;
+  const metaFase = document.getElementById('meta-fase');
+  if(metaFase) metaFase.style.color = lum > 0.55 ? '#2a2420' : '#fff';
+  document.querySelectorAll('.proj-meta span').forEach(s => s.style.color = lum > 0.55 ? '#2a2420' : '#fff');
   document.getElementById('microtask').value = p.microtask||'';
   const mcBtn = document.getElementById('microtask-confirm-btn');
   if(mcBtn) mcBtn.style.opacity = (p.microtask&&p.microtask.trim()) ? '1' : '.4';
