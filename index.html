@@ -385,7 +385,6 @@ body{background:var(--sand);color:var(--ink);font-family:'Nunito',sans-serif;fon
       <div class="home-sub">pipeline · tracker · storyboard <span class="sync-dot" id="sync-dot"></span></div>
       <div style="display:flex;gap:8px;align-items:center">
         <button onclick="enterEveningMode()" style="background:linear-gradient(135deg,#1a1410,#2a2018);border:none;border-radius:20px;padding:5px 12px;font-family:'Nunito',sans-serif;font-size:11px;font-weight:700;color:rgba(255,255,255,.7);cursor:pointer;letter-spacing:.04em">🌙 sera</button>
-        <button onclick="openSettings()" style="background:none;border:1.5px solid var(--sand3);border-radius:20px;padding:5px 11px;font-family:'Nunito',sans-serif;font-size:13px;cursor:pointer;color:var(--ink3)">⚙️</button>
       </div>
     </div>
   </div>
@@ -393,6 +392,8 @@ body{background:var(--sand);color:var(--ink);font-family:'Nunito',sans-serif;fon
     <div style="height:16px"></div>
     <button class="new-btn" onclick="openNewModal()">+ Nuovo progetto</button>
   </div>
+  <!-- FAB Impostazioni -->
+  <button onclick="openSettings()" style="position:fixed;bottom:calc(24px + var(--safe-bot));right:20px;width:48px;height:48px;border-radius:50%;background:var(--white);border:1.5px solid var(--sand3);box-shadow:0 4px 16px rgba(0,0,0,.12);font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:50">⚙️</button>
 </div>
 
 <!-- PROJECT -->

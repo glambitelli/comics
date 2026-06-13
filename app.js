@@ -22,7 +22,8 @@ async function saveUserData(){
   try{
     const stars = parseInt(localStorage.getItem('inkflow_stars')||'0');
     const history = JSON.parse(localStorage.getItem('inkflow_task_history')||'[]');
-    await setDoc(doc(db, 'userdata', USER_DOC), { stars, history, updatedAt: serverTimestamp() });
+    const monthly = JSON.parse(localStorage.getItem('inkflow_monthly_stars')||'{}');
+    await setDoc(doc(db, 'userdata', USER_DOC), { stars, history, monthly, updatedAt: serverTimestamp() });
   } catch(e){ console.warn('saveUserData error:', e); }
 }
 
@@ -31,13 +32,17 @@ function loadUserData(){
     onSnapshot(doc(db, 'userdata', USER_DOC), snap => {
       if(snap.exists()){
         const data = snap.data();
-        // Aggiorna solo se Firebase ha più stelle di quelle locali (evita di perdere dati)
         const localStars = parseInt(localStorage.getItem('inkflow_stars')||'0');
         const remoteStars = data.stars||0;
         const stars = Math.max(localStars, remoteStars);
         localStorage.setItem('inkflow_stars', stars);
         if(data.history) localStorage.setItem('inkflow_task_history', JSON.stringify(data.history));
-        // Aggiorna HUD se visibile
+        if(data.monthly){
+          const localMonthly = JSON.parse(localStorage.getItem('inkflow_monthly_stars')||'{}');
+          const merged = {...data.monthly};
+          Object.entries(localMonthly).forEach(([k,v])=>{ merged[k]=Math.max(merged[k]||0,v); });
+          localStorage.setItem('inkflow_monthly_stars', JSON.stringify(merged));
+        }
         const el = document.getElementById('stars-count');
         if(el) el.textContent = stars;
       }
@@ -1001,11 +1006,91 @@ function renderEveningList(){
     clearBtn.innerHTML = `<button onclick="clearTaskHistory()" style="background:none;border:1px solid rgba(255,255,255,.15);border-radius:20px;padding:7px 20px;font-family:'Nunito',sans-serif;font-size:12px;color:rgba(255,255,255,.3);cursor:pointer">Svuota storico task</button>`;
     list.appendChild(clearBtn);
   }
+
+  // Storico mensile stelle
+  renderMonthlyStars(list);
 }
 
 function getTodayKey(){
   const d = new Date();
   return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;
+}
+
+const MONTH_NAMES = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
+
+function renderMonthlyStars(container){
+  const monthly = JSON.parse(localStorage.getItem('inkflow_monthly_stars')||'{}');
+  const keys = Object.keys(monthly).sort();
+  if(keys.length === 0) return;
+
+  // Ultimi 12 mesi (inclusi quelli con 0)
+  const months = [];
+  const now = new Date();
+  for(let i=11; i>=0; i--){
+    const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    months.push({
+      key,
+      label: MONTH_NAMES[d.getMonth()],
+      year: d.getFullYear(),
+      count: monthly[key]||0,
+      isCurrent: i===0
+    });
+  }
+
+  const maxCount = Math.max(...months.map(m=>m.count), 1);
+
+  const section = document.createElement('div');
+  section.style.cssText = 'margin-top:24px;padding:16px;background:rgba(255,255,255,.05);border-radius:16px;border:1px solid rgba(255,255,255,.08)';
+
+  const label = document.createElement('div');
+  label.style.cssText = 'font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:14px;display:flex;align-items:center;justify-content:space-between';
+  label.innerHTML = `<span>⭐ Stelle per mese</span><span style="font-weight:400;letter-spacing:0">${keys.length > 0 ? Object.values(monthly).reduce((a,b)=>a+b,0)+' totali' : ''}</span>`;
+  section.appendChild(label);
+
+  // Griglia mesi
+  const grid = document.createElement('div');
+  grid.style.cssText = 'display:flex;gap:6px;align-items:flex-end;height:80px';
+
+  months.forEach(m => {
+    const col = document.createElement('div');
+    col.style.cssText = 'flex:1;display:flex;flex-direction:column;align-items:center;gap:4px';
+
+    if(m.count > 0){
+      // Barra
+      const barH = Math.max(8, Math.round((m.count/maxCount)*56));
+      const bar = document.createElement('div');
+      bar.style.cssText = `height:${barH}px;width:100%;border-radius:4px 4px 0 0;background:${
+        m.isCurrent ? 'rgba(74,184,216,.8)' :
+        m.count >= maxCount*0.8 ? 'rgba(72,168,72,.7)' :
+        m.count >= maxCount*0.4 ? 'rgba(240,192,32,.6)' :
+        'rgba(255,255,255,.25)'
+      };transition:height .3s`;
+      col.appendChild(bar);
+
+      // Numero
+      const num = document.createElement('div');
+      num.style.cssText = 'font-size:10px;font-weight:700;color:rgba(255,255,255,.6)';
+      num.textContent = m.count;
+      col.appendChild(num);
+    } else {
+      // Barra vuota
+      const bar = document.createElement('div');
+      bar.style.cssText = 'height:3px;width:100%;border-radius:2px;background:rgba(255,255,255,.08);margin-bottom:20px';
+      col.appendChild(bar);
+    }
+
+    // Label mese
+    const lbl = document.createElement('div');
+    lbl.style.cssText = `font-size:9px;color:${m.isCurrent?'rgba(74,184,216,.8)':'rgba(255,255,255,.25)'};font-weight:${m.isCurrent?'700':'400'};margin-top:auto`;
+    lbl.textContent = m.label;
+    col.appendChild(lbl);
+
+    grid.appendChild(col);
+  });
+
+  section.appendChild(grid);
+  container.appendChild(section);
 }
 
 function completeEveningTask(id, card){
@@ -1026,9 +1111,15 @@ function completeEveningTask(id, card){
   p.microtask = '';
   scheduleSave(p);
 
-  // Stella — una per ogni task completata
+  // Stella — una per ogni task completata + tracking mensile
   const stars = parseInt(localStorage.getItem('inkflow_stars')||'0') + 1;
   localStorage.setItem('inkflow_stars', stars);
+
+  // Storico mensile
+  const monthKey = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const monthly = JSON.parse(localStorage.getItem('inkflow_monthly_stars')||'{}');
+  monthly[monthKey] = (monthly[monthKey]||0) + 1;
+  localStorage.setItem('inkflow_monthly_stars', JSON.stringify(monthly));
 
   // Aggiorna HUD con animazione
   const hud = document.getElementById('stars-count');
