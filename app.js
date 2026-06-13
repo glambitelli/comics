@@ -899,6 +899,9 @@ window.applyPlanner=applyPlanner; window.openPlannerModal=openPlannerModal;
 window.closePlannerModal=closePlannerModal; window.toggleSubsection=toggleSubsection;
 window.addCharacter=addCharacter; window.deleteCharacter=deleteCharacter;
 window.toggleCharCard=toggleCharCard; window.confirmMicrotask=confirmMicrotask;
+window.openSettings=openSettings; window.closeSettings=closeSettings;
+window.resetStarsConfirm=resetStarsConfirm; window.closeStarsConfirm=closeStarsConfirm;
+window.doResetStars=doResetStars;
 
 // ── EVENING MODE ──
 function enterEveningMode(){
@@ -1278,6 +1281,42 @@ function updatePlanner(){
 }
 
 // ── MICROTASK CONFIRM ──
+// ── SETTINGS PANEL ──
+function openSettings(){
+  document.getElementById('settings-overlay').classList.add('open');
+  document.getElementById('settings-panel').classList.add('open');
+  // Aggiorna contatore stelle nel pannello
+  const stars = parseInt(localStorage.getItem('inkflow_stars')||'0');
+  const el = document.getElementById('settings-stars-count');
+  if(el) el.textContent = stars;
+  restoreReminderUI();
+}
+
+function closeSettings(){
+  document.getElementById('settings-overlay').classList.remove('open');
+  document.getElementById('settings-panel').classList.remove('open');
+}
+
+function resetStarsConfirm(){
+  document.getElementById('stars-confirm-modal').classList.add('open');
+}
+
+function closeStarsConfirm(){
+  document.getElementById('stars-confirm-modal').classList.remove('open');
+}
+
+function doResetStars(){
+  localStorage.setItem('inkflow_stars','0');
+  // Reset anche le chiavi "già stellato oggi"
+  Object.keys(localStorage).filter(k=>k.startsWith('inkflow_starred_')).forEach(k=>localStorage.removeItem(k));
+  saveUserData();
+  const el = document.getElementById('settings-stars-count');
+  if(el) el.textContent = '0';
+  const hud = document.getElementById('stars-count');
+  if(hud) hud.textContent = '0';
+  closeStarsConfirm();
+}
+
 function confirmMicrotask(){
   const p = getProject(currentId); if(!p) return;
   const val = document.getElementById('microtask').value.trim();
