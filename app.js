@@ -97,9 +97,15 @@ hideLoading();
 // Poi connetti Firebase in background
 onSnapshot(collection(db, COL), snapshot => {
   projects = snapshot.docs.map(d => ({id: d.id, ...d.data()}));
-  projects.sort((a,b) => (a.createdAt||0) > (b.createdAt||0) ? 1 : -1);
+  applyProjectOrder();
+  projects.sort((a,b)=>{
+    const order = JSON.parse(localStorage.getItem('inkflow_order')||'[]');
+    if(order.length>0) return 0; // già ordinati da applyProjectOrder
+    return (a.createdAt||0) > (b.createdAt||0) ? 1 : -1;
+  });
   syncDot('ok');
   renderHome();
+  attachCardDrag();
   if(currentId){
     const p = getProject(currentId);
     // Non ridisegnare se l'utente sta scrivendo in un campo
@@ -345,8 +351,22 @@ function renderHome(){
     const daysLeft = calcDaysLeft(p);
     const dStr = daysLeft!==null?(daysLeft<0?`${Math.abs(daysLeft)}gg scaduto`:`${daysLeft}gg`):'';
     const bgColor = p.color||'#4ab8d8';
+
+    // Data creazione formattata
+    const createdDate = p.createdAt ? new Date(p.createdAt).toLocaleDateString('it-IT',{day:'numeric',month:'long',year:'numeric'}) : '';
+
+    // Tavola corrente — prima non Finita
+    let currentTav = null;
+    if(getPhaseIndex(p) >= 2){
+      for(let i=1;i<=p.numTav;i++){
+        const stage = p.tavole&&p.tavole[i]!=null ? p.tavole[i] : 0;
+        if(stage < 4){ currentTav = i; break; }
+      }
+    }
+
     const card = document.createElement('div');
     card.className = 'project-card';
+    card.dataset.id = p.id;
     card.style.borderLeft = `4px solid ${bgColor}`;
     card.style.position = 'relative';
 
@@ -362,10 +382,19 @@ function renderHome(){
 
     const cardInner = document.createElement('div');
     cardInner.style.cssText='display:flex;align-items:center;gap:14px;flex:1;min-width:0;cursor:pointer';
+
+    const metaLine = [
+      PHASE_NAMES[phIdx],
+      `${p.numTav} tavole`,
+      currentTav ? `✏️ tav. ${currentTav}` : '',
+      dStr ? `⏱ ${dStr}` : '',
+    ].filter(Boolean).join(' · ');
+
     cardInner.innerHTML=`
       <div class="card-info">
         <div class="card-title">${p.title}</div>
-        <div class="card-meta">${PHASE_NAMES[phIdx]} · ${p.numTav} tavole${dStr?' · ⏱ '+dStr:''}</div>
+        <div class="card-meta">${metaLine}</div>
+        ${createdDate?`<div style="font-size:10px;color:var(--ink3);margin-top:2px;font-weight:400">Iniziato il ${createdDate}</div>`:''}
       </div>
       <div class="card-right">
         <div class="card-pct" style="color:${bgColor}">${pct}%</div>
@@ -1005,6 +1034,7 @@ window.doResetStars=doResetStars; window.exportBackup=exportBackup; window.impor
 window.resetStreakConfirm=resetStreakConfirm; window.closeStreakConfirm=closeStreakConfirm; window.doResetStreak=doResetStreak;
 window.openCardMenu=openCardMenu; window.exportProjectJSON=exportProjectJSON; window.confirmDeleteProject=confirmDeleteProject;
 window.openColorPicker=openColorPicker; window.closeColorPicker=closeColorPicker; window.selectProjectColor=selectProjectColor;
+window.toggleSearch=toggleSearch; window.filterProjects=filterProjects;
 
 // ── EVENING MODE ──
 function enterEveningMode(){
@@ -1026,7 +1056,7 @@ function renderEveningList(){
   const totalStars = parseInt(localStorage.getItem('inkflow_stars')||'0');
   const starsRow = document.createElement('div');
   starsRow.style.cssText = 'display:flex;align-items:center;gap:8px;padding:4px 0 12px';
-  starsRow.innerHTML = `<span style="font-size:16px">⭐</span><span id="stars-count" style="font-family:'Castoro',serif;font-size:20px;font-weight:700;color:rgba(255,255,255,.9)">${totalStars}</span><span style="font-size:11px;color:rgba(255,255,255,.4)">serate completate</span>`;
+  starsRow.innerHTML = `<span style="font-size:16px">⭐</span><span id="stars-count" style="font-family:'Castoro',serif;font-size:20px;font-weight:700;color:rgba(255,255,255,.9)">${totalStars}</span>`;
   list.appendChild(starsRow);
 
   // Streak card
@@ -1492,7 +1522,69 @@ function updatePlanner(){
 }
 
 // ── MICROTASK CONFIRM ──
-// ── COLOR PICKER ──
+// ── SEARCH ──
+function toggleSearch(){
+  const bar = document.getElementById('search-bar');
+  const input = document.getElementById('search-input');
+  const visible = bar.style.display !== 'none';
+  bar.style.display = visible ? 'none' : 'block';
+  if(!visible){ input.focus(); filterProjects(''); }
+  else { input.value=''; filterProjects(''); }
+}
+
+function filterProjects(query){
+  const q = query.toLowerCase().trim();
+  document.querySelectorAll('.project-card').forEach(card => {
+    const title = card.querySelector('.card-title');
+    if(!title) return;
+    card.style.display = (!q || title.textContent.toLowerCase().includes(q)) ? '' : 'none';
+  });
+}
+
+// ── DRAG REORDER ──
+function attachCardDrag(){
+  const scroll = document.getElementById('home-scroll');
+  let dragCard=null, dragIdx=null;
+
+  scroll.querySelectorAll('.project-card').forEach((card,i)=>{
+    card.draggable=true;
+    card.addEventListener('dragstart', e=>{
+      dragCard=card; dragIdx=i;
+      setTimeout(()=>card.style.opacity='.4',0);
+    });
+    card.addEventListener('dragend', ()=>{ if(dragCard) dragCard.style.opacity=''; dragCard=null; });
+    card.addEventListener('dragover', e=>{ e.preventDefault(); });
+    card.addEventListener('drop', e=>{
+      e.preventDefault();
+      if(!dragCard||dragCard===card) return;
+      // Riordina array progetti
+      const fromId = dragCard.dataset.id;
+      const toId = card.dataset.id;
+      const fromIdx = projects.findIndex(p=>p.id===fromId);
+      const toIdx = projects.findIndex(p=>p.id===toId);
+      if(fromIdx<0||toIdx<0) return;
+      const [moved] = projects.splice(fromIdx,1);
+      projects.splice(toIdx,0,moved);
+      // Salva ordine
+      const order = projects.map(p=>p.id);
+      localStorage.setItem('inkflow_order', JSON.stringify(order));
+      renderHome();
+    });
+  });
+}
+
+function applyProjectOrder(){
+  const order = JSON.parse(localStorage.getItem('inkflow_order')||'[]');
+  if(order.length === 0) return;
+  projects.sort((a,b)=>{
+    const ai = order.indexOf(a.id);
+    const bi = order.indexOf(b.id);
+    if(ai<0&&bi<0) return 0;
+    if(ai<0) return 1;
+    if(bi<0) return -1;
+    return ai-bi;
+  });
+}
 const PALETTE_COLORS = [
   '#c03030', // coral rosso
   '#c87820', // ambra
@@ -1548,6 +1640,7 @@ function selectProjectColor(color){
   scheduleSave(p);
   closeColorPicker();
   renderHome();
+  attachCardDrag();
 }
 function updateStreak(){
   const today = getTodayKey();
