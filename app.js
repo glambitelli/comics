@@ -893,11 +893,13 @@ function renderVelocity(p){
     <div class="vel-stat"><div class="vel-num">${p.numTav-v.tavDone}</div><div class="vel-unit">rimanenti</div></div>
     ${neededHtml}`;
   const alertEl=document.getElementById('vel-alert');
-  if(v.needed!==null){
+  // Mostra l'alert solo durante la Realizzazione (fase 3)
+  const phIdx = getPhaseIndex(p);
+  if(v.needed!==null && phIdx >= 2){
     const diff=v.needed-v.actual;
     if(diff<=0) alertEl.innerHTML=`<div class="vel-alert ok">✅ Sei in anticipo — ritmo attuale sufficiente per la deadline.</div>`;
-    else if(diff<=1) alertEl.innerHTML=`<div class="vel-alert warn">⚠️ Devi aumentare il ritmo di ${diff.toFixed(1)} tav/sett per rispettare la deadline.</div>`;
-    else alertEl.innerHTML=`<div class="vel-alert bad">🔴 Sei in ritardo di ${diff.toFixed(1)} tav/sett. Valuta di spostare la deadline.</div>`;
+    else if(diff<=1) alertEl.innerHTML=`<div class="vel-alert warn">⚠️ Aumenta il ritmo di ${diff.toFixed(1)} tav/sett per rispettare la deadline.</div>`;
+    else alertEl.innerHTML=`<div class="vel-alert bad">🔴 Ritmo attuale insufficiente di ${diff.toFixed(1)} tav/sett — valuta di rivedere la deadline.</div>`;
   } else { alertEl.innerHTML=''; }
   drawChart(p,v);
 }

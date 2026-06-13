@@ -383,16 +383,15 @@ body{background:var(--sand);color:var(--ink);font-family:'Nunito',sans-serif;fon
     <div class="home-title">Inkflow</div>
     <div class="home-sub-row">
       <div class="home-sub">pipeline · tracker · storyboard <span class="sync-dot" id="sync-dot"></span><span style="margin-left:6px;opacity:.4;font-size:8px;letter-spacing:.06em">v1.0.0</span></div>
-      <div style="display:flex;gap:8px;align-items:center">
-        <button onclick="enterEveningMode()" style="background:linear-gradient(135deg,#1a1410,#2a2018);border:none;border-radius:20px;padding:5px 12px;font-family:'Nunito',sans-serif;font-size:11px;font-weight:700;color:rgba(255,255,255,.7);cursor:pointer;letter-spacing:.04em">🌙 sera</button>
-      </div>
     </div>
   </div>
   <div class="home-scroll" id="home-scroll">
     <div style="height:16px"></div>
     <button class="new-btn" onclick="openNewModal()">+ Nuovo progetto</button>
   </div>
-  <!-- FAB Impostazioni -->
+  <!-- FAB Sera — bottom left -->
+  <button onclick="enterEveningMode()" style="position:fixed;bottom:calc(24px + var(--safe-bot));left:20px;width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#1a1410,#2a2018);border:none;box-shadow:0 4px 16px rgba(0,0,0,.22);font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:50">🌙</button>
+  <!-- FAB Impostazioni — bottom right -->
   <button onclick="openSettings()" style="position:fixed;bottom:calc(24px + var(--safe-bot));right:20px;width:48px;height:48px;border-radius:50%;background:var(--white);border:1.5px solid var(--sand3);box-shadow:0 4px 16px rgba(0,0,0,.12);font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:50">⚙️</button>
 </div>
 
