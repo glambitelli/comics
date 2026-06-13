@@ -64,8 +64,10 @@ const PROJECT_PALETTE = [
 ];
 
 function syncDot(state){
-  const d = document.getElementById('sync-dot');
-  if(d){d.className='sync-dot '+state;}
+  ['sync-dot','sync-dot-evening'].forEach(id=>{
+    const d=document.getElementById(id); if(!d) return;
+    d.className='sync-dot '+state;
+  });
 }
 function saveHint(msg){
   const h = document.getElementById('save-hint');
@@ -932,7 +934,6 @@ function renderEveningList(){
     histSection.innerHTML = `
       <div class="evening-completed-label">
         <span>Task completate</span>
-        <button class="evening-completed-clear" onclick="clearTaskHistory()">clear</button>
       </div>
       ${history.slice().reverse().map(h=>`
         <div class="evening-completed-item">
@@ -990,6 +991,15 @@ function renderEveningList(){
       card.appendChild(check);
       list.appendChild(card);
     });
+  }
+
+  // Pulsante clear in basso al centro — visibile solo se c'è storico
+  const history2 = JSON.parse(localStorage.getItem('inkflow_task_history')||'[]');
+  if(history2.length > 0){
+    const clearBtn = document.createElement('div');
+    clearBtn.style.cssText = 'text-align:center;margin-top:20px;padding-bottom:8px';
+    clearBtn.innerHTML = `<button onclick="clearTaskHistory()" style="background:none;border:1px solid rgba(255,255,255,.15);border-radius:20px;padding:7px 20px;font-family:'Nunito',sans-serif;font-size:12px;color:rgba(255,255,255,.3);cursor:pointer">Svuota storico task</button>`;
+    list.appendChild(clearBtn);
   }
 }
 

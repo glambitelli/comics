@@ -340,7 +340,7 @@ body{background:var(--sand);color:var(--ink);font-family:'Nunito',sans-serif;fon
 .save-hint{font-size:11px;color:var(--ink3);margin-top:6px;text-align:right;font-weight:500}
 
 /* MODALS */
-.modal-overlay{position:fixed;inset:0;background:rgba(42,32,24,.45);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:none;align-items:flex-end;justify-content:center;z-index:100}
+.modal-overlay{position:fixed;inset:0;background:rgba(42,32,24,.45);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:none;align-items:flex-end;justify-content:center;z-index:200}
 .modal-overlay.open{display:flex}
 .modal{background:var(--white);border-radius:24px 24px 0 0;width:100%;max-width:500px;overflow:hidden;padding-bottom:calc(20px + var(--safe-bot));box-shadow:var(--shadow-lg)}
 .modal-handle{width:40px;height:4px;background:var(--sand3);border-radius:2px;margin:14px auto 0}
@@ -549,7 +549,7 @@ body{background:var(--sand);color:var(--ink);font-family:'Nunito',sans-serif;fon
     <div class="evening-header">
       <div class="evening-title">Inkflow</div>
       <div class="evening-header-row">
-        <div class="evening-sub">pipeline · tracker · storyboard</div>
+        <div class="evening-sub">pipeline · tracker · storyboard <span class="sync-dot" id="sync-dot-evening"></span></div>
         <button class="evening-close" onclick="exitEveningMode()">← esci</button>
       </div>
     </div>
