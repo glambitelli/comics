@@ -563,7 +563,7 @@ function restoreProject(p){
     nm.classList.toggle('done', done);
   });
   renderTavole(p); renderSfide(p); updateProgress(p); renderDeadline(p); renderVelocity(p); restoreStoryFields(p); restorePlanner(p);
-  requestAnimationFrame(() => renderVelocityHistory(p));
+  requestAnimationFrame(() => { renderVelocityHistory(p); autoResizeAll(); });
 }
 
 function togglePhase(id){
@@ -769,6 +769,7 @@ function renderActBoard(p){
   });
 
   attachDrag(p);
+  requestAnimationFrame(autoResizeAll);
 }
 
 function makeSceneCard(actId, idx, text, p){
@@ -1034,7 +1035,7 @@ window.doResetStars=doResetStars; window.exportBackup=exportBackup; window.impor
 window.resetStreakConfirm=resetStreakConfirm; window.closeStreakConfirm=closeStreakConfirm; window.doResetStreak=doResetStreak;
 window.openCardMenu=openCardMenu; window.exportProjectJSON=exportProjectJSON; window.confirmDeleteProject=confirmDeleteProject;
 window.openColorPicker=openColorPicker; window.closeColorPicker=closeColorPicker; window.selectProjectColor=selectProjectColor;
-window.toggleSearch=toggleSearch; window.filterProjects=filterProjects;
+window.toggleSearch=toggleSearch; window.filterProjects=filterProjects; window.autoResizeAll=autoResizeAll;
 
 // ── EVENING MODE ──
 function enterEveningMode(){
@@ -1522,7 +1523,38 @@ function updatePlanner(){
 }
 
 // ── MICROTASK CONFIRM ──
-// ── SEARCH ──
+// ── SWIPE DESTRA PER TORNARE ALLA HOME ──
+(function(){
+  let startX=0, startY=0;
+  const proj = document.getElementById('screen-project');
+  proj.addEventListener('touchstart', e=>{
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+  }, {passive:true});
+  proj.addEventListener('touchend', e=>{
+    const dx = e.changedTouches[0].clientX - startX;
+    const dy = Math.abs(e.changedTouches[0].clientY - startY);
+    // Swipe orizzontale destra > 80px, non verticale
+    if(dx > 80 && dy < 60){
+      // Non attivare se il target è una textarea o input
+      const tag = e.target.tagName;
+      if(tag==='TEXTAREA'||tag==='INPUT') return;
+      goHome();
+    }
+  }, {passive:true});
+})();
+
+// ── FIX TEXTAREA SCROLL — auto-resize per evitare scroll interno ──
+function autoResizeAll(){
+  document.querySelectorAll('.story-textarea, .scene-text').forEach(ta=>{
+    ta.style.height='auto';
+    ta.style.height = ta.scrollHeight+'px';
+    ta.style.overflow='hidden';
+  });
+}
+
+// Chiama autoResizeAll dopo ogni render della struttura narrativa
+const _origRenderActBoard = typeof renderActBoard !== 'undefined' ? renderActBoard : null;
 function toggleSearch(){
   const bar = document.getElementById('search-bar');
   const input = document.getElementById('search-input');
