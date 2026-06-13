@@ -583,10 +583,15 @@ body{background:var(--sand);color:var(--ink);font-family:'Nunito',sans-serif;fon
   </div>
 
   <div class="settings-section">
-    <div class="settings-section-label">⭐ Stelle</div>
-    <div style="font-size:13px;color:var(--ink2);margin-bottom:14px">Serate completate: <strong id="settings-stars-count">0</strong></div>
-    <div style="padding-top:8px;border-top:1px solid var(--sand2)">
+    <div class="settings-section-label">⭐ Stelle & 🔥 Streak</div>
+    <div style="font-size:13px;color:var(--ink2);margin-bottom:14px">
+      Serate completate: <strong id="settings-stars-count">0</strong>
+      &nbsp;·&nbsp;
+      Streak attuale: <strong id="settings-streak-count">0</strong> gg
+    </div>
+    <div style="padding-top:8px;border-top:1px solid var(--sand2);display:flex;gap:10px;flex-wrap:wrap">
       <button onclick="resetStarsConfirm()" style="font-size:12px;padding:7px 14px;border-radius:10px;border:1.5px solid var(--sand3);background:none;color:var(--ink3);cursor:pointer;font-family:'Nunito',sans-serif;font-weight:600">Reset stelle</button>
+      <button onclick="resetStreakConfirm()" style="font-size:12px;padding:7px 14px;border-radius:10px;border:1.5px solid var(--sand3);background:none;color:var(--ink3);cursor:pointer;font-family:'Nunito',sans-serif;font-weight:600">Reset streak</button>
     </div>
   </div>
 
@@ -600,6 +605,22 @@ body{background:var(--sand);color:var(--ink);font-family:'Nunito',sans-serif;fon
   </div>
 
   <div style="height:calc(20px + var(--safe-bot))"></div>
+</div>
+
+<!-- CONFIRM RESET STREAK -->
+<div class="modal-overlay" id="streak-confirm-modal">
+  <div class="confirm-modal">
+    <div class="modal-handle"></div>
+    <div class="modal-head">
+      <h3 style="color:var(--coral)">Reset streak</h3>
+      <p>Sei sicuro? Il contatore streak tornerà a zero.</p>
+    </div>
+    <div class="modal-actions" style="padding:0 22px 0">
+      <button class="btn-cancel" onclick="closeStreakConfirm()">Annulla</button>
+      <button class="btn-danger" onclick="doResetStreak()">Reset</button>
+    </div>
+    <div style="height:18px"></div>
+  </div>
 </div>
 
 <!-- CONFIRM RESET STELLE -->

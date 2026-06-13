@@ -348,17 +348,19 @@ function renderHome(){
     const card = document.createElement('div');
     card.className = 'project-card';
     card.style.borderLeft = `4px solid ${bgColor}`;
-    // Draw PS1-style gem on canvas
+    card.style.position = 'relative';
+
+    // Gemma
     const gemCanvas = document.createElement('canvas');
     gemCanvas.width=76; gemCanvas.height=76;
     gemCanvas.style.cssText='width:38px;height:38px;border-radius:50%;flex-shrink:0;';
-    // Riempi il canvas con il colore della card prima di disegnare
     const gCtx = gemCanvas.getContext('2d');
     gCtx.fillStyle = '#fefcf8';
     gCtx.fillRect(0,0,76,76);
     drawGem(gemCanvas, bgColor);
+
     const cardInner = document.createElement('div');
-    cardInner.style.cssText='display:flex;align-items:center;gap:14px;flex:1;min-width:0';
+    cardInner.style.cssText='display:flex;align-items:center;gap:14px;flex:1;min-width:0;cursor:pointer';
     cardInner.innerHTML=`
       <div class="card-info">
         <div class="card-title">${p.title}</div>
@@ -367,11 +369,82 @@ function renderHome(){
       <div class="card-right">
         <div class="card-pct" style="color:${bgColor}">${pct}%</div>
       </div>`;
+    cardInner.onclick = () => openProject(p.id);
+
+    // Menu tre puntini
+    const menuBtn = document.createElement('button');
+    menuBtn.textContent = '···';
+    menuBtn.style.cssText='background:none;border:none;font-size:18px;color:var(--ink3);cursor:pointer;padding:4px 8px;flex-shrink:0;line-height:1;letter-spacing:1px';
+    menuBtn.onclick = e => { e.stopPropagation(); openCardMenu(p.id, menuBtn); };
+
     card.appendChild(gemCanvas);
     card.appendChild(cardInner);
-    card.onclick = () => openProject(p.id);
+    card.appendChild(menuBtn);
     scroll.insertBefore(card, newBtn);
   });
+}
+
+// Menu contestuale card progetto
+let _activeMenu = null;
+
+function openCardMenu(id, btn){
+  // Chiudi menu precedente
+  if(_activeMenu){ _activeMenu.remove(); _activeMenu=null; return; }
+
+  const p = getProject(id); if(!p) return;
+  const menu = document.createElement('div');
+  menu.style.cssText=`position:fixed;background:var(--white);border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,.18);border:1.5px solid var(--sand2);z-index:300;min-width:160px;overflow:hidden`;
+
+  const items = [
+    {label:'📄 Esporta PDF',  action:()=>{ closeCardMenu(); currentId=id; exportPDF(); }},
+    {label:'💾 Esporta JSON', action:()=>{ closeCardMenu(); exportProjectJSON(id); }},
+    {label:'🗑 Elimina',      action:()=>{ closeCardMenu(); confirmDeleteProject(id); }, danger:true},
+  ];
+
+  items.forEach(item => {
+    const btn = document.createElement('button');
+    btn.textContent = item.label;
+    btn.style.cssText=`display:block;width:100%;padding:12px 16px;text-align:left;background:none;border:none;font-family:'Nunito',sans-serif;font-size:13px;font-weight:600;cursor:pointer;color:${item.danger?'var(--coral)':'var(--ink)'}`;
+    btn.onmouseenter = () => btn.style.background='var(--sand)';
+    btn.onmouseleave = () => btn.style.background='none';
+    btn.onclick = item.action;
+    menu.appendChild(btn);
+  });
+
+  // Posiziona sotto il bottone
+  const rect = btn.getBoundingClientRect();
+  menu.style.top = (rect.bottom + 6) + 'px';
+  menu.style.right = (window.innerWidth - rect.right) + 'px';
+
+  document.body.appendChild(menu);
+  _activeMenu = menu;
+
+  // Chiudi cliccando fuori
+  setTimeout(() => {
+    document.addEventListener('click', closeCardMenu, {once:true});
+  }, 0);
+}
+
+function closeCardMenu(){
+  if(_activeMenu){ _activeMenu.remove(); _activeMenu=null; }
+}
+
+function exportProjectJSON(id){
+  const p = getProject(id); if(!p) return;
+  const blob = new Blob([JSON.stringify(p, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `inkflow-${(p.title||'progetto').replace(/\s+/g,'-').toLowerCase()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function confirmDeleteProject(id){
+  const p = getProject(id); if(!p) return;
+  // Riusa il modal di conferma esistente
+  currentId = id;
+  confirmDeleteCurrent();
 }
 
 function goHome(){
@@ -926,6 +999,8 @@ window.toggleCharCard=toggleCharCard; window.confirmMicrotask=confirmMicrotask;
 window.openSettings=openSettings; window.closeSettings=closeSettings;
 window.resetStarsConfirm=resetStarsConfirm; window.closeStarsConfirm=closeStarsConfirm;
 window.doResetStars=doResetStars; window.exportBackup=exportBackup; window.importBackup=importBackup;
+window.resetStreakConfirm=resetStreakConfirm; window.closeStreakConfirm=closeStreakConfirm; window.doResetStreak=doResetStreak;
+window.openCardMenu=openCardMenu; window.exportProjectJSON=exportProjectJSON; window.confirmDeleteProject=confirmDeleteProject;
 
 // ── EVENING MODE ──
 function enterEveningMode(){
@@ -1496,10 +1571,11 @@ function importBackup(){
 function openSettings(){
   document.getElementById('settings-overlay').classList.add('open');
   document.getElementById('settings-panel').classList.add('open');
-  // Aggiorna contatore stelle nel pannello
   const stars = parseInt(localStorage.getItem('inkflow_stars')||'0');
   const el = document.getElementById('settings-stars-count');
   if(el) el.textContent = stars;
+  const streakEl = document.getElementById('settings-streak-count');
+  if(streakEl) streakEl.textContent = getStreak();
   restoreReminderUI();
 }
 
@@ -1528,7 +1604,22 @@ function doResetStars(){
   closeStarsConfirm();
 }
 
-function confirmMicrotask(){
+function resetStreakConfirm(){
+  document.getElementById('streak-confirm-modal').classList.add('open');
+}
+
+function closeStreakConfirm(){
+  document.getElementById('streak-confirm-modal').classList.remove('open');
+}
+
+function doResetStreak(){
+  localStorage.setItem('inkflow_streak','0');
+  localStorage.removeItem('inkflow_streak_last');
+  saveUserData();
+  const el = document.getElementById('settings-streak-count');
+  if(el) el.textContent = '0';
+  closeStreakConfirm();
+}
   const p = getProject(currentId); if(!p) return;
   const val = document.getElementById('microtask').value.trim();
   if(!val) return;
