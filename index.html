@@ -550,7 +550,6 @@ body{background:var(--sand);color:var(--ink);font-family:'Nunito',sans-serif;fon
       <div class="evening-title">Inkflow</div>
       <div class="evening-header-row">
         <div class="evening-sub">pipeline · tracker · storyboard <span class="sync-dot" id="sync-dot-evening"></span></div>
-        <button class="evening-close" onclick="exitEveningMode()">← esci</button>
       </div>
     </div>
     <div class="evening-hud" id="evening-hud" style="position:absolute;top:calc(var(--safe-top) + 22px);right:16px;z-index:10;pointer-events:none">
@@ -558,6 +557,8 @@ body{background:var(--sand);color:var(--ink);font-family:'Nunito',sans-serif;fon
       <span class="evening-hud-count" id="stars-count">0</span>
     </div>
     <div class="evening-scroll" id="evening-list"></div>
+    <!-- FAB Sole — bottom left, simmetrico al 🌙 della home -->
+    <button onclick="exitEveningMode()" style="position:fixed;bottom:calc(24px + var(--safe-bot));left:20px;width:48px;height:48px;border-radius:50%;background:#fefcf8;border:1.5px solid #e8e0d0;box-shadow:0 4px 16px rgba(0,0,0,.18);font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:50">☀️</button>
   </div>
 </div>
 
