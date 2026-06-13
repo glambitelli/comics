@@ -1057,7 +1057,7 @@ function renderEveningList(){
   const totalStars = parseInt(localStorage.getItem('inkflow_stars')||'0');
   const starsRow = document.createElement('div');
   starsRow.style.cssText = 'display:flex;align-items:center;gap:8px;padding:4px 0 12px';
-  starsRow.innerHTML = `<span style="font-size:16px">⭐</span><span id="stars-count" style="font-family:'Castoro',serif;font-size:20px;font-weight:700;color:rgba(255,255,255,.9)">${totalStars}</span>`;
+  starsRow.innerHTML = `<span style="font-size:13px">⭐</span><span id="stars-count" style="font-family:'Castoro',serif;font-size:16px;font-weight:700;color:rgba(255,255,255,.85)">${totalStars}</span>`;
   list.appendChild(starsRow);
 
   // Streak card
