@@ -340,10 +340,10 @@ body{background:var(--sand);color:var(--ink);font-family:'Nunito',sans-serif;fon
 .save-hint{font-size:11px;color:var(--ink3);margin-top:6px;text-align:right;font-weight:500}
 
 /* MODALS */
-.modal-overlay{position:fixed;inset:0;background:rgba(42,32,24,.45);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:none;align-items:flex-end;justify-content:center;z-index:200}
+.modal-overlay{position:fixed;inset:0;background:rgba(42,32,24,.45);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;z-index:200}
 .modal-overlay.open{display:flex}
-.modal{background:var(--white);border-radius:24px 24px 0 0;width:100%;max-width:500px;overflow:hidden;padding-bottom:calc(20px + var(--safe-bot));box-shadow:var(--shadow-lg)}
-.modal-handle{width:40px;height:4px;background:var(--sand3);border-radius:2px;margin:14px auto 0}
+.modal{background:var(--white);border-radius:20px;width:calc(100% - 40px);max-width:460px;overflow:hidden;padding-bottom:20px;box-shadow:var(--shadow-lg)}
+.modal-handle{display:none}
 .modal-head{padding:18px 22px 14px}
 .modal-head h3{font-size:18px;font-weight:700;color:var(--ink)}
 .modal-head p{font-size:13px;color:var(--ink3);margin-top:2px}
@@ -355,7 +355,7 @@ body{background:var(--sand);color:var(--ink);font-family:'Nunito',sans-serif;fon
 .btn-cancel{flex:1;padding:14px;border-radius:14px;border:1.5px solid var(--sand3);background:var(--sand);color:var(--ink2);font-size:14px;font-weight:600;cursor:pointer;font-family:'Nunito',sans-serif}
 .btn-create{flex:2;padding:14px;border-radius:14px;border:none;background:linear-gradient(135deg,var(--coral),var(--gold));color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:'Nunito',sans-serif;box-shadow:0 4px 16px rgba(200,82,26,.3)}
 .btn-create:active{transform:scale(.98)}
-.confirm-modal{background:var(--white);border-radius:24px 24px 0 0;width:100%;max-width:500px;padding-bottom:calc(20px + var(--safe-bot));box-shadow:var(--shadow-lg)}
+.confirm-modal{background:var(--white);border-radius:20px;width:calc(100% - 40px);max-width:460px;padding-bottom:20px;box-shadow:var(--shadow-lg)}
 .btn-danger{flex:2;padding:14px;border-radius:14px;border:none;background:var(--coral);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:'Nunito',sans-serif}
 
 /* LOADING */
@@ -644,7 +644,7 @@ body{background:var(--sand);color:var(--ink);font-family:'Nunito',sans-serif;fon
 <script type="module" src="app.js"></script>
 <!-- MODAL PIANIFICATORE -->
 <div class="modal-overlay" id="planner-modal">
-  <div class="modal" style="border-radius:24px 24px 0 0;max-height:88vh;overflow-y:auto">
+  <div class="modal" style="max-height:88vh;overflow-y:auto">
     <div class="modal-handle"></div>
     <div class="modal-head">
       <h3>📐 Pianifica la deadline</h3>

@@ -1675,6 +1675,8 @@ async function initNotifications(){
   if(!('serviceWorker' in navigator) || !('Notification' in window)) return;
   try {
     swReg = await navigator.serviceWorker.register('./sw.js');
+    // Aspetta che il SW sia attivo prima di procedere
+    await navigator.serviceWorker.ready;
     restoreReminderUI();
     scheduleNextReminder();
   } catch(e){ console.warn('SW failed:', e); }
@@ -1733,20 +1735,26 @@ function scheduleNextReminder(){
 
   const delay = next - now;
 
-  // Cancella eventuale timer precedente
   const prevTimer = window._reminderTimer;
   if(prevTimer) clearTimeout(prevTimer);
 
-  window._reminderTimer = setTimeout(() => {
-    if(swReg && swReg.active){
-      swReg.active.postMessage({
+  window._reminderTimer = setTimeout(async () => {
+    // Recupera il SW active in modo sicuro
+    const reg = await navigator.serviceWorker.ready;
+    if(reg && reg.active){
+      reg.active.postMessage({
         type: 'SCHEDULE_NOTIFICATION',
         title: 'Inkflow ✏️',
         body: 'Buongiorno! Scrivi il task di stasera prima di iniziare la giornata.',
         delay: 0
       });
+    } else {
+      // Fallback diretto
+      new Notification('Inkflow ✏️', {
+        body: 'Buongiorno! Scrivi il task di stasera prima di iniziare la giornata.',
+        icon: './icon-192.png'
+      });
     }
-    // Riprogramma per il giorno dopo
     scheduleNextReminder();
   }, delay);
 }
@@ -1765,13 +1773,13 @@ function updateReminderStatus(){
     el.textContent = 'Reminder disattivato';
     el.style.color = 'var(--ink3)';
   } else if(perm === 'denied'){
-    el.textContent = '⚠️ Permesso negato — abilita le notifiche nelle impostazioni del browser';
+    el.textContent = '⚠️ Permesso negato — abilita le notifiche nelle impostazioni';
     el.style.color = 'var(--coral)';
   } else if(perm === 'granted'){
-    el.textContent = `✓ Reminder attivo ogni giorno alle ${time}`;
+    el.textContent = `✓ Reminder attivo alle ${time} — funziona con la scheda aperta`;
     el.style.color = 'var(--moss)';
   } else {
-    el.textContent = 'Salva per attivare e concedere il permesso';
+    el.textContent = 'Attiva il toggle per abilitare il reminder';
     el.style.color = 'var(--gold)';
   }
 }
@@ -1779,16 +1787,27 @@ function updateReminderStatus(){
 async function testNotification(){
   const granted = await requestNotificationPermission();
   if(!granted){ alert('Permesso notifiche non concesso'); return; }
-  if(swReg && swReg.active){
-    swReg.active.postMessage({
-      type: 'SCHEDULE_NOTIFICATION',
-      title: 'Inkflow ✏️',
-      body: 'Test! Questo è il reminder del mattino.',
-      delay: 2000
+
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    if(reg && reg.active){
+      reg.active.postMessage({
+        type: 'SCHEDULE_NOTIFICATION',
+        title: 'Inkflow ✏️',
+        body: 'Test riuscito! Il reminder funziona correttamente.',
+        delay: 2000
+      });
+      return;
+    }
+  } catch(e){}
+
+  // Fallback diretto senza SW
+  setTimeout(()=>{
+    new Notification('Inkflow ✏️', {
+      body: 'Test riuscito! Il reminder funziona correttamente.',
+      icon: './icon-192.png'
     });
-  } else {
-    new Notification('Inkflow ✏️', { body: 'Test! Questo è il reminder del mattino.', icon: './icon-192.png' });
-  }
+  }, 2000);
 }
 
 // Carica dati utente (stelle/storico) da Firebase
