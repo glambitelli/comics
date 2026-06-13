@@ -554,12 +554,12 @@ body{background:var(--sand);color:var(--ink);font-family:'Nunito',sans-serif;fon
     </div>
     <div class="evening-scroll" id="evening-list"></div>
     <!-- HUD stelle — top right, sotto l'header -->
-    <div class="evening-hud" id="evening-hud" style="position:fixed;top:calc(var(--safe-top) + 76px);right:16px;z-index:50;pointer-events:none">
+    <div class="evening-hud" id="evening-hud" style="position:fixed;top:calc(var(--safe-top) + 96px);right:16px;z-index:50;pointer-events:none">
       <span class="evening-hud-star">⭐</span>
       <span class="evening-hud-count" id="stars-count">0</span>
     </div>
-    <!-- FAB Sole — bottom left, colori deserto caldi -->
-    <button onclick="exitEveningMode()" style="position:fixed;bottom:calc(24px + var(--safe-bot));left:20px;width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#d4a030,#c87820);border:none;box-shadow:0 4px 16px rgba(180,120,20,.35);font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:50">🌤</button>
+    <!-- FAB Sole — bottom left, sfondo sabbia -->
+    <button onclick="exitEveningMode()" style="position:fixed;bottom:calc(24px + var(--safe-bot));left:20px;width:48px;height:48px;border-radius:50%;background:#f5f0e8;border:none;box-shadow:0 4px 16px rgba(0,0,0,.15);font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:50">☀️</button>
   </div>
 </div>
 
@@ -637,6 +637,18 @@ body{background:var(--sand);color:var(--ink);font-family:'Nunito',sans-serif;fon
       <button class="btn-danger" onclick="doResetStars()">Reset</button>
     </div>
     <div style="height:18px"></div>
+  </div>
+</div>
+
+<!-- COLOR PICKER -->
+<div class="modal-overlay" id="color-picker-modal">
+  <div class="confirm-modal" style="padding:20px 22px 24px">
+    <div class="modal-handle"></div>
+    <div class="modal-head"><h3>Colore progetto</h3></div>
+    <div id="color-picker-grid" style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;padding:8px 0 16px"></div>
+    <div class="modal-actions" style="padding:0">
+      <button class="btn-cancel" onclick="closeColorPicker()">Annulla</button>
+    </div>
   </div>
 </div>
 

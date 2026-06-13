@@ -353,11 +353,12 @@ function renderHome(){
     // Gemma
     const gemCanvas = document.createElement('canvas');
     gemCanvas.width=76; gemCanvas.height=76;
-    gemCanvas.style.cssText='width:38px;height:38px;border-radius:50%;flex-shrink:0;';
+    gemCanvas.style.cssText='width:38px;height:38px;border-radius:50%;flex-shrink:0;cursor:pointer;';
     const gCtx = gemCanvas.getContext('2d');
     gCtx.fillStyle = '#fefcf8';
     gCtx.fillRect(0,0,76,76);
     drawGem(gemCanvas, bgColor);
+    gemCanvas.onclick = e => openColorPicker(p.id, e);
 
     const cardInner = document.createElement('div');
     cardInner.style.cssText='display:flex;align-items:center;gap:14px;flex:1;min-width:0;cursor:pointer';
@@ -1003,6 +1004,7 @@ window.resetStarsConfirm=resetStarsConfirm; window.closeStarsConfirm=closeStarsC
 window.doResetStars=doResetStars; window.exportBackup=exportBackup; window.importBackup=importBackup;
 window.resetStreakConfirm=resetStreakConfirm; window.closeStreakConfirm=closeStreakConfirm; window.doResetStreak=doResetStreak;
 window.openCardMenu=openCardMenu; window.exportProjectJSON=exportProjectJSON; window.confirmDeleteProject=confirmDeleteProject;
+window.openColorPicker=openColorPicker; window.closeColorPicker=closeColorPicker; window.selectProjectColor=selectProjectColor;
 
 // ── EVENING MODE ──
 function enterEveningMode(){
@@ -1488,7 +1490,63 @@ function updatePlanner(){
 }
 
 // ── MICROTASK CONFIRM ──
-// ── STREAK ──
+// ── COLOR PICKER ──
+const PALETTE_COLORS = [
+  '#c03030', // coral rosso
+  '#c87820', // ambra
+  '#d4a800', // oro
+  '#48a848', // verde
+  '#4ab8d8', // turchese
+  '#2a88b8', // blu
+  '#7F77DD', // viola
+  '#c060a0', // magenta
+  '#508040', // verde scuro
+  '#a05a10', // terracotta
+  '#e87040', // arancione
+  '#60a8c0', // azzurro
+  '#8a6040', // marrone
+  '#a08030', // ocra
+  '#507898', // blu grigio
+];
+
+let _colorPickerProjectId = null;
+
+function openColorPicker(id, e){
+  e.stopPropagation();
+  _colorPickerProjectId = id;
+  const p = getProject(id); if(!p) return;
+  const grid = document.getElementById('color-picker-grid');
+  grid.innerHTML = '';
+  PALETTE_COLORS.forEach(color => {
+    const btn = document.createElement('button');
+    btn.style.cssText=`width:44px;height:44px;border-radius:50%;border:3px solid ${p.color===color?'var(--ink)':'transparent'};cursor:pointer;padding:0;transition:transform .15s;background:none;`;
+    const canvas = document.createElement('canvas');
+    canvas.width=76;canvas.height=76;
+    canvas.style.cssText='width:38px;height:38px;border-radius:50%;display:block;margin:0 auto';
+    const ctx=canvas.getContext('2d');
+    ctx.fillStyle='#fefcf8';ctx.fillRect(0,0,76,76);
+    drawGem(canvas, color);
+    btn.appendChild(canvas);
+    btn.onclick=()=>selectProjectColor(color);
+    btn.onmouseenter=()=>btn.style.transform='scale(1.1)';
+    btn.onmouseleave=()=>btn.style.transform='scale(1)';
+    grid.appendChild(btn);
+  });
+  document.getElementById('color-picker-modal').classList.add('open');
+}
+
+function closeColorPicker(){
+  document.getElementById('color-picker-modal').classList.remove('open');
+  _colorPickerProjectId = null;
+}
+
+function selectProjectColor(color){
+  const p = getProject(_colorPickerProjectId); if(!p) return;
+  p.color = color;
+  scheduleSave(p);
+  closeColorPicker();
+  renderHome();
+}
 function updateStreak(){
   const today = getTodayKey();
   const yesterday = (()=>{
