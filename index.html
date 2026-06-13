@@ -411,7 +411,10 @@ body{background:var(--sand);color:var(--ink);font-family:'Nunito',sans-serif;fon
       <div class="sec-label">Task di stasera</div>
       <div class="microtask-box">
         <div class="mt-label">✏️ Scrivi la mattina · Leggi quando torni a casa</div>
-        <input class="mt-input" id="microtask" type="text" placeholder="es. inchiostro vignette 3–4 di tavola 5"/>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input class="mt-input" id="microtask" type="text" placeholder="es. inchiostro vignette 3–4 di tavola 5" style="flex:1" onkeydown="if(event.key==='Enter'){confirmMicrotask();event.preventDefault()}"/>
+          <button onclick="confirmMicrotask()" id="microtask-confirm-btn" style="background:var(--coral);border:none;border-radius:10px;padding:9px 14px;color:#fff;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;flex-shrink:0;transition:all .2s;opacity:.4">✓</button>
+        </div>
         <div class="mt-hint">Una cosa sola. Concreta. Misurabile.</div>
       </div>
     </div>
@@ -542,13 +545,14 @@ body{background:var(--sand);color:var(--ink);font-family:'Nunito',sans-serif;fon
       <div class="evening-title">Inkflow</div>
       <div class="evening-header-row">
         <div class="evening-sub">pipeline · tracker · storyboard</div>
-        <div style="display:flex;align-items:center;gap:8px">
-          <div class="evening-hud" id="evening-hud">
-            <span class="evening-hud-star">⭐</span>
-            <span class="evening-hud-count" id="stars-count">0</span>
-          </div>
-          <button class="evening-close" onclick="exitEveningMode()">← esci</button>
-        </div>
+        <button class="evening-close" onclick="exitEveningMode()">← esci</button>
+      </div>
+    </div>
+    <!-- HUD stelle — in alto a destra sotto l'header -->
+    <div style="position:relative;flex-shrink:0">
+      <div class="evening-hud" id="evening-hud" style="position:absolute;top:10px;right:16px">
+        <span class="evening-hud-star">⭐</span>
+        <span class="evening-hud-count" id="stars-count">0</span>
       </div>
     </div>
     <div class="evening-scroll" id="evening-list"></div>

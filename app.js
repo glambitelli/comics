@@ -93,7 +93,10 @@ onSnapshot(collection(db, COL), snapshot => {
   renderHome();
   if(currentId){
     const p = getProject(currentId);
-    if(p) restoreProject(p);
+    // Non ridisegnare se l'utente sta scrivendo in un campo
+    const active = document.activeElement;
+    const isTyping = active && (active.tagName==='INPUT'||active.tagName==='TEXTAREA');
+    if(p && !isTyping) restoreProject(p);
   }
 }, err => {
   console.error('Firebase error:', err);
@@ -419,6 +422,8 @@ function restoreProject(p){
   document.getElementById('proj-title').value = p.title||'';
   document.getElementById('meta-tav').textContent = p.numTav;
   document.getElementById('microtask').value = p.microtask||'';
+  const mcBtn = document.getElementById('microtask-confirm-btn');
+  if(mcBtn) mcBtn.style.opacity = (p.microtask&&p.microtask.trim()) ? '1' : '.4';
   document.getElementById('notes').value = p.notes||'';
   document.getElementById('date-start').value = p.dateStart||'';
   document.getElementById('date-end').value = p.dateEnd||'';
@@ -872,7 +877,13 @@ function updateProgress(p){
 
 // ── EVENTS ──
 document.getElementById('proj-title').addEventListener('input',e=>{const p=getProject(currentId);if(!p)return;p.title=e.target.value;scheduleSave(p);});
-document.getElementById('microtask').addEventListener('input',e=>{const p=getProject(currentId);if(!p)return;p.microtask=e.target.value;scheduleSave(p);});
+document.getElementById('microtask').addEventListener('input',e=>{
+  const p=getProject(currentId);if(!p)return;
+  p.microtask=e.target.value;
+  scheduleSave(p);
+  const btn=document.getElementById('microtask-confirm-btn');
+  if(btn) btn.style.opacity = e.target.value.trim() ? '1' : '.4';
+});
 document.getElementById('notes').addEventListener('input',e=>{const p=getProject(currentId);if(!p)return;p.notes=e.target.value;scheduleSave(p);});
 
 // ── EXPOSE GLOBALS ──
@@ -887,7 +898,7 @@ window.testNotification=testNotification; window.updatePlanner=updatePlanner;
 window.applyPlanner=applyPlanner; window.openPlannerModal=openPlannerModal;
 window.closePlannerModal=closePlannerModal; window.toggleSubsection=toggleSubsection;
 window.addCharacter=addCharacter; window.deleteCharacter=deleteCharacter;
-window.toggleCharCard=toggleCharCard;
+window.toggleCharCard=toggleCharCard; window.confirmMicrotask=confirmMicrotask;
 
 // ── EVENING MODE ──
 function enterEveningMode(){
@@ -1263,6 +1274,24 @@ function updatePlanner(){
     ctx.textAlign = 'center';
     const lx = Math.min(Math.max(tx,12), W-12);
     ctx.fillText('oggi', lx, barY-6);
+  }
+}
+
+// ── MICROTASK CONFIRM ──
+function confirmMicrotask(){
+  const p = getProject(currentId); if(!p) return;
+  const val = document.getElementById('microtask').value.trim();
+  if(!val) return;
+  p.microtask = val;
+  scheduleSave(p);
+  const btn = document.getElementById('microtask-confirm-btn');
+  if(btn){
+    btn.style.background = '#48a848';
+    btn.style.opacity = '1';
+    btn.textContent = '✓';
+    setTimeout(()=>{
+      btn.style.background = 'var(--coral)';
+    }, 1200);
   }
 }
 
