@@ -1022,10 +1022,12 @@ function renderEveningList(){
   const list = document.getElementById('evening-list');
   list.innerHTML = '';
 
-  // Aggiorna HUD stelle
+  // Stelle — mostrate inline in cima alla lista
   const totalStars = parseInt(localStorage.getItem('inkflow_stars')||'0');
-  const hudCount = document.getElementById('stars-count');
-  if(hudCount) hudCount.textContent = totalStars;
+  const starsRow = document.createElement('div');
+  starsRow.style.cssText = 'display:flex;align-items:center;gap:8px;padding:4px 0 12px';
+  starsRow.innerHTML = `<span style="font-size:16px">⭐</span><span id="stars-count" style="font-family:'Castoro',serif;font-size:20px;font-weight:700;color:rgba(255,255,255,.9)">${totalStars}</span><span style="font-size:11px;color:rgba(255,255,255,.4)">serate completate</span>`;
+  list.appendChild(starsRow);
 
   // Streak card
   const streak = getStreak();
