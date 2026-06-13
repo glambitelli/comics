@@ -590,6 +590,15 @@ body{background:var(--sand);color:var(--ink);font-family:'Nunito',sans-serif;fon
     </div>
   </div>
 
+  <div class="settings-section">
+    <div class="settings-section-label">💾 Backup</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button onclick="exportBackup()" style="flex:1;font-size:12px;padding:10px 14px;border-radius:10px;border:1.5px solid var(--sand3);background:var(--sand);color:var(--ink2);cursor:pointer;font-family:'Nunito',sans-serif;font-weight:600">⬇ Esporta JSON</button>
+      <button onclick="importBackup()" style="flex:1;font-size:12px;padding:10px 14px;border-radius:10px;border:1.5px solid var(--sand3);background:var(--sand);color:var(--ink2);cursor:pointer;font-family:'Nunito',sans-serif;font-weight:600">⬆ Importa JSON</button>
+    </div>
+    <div style="font-size:11px;color:var(--ink3);margin-top:8px">Il backup include tutti i progetti e i dati delle stelle.</div>
+  </div>
+
   <div style="height:calc(20px + var(--safe-bot))"></div>
 </div>
 

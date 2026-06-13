@@ -23,7 +23,9 @@ async function saveUserData(){
     const stars = parseInt(localStorage.getItem('inkflow_stars')||'0');
     const history = JSON.parse(localStorage.getItem('inkflow_task_history')||'[]');
     const monthly = JSON.parse(localStorage.getItem('inkflow_monthly_stars')||'{}');
-    await setDoc(doc(db, 'userdata', USER_DOC), { stars, history, monthly, updatedAt: serverTimestamp() });
+    const streak = parseInt(localStorage.getItem('inkflow_streak')||'0');
+    const streakLast = localStorage.getItem('inkflow_streak_last')||'';
+    await setDoc(doc(db, 'userdata', USER_DOC), { stars, history, monthly, streak, streakLast, updatedAt: serverTimestamp() });
   } catch(e){ console.warn('saveUserData error:', e); }
 }
 
@@ -426,37 +428,23 @@ function openProject(id){
 }
 
 function restoreProject(p){
-  // Colore progetto applicato all'header
+  // Colore progetto applicato all'header — solo background, testo sempre scuro
   const color = p.color || '#4ab8d8';
   const {r:cr, g:cg, b:cb} = hexToRgb(color);
-  // Versione pastello — mescola con bianco all'80%
-  const pasteR = Math.round(cr*0.18 + 255*0.82);
-  const pasteG = Math.round(cg*0.18 + 255*0.82);
-  const pasteB = Math.round(cb*0.18 + 255*0.82);
+  // Versione pastello — mescola con bianco all'85%
+  const pasteR = Math.round(cr*0.15 + 255*0.85);
+  const pasteG = Math.round(cg*0.15 + 255*0.85);
+  const pasteB = Math.round(cb*0.15 + 255*0.85);
   const pastello = `rgb(${pasteR},${pasteG},${pasteB})`;
-  // Luminosità percepita per decidere colore testo
-  const lum = (cr*0.299 + cg*0.587 + cb*0.114) / 255;
-  const textColor = lum > 0.55 ? '#2a2420' : '#fff';
-  const subColor  = lum > 0.55 ? 'rgba(42,36,32,.55)' : 'rgba(255,255,255,.7)';
 
   const hdr = document.querySelector('.proj-header');
   if(hdr){
     hdr.style.background = pastello;
     hdr.style.borderBottomColor = color;
   }
-  // Testo adattivo
-  const titleEl = document.getElementById('proj-title');
-  if(titleEl) titleEl.style.color = textColor;
-  const backBtn = document.querySelector('.back-btn');
-  if(backBtn) backBtn.style.color = lum > 0.55 ? '#2a7a9a' : 'rgba(255,255,255,.85)';
-  const metaEl = document.querySelector('.proj-meta');
-  if(metaEl) metaEl.style.color = subColor;
 
   document.getElementById('proj-title').value = p.title||'';
   document.getElementById('meta-tav').textContent = p.numTav;
-  const metaFase = document.getElementById('meta-fase');
-  if(metaFase) metaFase.style.color = lum > 0.55 ? '#2a2420' : '#fff';
-  document.querySelectorAll('.proj-meta span').forEach(s => s.style.color = lum > 0.55 ? '#2a2420' : '#fff');
   document.getElementById('microtask').value = p.microtask||'';
   const mcBtn = document.getElementById('microtask-confirm-btn');
   if(mcBtn) mcBtn.style.opacity = (p.microtask&&p.microtask.trim()) ? '1' : '.4';
@@ -937,7 +925,7 @@ window.addCharacter=addCharacter; window.deleteCharacter=deleteCharacter;
 window.toggleCharCard=toggleCharCard; window.confirmMicrotask=confirmMicrotask;
 window.openSettings=openSettings; window.closeSettings=closeSettings;
 window.resetStarsConfirm=resetStarsConfirm; window.closeStarsConfirm=closeStarsConfirm;
-window.doResetStars=doResetStars;
+window.doResetStars=doResetStars; window.exportBackup=exportBackup; window.importBackup=importBackup;
 
 // ── EVENING MODE ──
 function enterEveningMode(){
@@ -959,6 +947,15 @@ function renderEveningList(){
   const totalStars = parseInt(localStorage.getItem('inkflow_stars')||'0');
   const hudCount = document.getElementById('stars-count');
   if(hudCount) hudCount.textContent = totalStars;
+
+  // Streak card
+  const streak = getStreak();
+  if(streak > 0){
+    const streakEl = document.createElement('div');
+    streakEl.style.cssText='display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.05);border-radius:12px;padding:10px 14px;margin-bottom:10px';
+    streakEl.innerHTML=`<span style="font-size:18px">🔥</span><span style="font-family:'Castoro',serif;font-size:20px;font-weight:700;color:rgba(255,255,255,.9)">${streak}</span><span style="font-size:11px;color:rgba(255,255,255,.4);font-weight:500">${streak===1?'giorno consecutivo':'giorni consecutivi'}</span>`;
+    list.appendChild(streakEl);
+  }
 
   // Storico task completate
   const history = JSON.parse(localStorage.getItem('inkflow_task_history')||'[]');
@@ -1149,6 +1146,9 @@ function completeEveningTask(id, card){
   const monthly = JSON.parse(localStorage.getItem('inkflow_monthly_stars')||'{}');
   monthly[monthKey] = (monthly[monthKey]||0) + 1;
   localStorage.setItem('inkflow_monthly_stars', JSON.stringify(monthly));
+
+  // Streak — giorni consecutivi
+  updateStreak();
 
   // Aggiorna HUD con animazione
   const hud = document.getElementById('stars-count');
@@ -1411,7 +1411,88 @@ function updatePlanner(){
 }
 
 // ── MICROTASK CONFIRM ──
-// ── SETTINGS PANEL ──
+// ── STREAK ──
+function updateStreak(){
+  const today = getTodayKey();
+  const yesterday = (()=>{
+    const d = new Date(); d.setDate(d.getDate()-1);
+    return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;
+  })();
+  const lastDay = localStorage.getItem('inkflow_streak_last');
+  let streak = parseInt(localStorage.getItem('inkflow_streak')||'0');
+  if(lastDay === today) return; // già contato oggi
+  if(lastDay === yesterday) streak++; // giorno consecutivo
+  else streak = 1; // streak spezzata
+  localStorage.setItem('inkflow_streak', streak);
+  localStorage.setItem('inkflow_streak_last', today);
+  // Aggiorna UI se visibile
+  const el = document.getElementById('streak-count');
+  if(el) el.textContent = streak;
+}
+
+function getStreak(){
+  // Se l'ultimo giorno non è ieri o oggi, streak è 0
+  const today = getTodayKey();
+  const yesterday = (()=>{
+    const d = new Date(); d.setDate(d.getDate()-1);
+    return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;
+  })();
+  const lastDay = localStorage.getItem('inkflow_streak_last');
+  if(lastDay === today || lastDay === yesterday){
+    return parseInt(localStorage.getItem('inkflow_streak')||'0');
+  }
+  return 0;
+}
+
+// ── BACKUP & RESTORE ──
+function exportBackup(){
+  const data = {
+    version: '1.0.0',
+    exportedAt: new Date().toISOString(),
+    projects,
+    stars: localStorage.getItem('inkflow_stars'),
+    monthly: localStorage.getItem('inkflow_monthly_stars'),
+    streak: localStorage.getItem('inkflow_streak'),
+    streakLast: localStorage.getItem('inkflow_streak_last'),
+    taskHistory: localStorage.getItem('inkflow_task_history'),
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `inkflow-backup-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importBackup(){
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
+  input.onchange = async e => {
+    const file = e.target.files[0]; if(!file) return;
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      if(!data.version || !data.projects) throw new Error('File non valido');
+      // Ripristina localStorage
+      if(data.stars) localStorage.setItem('inkflow_stars', data.stars);
+      if(data.monthly) localStorage.setItem('inkflow_monthly_stars', data.monthly);
+      if(data.streak) localStorage.setItem('inkflow_streak', data.streak);
+      if(data.streakLast) localStorage.setItem('inkflow_streak_last', data.streakLast);
+      if(data.taskHistory) localStorage.setItem('inkflow_task_history', data.taskHistory);
+      // Ripristina progetti su Firebase
+      for(const p of data.projects){
+        await setDoc(doc(db, COL, p.id), p);
+      }
+      alert(`✓ Backup ripristinato — ${data.projects.length} progetti importati`);
+      closeSettings();
+    } catch(err){
+      alert('Errore nel file di backup: '+err.message);
+    }
+  };
+  input.click();
+}
 function openSettings(){
   document.getElementById('settings-overlay').classList.add('open');
   document.getElementById('settings-panel').classList.add('open');
