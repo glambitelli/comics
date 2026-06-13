@@ -552,13 +552,14 @@ body{background:var(--sand);color:var(--ink);font-family:'Nunito',sans-serif;fon
         <div class="evening-sub">pipeline · tracker · storyboard <span class="sync-dot" id="sync-dot-evening"></span></div>
       </div>
     </div>
-    <div class="evening-hud" id="evening-hud" style="position:absolute;top:calc(var(--safe-top) + 22px);right:16px;z-index:10;pointer-events:none">
+    <div class="evening-scroll" id="evening-list"></div>
+    <!-- HUD stelle — top right, sotto l'header -->
+    <div class="evening-hud" id="evening-hud" style="position:fixed;top:calc(var(--safe-top) + 76px);right:16px;z-index:50;pointer-events:none">
       <span class="evening-hud-star">⭐</span>
       <span class="evening-hud-count" id="stars-count">0</span>
     </div>
-    <div class="evening-scroll" id="evening-list"></div>
-    <!-- FAB Sole — bottom left, simmetrico al 🌙 della home -->
-    <button onclick="exitEveningMode()" style="position:fixed;bottom:calc(24px + var(--safe-bot));left:20px;width:48px;height:48px;border-radius:50%;background:#fefcf8;border:1.5px solid #e8e0d0;box-shadow:0 4px 16px rgba(0,0,0,.18);font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:50">☀️</button>
+    <!-- FAB Sole — bottom left, colori deserto caldi -->
+    <button onclick="exitEveningMode()" style="position:fixed;bottom:calc(24px + var(--safe-bot));left:20px;width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#d4a030,#c87820);border:none;box-shadow:0 4px 16px rgba(180,120,20,.35);font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:50">🌤</button>
   </div>
 </div>
 

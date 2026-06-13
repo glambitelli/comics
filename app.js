@@ -373,8 +373,8 @@ function renderHome(){
 
     // Menu tre puntini
     const menuBtn = document.createElement('button');
-    menuBtn.textContent = '···';
-    menuBtn.style.cssText='background:none;border:none;font-size:18px;color:var(--ink3);cursor:pointer;padding:4px 8px;flex-shrink:0;line-height:1;letter-spacing:1px';
+    menuBtn.textContent = '⋮';
+    menuBtn.style.cssText='background:none;border:none;font-size:20px;color:var(--ink3);cursor:pointer;padding:4px 8px;flex-shrink:0;line-height:1';
     menuBtn.onclick = e => { e.stopPropagation(); openCardMenu(p.id, menuBtn); };
 
     card.appendChild(gemCanvas);
