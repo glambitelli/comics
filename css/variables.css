@@ -1,0 +1,22 @@
+:root{
+  /* Palette Ponyo — Miyazaki */
+  --sand:#f5f0e8;--sand2:#e8e0d0;--sand3:#c8b898;
+  --sky:#4ab8d8;--sky-deep:#2a88b8;--sky-pale:#d0eefc;
+  --coral:#e84848;--coral-mid:#f06858;--coral-pale:#fde0dc;
+  --gold:#f0c020;--gold-pale:#fdf0b0;
+  --green:#48a848;--green-pale:#c8ecc8;
+  --peach:#f0c898;--peach-pale:#fce8d8;
+  --moss:#48a848;--moss-pale:#c8ecc8;
+  --ink:#2a2420;--ink2:#5a5048;--ink3:#9a9088;
+  --white:#fefcf8;
+  --r:14px;--r-sm:10px;
+  --shadow:0 2px 14px rgba(74,184,216,.12);
+  --shadow-lg:0 8px 32px rgba(74,184,216,.18);
+  --safe-top:env(safe-area-inset-top,0px);
+  --safe-bot:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden}
+body{background:var(--sand);color:var(--ink);font-family:'Nunito',sans-serif;font-size:15px;line-height:1.6;display:flex;flex-direction:column}
+.screen{display:none;flex-direction:column;height:100%;overflow:hidden}
+.screen.active{display:flex}

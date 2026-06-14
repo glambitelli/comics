@@ -1,0 +1,50 @@
+/* STORY FIELDS */
+.story-field{background:var(--white);border-radius:var(--r);margin-bottom:12px;overflow:hidden;box-shadow:var(--shadow);border:1.5px solid var(--sand2)}
+.story-field-header{display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;transition:background .15s}
+.story-field-header:active{background:var(--sand)}
+.story-field-body{border-top:1.5px solid var(--sand2);padding:14px 16px;display:none}
+.story-field-body.open{display:block}
+
+/* STORY SUBSECTIONS */
+.story-subsection{border-top:1px solid var(--sand2)}
+.story-subsection-hdr{display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent}
+.story-subsection-hdr:active{background:var(--sand)}
+.story-subsection-icon{font-size:15px;flex-shrink:0}
+.story-subsection-title{font-size:13px;font-weight:700;color:var(--ink);flex:1}
+.story-subsection-chev{font-size:12px;color:var(--ink3);transition:transform .2s}
+.story-subsection-chev.open{transform:rotate(180deg)}
+.story-subsection-body{display:none}
+.story-subsection-body.open{display:block}
+
+/* CHARACTER CARDS */
+.char-card{margin:0 14px 8px;background:var(--sand);border-radius:10px;border:1.5px solid var(--sand3);overflow:hidden}
+.char-card-header{display:flex;align-items:center;gap:8px;padding:10px 12px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.char-card-name{font-size:13px;font-weight:700;color:var(--ink);flex:1}
+.char-card-role{font-size:11px;color:var(--ink3);font-weight:500}
+.char-card-del{font-size:14px;color:var(--ink3);background:none;border:none;cursor:pointer;padding:2px 4px;line-height:1;flex-shrink:0}
+.char-card-del:active{color:var(--coral)}
+.char-card-body{padding:0 12px 12px;display:none}
+.char-card-body.open{display:block}
+.char-field{margin-bottom:8px}
+.char-field-label{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);margin-bottom:4px}
+.char-input{width:100%;background:var(--white);border:1.5px solid var(--sand3);border-radius:8px;padding:8px 10px;font-family:'Nunito',sans-serif;font-size:13px;color:var(--ink);outline:none;transition:border-color .2s;overflow:hidden}
+.char-input:focus{border-color:var(--sky)}
+.story-textarea{width:100%;background:var(--sand);border:1.5px solid var(--sand3);border-radius:10px;padding:12px;font-family:'Nunito',sans-serif;font-size:13px;color:var(--ink);resize:none;outline:none;line-height:1.65;transition:border-color .2s;overflow:hidden}
+.story-textarea:focus{border-color:var(--sky)}
+.char-count{font-size:10px;color:var(--ink3);text-align:right;margin-top:4px;font-weight:600}
+
+/* 3-ACT BOARD */
+.act-board{display:flex;flex-direction:column;gap:10px}
+.act-col{border-radius:10px;overflow:hidden;border:1.5px solid var(--sand3)}
+.act-col-header{padding:8px 12px;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;display:flex;align-items:center;justify-content:space-between}
+.act-col-body{padding:8px;display:flex;flex-direction:column;gap:6px;min-height:48px}
+.scene-card{background:var(--white);border-radius:8px;padding:9px 10px;font-size:12px;color:var(--ink);line-height:1.5;border:1px solid var(--sand2);display:flex;gap:8px;align-items:flex-start;cursor:grab}
+.scene-card.dragging{opacity:.4}
+.scene-handle{color:var(--ink3);font-size:14px;cursor:grab;flex-shrink:0;padding-top:1px;user-select:none}
+.scene-text{flex:1;outline:none;font-family:'Nunito',sans-serif;font-size:12px;color:var(--ink);background:transparent;border:none;resize:none;line-height:1.5;min-height:18px;overflow:hidden}
+.scene-del{color:var(--ink3);font-size:14px;cursor:pointer;flex-shrink:0;background:none;border:none;padding:0;line-height:1}
+.scene-del:active{color:var(--coral)}
+.add-scene-btn{width:100%;padding:7px;border-radius:7px;border:1.5px dashed var(--sand3);background:transparent;font-family:'Nunito',sans-serif;font-size:12px;color:var(--ink3);cursor:pointer;transition:border-color .15s,color .15s}
+.add-scene-btn:active{border-color:var(--sky);color:var(--sky-deep)}
+.plot-point-divider{display:flex;flex-direction:column;gap:6px;padding:4px 0}
+.plot-point-label{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--coral);white-space:nowrap}
