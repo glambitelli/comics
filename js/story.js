@@ -38,25 +38,30 @@ function makeReadEditField(wrap, value, onSave){
 
   const renderRead = () => {
     wrap.innerHTML='';
+    const box = document.createElement('div');
+    box.style.cssText='position:relative;background:var(--sand);border:1.5px solid var(--sand3);border-radius:10px;padding:12px 36px 12px 14px;min-height:44px';
+
     const textEl = document.createElement('div');
-    textEl.style.cssText='font-size:14px;color:var(--ink);line-height:1.75;white-space:pre-wrap;position:relative;padding-right:28px;word-break:break-word';
+    textEl.style.cssText='font-size:13px;color:var(--ink);line-height:1.7;white-space:pre-wrap;word-break:break-word';
     textEl.textContent = value || '';
 
-    if(!value){
+    if(!value || !value.trim()){
       textEl.style.color='var(--ink3)';
       textEl.style.fontStyle='italic';
-      textEl.textContent='Nessun testo ancora.';
+      textEl.textContent='Nessun testo — premi ✏️ per aggiungere.';
     }
 
     const editBtn = document.createElement('button');
     editBtn.title='Modifica';
-    editBtn.style.cssText='position:absolute;top:0;right:0;background:none;border:none;cursor:pointer;font-size:14px;color:var(--ink3);padding:2px 4px;opacity:.4;line-height:1';
+    editBtn.style.cssText='position:absolute;top:8px;right:8px;background:none;border:none;cursor:pointer;font-size:13px;color:var(--ink3);padding:2px 4px;opacity:.45;line-height:1';
     editBtn.textContent='✏️';
     editBtn.onmouseenter=()=>editBtn.style.opacity='1';
-    editBtn.onmouseleave=()=>editBtn.style.opacity='.4';
+    editBtn.onmouseleave=()=>editBtn.style.opacity='.45';
     editBtn.onclick=()=>renderEdit();
-    textEl.appendChild(editBtn);
-    wrap.appendChild(textEl);
+
+    box.appendChild(textEl);
+    box.appendChild(editBtn);
+    wrap.appendChild(box);
   };
 
   const renderEdit = () => {
@@ -64,6 +69,7 @@ function makeReadEditField(wrap, value, onSave){
     const ta = document.createElement('textarea');
     ta.className='story-textarea';
     ta.value=value;
+    ta.style.fontSize='13px';
     ta.style.minHeight='80px';
     ta.addEventListener('input', function(){
       value=this.value;
@@ -71,7 +77,6 @@ function makeReadEditField(wrap, value, onSave){
       this.style.height=this.scrollHeight+'px';
       onSave(value);
     });
-    // Auto-resize
     setTimeout(()=>{ ta.style.height='auto'; ta.style.height=ta.scrollHeight+'px'; ta.focus(); },10);
 
     const doneBtn = document.createElement('button');
@@ -83,7 +88,6 @@ function makeReadEditField(wrap, value, onSave){
     wrap.appendChild(doneBtn);
   };
 
-  // Mostra lettura se c'è contenuto, modifica se vuoto
   if(value && value.trim()) renderRead();
   else renderEdit();
 }
