@@ -35,7 +35,7 @@
 .deadline-input:focus{border-color:var(--ocean)}
 .countdown-box{display:flex;gap:8px;flex-wrap:wrap}
 .countdown-pill{flex:1;min-width:80px;background:var(--sand);border-radius:12px;padding:10px 8px;text-align:center}
-.countdown-num{font-size:20px;font-weight:700;font-family:'Nunito',sans-serif;line-height:1}
+.countdown-num{font-size:16px;font-weight:700;font-family:'Nunito',sans-serif;line-height:1}
 .countdown-unit{font-size:10px;font-weight:600;color:var(--ink3);letter-spacing:.06em;text-transform:uppercase;margin-top:2px}
 .countdown-pill.urgent .countdown-num{color:var(--coral)}
 .countdown-pill.ok .countdown-num{color:var(--moss)}
@@ -45,7 +45,7 @@
 .velocity-block{background:var(--white);border-radius:var(--r);margin-bottom:12px;overflow:hidden;box-shadow:var(--shadow);border:1.5px solid var(--sand2);padding:16px}
 .vel-row{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
 .vel-stat{flex:1;min-width:80px;background:var(--sand);border-radius:12px;padding:12px 10px;text-align:center}
-.vel-num{font-size:20px;font-weight:700;font-family:'Nunito',sans-serif;line-height:1;color:var(--ink)}
+.vel-num{font-size:16px;font-weight:700;font-family:'Nunito',sans-serif;line-height:1;color:var(--ink)}
 .vel-num.good{color:var(--moss)}.vel-num.warn{color:var(--gold)}.vel-num.bad{color:var(--coral)}
 .vel-unit{font-size:10px;font-weight:600;color:var(--ink3);letter-spacing:.05em;text-transform:uppercase;margin-top:3px}
 .vel-alert{border-radius:10px;padding:10px 12px;font-size:12px;font-weight:600;line-height:1.5;margin-bottom:12px}
@@ -79,6 +79,22 @@
 .ws{background:var(--sky-pale);color:var(--sky-deep)}
 .we{background:var(--green-pale);color:#2a6a2a}
 .phase-tip{margin:4px 16px 14px;background:var(--gold-pale);border-left:3px solid var(--gold);padding:9px 12px;border-radius:0 8px 8px 0;font-size:12px;color:var(--ink2);line-height:1.55;font-weight:500}
+
+/* DEADLINE CALENDAR */
+.deadline-cal{width:100%;margin-top:12px;padding-top:10px;border-top:1px solid var(--sand2)}
+.deadline-cal-month{margin-bottom:10px}
+.deadline-cal-hdr{font-size:10px;font-weight:700;color:var(--ink2);text-align:center;margin-bottom:5px;letter-spacing:.08em;text-transform:uppercase}
+.deadline-cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+.deadline-cal-day-name{font-size:9px;font-weight:700;color:var(--ink3);text-align:center;padding:2px 0;letter-spacing:.04em}
+.deadline-cal-day{font-size:11px;font-weight:500;text-align:center;padding:3px 1px;border-radius:50%;aspect-ratio:1;display:flex;align-items:center;justify-content:center;min-width:0;color:var(--sand3)}
+.deadline-cal-day.in-range{background:var(--sand);color:var(--ink2)}
+.deadline-cal-day.past{background:var(--sand2);color:var(--ink3)}
+.deadline-cal-day.is-today{background:var(--sky);color:#fff;font-weight:700}
+.deadline-cal-day.is-start{background:var(--moss);color:#fff;font-weight:700}
+.deadline-cal-day.is-end{background:var(--coral);color:#fff;font-weight:700}
+.deadline-cal-legend{display:flex;gap:10px;font-size:10px;font-weight:600;color:var(--ink2);margin-top:6px;flex-wrap:wrap}
+.deadline-cal-leg{display:flex;align-items:center;gap:4px}
+.deadline-cal-dot{display:inline-block;width:9px;height:9px;border-radius:50%;flex-shrink:0}
 
 /* VELOCITY HISTORY */
 .velocity-history-block{background:var(--white);border-radius:var(--r);padding:16px;box-shadow:var(--shadow);border:1.5px solid var(--sand2)}

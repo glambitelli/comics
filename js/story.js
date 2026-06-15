@@ -71,7 +71,7 @@ export function renderActBoard(p){
       incLabel.textContent='Inciting Incident';
       const incTa=document.createElement('textarea');
       incTa.className='story-textarea';
-      incTa.style.cssText='font-size:12px;min-height:44px;';
+      incTa.style.cssText='font-size:14px;min-height:44px;';
       incTa.placeholder="L'evento che mette in moto la storia…";
       incTa.value=p.story.pp.inciting||'';
       incTa.addEventListener('input', function(){
@@ -113,7 +113,7 @@ export function renderActBoard(p){
       ppHeader.innerHTML=`<div style="flex:1;height:1.5px;background:var(--coral);opacity:.5"></div><div class="plot-point-label">⬡ ${act.pp_after}</div><div style="flex:1;height:1.5px;background:var(--coral);opacity:.5"></div>`;
       const ppTa=document.createElement('textarea');
       ppTa.className='story-textarea';
-      ppTa.style.cssText='font-size:12px;min-height:44px;';
+      ppTa.style.cssText='font-size:14px;min-height:44px;';
       ppTa.placeholder=`Descrivi il ${act.pp_after}…`;
       ppTa.value=p.story.pp[ppKey]||'';
       ppTa.addEventListener('input', function(){
