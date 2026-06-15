@@ -249,29 +249,98 @@ export function renderCharacters(p){
   p.story.characters.forEach((ch,i)=>{
     const card = document.createElement('div');
     card.className='char-card';
+
+    // Header — clicca per aprire/chiudere
     const hdr = document.createElement('div');
     hdr.className='char-card-header';
     hdr.onclick=()=>toggleCharCard(i);
     hdr.innerHTML=`
+      <span style="font-size:13px;color:var(--ink3);margin-right:2px">▾</span>
       <span class="char-card-name" id="char-name-display-${i}">${ch.name||'Personaggio'}</span>
       <span class="char-card-role">${ch.role||''}</span>
       <button class="char-card-del" onclick="event.stopPropagation();deleteCharacter(${i})">×</button>`;
+
+    // Body — sola lettura di default
     const body = document.createElement('div');
     body.className='char-card-body';
     body.id='char-body-'+i;
-    const nameField = makeCharField('Nome', ch.name||'', 'name', i);
-    const roleField = makeCharField('Ruolo nella storia', ch.role||'', 'role', i);
-    const descField = makeCharFieldTextarea('Descrizione', ch.desc||'', 'desc', i);
-    body.appendChild(nameField);
-    body.appendChild(roleField);
-    body.appendChild(descField);
+
+    const renderReadMode = () => {
+      body.innerHTML='';
+      // Vista sola lettura
+      const readView = document.createElement('div');
+      readView.style.cssText='padding:4px 0 8px';
+
+      if(ch.role){
+        const roleEl = document.createElement('div');
+        roleEl.style.cssText='font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--ink3);margin-bottom:4px';
+        roleEl.textContent=ch.role;
+        readView.appendChild(roleEl);
+      }
+      if(ch.desc){
+        const descEl = document.createElement('div');
+        descEl.style.cssText='font-size:13px;color:var(--ink2);line-height:1.6;white-space:pre-wrap';
+        descEl.textContent=ch.desc;
+        readView.appendChild(descEl);
+      }
+      if(!ch.role&&!ch.desc){
+        const empty = document.createElement('div');
+        empty.style.cssText='font-size:12px;color:var(--ink3);font-style:italic';
+        empty.textContent='Nessuna descrizione';
+        readView.appendChild(empty);
+      }
+
+      // Pulsante modifica
+      const editBtn = document.createElement('button');
+      editBtn.style.cssText='margin-top:10px;font-size:11px;padding:5px 12px;border-radius:8px;border:1.5px solid var(--sand3);background:var(--sand);color:var(--ink2);cursor:pointer;font-family:\'Nunito\',sans-serif;font-weight:600';
+      editBtn.textContent='✏️ Modifica';
+      editBtn.onclick = e => { e.stopPropagation(); renderEditMode(); };
+
+      body.appendChild(readView);
+      body.appendChild(editBtn);
+    };
+
+    const renderEditMode = () => {
+      body.innerHTML='';
+      const nameField = makeCharField('Nome', ch.name||'', 'name', i, ch);
+      const roleField = makeCharField('Ruolo nella storia', ch.role||'', 'role', i, ch);
+      const descField = makeCharFieldTextarea('Descrizione', ch.desc||'', 'desc', i, ch);
+
+      // Pulsante salva/blocca
+      const saveBtn = document.createElement('button');
+      saveBtn.style.cssText='margin-top:10px;font-size:11px;padding:5px 12px;border-radius:8px;border:none;background:var(--sky);color:#fff;cursor:pointer;font-family:\'Nunito\',sans-serif;font-weight:700';
+      saveBtn.textContent='✓ Fatto';
+      saveBtn.onclick = e => {
+        e.stopPropagation();
+        // Aggiorna nome nell'header
+        const disp=document.getElementById('char-name-display-'+i);
+        if(disp) disp.textContent=ch.name||'Personaggio';
+        const roleSpan=hdr.querySelector('.char-card-role');
+        if(roleSpan) roleSpan.textContent=ch.role||'';
+        renderReadMode();
+      };
+
+      body.appendChild(nameField);
+      body.appendChild(roleField);
+      body.appendChild(descField);
+      body.appendChild(saveBtn);
+    };
+
+    // Nuovi personaggi partono in edit mode, quelli esistenti in read mode
+    const isNew = !ch.name && !ch.role && !ch.desc;
+    if(isNew) {
+      setTimeout(()=>{ body.classList.add('open'); renderEditMode(); }, 50);
+    } else {
+      renderReadMode();
+    }
+
     card.appendChild(hdr);
     card.appendChild(body);
     list.appendChild(card);
   });
 }
 
-function makeCharField(label, value, field, idx){
+function makeCharField(label, value, field, idx, ch){
   const wrap = document.createElement('div');
   wrap.className='char-field';
   wrap.innerHTML=`<div class="char-field-label">${label}</div>`;
@@ -283,17 +352,14 @@ function makeCharField(label, value, field, idx){
   input.addEventListener('input', function(){
     const p=getProject(currentId); if(!p||!p.story||!p.story.characters) return;
     p.story.characters[idx][field]=this.value;
-    if(field==='name'){
-      const disp=document.getElementById('char-name-display-'+idx);
-      if(disp) disp.textContent=this.value||'Personaggio';
-    }
+    ch[field]=this.value;
     scheduleSave(p);
   });
   wrap.appendChild(input);
   return wrap;
 }
 
-function makeCharFieldTextarea(label, value, field, idx){
+function makeCharFieldTextarea(label, value, field, idx, ch){
   const wrap = document.createElement('div');
   wrap.className='char-field';
   wrap.innerHTML=`<div class="char-field-label">${label}</div>`;
@@ -306,6 +372,7 @@ function makeCharFieldTextarea(label, value, field, idx){
   ta.addEventListener('input', function(){
     const p=getProject(currentId); if(!p||!p.story||!p.story.characters) return;
     p.story.characters[idx][field]=this.value;
+    ch[field]=this.value;
     scheduleSave(p);
   });
   wrap.appendChild(ta);
