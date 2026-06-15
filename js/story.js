@@ -25,108 +25,59 @@ export function autoResize(el){
 }
 
 export function autoResizeAll(){
-  document.querySelectorAll('.story-textarea, .scene-text').forEach(ta=>{
+  document.querySelectorAll('.story-textarea,.scene-text,.char-textarea').forEach(ta=>{
     ta.style.height='auto';
-    ta.style.height = ta.scrollHeight+'px';
+    ta.style.height=ta.scrollHeight+'px';
     ta.style.overflow='hidden';
   });
 }
 
-// ── READ/EDIT FIELD — modalità lettura/modifica, opzione C ──
-function makeReadEditField(wrap, value, onSave, style={}){
+// ── CAMPO TESTO DIRETTO — stile uniforme, niente matite ──
+function makeTextField(wrap, value, onSave, opts={}){
   wrap.innerHTML='';
-  const bg = style.bg || 'var(--sand)';
-  const border = style.border || 'var(--sand3)';
-
-  const renderRead = () => {
-    wrap.innerHTML='';
-    const box = document.createElement('div');
-    box.style.cssText=`position:relative;background:${bg};border:1.5px solid ${border};border-radius:10px;padding:12px 40px 12px 14px;min-height:44px`;
-
-    const textEl = document.createElement('div');
-    textEl.style.cssText='font-size:13px;color:var(--ink);line-height:1.7;white-space:pre-wrap;word-break:break-word';
-    textEl.textContent = value || '';
-    if(!value || !value.trim()){
-      textEl.style.color='var(--ink3)';
-      textEl.style.fontStyle='italic';
-      textEl.textContent='Nessun testo — premi ✏️ per aggiungere.';
-    }
-
-    const editBtn = document.createElement('button');
-    editBtn.title='Modifica';
-    editBtn.style.cssText='position:absolute;top:8px;right:8px;background:none;border:none;cursor:pointer;font-size:14px;color:var(--ink3);padding:3px 5px;opacity:.5;line-height:1;border-radius:6px';
-    editBtn.textContent='✏️';
-    editBtn.onmouseenter=()=>editBtn.style.opacity='1';
-    editBtn.onmouseleave=()=>editBtn.style.opacity='.5';
-    editBtn.onclick=()=>renderEdit();
-
-    box.appendChild(textEl);
-    box.appendChild(editBtn);
-    wrap.appendChild(box);
-  };
-
-  const renderEdit = () => {
-    wrap.innerHTML='';
-    const box = document.createElement('div');
-    box.style.cssText='position:relative';
-
-    const ta = document.createElement('textarea');
-    ta.className='story-textarea';
-    ta.value=value;
-    ta.style.cssText=`font-size:13px;min-height:80px;border:2px solid var(--sky);background:var(--white);padding:12px 40px 12px 14px`;
-    ta.addEventListener('input', function(){
-      value=this.value;
-      this.style.height='auto';
-      this.style.height=this.scrollHeight+'px';
-      onSave(value);
-    });
-    setTimeout(()=>{ ta.style.height='auto'; ta.style.height=ta.scrollHeight+'px'; ta.focus(); },10);
-
-    const doneBtn = document.createElement('button');
-    doneBtn.title='Fatto';
-    doneBtn.style.cssText='position:absolute;top:8px;right:8px;background:var(--green);border:none;cursor:pointer;font-size:13px;color:#fff;padding:4px 7px;line-height:1;border-radius:6px;font-weight:700';
-    doneBtn.textContent='✓';
-    doneBtn.onclick=()=>renderRead();
-
-    box.appendChild(ta);
-    box.appendChild(doneBtn);
-    wrap.appendChild(box);
-  };
-
-  if(value && value.trim()) renderRead();
-  else renderEdit();
+  const ta = document.createElement('textarea');
+  ta.className='story-textarea';
+  ta.value = value||'';
+  ta.placeholder = opts.placeholder||'';
+  ta.style.cssText=`font-size:13px;min-height:${opts.minHeight||'60px'};overflow:hidden;${opts.bg?'background:'+opts.bg+';border-color:'+opts.border+';':'' }`;
+  ta.addEventListener('input', function(){
+    this.style.height='auto';
+    this.style.height=this.scrollHeight+'px';
+    onSave(this.value);
+  });
+  requestAnimationFrame(()=>{
+    ta.style.height='auto';
+    ta.style.height=ta.scrollHeight+'px';
+  });
+  wrap.appendChild(ta);
 }
 
 export function restoreStoryFields(p){
-  // Taccuino — sfondo caldo, spazio libero
   const taccuinoWrap = document.getElementById('taccuino-wrap');
   if(taccuinoWrap){
-    taccuinoWrap.style.cssText = 'padding:0 16px 12px';
-    makeReadEditField(taccuinoWrap, (p.story&&p.story.taccuino)||'', val=>{
+    makeTextField(taccuinoWrap, (p.story&&p.story.taccuino)||'', val=>{
       if(!p.story)p.story={};
       p.story.taccuino=val;
       scheduleSave(p);
-    }, {bg:'#fdf8e8', border:'#e8d898'});
+    }, {placeholder:'Scrivi liberamente — idee, spunti, direzioni narrative…', minHeight:'80px', bg:'#fdf8e8', border:'#e8d898'});
   }
 
-  // Soggetto
   const soggettoWrap = document.getElementById('soggetto-wrap');
   if(soggettoWrap){
-    makeReadEditField(soggettoWrap, (p.story&&p.story.soggetto)||'', val=>{
+    makeTextField(soggettoWrap, (p.story&&p.story.soggetto)||'', val=>{
       if(!p.story)p.story={};
       p.story.soggetto=val;
       scheduleSave(p);
-    });
+    }, {placeholder:'Chi è il protagonista, cosa vuole, cosa glielo impedisce, come finisce…', minHeight:'80px'});
   }
 
-  // Ambientazione
   const worldWrap = document.getElementById('world-wrap');
   if(worldWrap){
-    makeReadEditField(worldWrap, (p.story&&p.story.world)||'', val=>{
+    makeTextField(worldWrap, (p.story&&p.story.world)||'', val=>{
       if(!p.story)p.story={};
       p.story.world=val;
       scheduleSave(p);
-    });
+    }, {placeholder:'Dove e quando si svolge la storia? Che tipo di mondo è?', minHeight:'60px'});
   }
 
   renderActBoard(p);
@@ -156,16 +107,16 @@ export function renderActBoard(p){
 
     if(act.inciting){
       const inc=document.createElement('div');
-      inc.style.cssText='padding:8px 12px 4px;';
+      inc.style.cssText='padding:8px 12px 4px';
       const incLabel=document.createElement('div');
       incLabel.style.cssText=`font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:${act.color};margin-bottom:6px`;
       incLabel.textContent='Inciting Incident';
       const incWrap=document.createElement('div');
-      makeReadEditField(incWrap, p.story.pp.inciting||'', val=>{
+      makeTextField(incWrap, p.story.pp.inciting||'', val=>{
         if(!p.story.pp) p.story.pp={pp1:'',pp2:'',inciting:''};
         p.story.pp.inciting=val;
         scheduleSave(p);
-      });
+      }, {placeholder:"L'evento che mette in moto la storia…", minHeight:'44px'});
       inc.appendChild(incLabel);
       inc.appendChild(incWrap);
       col.appendChild(inc);
@@ -176,34 +127,30 @@ export function renderActBoard(p){
     body.id='act-body-'+act.id;
     body.dataset.act=act.id;
 
-    scenes.forEach((sc,i)=>{
-      body.appendChild(makeSceneCard(act.id, i, sc, p));
-    });
+    scenes.forEach((sc,i)=>{ body.appendChild(makeSceneCard(act.id,i,sc,p)); });
 
     const addBtn=document.createElement('button');
     addBtn.className='add-scene-btn';
     addBtn.textContent='+ aggiungi scena';
-    addBtn.onclick=()=>addScene(act.id);
+    addBtn.onclick=e=>{ e.preventDefault(); addScene(act.id); };
     body.appendChild(addBtn);
     col.appendChild(body);
     board.appendChild(col);
 
     if(act.pp_after){
-      const ppKey = ai===0 ? 'pp1' : 'pp2';
+      const ppKey=ai===0?'pp1':'pp2';
       const div=document.createElement('div');
       div.className='plot-point-divider';
-      div.style.flexDirection='column';
-      div.style.alignItems='stretch';
-      div.style.gap='6px';
+      div.style.cssText='flex-direction:column;align-items:stretch;gap:6px';
       const ppHeader=document.createElement('div');
       ppHeader.style.cssText='display:flex;align-items:center;gap:8px';
       ppHeader.innerHTML=`<div style="flex:1;height:1.5px;background:var(--coral);opacity:.5"></div><div class="plot-point-label">⬡ ${act.pp_after}</div><div style="flex:1;height:1.5px;background:var(--coral);opacity:.5"></div>`;
       const ppWrap=document.createElement('div');
-      makeReadEditField(ppWrap, p.story.pp[ppKey]||'', val=>{
+      makeTextField(ppWrap, p.story.pp[ppKey]||'', val=>{
         if(!p.story.pp) p.story.pp={pp1:'',pp2:'',inciting:''};
         p.story.pp[ppKey]=val;
         scheduleSave(p);
-      });
+      }, {placeholder:`Descrivi il ${act.pp_after}…`, minHeight:'44px'});
       div.appendChild(ppHeader);
       div.appendChild(ppWrap);
       board.appendChild(div);
@@ -240,7 +187,7 @@ function makeSceneCard(actId, idx, text, p){
   const del=document.createElement('button');
   del.className='scene-del';
   del.textContent='×';
-  del.onclick=()=>deleteScene(actId,idx);
+  del.onclick=e=>{ e.preventDefault(); deleteScene(actId,idx); };
 
   card.appendChild(handle);
   card.appendChild(ta);
@@ -262,7 +209,7 @@ export function addScene(actId){
     body.insertBefore(card,addBtn);
     card.querySelector('.scene-text').focus();
   }
-  const hdr=body.closest('.act-col').querySelector('.act-col-header span:last-child');
+  const hdr=document.getElementById('act-body-'+actId)?.closest('.act-col')?.querySelector('.act-col-header span:last-child');
   if(hdr) hdr.textContent=p.story.acts[actId].length+' scene';
 }
 
@@ -282,13 +229,13 @@ function attachDrag(p){
   let dragAct=null,dragIdx=null;
   document.querySelectorAll('.scene-card').forEach(card=>{
     card.addEventListener('dragstart',e=>{
-      dragAct=card.dataset.act; dragIdx=parseInt(card.dataset.idx);
+      dragAct=card.dataset.act;dragIdx=parseInt(card.dataset.idx);
       setTimeout(()=>card.classList.add('dragging'),0);
     });
     card.addEventListener('dragend',()=>card.classList.remove('dragging'));
   });
   document.querySelectorAll('.act-col-body').forEach(body=>{
-    body.addEventListener('dragover',e=>{e.preventDefault();});
+    body.addEventListener('dragover',e=>e.preventDefault());
     body.addEventListener('drop',e=>{
       e.preventDefault();
       if(dragAct===null||dragIdx===null)return;
@@ -309,176 +256,111 @@ function attachDrag(p){
 }
 
 export function toggleSubsection(id){
-  const body = document.getElementById(id+'-body');
-  const chev = document.getElementById(id+'-chev');
-  if(!body) return;
-  const open = body.classList.contains('open');
-  body.classList.toggle('open', !open);
-  if(chev) chev.classList.toggle('open', !open);
+  const body=document.getElementById(id+'-body');
+  const chev=document.getElementById(id+'-chev');
+  if(!body)return;
+  const open=body.classList.contains('open');
+  body.classList.toggle('open',!open);
+  if(chev)chev.classList.toggle('open',!open);
 }
 
 export function restoreWorldFields(p){
-  // world è gestito da makeReadEditField in restoreStoryFields
   renderCharacters(p);
 }
 
 export function renderCharacters(p){
-  const list = document.getElementById('chars-list');
-  if(!list) return;
-  if(!p.story) p.story={};
-  if(!p.story.characters) p.story.characters=[];
+  const list=document.getElementById('chars-list');
+  if(!list)return;
+  if(!p.story)p.story={};
+  if(!p.story.characters)p.story.characters=[];
   list.innerHTML='';
   p.story.characters.forEach((ch,i)=>{
-    const card = document.createElement('div');
+    const card=document.createElement('div');
     card.className='char-card';
 
-    // Header — clicca per aprire/chiudere
-    const hdr = document.createElement('div');
+    // Header — nome + × 
+    const hdr=document.createElement('div');
     hdr.className='char-card-header';
     hdr.onclick=()=>toggleCharCard(i);
     hdr.innerHTML=`
-      <span style="font-size:13px;color:var(--ink3);margin-right:2px">▾</span>
+      <span style="font-size:13px;color:var(--ink3);margin-right:4px">▾</span>
       <span class="char-card-name" id="char-name-display-${i}">${ch.name||'Personaggio'}</span>
-      <span class="char-card-role" id="char-role-display-${i}">${ch.role||''}</span>
       <button class="char-card-del" onclick="event.stopPropagation();deleteCharacter(${i})">×</button>`;
 
-    // Body — sola lettura di default
-    const body = document.createElement('div');
+    const body=document.createElement('div');
     body.className='char-card-body';
     body.id='char-body-'+i;
 
-    const renderReadMode = () => {
-      body.innerHTML='';
-      const readView = document.createElement('div');
-      readView.style.cssText='padding:4px 0 4px;position:relative';
+    // Nome
+    const nameWrap=document.createElement('div');
+    nameWrap.className='char-field';
+    nameWrap.innerHTML='<div class="char-field-label">Nome</div>';
+    const nameInput=document.createElement('input');
+    nameInput.className='char-input';
+    nameInput.type='text';
+    nameInput.value=ch.name||'';
+    nameInput.placeholder='Nome…';
+    nameInput.addEventListener('input',function(){
+      const p=getProject(currentId);if(!p||!p.story||!p.story.characters)return;
+      p.story.characters[i].name=this.value;
+      const disp=document.getElementById('char-name-display-'+i);
+      if(disp)disp.textContent=this.value||'Personaggio';
+      scheduleSave(p);
+    });
+    nameWrap.appendChild(nameInput);
 
-      if(ch.desc){
-        const descEl = document.createElement('div');
-        descEl.style.cssText='font-size:13px;color:var(--ink2);line-height:1.6;white-space:pre-wrap;padding-right:28px';
-        descEl.textContent=ch.desc;
-        readView.appendChild(descEl);
-      } else {
-        const empty = document.createElement('div');
-        empty.style.cssText='font-size:12px;color:var(--ink3);font-style:italic;padding-right:28px';
-        empty.textContent='Nessuna descrizione';
-        readView.appendChild(empty);
-      }
+    // Descrizione — textarea diretta
+    const descWrap=document.createElement('div');
+    descWrap.className='char-field';
+    descWrap.innerHTML='<div class="char-field-label">Descrizione</div>';
+    const descTa=document.createElement('textarea');
+    descTa.className='char-input story-textarea';
+    descTa.style.cssText='min-height:70px;overflow:hidden;font-size:13px';
+    descTa.rows=3;
+    descTa.value=ch.desc||'';
+    descTa.placeholder='Aspetto fisico, personalità, background…';
+    descTa.addEventListener('input',function(){
+      const p=getProject(currentId);if(!p||!p.story||!p.story.characters)return;
+      p.story.characters[i].desc=this.value;
+      this.style.height='auto';
+      this.style.height=this.scrollHeight+'px';
+      scheduleSave(p);
+    });
+    descWrap.appendChild(descTa);
 
-      // Icona matita in alto a destra, minimale
-      const editBtn = document.createElement('button');
-      editBtn.title='Modifica';
-      editBtn.style.cssText='position:absolute;top:0;right:0;background:none;border:none;cursor:pointer;font-size:14px;color:var(--ink3);padding:2px 4px;opacity:.5;line-height:1';
-      editBtn.textContent='✏️';
-      editBtn.onmouseenter=()=>editBtn.style.opacity='1';
-      editBtn.onmouseleave=()=>editBtn.style.opacity='.5';
-      editBtn.onclick = e => { e.stopPropagation(); renderEditMode(); };
-
-      readView.appendChild(editBtn);
-      body.appendChild(readView);
-    };
-
-    const renderEditMode = () => {
-      body.innerHTML='';
-      const nameField = makeCharField('Nome', ch.name||'', 'name', i, ch);
-      const roleField = makeCharField('Ruolo nella storia', ch.role||'', 'role', i, ch);
-      const descField = makeCharFieldTextarea('Descrizione', ch.desc||'', 'desc', i, ch);
-
-      // Pulsante salva/blocca
-      const saveBtn = document.createElement('button');
-      saveBtn.style.cssText='margin-top:10px;font-size:11px;padding:5px 12px;border-radius:8px;border:none;background:var(--sky);color:#fff;cursor:pointer;font-family:\'Nunito\',sans-serif;font-weight:700';
-      saveBtn.textContent='✓ Fatto';
-      saveBtn.onclick = e => {
-        e.stopPropagation();
-        const disp=document.getElementById('char-name-display-'+i);
-        if(disp) disp.textContent=ch.name||'Personaggio';
-        const roleDisp=document.getElementById('char-role-display-'+i);
-        if(roleDisp) roleDisp.textContent=ch.role||'';
-        renderReadMode();
-      };
-
-      body.appendChild(nameField);
-      body.appendChild(roleField);
-      body.appendChild(descField);
-      body.appendChild(saveBtn);
-    };
-
-    // Nuovi personaggi partono in edit mode, quelli esistenti in read mode
-    const isNew = !ch.name && !ch.role && !ch.desc;
-    if(isNew) {
-      setTimeout(()=>{ body.classList.add('open'); renderEditMode(); }, 50);
-    } else {
-      renderReadMode();
-    }
-
+    body.appendChild(nameWrap);
+    body.appendChild(descWrap);
     card.appendChild(hdr);
     card.appendChild(body);
     list.appendChild(card);
-  });
-}
 
-function makeCharField(label, value, field, idx, ch){
-  const wrap = document.createElement('div');
-  wrap.className='char-field';
-  wrap.innerHTML=`<div class="char-field-label">${label}</div>`;
-  const input = document.createElement('input');
-  input.className='char-input';
-  input.type='text';
-  input.value=value;
-  input.placeholder=label+'…';
-  input.addEventListener('input', function(){
-    const p=getProject(currentId); if(!p||!p.story||!p.story.characters) return;
-    p.story.characters[idx][field]=this.value;
-    ch[field]=this.value;
-    scheduleSave(p);
+    // Nuovo personaggio — apri subito
+    if(!ch.name&&!ch.desc){
+      setTimeout(()=>{
+        body.classList.add('open');
+        nameInput.focus();
+      },50);
+    }
   });
-  wrap.appendChild(input);
-  return wrap;
-}
-
-function makeCharFieldTextarea(label, value, field, idx, ch){
-  const wrap = document.createElement('div');
-  wrap.className='char-field';
-  wrap.innerHTML=`<div class="char-field-label">${label}</div>`;
-  const ta = document.createElement('textarea');
-  ta.className='char-input story-textarea';
-  ta.style.minHeight='70px';
-  ta.rows=3;
-  ta.value=value;
-  ta.placeholder='Descrivi il personaggio — aspetto fisico, personalità, background…';
-  ta.addEventListener('input', function(){
-    const p=getProject(currentId); if(!p||!p.story||!p.story.characters) return;
-    p.story.characters[idx][field]=this.value;
-    ch[field]=this.value;
-    scheduleSave(p);
-  });
-  wrap.appendChild(ta);
-  return wrap;
 }
 
 export function toggleCharCard(i){
   const body=document.getElementById('char-body-'+i);
-  if(!body) return;
+  if(!body)return;
   body.classList.toggle('open');
 }
 
 export function addCharacter(){
-  const p=getProject(currentId); if(!p) return;
-  if(!p.story) p.story={};
-  if(!p.story.characters) p.story.characters=[];
-  p.story.characters.push({name:'',role:'',desc:''});
+  const p=getProject(currentId);if(!p)return;
+  if(!p.story)p.story={};
+  if(!p.story.characters)p.story.characters=[];
+  p.story.characters.push({name:'',desc:''});
   scheduleSave(p);
   renderCharacters(p);
-  setTimeout(()=>{
-    const idx=p.story.characters.length-1;
-    const body=document.getElementById('char-body-'+idx);
-    if(body) body.classList.add('open');
-    const nameInput=body&&body.querySelector('.char-input');
-    if(nameInput) nameInput.focus();
-  },50);
 }
 
 export function deleteCharacter(i){
-  const p=getProject(currentId); if(!p||!p.story||!p.story.characters) return;
+  const p=getProject(currentId);if(!p||!p.story||!p.story.characters)return;
   p.story.characters.splice(i,1);
   scheduleSave(p);
   renderCharacters(p);
