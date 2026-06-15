@@ -2,7 +2,7 @@ import { getProject, currentId, setCurrentId, setDeleteId, deleteId } from './st
 import { db, COL, scheduleSave, deleteDoc, doc } from './firebase.js';
 import { hexToRgb } from './canvas.js';
 import { updateProgress } from './progress.js';
-import { renderDeadline, renderVelocity, renderVelocityHistory } from './velocity.js';
+import { renderDeadline, renderVelocity, renderVelocityHistory, renderPhaseCalendar } from './velocity.js';
 import { renderTavole, renderSfide } from './pipeline.js';
 import { restoreStoryFields, autoResizeAll } from './story.js';
 import { restorePlanner } from './planner.js';
@@ -47,7 +47,7 @@ export function restoreProject(p){
     nm.classList.toggle('done', done);
   });
   renderTavole(p); renderSfide(p); updateProgress(p); renderDeadline(p); renderVelocity(p); restoreStoryFields(p); restorePlanner(p);
-  requestAnimationFrame(() => { renderVelocityHistory(p); autoResizeAll(); });
+  requestAnimationFrame(() => { renderVelocityHistory(p); renderPhaseCalendar(p); autoResizeAll(); });
 }
 
 export function goHome(){

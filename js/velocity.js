@@ -34,7 +34,7 @@ export function saveDates(){
 export function renderDeadline(p){
   const box=document.getElementById('countdown-box');
   const days=calcDaysLeft(p);
-  if(days===null){box.innerHTML='<div style="font-size:12px;color:var(--ink3);font-weight:500">Imposta una deadline per vedere il countdown</div>';return;}
+  if(days===null){box.innerHTML='<div style="font-size:12px;color:var(--ink3);font-weight:500">Imposta una deadline per vedere il countdown</div>';renderPhaseCalendar(p);return;}
   const absDays=Math.abs(days);
   const weeks=Math.floor(absDays/7); const remDays=absDays%7;
   const cls=days<0?'urgent':days<14?'warn':'ok';
@@ -43,6 +43,88 @@ export function renderDeadline(p){
     <div class="countdown-pill ${cls}"><div class="countdown-num">${absDays}</div><div class="countdown-unit">${label}</div></div>
     <div class="countdown-pill"><div class="countdown-num" style="color:var(--ink2)">${weeks}</div><div class="countdown-unit">settimane</div></div>
     <div class="countdown-pill"><div class="countdown-num" style="color:var(--ink2)">${remDays}</div><div class="countdown-unit">giorni extra</div></div>`;
+  renderPhaseCalendar(p);
+}
+
+export function renderPhaseCalendar(p){
+  const block=document.getElementById('phase-calendar-block');
+  const canvas=document.getElementById('phase-calendar-canvas');
+  const legend=document.getElementById('phase-calendar-legend');
+  if(!block||!canvas) return;
+  if(!p.dateStart||!p.dateEnd){block.style.display='none';return;}
+  block.style.display='block';
+
+  const start=new Date(p.dateStart);
+  const end=new Date(p.dateEnd);
+  const totalDays=Math.max(1,Math.round((end-start)/(1000*60*60*24)));
+
+  const weeksS=parseFloat(document.getElementById('plan-sviluppo')?.value||'2');
+  const weeksP=parseFloat(document.getElementById('plan-preprod')?.value||'2');
+  const daySvil=Math.round(weeksS*7);
+  const dayPrep=Math.round(weeksP*7);
+  const dayReal=Math.max(1,totalDays-daySvil-dayPrep);
+
+  const phases=[
+    {label:'Sviluppo',days:daySvil,color:'#7F77DD',light:'#ede8fb'},
+    {label:'Pre-prod.',days:dayPrep,color:'#4ab8d8',light:'#d0eefc'},
+    {label:'Realizz.',days:dayReal,color:'#48a848',light:'#c8ecc8'},
+  ];
+
+  const dpr=window.devicePixelRatio||1;
+  const W=Math.max(block.offsetWidth-32,200);
+  const H=64;
+  canvas.width=Math.round(W*dpr); canvas.height=Math.round(H*dpr);
+  canvas.style.width=W+'px'; canvas.style.height=H+'px';
+  const ctx=canvas.getContext('2d');
+  ctx.scale(dpr,dpr); ctx.clearRect(0,0,W,H);
+
+  const barH=32,barY=8;
+  let x=0;
+  phases.forEach((ph,i)=>{
+    const frac=ph.days/totalDays;
+    const bw=i===phases.length-1?W-x:Math.round(frac*W);
+    ctx.fillStyle=ph.light;
+    ctx.beginPath();
+    if(i===0) ctx.roundRect(x,barY,bw,barH,[8,0,0,8]);
+    else if(i===phases.length-1) ctx.roundRect(x,barY,bw,barH,[0,8,8,0]);
+    else ctx.rect(x,barY,bw,barH);
+    ctx.fill();
+    ctx.fillStyle=ph.color;
+    ctx.beginPath();
+    if(i===0) ctx.roundRect(x,barY,bw,5,[8,0,0,8]);
+    else if(i===phases.length-1) ctx.roundRect(x,barY,bw,5,[0,8,8,0]);
+    else ctx.rect(x,barY,bw,5);
+    ctx.fill();
+    ctx.fillStyle=ph.color;
+    ctx.font='bold 11px sans-serif'; ctx.textAlign='center';
+    if(bw>50) ctx.fillText(ph.label,x+bw/2,barY+barH-8);
+    ctx.fillStyle='#9a9088'; ctx.font='9px sans-serif';
+    if(bw>35) ctx.fillText(ph.days+'gg',x+bw/2,barY+barH+14);
+    if(i<phases.length-1){ctx.fillStyle='#fff';ctx.fillRect(x+bw-1,barY,2,barH);}
+    x+=bw;
+  });
+
+  const now=new Date();
+  if(now>=start&&now<=end){
+    const elapsed=(now-start)/(end-start);
+    const tx=Math.round(elapsed*W);
+    ctx.strokeStyle='#e84848'; ctx.lineWidth=2; ctx.setLineDash([3,2]);
+    ctx.beginPath(); ctx.moveTo(tx,barY-4); ctx.lineTo(tx,barY+barH+4); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle='#e84848'; ctx.font='bold 8px sans-serif'; ctx.textAlign='center';
+    ctx.fillText('oggi',Math.min(Math.max(tx,14),W-14),barY-6);
+  }
+
+  if(legend){
+    const fmt=d=>`${d.getDate()}/${d.getMonth()+1}`;
+    const endSvil=new Date(start); endSvil.setDate(start.getDate()+daySvil);
+    const endPrep=new Date(endSvil); endPrep.setDate(endSvil.getDate()+dayPrep);
+    legend.innerHTML=phases.map((ph,i)=>{
+      const s=i===0?start:i===1?endSvil:endPrep;
+      const e=i===0?endSvil:i===1?endPrep:end;
+      return `<span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:${ph.color};flex-shrink:0;display:inline-block"></span><strong>${ph.label}</strong> ${fmt(s)}→${fmt(e)}</span>`;
+    }).join('');
+  }
 }
 
 export function renderVelocity(p){

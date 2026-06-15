@@ -1,6 +1,6 @@
 import { getProject, currentId } from './state.js';
 import { scheduleSave } from './firebase.js';
-import { renderDeadline, renderVelocity } from './velocity.js';
+import { renderDeadline, renderVelocity, renderPhaseCalendar } from './velocity.js';
 
 export function updatePlanner(){
   const p = getProject(currentId); if(!p) return;
@@ -134,6 +134,7 @@ export function applyPlanner(){
   scheduleSave(p);
   renderDeadline(p);
   renderVelocity(p);
+  renderPhaseCalendar(p);
   closePlannerModal();
 }
 

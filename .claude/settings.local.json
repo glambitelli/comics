@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -m http.server 8080)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(Get-Content \"C:\\\\Users\\\\giovanni.lambitelli\\\\Downloads\\\\inkflow_backup_v1_1\\\\app.js\")",
+      "Bash(Measure-Object -Line)",
+      "Bash(Select-Object -ExpandProperty Lines)",
+      "PowerShell(\\(Get-Content \"C:\\\\Users\\\\giovanni.lambitelli\\\\Downloads\\\\inkflow_backup_v1_1\\\\app.js\" | Measure-Object -Line\\).Lines)",
+      "PowerShell(gh --version 2>$null)",
+      "PowerShell(Get-Command gh -ErrorAction SilentlyContinue)",
+      "PowerShell($git = \"C:\\\\Program Files\\\\Git\\\\cmd\\\\git.exe\"; & $git ls-remote https://github.com/glambitelli/comics.git 2>&1)"
+    ]
+  }
+}
