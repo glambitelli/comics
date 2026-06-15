@@ -33,13 +33,15 @@ export function autoResizeAll(){
 }
 
 // ── READ/EDIT FIELD — modalità lettura/modifica, opzione C ──
-function makeReadEditField(wrap, value, onSave){
+function makeReadEditField(wrap, value, onSave, style={}){
   wrap.innerHTML='';
+  const bg = style.bg || 'var(--sand)';
+  const border = style.border || 'var(--sand3)';
 
   const renderRead = () => {
     wrap.innerHTML='';
     const box = document.createElement('div');
-    box.style.cssText='position:relative;background:var(--sand);border:1.5px solid var(--sand3);border-radius:10px;padding:12px 40px 12px 14px;min-height:44px';
+    box.style.cssText=`position:relative;background:${bg};border:1.5px solid ${border};border-radius:10px;padding:12px 40px 12px 14px;min-height:44px`;
 
     const textEl = document.createElement('div');
     textEl.style.cssText='font-size:13px;color:var(--ink);line-height:1.7;white-space:pre-wrap;word-break:break-word';
@@ -71,7 +73,7 @@ function makeReadEditField(wrap, value, onSave){
     const ta = document.createElement('textarea');
     ta.className='story-textarea';
     ta.value=value;
-    ta.style.cssText='font-size:13px;min-height:80px;border:2px solid var(--sky);background:var(--white);padding:12px 40px 12px 14px';
+    ta.style.cssText=`font-size:13px;min-height:80px;border:2px solid var(--sky);background:var(--white);padding:12px 40px 12px 14px`;
     ta.addEventListener('input', function(){
       value=this.value;
       this.style.height='auto';
@@ -80,7 +82,6 @@ function makeReadEditField(wrap, value, onSave){
     });
     setTimeout(()=>{ ta.style.height='auto'; ta.style.height=ta.scrollHeight+'px'; ta.focus(); },10);
 
-    // Stessa posizione della matita — diventa spunta verde
     const doneBtn = document.createElement('button');
     doneBtn.title='Fatto';
     doneBtn.style.cssText='position:absolute;top:8px;right:8px;background:var(--green);border:none;cursor:pointer;font-size:13px;color:#fff;padding:4px 7px;line-height:1;border-radius:6px;font-weight:700';
@@ -97,6 +98,17 @@ function makeReadEditField(wrap, value, onSave){
 }
 
 export function restoreStoryFields(p){
+  // Taccuino — sfondo caldo, spazio libero
+  const taccuinoWrap = document.getElementById('taccuino-wrap');
+  if(taccuinoWrap){
+    taccuinoWrap.style.cssText = 'padding:0 16px 12px';
+    makeReadEditField(taccuinoWrap, (p.story&&p.story.taccuino)||'', val=>{
+      if(!p.story)p.story={};
+      p.story.taccuino=val;
+      scheduleSave(p);
+    }, {bg:'#fdf8e8', border:'#e8d898'});
+  }
+
   // Soggetto
   const soggettoWrap = document.getElementById('soggetto-wrap');
   if(soggettoWrap){
@@ -146,7 +158,7 @@ export function renderActBoard(p){
       const inc=document.createElement('div');
       inc.style.cssText='padding:8px 12px 4px;';
       const incLabel=document.createElement('div');
-      incLabel.style.cssText=`font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:${act.color};margin-bottom:6px`;
+      incLabel.style.cssText=`font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:${act.color};margin-bottom:6px`;
       incLabel.textContent='Inciting Incident';
       const incWrap=document.createElement('div');
       makeReadEditField(incWrap, p.story.pp.inciting||'', val=>{
