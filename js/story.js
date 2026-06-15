@@ -32,19 +32,18 @@ export function autoResizeAll(){
   });
 }
 
-// ── READ/EDIT FIELD — campo con modalità lettura e modifica ──
+// ── READ/EDIT FIELD — modalità lettura/modifica, opzione C ──
 function makeReadEditField(wrap, value, onSave){
   wrap.innerHTML='';
 
   const renderRead = () => {
     wrap.innerHTML='';
     const box = document.createElement('div');
-    box.style.cssText='position:relative;background:var(--sand);border:1.5px solid var(--sand3);border-radius:10px;padding:12px 36px 12px 14px;min-height:44px';
+    box.style.cssText='position:relative;background:var(--sand);border:1.5px solid var(--sand3);border-radius:10px;padding:12px 40px 12px 14px;min-height:44px';
 
     const textEl = document.createElement('div');
     textEl.style.cssText='font-size:13px;color:var(--ink);line-height:1.7;white-space:pre-wrap;word-break:break-word';
     textEl.textContent = value || '';
-
     if(!value || !value.trim()){
       textEl.style.color='var(--ink3)';
       textEl.style.fontStyle='italic';
@@ -53,10 +52,10 @@ function makeReadEditField(wrap, value, onSave){
 
     const editBtn = document.createElement('button');
     editBtn.title='Modifica';
-    editBtn.style.cssText='position:absolute;top:8px;right:8px;background:none;border:none;cursor:pointer;font-size:13px;color:var(--ink3);padding:2px 4px;opacity:.45;line-height:1';
+    editBtn.style.cssText='position:absolute;top:8px;right:8px;background:none;border:none;cursor:pointer;font-size:14px;color:var(--ink3);padding:3px 5px;opacity:.5;line-height:1;border-radius:6px';
     editBtn.textContent='✏️';
     editBtn.onmouseenter=()=>editBtn.style.opacity='1';
-    editBtn.onmouseleave=()=>editBtn.style.opacity='.45';
+    editBtn.onmouseleave=()=>editBtn.style.opacity='.5';
     editBtn.onclick=()=>renderEdit();
 
     box.appendChild(textEl);
@@ -66,11 +65,13 @@ function makeReadEditField(wrap, value, onSave){
 
   const renderEdit = () => {
     wrap.innerHTML='';
+    const box = document.createElement('div');
+    box.style.cssText='position:relative';
+
     const ta = document.createElement('textarea');
     ta.className='story-textarea';
     ta.value=value;
-    ta.style.fontSize='13px';
-    ta.style.minHeight='80px';
+    ta.style.cssText='font-size:13px;min-height:80px;border:2px solid var(--sky);background:var(--white);padding:12px 40px 12px 14px';
     ta.addEventListener('input', function(){
       value=this.value;
       this.style.height='auto';
@@ -79,13 +80,16 @@ function makeReadEditField(wrap, value, onSave){
     });
     setTimeout(()=>{ ta.style.height='auto'; ta.style.height=ta.scrollHeight+'px'; ta.focus(); },10);
 
+    // Stessa posizione della matita — diventa spunta verde
     const doneBtn = document.createElement('button');
-    doneBtn.style.cssText='margin-top:8px;font-size:11px;padding:5px 12px;border-radius:8px;border:none;background:var(--sky);color:#fff;cursor:pointer;font-family:\'Nunito\',sans-serif;font-weight:700;display:block';
-    doneBtn.textContent='✓ Fatto';
+    doneBtn.title='Fatto';
+    doneBtn.style.cssText='position:absolute;top:8px;right:8px;background:var(--green);border:none;cursor:pointer;font-size:13px;color:#fff;padding:4px 7px;line-height:1;border-radius:6px;font-weight:700';
+    doneBtn.textContent='✓';
     doneBtn.onclick=()=>renderRead();
 
-    wrap.appendChild(ta);
-    wrap.appendChild(doneBtn);
+    box.appendChild(ta);
+    box.appendChild(doneBtn);
+    wrap.appendChild(box);
   };
 
   if(value && value.trim()) renderRead();
