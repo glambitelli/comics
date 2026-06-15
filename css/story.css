@@ -40,8 +40,8 @@
 .act-col-body{padding:8px;display:flex;flex-direction:column;gap:6px;min-height:48px}
 .scene-card{background:var(--white);border-radius:8px;padding:9px 10px;font-size:12px;color:var(--ink);line-height:1.5;border:1px solid var(--sand2);display:flex;gap:8px;align-items:flex-start;cursor:grab}
 .scene-card.dragging{opacity:.4}
-.scene-handle{color:var(--ink3);font-size:20px;cursor:grab;flex-shrink:0;padding:4px 6px;user-select:none;line-height:1;min-width:30px;text-align:center;-webkit-tap-highlight-color:transparent}
-.scene-text{flex:1;outline:none;font-family:'Nunito',sans-serif;font-size:14px;color:var(--ink);background:transparent;border:none;resize:none;line-height:1.55;min-height:20px;overflow:hidden}
+.scene-handle{color:var(--ink3);font-size:14px;cursor:grab;flex-shrink:0;padding-top:1px;user-select:none}
+.scene-text{flex:1;outline:none;font-family:'Nunito',sans-serif;font-size:12px;color:var(--ink);background:transparent;border:none;resize:none;line-height:1.5;min-height:18px;overflow:hidden}
 .scene-del{color:var(--ink3);font-size:14px;cursor:pointer;flex-shrink:0;background:none;border:none;padding:0;line-height:1}
 .scene-del:active{color:var(--coral)}
 .add-scene-btn{width:100%;padding:7px;border-radius:7px;border:1.5px dashed var(--sand3);background:transparent;font-family:'Nunito',sans-serif;font-size:12px;color:var(--ink3);cursor:pointer;transition:border-color .15s,color .15s}
