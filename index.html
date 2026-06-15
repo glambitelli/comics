@@ -135,8 +135,7 @@
         <!-- SOGGETTO -->
         <div class="step-item" onclick="toggleStep(this)" id="step-soggetto"><div class="step-chk">✓</div><div class="step-cnt"><div class="step-nm">Soggetto <span class="tag wm">mattina</span></div><div class="step-ds">Chi è il protagonista, cosa vuole, cosa glielo impedisce, come finisce.</div></div></div>
         <div style="padding:0 16px 12px" id="soggetto-wrap">
-          <textarea class="story-textarea" id="soggetto-text" rows="5" maxlength="800" placeholder="Scrivi il soggetto qui — chi è il protagonista, cosa vuole, cosa glielo impedisce, come finisce. Max 800 caratteri." oninput="saveStoryField('soggetto',this.value);updateCharCount('soggetto-count',this.value,800)"></textarea>
-          <div class="char-count" id="soggetto-count">0 / 800</div>
+          <!-- popolato da JS con makeReadEditField -->
         </div>
 
         <!-- PERSONAGGI -->
@@ -148,8 +147,8 @@
 
         <!-- AMBIENTAZIONE -->
         <div class="step-item" onclick="toggleStep(this)"><div class="step-chk">✓</div><div class="step-cnt"><div class="step-nm">Ambientazione <span class="tag wm">mattina</span></div><div class="step-ds">Dove e quando si svolge la storia. Struttura del mondo.</div></div></div>
-        <div style="padding:0 16px 12px">
-          <textarea class="story-textarea" id="world-text" rows="4" maxlength="600" placeholder="Dove e quando si svolge la storia? Che tipo di mondo è? Struttura sociale, atmosfera, elementi distintivi…" oninput="saveStoryField('world',this.value)"></textarea>
+        <div style="padding:0 16px 12px" id="world-wrap">
+          <!-- popolato da JS con makeReadEditField -->
         </div>
 
         <!-- STRUTTURA 3 ATTI -->

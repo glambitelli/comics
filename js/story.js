@@ -32,12 +32,83 @@ export function autoResizeAll(){
   });
 }
 
+// ── READ/EDIT FIELD — campo con modalità lettura e modifica ──
+function makeReadEditField(wrap, value, onSave){
+  wrap.innerHTML='';
+
+  const renderRead = () => {
+    wrap.innerHTML='';
+    const textEl = document.createElement('div');
+    textEl.style.cssText='font-size:14px;color:var(--ink);line-height:1.75;white-space:pre-wrap;position:relative;padding-right:28px;word-break:break-word';
+    textEl.textContent = value || '';
+
+    if(!value){
+      textEl.style.color='var(--ink3)';
+      textEl.style.fontStyle='italic';
+      textEl.textContent='Nessun testo ancora.';
+    }
+
+    const editBtn = document.createElement('button');
+    editBtn.title='Modifica';
+    editBtn.style.cssText='position:absolute;top:0;right:0;background:none;border:none;cursor:pointer;font-size:14px;color:var(--ink3);padding:2px 4px;opacity:.4;line-height:1';
+    editBtn.textContent='✏️';
+    editBtn.onmouseenter=()=>editBtn.style.opacity='1';
+    editBtn.onmouseleave=()=>editBtn.style.opacity='.4';
+    editBtn.onclick=()=>renderEdit();
+    textEl.appendChild(editBtn);
+    wrap.appendChild(textEl);
+  };
+
+  const renderEdit = () => {
+    wrap.innerHTML='';
+    const ta = document.createElement('textarea');
+    ta.className='story-textarea';
+    ta.value=value;
+    ta.style.minHeight='80px';
+    ta.addEventListener('input', function(){
+      value=this.value;
+      this.style.height='auto';
+      this.style.height=this.scrollHeight+'px';
+      onSave(value);
+    });
+    // Auto-resize
+    setTimeout(()=>{ ta.style.height='auto'; ta.style.height=ta.scrollHeight+'px'; ta.focus(); },10);
+
+    const doneBtn = document.createElement('button');
+    doneBtn.style.cssText='margin-top:8px;font-size:11px;padding:5px 12px;border-radius:8px;border:none;background:var(--sky);color:#fff;cursor:pointer;font-family:\'Nunito\',sans-serif;font-weight:700;display:block';
+    doneBtn.textContent='✓ Fatto';
+    doneBtn.onclick=()=>renderRead();
+
+    wrap.appendChild(ta);
+    wrap.appendChild(doneBtn);
+  };
+
+  // Mostra lettura se c'è contenuto, modifica se vuoto
+  if(value && value.trim()) renderRead();
+  else renderEdit();
+}
+
 export function restoreStoryFields(p){
-  const soggetto=document.getElementById('soggetto-text');
-  if(soggetto){
-    soggetto.value=(p.story&&p.story.soggetto)||'';
-    updateCharCount('soggetto-count',soggetto.value,800);
+  // Soggetto
+  const soggettoWrap = document.getElementById('soggetto-wrap');
+  if(soggettoWrap){
+    makeReadEditField(soggettoWrap, (p.story&&p.story.soggetto)||'', val=>{
+      if(!p.story)p.story={};
+      p.story.soggetto=val;
+      scheduleSave(p);
+    });
   }
+
+  // Ambientazione
+  const worldWrap = document.getElementById('world-wrap');
+  if(worldWrap){
+    makeReadEditField(worldWrap, (p.story&&p.story.world)||'', val=>{
+      if(!p.story)p.story={};
+      p.story.world=val;
+      scheduleSave(p);
+    });
+  }
+
   renderActBoard(p);
   restoreWorldFields(p);
 }
@@ -69,18 +140,14 @@ export function renderActBoard(p){
       const incLabel=document.createElement('div');
       incLabel.style.cssText=`font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:${act.color};margin-bottom:6px`;
       incLabel.textContent='Inciting Incident';
-      const incTa=document.createElement('textarea');
-      incTa.className='story-textarea';
-      incTa.style.cssText='font-size:14px;min-height:52px;';
-      incTa.placeholder="L'evento che mette in moto la storia…";
-      incTa.value=p.story.pp.inciting||'';
-      incTa.addEventListener('input', function(){
+      const incWrap=document.createElement('div');
+      makeReadEditField(incWrap, p.story.pp.inciting||'', val=>{
         if(!p.story.pp) p.story.pp={pp1:'',pp2:'',inciting:''};
-        p.story.pp.inciting=this.value;
+        p.story.pp.inciting=val;
         scheduleSave(p);
       });
       inc.appendChild(incLabel);
-      inc.appendChild(incTa);
+      inc.appendChild(incWrap);
       col.appendChild(inc);
     }
 
@@ -111,18 +178,14 @@ export function renderActBoard(p){
       const ppHeader=document.createElement('div');
       ppHeader.style.cssText='display:flex;align-items:center;gap:8px';
       ppHeader.innerHTML=`<div style="flex:1;height:1.5px;background:var(--coral);opacity:.5"></div><div class="plot-point-label">⬡ ${act.pp_after}</div><div style="flex:1;height:1.5px;background:var(--coral);opacity:.5"></div>`;
-      const ppTa=document.createElement('textarea');
-      ppTa.className='story-textarea';
-      ppTa.style.cssText='font-size:14px;min-height:52px;';
-      ppTa.placeholder=`Descrivi il ${act.pp_after}…`;
-      ppTa.value=p.story.pp[ppKey]||'';
-      ppTa.addEventListener('input', function(){
+      const ppWrap=document.createElement('div');
+      makeReadEditField(ppWrap, p.story.pp[ppKey]||'', val=>{
         if(!p.story.pp) p.story.pp={pp1:'',pp2:'',inciting:''};
-        p.story.pp[ppKey]=this.value;
+        p.story.pp[ppKey]=val;
         scheduleSave(p);
       });
       div.appendChild(ppHeader);
-      div.appendChild(ppTa);
+      div.appendChild(ppWrap);
       board.appendChild(div);
     }
   });
@@ -235,8 +298,7 @@ export function toggleSubsection(id){
 }
 
 export function restoreWorldFields(p){
-  const world = document.getElementById('world-text');
-  if(world) world.value = (p.story&&p.story.world)||'';
+  // world è gestito da makeReadEditField in restoreStoryFields
   renderCharacters(p);
 }
 
@@ -257,7 +319,7 @@ export function renderCharacters(p){
     hdr.innerHTML=`
       <span style="font-size:13px;color:var(--ink3);margin-right:2px">▾</span>
       <span class="char-card-name" id="char-name-display-${i}">${ch.name||'Personaggio'}</span>
-      <span class="char-card-role">${ch.role||''}</span>
+      <span class="char-card-role" id="char-role-display-${i}">${ch.role||''}</span>
       <button class="char-card-del" onclick="event.stopPropagation();deleteCharacter(${i})">×</button>`;
 
     // Body — sola lettura di default
@@ -267,37 +329,32 @@ export function renderCharacters(p){
 
     const renderReadMode = () => {
       body.innerHTML='';
-      // Vista sola lettura
       const readView = document.createElement('div');
-      readView.style.cssText='padding:4px 0 8px';
+      readView.style.cssText='padding:4px 0 4px;position:relative';
 
-      if(ch.role){
-        const roleEl = document.createElement('div');
-        roleEl.style.cssText='font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--ink3);margin-bottom:4px';
-        roleEl.textContent=ch.role;
-        readView.appendChild(roleEl);
-      }
       if(ch.desc){
         const descEl = document.createElement('div');
-        descEl.style.cssText='font-size:13px;color:var(--ink2);line-height:1.6;white-space:pre-wrap';
+        descEl.style.cssText='font-size:13px;color:var(--ink2);line-height:1.6;white-space:pre-wrap;padding-right:28px';
         descEl.textContent=ch.desc;
         readView.appendChild(descEl);
-      }
-      if(!ch.role&&!ch.desc){
+      } else {
         const empty = document.createElement('div');
-        empty.style.cssText='font-size:12px;color:var(--ink3);font-style:italic';
+        empty.style.cssText='font-size:12px;color:var(--ink3);font-style:italic;padding-right:28px';
         empty.textContent='Nessuna descrizione';
         readView.appendChild(empty);
       }
 
-      // Pulsante modifica
+      // Icona matita in alto a destra, minimale
       const editBtn = document.createElement('button');
-      editBtn.style.cssText='margin-top:10px;font-size:11px;padding:5px 12px;border-radius:8px;border:1.5px solid var(--sand3);background:var(--sand);color:var(--ink2);cursor:pointer;font-family:\'Nunito\',sans-serif;font-weight:600';
-      editBtn.textContent='✏️ Modifica';
+      editBtn.title='Modifica';
+      editBtn.style.cssText='position:absolute;top:0;right:0;background:none;border:none;cursor:pointer;font-size:14px;color:var(--ink3);padding:2px 4px;opacity:.5;line-height:1';
+      editBtn.textContent='✏️';
+      editBtn.onmouseenter=()=>editBtn.style.opacity='1';
+      editBtn.onmouseleave=()=>editBtn.style.opacity='.5';
       editBtn.onclick = e => { e.stopPropagation(); renderEditMode(); };
 
+      readView.appendChild(editBtn);
       body.appendChild(readView);
-      body.appendChild(editBtn);
     };
 
     const renderEditMode = () => {
@@ -312,11 +369,10 @@ export function renderCharacters(p){
       saveBtn.textContent='✓ Fatto';
       saveBtn.onclick = e => {
         e.stopPropagation();
-        // Aggiorna nome nell'header
         const disp=document.getElementById('char-name-display-'+i);
         if(disp) disp.textContent=ch.name||'Personaggio';
-        const roleSpan=hdr.querySelector('.char-card-role');
-        if(roleSpan) roleSpan.textContent=ch.role||'';
+        const roleDisp=document.getElementById('char-role-display-'+i);
+        if(roleDisp) roleDisp.textContent=ch.role||'';
         renderReadMode();
       };
 
