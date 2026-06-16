@@ -58,10 +58,10 @@ export function renderEveningList(){
   const totalStars = parseInt(localStorage.getItem('inkflow_stars')||'0');
   const streak = getStreak();
   const starsRow = document.createElement('div');
-  starsRow.style.cssText = 'display:flex;align-items:center;gap:16px;padding:4px 0 14px';
-  let starsHtml = `<span style="display:flex;align-items:center;gap:6px"><span style="font-size:14px">⭐</span><span id="stars-count" style="font-family:'Castoro',serif;font-size:17px;font-weight:700;color:rgba(255,255,255,.85)">${totalStars}</span></span>`;
+  starsRow.style.cssText = 'display:flex;align-items:center;gap:18px;padding:4px 0 16px';
+  let starsHtml = `<span style="display:flex;align-items:baseline;gap:7px"><span style="font-size:15px;color:#f0c020;line-height:1">✦</span><span id="stars-count" style="font-family:'Castoro',serif;font-size:18px;font-weight:700;color:rgba(255,255,255,.85)">${totalStars}</span></span>`;
   if(streak > 0){
-    starsHtml += `<span style="display:flex;align-items:center;gap:6px"><span style="font-size:14px">🔥</span><span style="font-family:'Castoro',serif;font-size:17px;font-weight:700;color:rgba(255,255,255,.85)">${streak}</span></span>`;
+    starsHtml += `<span style="display:flex;align-items:baseline;gap:7px"><span style="font-size:15px;color:#e8804a;line-height:1">〰</span><span style="font-family:'Castoro',serif;font-size:18px;font-weight:700;color:rgba(255,255,255,.85)">${streak}</span></span>`;
   }
   starsRow.innerHTML = starsHtml;
   list.appendChild(starsRow);
