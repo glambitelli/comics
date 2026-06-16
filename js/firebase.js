@@ -61,7 +61,8 @@ export async function saveUserData(){
     const monthly = JSON.parse(localStorage.getItem('inkflow_monthly_stars')||'{}');
     const streak = parseInt(localStorage.getItem('inkflow_streak')||'0');
     const streakLast = localStorage.getItem('inkflow_streak_last')||'';
-    await setDoc(doc(db, 'userdata', USER_DOC), { stars, history, monthly, streak, streakLast, updatedAt: serverTimestamp() });
+    const localRev = parseInt(localStorage.getItem('inkflow_data_rev')||'0');
+    await setDoc(doc(db, 'userdata', USER_DOC), { stars, history, monthly, streak, streakLast, dataRev: localRev, updatedAt: serverTimestamp() });
   } catch(e){ console.warn('saveUserData error:', e); }
 }
 
@@ -70,20 +71,31 @@ export function loadUserData(){
     onSnapshot(doc(db, 'userdata', USER_DOC), snap => {
       if(snap.exists()){
         const data = snap.data();
-        const localStars = parseInt(localStorage.getItem('inkflow_stars')||'0');
-        const remoteStars = data.stars||0;
-        const stars = Math.max(localStars, remoteStars);
-        localStorage.setItem('inkflow_stars', stars);
+        const localRev = parseInt(localStorage.getItem('inkflow_data_rev')||'0');
+        const remoteRev = data.dataRev||0;
+
+        // Se la revisione locale è più recente o uguale, NON sovrascrivere coi dati remoti.
+        // Questo permette ai reset (che incrementano la revisione) di avere la precedenza.
+        if(localRev > remoteRev) return;
+
+        // Dati remoti più recenti (o prima sincronizzazione) → adotta i valori remoti as-is
+        localStorage.setItem('inkflow_stars', data.stars||0);
         if(data.history) localStorage.setItem('inkflow_task_history', JSON.stringify(data.history));
-        if(data.monthly){
-          const localMonthly = JSON.parse(localStorage.getItem('inkflow_monthly_stars')||'{}');
-          const merged = {...data.monthly};
-          Object.entries(localMonthly).forEach(([k,v])=>{ merged[k]=Math.max(merged[k]||0,v); });
-          localStorage.setItem('inkflow_monthly_stars', JSON.stringify(merged));
-        }
+        if(data.monthly) localStorage.setItem('inkflow_monthly_stars', JSON.stringify(data.monthly));
+        if(data.streak!=null) localStorage.setItem('inkflow_streak', data.streak);
+        if(data.streakLast) localStorage.setItem('inkflow_streak_last', data.streakLast);
+        localStorage.setItem('inkflow_data_rev', remoteRev);
+
         const el = document.getElementById('stars-count');
-        if(el) el.textContent = stars;
+        if(el) el.textContent = data.stars||0;
       }
     });
   } catch(e){ console.warn('loadUserData error:', e); }
+}
+
+// Incrementa la revisione dati — usa timestamp così cresce sempre, anche dopo reset
+export function bumpDataRev(){
+  const rev = Date.now();
+  localStorage.setItem('inkflow_data_rev', String(rev));
+  return rev;
 }

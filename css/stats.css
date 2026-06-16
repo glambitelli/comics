@@ -15,28 +15,33 @@
 .stat-lbl{font-size:9px;font-weight:600;color:var(--ink3);letter-spacing:.04em;text-transform:uppercase;margin-top:4px}
 
 /* TRAGUARDI A LIVELLI */
-.achievements-list{display:flex;flex-direction:column;gap:14px}
-.achievement{display:flex;gap:12px;align-items:flex-start}
-.ach-icon{font-size:28px;line-height:1;flex-shrink:0;width:40px;text-align:center}
-.ach-body{flex:1;min-width:0}
-.ach-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:2px}
-.ach-name{font-size:13px;font-weight:700;color:var(--ink)}
-.ach-level{font-size:11px;font-weight:700;color:var(--gold);background:var(--gold-pale);padding:2px 8px;border-radius:10px}
-.ach-label{font-size:11px;color:var(--ink3);margin-bottom:6px}
-.ach-bar{height:6px;background:var(--sand2);border-radius:3px;overflow:hidden;margin-bottom:4px}
-.ach-bar-fill{height:100%;background:linear-gradient(90deg,var(--gold),var(--coral));border-radius:3px;transition:width .5s}
-.ach-next{font-size:10px;color:var(--ink3);font-weight:600;text-align:right}
+/* BACHECA TROFEI */
+.achievements-list{}
+.trophy-progress{margin-bottom:16px}
+.trophy-progress>span{font-size:12px;font-weight:700;color:var(--ink2);display:block;margin-bottom:6px}
+.trophy-progress-bar{height:8px;background:var(--sand2);border-radius:4px;overflow:hidden}
+.trophy-progress-fill{height:100%;background:linear-gradient(90deg,var(--gold),var(--coral));border-radius:4px;transition:width .5s}
+.trophy-cat{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);margin:18px 0 10px;padding-bottom:4px;border-bottom:1.5px solid var(--sand2)}
+.trophy-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.trophy-medal{display:flex;flex-direction:column;align-items:center;gap:5px;padding:10px 4px;border-radius:12px;background:var(--sand);border:1.5px solid var(--sand2);opacity:.5;transition:all .2s;cursor:default}
+.trophy-medal.earned{opacity:1;background:linear-gradient(135deg,#fffdf8,#fdf0d8);border-color:var(--gold);box-shadow:0 2px 8px rgba(240,192,32,.18)}
+.trophy-medal-icon{font-size:26px;line-height:1;filter:grayscale(1);opacity:.6}
+.trophy-medal.earned .trophy-medal-icon{filter:none;opacity:1}
+.trophy-medal-name{font-size:9px;font-weight:700;color:var(--ink3);text-align:center;line-height:1.2}
+.trophy-medal.earned .trophy-medal-name{color:var(--ink)}
 
 /* BADGE PER PROGETTO */
-.project-badges-list{display:flex;flex-direction:column;gap:14px}
+.project-badges-list{display:flex;flex-direction:column;gap:18px}
 .proj-badge-row{}
-.proj-badge-head{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.proj-badge-head{display:flex;align-items:center;gap:8px;margin-bottom:10px}
 .proj-badge-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
 .proj-badge-title{font-size:13px;font-weight:700;color:var(--ink);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .proj-badge-count{font-size:11px;font-weight:700;color:var(--ink3)}
-.proj-badge-icons{display:flex;gap:8px;flex-wrap:wrap}
-.proj-badge{width:38px;height:38px;border-radius:10px;background:var(--sand);display:flex;align-items:center;justify-content:center;font-size:18px;opacity:.4;filter:grayscale(.6);border:1.5px solid var(--sand2)}
+.proj-badge-icons{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.proj-badge{display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 2px;border-radius:10px;background:var(--sand);font-size:18px;opacity:.4;filter:grayscale(.6);border:1.5px solid var(--sand2)}
 .proj-badge.earned{opacity:1;filter:none;background:linear-gradient(135deg,#fffdf8,#fdf0d8);border-color:var(--gold)}
+.proj-badge-lbl{font-size:8px;font-weight:700;color:var(--ink3);text-align:center;line-height:1.1}
+.proj-badge.earned .proj-badge-lbl{color:var(--ink)}
 
 @media (max-width:600px){
   .stats-numbers{grid-template-columns:repeat(2,1fr)}

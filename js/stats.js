@@ -50,34 +50,57 @@ function getActivityData(){
   return data;
 }
 
-// ── TRAGUARDI GLOBALI A LIVELLI ──
-function getGlobalAchievements(){
+// ── BACHECA TROFEI — collezione di conquiste singole ──
+function getAllTrophies(){
   let totalTav=0;
   projects.forEach(p=>{ totalTav+=Object.values(p.tavole||{}).filter(v=>v>=4).length; });
   const stars=parseInt(localStorage.getItem('inkflow_stars')||'0');
   const streak=getStreak();
   const maxStreak=parseInt(localStorage.getItem('inkflow_max_streak')||'0');
   const bestStreak=Math.max(streak,maxStreak);
+  const completati=projects.filter(p=>{const d=Object.values(p.tavole||{}).filter(v=>v>=4).length;return p.numTav>0&&d>=p.numTav;}).length;
+  const hasSoggetto=projects.some(p=>p.story&&p.story.soggetto&&p.story.soggetto.trim());
+  const hasChar=projects.some(p=>p.story&&p.story.characters&&p.story.characters.length>0);
+  const hasStruttura=projects.some(p=>{const a=p.story&&p.story.acts;return a&&(a.setup||[]).length&&(a.confrontation||[]).length&&(a.resolution||[]).length;});
+  const has3Char=projects.some(p=>p.story&&p.story.characters&&p.story.characters.length>=3);
 
   return [
-    {
-      icon:'🖊️', name:'Tavole finite',
-      value:totalTav,
-      levels:[1,10,50,100,250,500],
-      labels:['Prima china','Dieci tavole','Cinquanta','Cento','Duecentocinquanta','Cinquecento'],
-    },
-    {
-      icon:'⭐', name:'Serate completate',
-      value:stars,
-      levels:[1,10,30,60,120,365],
-      labels:['Prima sera','Dieci serate','Trenta','Sessanta','Cento­venti','Un anno'],
-    },
-    {
-      icon:'🔥', name:'Streak record',
-      value:bestStreak,
-      levels:[3,7,14,30,60,100],
-      labels:['Tre giorni','Una settimana','Due settimane','Un mese','Due mesi','Cento giorni'],
-    },
+    // ── INIZIO ──
+    {cat:'Inizio', icon:'🌱', name:'Il primo seme', desc:'Crea il tuo primo progetto', done:projects.length>=1},
+    {cat:'Inizio', icon:'✍️', name:'La prima voce', desc:'Scrivi il tuo primo soggetto', done:hasSoggetto},
+    {cat:'Inizio', icon:'👤', name:'Il primo volto', desc:'Crea il tuo primo personaggio', done:hasChar},
+    {cat:'Inizio', icon:'🎭', name:'La carovana', desc:'Crea almeno 3 personaggi in un progetto', done:has3Char},
+    {cat:'Inizio', icon:'🧭', name:'La rotta tracciata', desc:'Completa una struttura a 3 atti', done:hasStruttura},
+
+    // ── TAVOLE ──
+    {cat:'Tavole', icon:'🐾', name:'Orma sulla sabbia', desc:'Finisci 1 tavola', done:totalTav>=1},
+    {cat:'Tavole', icon:'🌾', name:'Il viandante', desc:'Finisci 10 tavole', done:totalTav>=10},
+    {cat:'Tavole', icon:'🏕️', name:'L\'accampamento', desc:'Finisci 25 tavole', done:totalTav>=25},
+    {cat:'Tavole', icon:'🏜️', name:'Il nomade', desc:'Finisci 50 tavole', done:totalTav>=50},
+    {cat:'Tavole', icon:'🗿', name:'Il monolite', desc:'Finisci 100 tavole', done:totalTav>=100},
+    {cat:'Tavole', icon:'🏛️', name:'La città perduta', desc:'Finisci 250 tavole', done:totalTav>=250},
+    {cat:'Tavole', icon:'🌅', name:'L\'orizzonte infinito', desc:'Finisci 500 tavole', done:totalTav>=500},
+
+    // ── COSTANZA (serate) ──
+    {cat:'Costanza', icon:'🌙', name:'La prima notte', desc:'Completa 1 serata', done:stars>=1},
+    {cat:'Costanza', icon:'⭐', name:'Sotto le stelle', desc:'Completa 10 serate', done:stars>=10},
+    {cat:'Costanza', icon:'🌌', name:'Il cielo nomade', desc:'Completa 30 serate', done:stars>=30},
+    {cat:'Costanza', icon:'🪔', name:'La lampada accesa', desc:'Completa 75 serate', done:stars>=75},
+    {cat:'Costanza', icon:'🌠', name:'Il sentiero notturno', desc:'Completa 150 serate', done:stars>=150},
+    {cat:'Costanza', icon:'🌑', name:'Mille e una notte', desc:'Completa 365 serate', done:stars>=365},
+
+    // ── STREAK ──
+    {cat:'Costanza interrotta', icon:'✨', name:'La scintilla', desc:'3 giorni consecutivi', done:bestStreak>=3},
+    {cat:'Costanza interrotta', icon:'🔥', name:'Il falò', desc:'7 giorni consecutivi', done:bestStreak>=7},
+    {cat:'Costanza interrotta', icon:'🏮', name:'Il fuoco custodito', desc:'14 giorni consecutivi', done:bestStreak>=14},
+    {cat:'Costanza interrotta', icon:'☀️', name:'Il sole alto', desc:'30 giorni consecutivi', done:bestStreak>=30},
+    {cat:'Costanza interrotta', icon:'🔆', name:'Il miraggio eterno', desc:'100 giorni consecutivi', done:bestStreak>=100},
+
+    // ── OPERE ──
+    {cat:'Opere', icon:'💧', name:'L\'oasi', desc:'Completa un progetto al 100%', done:completati>=1},
+    {cat:'Opere', icon:'🌴', name:'Il giardino', desc:'Completa 3 progetti', done:completati>=3},
+    {cat:'Opere', icon:'🏯', name:'La carovaniera', desc:'Completa 5 progetti', done:completati>=5},
+    {cat:'Opere', icon:'📜', name:'Il grande codice', desc:'Completa 10 progetti', done:completati>=10},
   ];
 }
 
@@ -85,12 +108,19 @@ function getGlobalAchievements(){
 function getProjectBadges(p){
   const story=p.story||{};
   const acts=story.acts||{};
+  const pp=story.pp||{};
   const tavDone=Object.values(p.tavole||{}).filter(v=>v>=4).length;
+  const tavMeta=p.numTav>0&&tavDone>=Math.ceil(p.numTav/2);
   return [
+    {icon:'📓', name:'Taccuino', done:!!(story.taccuino&&story.taccuino.trim())},
     {icon:'✍️', name:'Soggetto', done:!!(story.soggetto&&story.soggetto.trim())},
+    {icon:'🌍', name:'Ambientazione', done:!!(story.world&&story.world.trim())},
     {icon:'👤', name:'Personaggi', done:!!(story.characters&&story.characters.length>0)},
+    {icon:'⚡', name:'Inciting', done:!!(pp.inciting&&pp.inciting.trim())},
     {icon:'🎬', name:'Struttura', done:!!((acts.setup||[]).length&&(acts.confrontation||[]).length&&(acts.resolution||[]).length)},
+    {icon:'⬡', name:'Plot point', done:!!(pp.pp1&&pp.pp1.trim()&&pp.pp2&&pp.pp2.trim())},
     {icon:'🖊️', name:'Prima tavola', done:tavDone>=1},
+    {icon:'📈', name:'Metà strada', done:tavMeta},
     {icon:'🏆', name:'Completato', done:p.numTav>0&&tavDone>=p.numTav},
   ];
 }
@@ -116,7 +146,7 @@ export function renderStats(){
 
   renderHeatmap();
   renderMonthlyStars();
-  renderGlobalAchievements();
+  renderTrophyCase();
   renderProjectBadges();
 }
 
@@ -158,32 +188,30 @@ function renderMonthlyStars(){
   cont.innerHTML = html;
 }
 
-function renderGlobalAchievements(){
+function renderTrophyCase(){
   const cont=document.getElementById('stats-achievements');
   if(!cont)return;
-  cont.innerHTML='';
-  getGlobalAchievements().forEach(a=>{
-    // Trova livello attuale e prossimo
-    let currentLevel=0, nextThreshold=a.levels[0];
-    for(let i=0;i<a.levels.length;i++){
-      if(a.value>=a.levels[i]){ currentLevel=i+1; nextThreshold=a.levels[i+1]||a.levels[i]; }
-    }
-    const isMaxed=currentLevel>=a.levels.length;
-    const currentLabel=currentLevel>0?a.labels[currentLevel-1]:'Non ancora sbloccato';
-    const progress=isMaxed?100:Math.min(100,Math.round((a.value/nextThreshold)*100));
+  const trophies=getAllTrophies();
+  const earned=trophies.filter(t=>t.done).length;
 
-    const el=document.createElement('div');
-    el.className='achievement';
-    el.innerHTML=`
-      <div class="ach-icon"${currentLevel===0?' style="opacity:.35;filter:grayscale(1)"':''}>${a.icon}</div>
-      <div class="ach-body">
-        <div class="ach-top"><span class="ach-name">${a.name}</span><span class="ach-level">${currentLevel>0?'Lv. '+currentLevel:''}</span></div>
-        <div class="ach-label">${currentLabel}</div>
-        <div class="ach-bar"><div class="ach-bar-fill" style="width:${progress}%"></div></div>
-        <div class="ach-next">${isMaxed?'★ Massimo livello raggiunto':a.value+' / '+nextThreshold}</div>
+  // Raggruppa per categoria
+  const cats={};
+  trophies.forEach(t=>{ (cats[t.cat]=cats[t.cat]||[]).push(t); });
+
+  let html=`<div class="trophy-progress"><span>${earned} di ${trophies.length} trofei</span><div class="trophy-progress-bar"><div class="trophy-progress-fill" style="width:${Math.round(earned/trophies.length*100)}%"></div></div></div>`;
+
+  Object.keys(cats).forEach(cat=>{
+    html+=`<div class="trophy-cat">${cat}</div><div class="trophy-grid">`;
+    cats[cat].forEach(t=>{
+      html+=`<div class="trophy-medal${t.done?' earned':''}" title="${t.desc}">
+        <div class="trophy-medal-icon">${t.done?t.icon:'🔒'}</div>
+        <div class="trophy-medal-name">${t.name}</div>
       </div>`;
-    cont.appendChild(el);
+    });
+    html+=`</div>`;
   });
+
+  cont.innerHTML=html;
 }
 
 function renderProjectBadges(){
@@ -208,7 +236,7 @@ function renderProjectBadges(){
         <span class="proj-badge-count">${earned}/${badges.length}</span>
       </div>
       <div class="proj-badge-icons">
-        ${badges.map(b=>`<div class="proj-badge${b.done?' earned':''}" title="${b.name}">${b.done?b.icon:'🔒'}</div>`).join('')}
+        ${badges.map(b=>`<div class="proj-badge${b.done?' earned':''}" title="${b.name}"><span>${b.done?b.icon:'🔒'}</span><span class="proj-badge-lbl">${b.name}</span></div>`).join('')}
       </div>`;
     cont.appendChild(row);
   });
@@ -240,33 +268,48 @@ function renderHeatmap(){
     weeks.push(week);
   }
 
-  const cell=11, gap=3;
-  const W=weeks.length*(cell+gap);
-  const H=7*(cell+gap)+20;
-  let svg=`<svg width="100%" viewBox="0 0 ${W} ${H}" style="max-width:100%;display:block">`;
+  const cell=10, gap=3;
+  const leftPad=4, topPad=16;
+  const W=weeks.length*(cell+gap)+leftPad;
+  const H=7*(cell+gap)+topPad;
+  // Non forzare width 100% — mantieni dimensioni reali così resta compatta
+  let svg=`<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" style="display:block;max-width:100%">`;
   const MONTHS=['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
   let lastMonth=-1;
   weeks.forEach((week,wi)=>{
     const m=week[0].date.getMonth();
     if(m!==lastMonth&&week[0].date.getDate()<=7){
-      svg+=`<text x="${wi*(cell+gap)}" y="10" font-size="9" fill="#9a9088" font-family="sans-serif">${MONTHS[m]}</text>`;
+      svg+=`<text x="${leftPad+wi*(cell+gap)}" y="9" font-size="8" fill="#9a9088" font-family="sans-serif">${MONTHS[m]}</text>`;
       lastMonth=m;
     }
     week.forEach((day,di)=>{
       if(day.future)return;
       const c=day.count;
-      const color=c===0?'#ece5d8':c===1?'#bfe3c0':c===2?'#7fc882':c>=3?'#48a848':'#ece5d8';
-      const y=14+di*(cell+gap);
-      const x=wi*(cell+gap);
-      svg+=`<rect x="${x}" y="${y}" width="${cell}" height="${cell}" rx="2.5" fill="${color}"><title>${day.date.getDate()}/${day.date.getMonth()+1} · ${c} attività</title></rect>`;
+      const color=c===0?'#ece5d8':c===1?'#bfe3c0':c===2?'#7fc882':'#48a848';
+      const y=topPad+di*(cell+gap);
+      const x=leftPad+wi*(cell+gap);
+      const plural=c===1?'attività':'attività';
+      svg+=`<rect x="${x}" y="${y}" width="${cell}" height="${cell}" rx="2" fill="${color}"><title>${day.date.getDate()}/${day.date.getMonth()+1} · ${c} ${plural}</title></rect>`;
     });
   });
   svg+=`</svg>`;
   cont.innerHTML=svg;
 
-  // Legenda
+  // Legenda con spiegazione + scala colori
   const totalDays=Object.keys(data).length;
   const legend=document.getElementById('stats-heatmap-legend');
-  if(legend) legend.textContent=`${totalDays} giorni attivi nell'ultimo anno`;
+  if(legend){
+    legend.innerHTML=`
+      <div style="margin-bottom:8px">Ogni quadrato è un giorno. Più è verde, più hai lavorato (task serali completate + tavole finite).</div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:6px;font-size:10px;color:var(--ink3)">
+        <span>meno</span>
+        <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#ece5d8"></span>
+        <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#bfe3c0"></span>
+        <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#7fc882"></span>
+        <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#48a848"></span>
+        <span>più</span>
+        <span style="margin-left:8px;font-weight:600">${totalDays} giorni attivi</span>
+      </div>`;
+  }
 }
 

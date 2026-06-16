@@ -1,5 +1,5 @@
 import { projects, getProject } from './state.js';
-import { saveUserData, scheduleSave } from './firebase.js';
+import { saveUserData, scheduleSave, bumpDataRev } from './firebase.js';
 import { drawGem } from './canvas.js';
 
 export function enterEveningMode(){
@@ -165,6 +165,7 @@ export function completeEveningTask(id, card){
   localStorage.setItem('inkflow_monthly_stars', JSON.stringify(monthly));
 
   updateStreak();
+  bumpDataRev();
 
   const hud = document.getElementById('stars-count');
   if(hud){

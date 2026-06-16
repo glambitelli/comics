@@ -1,5 +1,5 @@
 import { projects } from './state.js';
-import { db, COL, saveUserData, setDoc, doc } from './firebase.js';
+import { db, COL, saveUserData, setDoc, doc, bumpDataRev } from './firebase.js';
 import { getStreak } from './evening.js';
 import { restoreReminderUI } from './notifications.js';
 
@@ -74,17 +74,20 @@ export function closeStarsConfirm(){
   document.getElementById('stars-confirm-modal').classList.remove('open');
 }
 
-export function doResetStars(){
+export async function doResetStars(){
   localStorage.setItem('inkflow_stars','0');
   localStorage.setItem('inkflow_monthly_stars','{}');
-  localStorage.removeItem('inkflow_task_history');
+  localStorage.setItem('inkflow_task_history','[]');
   Object.keys(localStorage).filter(k=>k.startsWith('inkflow_starred_')).forEach(k=>localStorage.removeItem(k));
-  saveUserData();
+  // Forza una revisione molto alta così sovrascrive qualunque valore vecchio su Firebase
+  const forcedRev = Date.now();
+  localStorage.setItem('inkflow_data_rev', String(forcedRev));
   const el = document.getElementById('settings-stars-count');
   if(el) el.textContent = '0';
   const hud = document.getElementById('stars-count');
   if(hud) hud.textContent = '0';
   closeStarsConfirm();
+  await saveUserData();
 }
 
 export function resetStreakConfirm(){
@@ -95,11 +98,12 @@ export function closeStreakConfirm(){
   document.getElementById('streak-confirm-modal').classList.remove('open');
 }
 
-export function doResetStreak(){
+export async function doResetStreak(){
   localStorage.setItem('inkflow_streak','0');
-  localStorage.removeItem('inkflow_streak_last');
-  saveUserData();
+  localStorage.setItem('inkflow_streak_last','');
+  localStorage.setItem('inkflow_data_rev', String(Date.now()));
   const el = document.getElementById('settings-streak-count');
   if(el) el.textContent = '0';
   closeStreakConfirm();
+  await saveUserData();
 }
