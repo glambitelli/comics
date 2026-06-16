@@ -32,6 +32,7 @@
 
 <!-- HOME -->
 <div class="screen" id="screen-home">
+  <canvas class="home-sand" id="home-sand" aria-hidden="true"></canvas>
   <div class="home-header">
     <div class="home-title">Inkflow</div>
     <div class="home-sub-row">
@@ -227,9 +228,14 @@
   <div class="evening-bg" style="position:relative">
     <div class="evening-stars" id="evening-stars" aria-hidden="true"></div>
     <div class="evening-header">
-      <div class="evening-title">Inkflow</div>
-      <div class="evening-header-row">
-        <div class="evening-sub">pipeline · tracker · storyboard <span class="sync-dot" id="sync-dot-evening"></span><span style="margin-left:6px;opacity:.4;font-size:8px;letter-spacing:.06em">v1.0.0</span></div>
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+        <div>
+          <div class="evening-title">Inkflow</div>
+          <div class="evening-header-row">
+            <div class="evening-sub">pipeline · tracker · storyboard <span class="sync-dot" id="sync-dot-evening"></span><span style="margin-left:6px;opacity:.4;font-size:8px;letter-spacing:.06em">v1.0.0</span></div>
+          </div>
+        </div>
+        <div id="evening-moon" style="flex-shrink:0;margin-top:6px;display:flex;flex-direction:column;align-items:center;gap:3px"></div>
       </div>
     </div>
     <div class="evening-scroll" id="evening-list"></div>

@@ -1,8 +1,8 @@
 /* EVENING MODE */
-#screen-evening{background:#060a12}
+#screen-evening{background:#03060c}
 .evening-bg{
   flex:1;display:flex;flex-direction:column;
-  background:linear-gradient(160deg, #0d1f3c 0%, #071428 40%, #040d1a 100%);
+  background:linear-gradient(165deg, #0a1626 0%, #060f1e 38%, #030810 100%);
   overflow:hidden;
 }
 .evening-stars{
@@ -17,6 +17,25 @@
   50%{opacity:.9}
 }
 .evening-header, .evening-scroll{position:relative;z-index:1}
+
+/* STELLA CADENTE */
+.shooting-star{
+  position:absolute;width:2px;height:2px;border-radius:50%;
+  background:#fff;box-shadow:0 0 4px 1px rgba(255,255,255,.8);
+  z-index:0;pointer-events:none;
+  animation:shoot 1.4s ease-in forwards;
+}
+.shooting-star::after{
+  content:'';position:absolute;top:50%;right:2px;
+  width:60px;height:1px;transform:translateY(-50%);
+  background:linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,.55));
+}
+@keyframes shoot{
+  0%{opacity:0;transform:translate(0,0) rotate(20deg) scale(.6)}
+  10%{opacity:1}
+  70%{opacity:1}
+  100%{opacity:0;transform:translate(-180px,90px) rotate(20deg) scale(1)}
+}
 .evening-header{
   padding:calc(24px + var(--safe-top)) 24px 10px;
   position:relative;overflow:hidden;flex-shrink:0;
@@ -63,9 +82,9 @@
 }
 .evening-card.done-card{opacity:.45}
 .evening-gem{width:32px;height:32px;border-radius:50%;flex-shrink:0;margin-top:2px}
-.evening-card-info{flex:1}
-.evening-proj-name{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;margin-bottom:5px;opacity:.5}
-.evening-task-text{font-family:'Castoro',serif;font-size:15px;color:rgba(255,255,255,.88);line-height:1.4}
+.evening-card-info{flex:1;min-width:0}
+.evening-proj-name{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;margin-bottom:5px;opacity:.5;overflow-wrap:break-word;word-break:break-word}
+.evening-task-text{font-family:'Castoro',serif;font-size:15px;color:rgba(255,255,255,.88);line-height:1.4;overflow-wrap:break-word;word-break:break-word}
 .evening-task-empty{font-size:14px;color:rgba(255,255,255,.25);font-style:italic}
 .evening-check{
   width:28px;height:28px;border-radius:50%;flex-shrink:0;

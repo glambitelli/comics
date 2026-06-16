@@ -29,6 +29,8 @@
 .trophy-medal.earned .trophy-medal-icon{filter:none;opacity:1}
 .trophy-medal-name{font-size:9px;font-weight:700;color:var(--ink3);text-align:center;line-height:1.2}
 .trophy-medal.earned .trophy-medal-name{color:var(--ink)}
+.trophy-medal.secret{border-style:dashed}
+.trophy-medal.secret .trophy-medal-icon{opacity:.5}
 
 /* BADGE PER PROGETTO */
 .project-badges-list{display:flex;flex-direction:column;gap:18px}

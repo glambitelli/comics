@@ -7,7 +7,7 @@ import { addScene, updateScene, deleteScene, autoResize, saveStoryField, updateC
 import { updatePlanner, applyPlanner, openPlannerModal, closePlannerModal } from './planner.js';
 import { initNotifications, saveReminderSettings, testNotification } from './notifications.js';
 import { openSettings, closeSettings, resetStarsConfirm, closeStarsConfirm, doResetStars, exportBackup, importBackup, resetStreakConfirm, closeStreakConfirm, doResetStreak } from './settings.js';
-import { renderHome, openNewModal, closeModal, createProject, openCardMenu, exportProjectJSON, confirmDeleteProject, openColorPicker, closeColorPicker, selectProjectColor, toggleSearch, filterProjects, attachCardDrag, applyProjectOrder } from './home.js';
+import { renderHome, openNewModal, closeModal, createProject, openCardMenu, exportProjectJSON, confirmDeleteProject, openColorPicker, closeColorPicker, selectProjectColor, toggleSearch, filterProjects, attachCardDrag, applyProjectOrder, startSandstorm } from './home.js';
 import { openProject, restoreProject, goHome, confirmDeleteCurrent, closeConfirm, confirmMicrotask } from './project.js';
 import { renderStats, getTodayTip } from './stats.js';
 
@@ -45,6 +45,7 @@ onSnapshot(collection(db, COL), snapshot => {
   syncDot('ok');
   renderHome();
   attachCardDrag();
+  startSandstorm();
   // Citazione del giorno nella home
   const hq=document.getElementById('home-quote');
   if(hq){

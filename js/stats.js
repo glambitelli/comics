@@ -63,6 +63,7 @@ function getAllTrophies(){
   const hasChar=projects.some(p=>p.story&&p.story.characters&&p.story.characters.length>0);
   const hasStruttura=projects.some(p=>{const a=p.story&&p.story.acts;return a&&(a.setup||[]).length&&(a.confrontation||[]).length&&(a.resolution||[]).length;});
   const has3Char=projects.some(p=>p.story&&p.story.characters&&p.story.characters.length>=3);
+  const secrets=JSON.parse(localStorage.getItem('inkflow_secrets')||'{}');
 
   return [
     // ── INIZIO ──
@@ -101,6 +102,13 @@ function getAllTrophies(){
     {cat:'Opere', icon:'🌴', name:'Il giardino', desc:'Completa 3 progetti', done:completati>=3},
     {cat:'Opere', icon:'🏯', name:'La carovaniera', desc:'Completa 5 progetti', done:completati>=5},
     {cat:'Opere', icon:'📜', name:'Il grande codice', desc:'Completa 10 progetti', done:completati>=10},
+
+    // ── SEGRETI (nascosti finché non sbloccati) ──
+    {cat:'Segreti', icon:'🦉', name:'Nottambulo', desc:'Completa una task tra mezzanotte e le 5', done:!!secrets.nottambulo, secret:true},
+    {cat:'Segreti', icon:'🌄', name:'Voce dell\'alba', desc:'Completa una task tra le 5 e le 8 del mattino', done:!!secrets.albe, secret:true},
+    {cat:'Segreti', icon:'🕊️', name:'Riposo del guerriero', desc:'Completa una task di domenica', done:!!secrets.domenica, secret:true},
+    {cat:'Segreti', icon:'🏜️', name:'Sabato nel deserto', desc:'Completa una task di sabato', done:!!secrets.sabato, secret:true},
+    {cat:'Segreti', icon:'🎍', name:'Spirito instancabile', desc:'Completa una task in un giorno di festa', done:!!secrets.festa, secret:true},
   ];
 }
 
@@ -215,11 +223,21 @@ function renderTrophyCase(){
   let html=`<div class="trophy-progress"><span>${earned} di ${trophies.length} trofei</span><div class="trophy-progress-bar"><div class="trophy-progress-fill" style="width:${Math.round(earned/trophies.length*100)}%"></div></div></div>`;
 
   Object.keys(cats).forEach(cat=>{
-    html+=`<div class="trophy-cat">${cat}</div><div class="trophy-grid">`;
+    // Per i segreti: mostra quanti sbloccati su totali nel titolo
+    if(cat==='Segreti'){
+      const got=cats[cat].filter(t=>t.done).length;
+      html+=`<div class="trophy-cat">${cat} <span style="font-weight:400;text-transform:none;letter-spacing:0;opacity:.6">· ${got}/${cats[cat].length} scoperti</span></div><div class="trophy-grid">`;
+    } else {
+      html+=`<div class="trophy-cat">${cat}</div><div class="trophy-grid">`;
+    }
     cats[cat].forEach(t=>{
-      html+=`<div class="trophy-medal${t.done?' earned':''}" title="${t.desc}">
-        <div class="trophy-medal-icon">${t.done?t.icon:'🔒'}</div>
-        <div class="trophy-medal-name">${t.name}</div>
+      const isSecret = t.secret && !t.done;
+      const icon = t.done ? t.icon : (isSecret ? '❔' : '🔒');
+      const name = isSecret ? '???' : t.name;
+      const tip = isSecret ? 'Trofeo segreto — scoprilo lavorando' : t.desc;
+      html+=`<div class="trophy-medal${t.done?' earned':''}${isSecret?' secret':''}" title="${tip}">
+        <div class="trophy-medal-icon">${icon}</div>
+        <div class="trophy-medal-name">${name}</div>
       </div>`;
     });
     html+=`</div>`;

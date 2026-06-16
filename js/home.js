@@ -272,3 +272,62 @@ export function selectProjectColor(color){
   renderHome();
   attachCardDrag();
 }
+
+// ── TEMPESTA DI SABBIA — sfondo atmosferico leggero della home ──
+let _sandAnim = null;
+export function startSandstorm(){
+  const canvas = document.getElementById('home-sand');
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  let W, H, particles;
+
+  function resize(){
+    const rect = canvas.getBoundingClientRect();
+    const dpr = Math.min(window.devicePixelRatio||1, 2);
+    W = canvas.width = rect.width * dpr;
+    H = canvas.height = rect.height * dpr;
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+  }
+  resize();
+
+  const rectW = canvas.getBoundingClientRect().width;
+  const rectH = canvas.getBoundingClientRect().height;
+
+  // Particelle di sabbia: piccole, tenui, si muovono in diagonale lenta
+  const COUNT = Math.round((rectW*rectH)/9000); // densità proporzionata
+  particles = [];
+  const sandColors = ['rgba(210,180,140,', 'rgba(196,164,120,', 'rgba(222,196,150,', 'rgba(180,150,110,'];
+  for(let i=0;i<COUNT;i++){
+    particles.push({
+      x: Math.random()*rectW,
+      y: Math.random()*rectH,
+      r: 0.4 + Math.random()*1.3,
+      vx: 0.3 + Math.random()*0.7,   // deriva orizzontale verso destra
+      vy: (-0.15 + Math.random()*0.3),
+      a: 0.08 + Math.random()*0.18,  // opacità tenue
+      c: sandColors[Math.floor(Math.random()*sandColors.length)]
+    });
+  }
+
+  function tick(){
+    ctx.clearRect(0,0,rectW,rectH);
+    particles.forEach(p=>{
+      p.x += p.vx;
+      p.y += p.vy;
+      // wrap ai bordi
+      if(p.x > rectW+5){ p.x = -5; p.y = Math.random()*rectH; }
+      if(p.y < -5) p.y = rectH+5;
+      if(p.y > rectH+5) p.y = -5;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+      ctx.fillStyle = p.c + p.a + ')';
+      ctx.fill();
+    });
+    _sandAnim = requestAnimationFrame(tick);
+  }
+
+  if(_sandAnim) cancelAnimationFrame(_sandAnim);
+  tick();
+
+  window.addEventListener('resize', ()=>{ resize(); }, {passive:true});
+}

@@ -5,8 +5,113 @@ import { drawGem } from './canvas.js';
 export function enterEveningMode(){
   renderEveningList();
   renderStarfield();
+  renderMoon();
+  scheduleShootingStar();
   document.getElementById('screen-home').classList.remove('active');
   document.getElementById('screen-evening').classList.add('active');
+}
+
+// ── FASE LUNARE ──
+function getMoonPhase(date){
+  // Calcolo della fase lunare (frazione 0-1, dove 0=luna nuova, 0.5=piena)
+  // Basato sul ciclo sinodico medio di 29.53 giorni da una luna nuova nota
+  const synodic = 29.530588853;
+  const knownNew = Date.UTC(2000,0,6,18,14)/86400000; // 6 gen 2000, luna nuova nota
+  const now = date.getTime()/86400000;
+  let age = ((now - knownNew) % synodic);
+  if(age<0) age+=synodic;
+  return age/synodic; // 0..1
+}
+
+function moonPhaseName(frac){
+  if(frac<0.03||frac>0.97) return 'Luna nuova';
+  if(frac<0.22) return 'Luna crescente';
+  if(frac<0.28) return 'Primo quarto';
+  if(frac<0.47) return 'Gibbosa crescente';
+  if(frac<0.53) return 'Luna piena';
+  if(frac<0.72) return 'Gibbosa calante';
+  if(frac<0.78) return 'Ultimo quarto';
+  return 'Luna calante';
+}
+
+function renderMoon(){
+  const cont = document.getElementById('evening-moon');
+  if(!cont) return;
+  const frac = getMoonPhase(new Date());
+  const name = moonPhaseName(frac);
+  const R = 16;
+  const cx = 18, cy = 18;
+
+  // Illuminazione: 0 nuova → 1 piena → 0 nuova
+  // Costruisco l'ombra come ellisse che si sposta sul disco
+  // illum: frazione illuminata (0..1)
+  const illum = (1 - Math.cos(2*Math.PI*frac))/2; // 0 a luna nuova, 1 a piena
+  const waxing = frac < 0.5; // crescente = illuminata a destra
+
+  // Terminatore: semi-larghezza dell'ellisse d'ombra
+  // quando illum=0.5 (quarti) il terminatore è dritto (rx=0)
+  const rx = R * Math.abs(Math.cos(Math.PI*illum));
+  const lit = '#f4ecd8', dark = '#1a2740';
+
+  let svg = `<svg width="36" height="36" viewBox="0 0 36 36">`;
+  // disco base scuro
+  svg += `<circle cx="${cx}" cy="${cy}" r="${R}" fill="${dark}"/>`;
+  // glow tenue
+  svg += `<circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="rgba(244,236,216,.18)" stroke-width="1"/>`;
+
+  if(illum > 0.985){
+    // piena
+    svg += `<circle cx="${cx}" cy="${cy}" r="${R}" fill="${lit}"/>`;
+  } else if(illum > 0.015){
+    // Disegno la porzione illuminata come composizione di un semicerchio + ellisse
+    const clipId = 'moonclip';
+    svg += `<defs><clipPath id="${clipId}"><circle cx="${cx}" cy="${cy}" r="${R}"/></clipPath></defs>`;
+    svg += `<g clip-path="url(#${clipId})">`;
+    // semicerchio illuminato (lato crescente/calante)
+    if(waxing){
+      // illuminata a destra
+      svg += `<path d="M ${cx} ${cy-R} A ${R} ${R} 0 0 1 ${cx} ${cy+R} Z" fill="${lit}"/>`;
+    } else {
+      // illuminata a sinistra
+      svg += `<path d="M ${cx} ${cy-R} A ${R} ${R} 0 0 0 ${cx} ${cy+R} Z" fill="${lit}"/>`;
+    }
+    // ellisse del terminatore: se illum<0.5 sottrae luce (ombra), se >0.5 aggiunge
+    const ellFill = illum < 0.5 ? dark : lit;
+    svg += `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${R}" fill="${ellFill}"/>`;
+    svg += `</g>`;
+  }
+
+  svg += `</svg>`;
+  cont.innerHTML = `${svg}<div style="font-size:8px;color:rgba(255,255,255,.4);letter-spacing:.04em;text-align:center;white-space:nowrap">${name}</div>`;
+}
+
+// ── STELLA CADENTE ──
+function scheduleShootingStar(){
+  const layer = document.getElementById('evening-stars');
+  if(!layer) return;
+  function fire(){
+    // Solo se siamo ancora in modalità sera
+    const screen = document.getElementById('screen-evening');
+    if(!screen || !screen.classList.contains('active')) return;
+    const star = document.createElement('div');
+    star.className = 'shooting-star';
+    const startTop = Math.random()*40;
+    const startLeft = 30 + Math.random()*60;
+    star.style.top = startTop+'%';
+    star.style.left = startLeft+'%';
+    layer.appendChild(star);
+    setTimeout(()=>star.remove(), 1600);
+  }
+  function loop(){
+    const screen = document.getElementById('screen-evening');
+    if(screen && screen.classList.contains('active')){
+      // probabilità ~50% a ogni ciclo, intervallo casuale 12-28s
+      if(Math.random()<0.6) fire();
+    }
+    setTimeout(loop, 12000 + Math.random()*16000);
+  }
+  // primo avvio dopo 5-10s
+  setTimeout(loop, 5000 + Math.random()*5000);
 }
 
 function renderStarfield(){
@@ -178,6 +283,19 @@ export function completeEveningTask(id, card){
     ts: now.toISOString()
   });
   localStorage.setItem('inkflow_task_history', JSON.stringify(history));
+
+  // ── Tracking trofei segreti ──
+  const secrets = JSON.parse(localStorage.getItem('inkflow_secrets')||'{}');
+  const hour = now.getHours();
+  const day = now.getDay(); // 0=domenica, 6=sabato
+  if(hour>=0 && hour<5) secrets.nottambulo = true;       // task tra mezzanotte e le 5
+  if(hour>=5 && hour<8) secrets.albe = true;             // task all'alba (5-8)
+  if(day===0) secrets.domenica = true;                   // task di domenica
+  if(day===6) secrets.sabato = true;                     // task di sabato
+  // task in un giorno festivo speciale (es. capodanno, natale)
+  const md = `${now.getMonth()+1}-${now.getDate()}`;
+  if(md==='12-25'||md==='1-1') secrets.festa = true;
+  localStorage.setItem('inkflow_secrets', JSON.stringify(secrets));
 
   p.microtask = '';
   scheduleSave(p);
