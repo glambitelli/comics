@@ -149,7 +149,8 @@ export function completeEveningTask(id, card){
     project: p.title,
     task: p.microtask,
     color: p.color||'#4ab8d8',
-    date: `${now.getDate()}/${now.getMonth()+1}`
+    date: `${now.getDate()}/${now.getMonth()+1}`,
+    ts: now.toISOString()
   });
   localStorage.setItem('inkflow_task_history', JSON.stringify(history));
 

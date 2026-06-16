@@ -155,17 +155,31 @@ const MONTH_NAMES_STATS = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set'
 function renderMonthlyStars(){
   const cont = document.getElementById('stats-monthly');
   if(!cont) return;
-  const monthly = JSON.parse(localStorage.getItem('inkflow_monthly_stars')||'{}');
+
+  // Deriva i conteggi mensili DALLO STORICO REALE delle task completate.
+  // Così non può mai desincronizzarsi dal numero di stelle.
+  const history = JSON.parse(localStorage.getItem('inkflow_task_history')||'[]');
+  const counts = {};
+  const nowY = new Date().getFullYear();
+  history.forEach(h=>{
+    let d;
+    if(h.ts){ d=new Date(h.ts); }
+    else if(h.date){ const [dd,mm]=h.date.split('/'); d=new Date(nowY, parseInt(mm)-1, parseInt(dd)); }
+    if(d && !isNaN(d)){
+      const key=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+      counts[key]=(counts[key]||0)+1;
+    }
+  });
 
   const months = [];
   const now = new Date();
   for(let i=11; i>=0; i--){
     const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
     const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
-    months.push({ label: MONTH_NAMES_STATS[d.getMonth()], count: monthly[key]||0, isCurrent: i===0 });
+    months.push({ label: MONTH_NAMES_STATS[d.getMonth()], count: counts[key]||0, isCurrent: i===0 });
   }
   const maxCount = Math.max(...months.map(m=>m.count), 1);
-  const total = Object.values(monthly).reduce((a,b)=>a+b,0);
+  const total = months.reduce((a,m)=>a+m.count,0);
 
   let html = `<div style="display:flex;gap:6px;align-items:flex-end;height:90px;margin-bottom:6px">`;
   months.forEach(m=>{
@@ -268,12 +282,12 @@ function renderHeatmap(){
     weeks.push(week);
   }
 
-  const cell=10, gap=3;
-  const leftPad=4, topPad=16;
+  const cell=13, gap=3;
+  const leftPad=4, topPad=18;
   const W=weeks.length*(cell+gap)+leftPad;
   const H=7*(cell+gap)+topPad;
-  // Non forzare width 100% — mantieni dimensioni reali così resta compatta
-  let svg=`<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" style="display:block;max-width:100%">`;
+  // width 100% con viewBox: riempie la card mantenendo proporzioni — via di mezzo
+  let svg=`<svg width="100%" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" style="display:block">`;
   const MONTHS=['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
   let lastMonth=-1;
   weeks.forEach((week,wi)=>{
