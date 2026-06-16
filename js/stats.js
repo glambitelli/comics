@@ -23,20 +23,6 @@ export function getTodayTip(){
   return TIPS[dayOfYear % TIPS.length];
 }
 
-// ── TROFEI / MILESTONE ──
-export const TROPHIES = [
-  { id:'first_project', icon:'🌱', name:'Primo passo', desc:'Hai creato il tuo primo progetto', check:()=>projects.length>=1 },
-  { id:'first_soggetto', icon:'✍️', name:'Narratore', desc:'Hai scritto il tuo primo soggetto', check:()=>projects.some(p=>p.story&&p.story.soggetto&&p.story.soggetto.trim()) },
-  { id:'first_struttura', icon:'🎬', name:'Architetto', desc:'Hai completato una struttura a 3 atti', check:()=>projects.some(p=>{const a=p.story&&p.story.acts;return a&&(a.setup||[]).length&&(a.confrontation||[]).length&&(a.resolution||[]).length;}) },
-  { id:'first_char', icon:'👤', name:'Creatore di personaggi', desc:'Hai creato il tuo primo personaggio', check:()=>projects.some(p=>p.story&&p.story.characters&&p.story.characters.length>0) },
-  { id:'first_tavola', icon:'🖊️', name:'Prima china', desc:'Hai finito la tua prima tavola', check:()=>projects.some(p=>Object.values(p.tavole||{}).some(v=>v>=4)) },
-  { id:'ten_tavole', icon:'📖', name:'Dieci tavole', desc:'Hai finito 10 tavole in totale', check:()=>{let t=0;projects.forEach(p=>{t+=Object.values(p.tavole||{}).filter(v=>v>=4).length;});return t>=10;} },
-  { id:'streak_7', icon:'🔥', name:'Costanza', desc:'7 giorni consecutivi di lavoro', check:()=>getStreak()>=7 },
-  { id:'stars_10', icon:'⭐', name:'Dieci serate', desc:'Hai completato 10 serate', check:()=>parseInt(localStorage.getItem('inkflow_stars')||'0')>=10 },
-  { id:'stars_30', icon:'🌟', name:'Trenta serate', desc:'Hai completato 30 serate', check:()=>parseInt(localStorage.getItem('inkflow_stars')||'0')>=30 },
-  { id:'project_100', icon:'🏆', name:'Opera completa', desc:'Hai completato un progetto al 100%', check:()=>projects.some(p=>{const done=Object.values(p.tavole||{}).filter(v=>v>=4).length;return p.numTav>0&&done>=p.numTav;}) },
-];
-
 // ── HEATMAP ──
 function getActivityData(){
   // Combina storico task + tavole finite per giorno
@@ -64,14 +50,52 @@ function getActivityData(){
   return data;
 }
 
-export function renderStats(){
-  // Tip del giorno
-  const tip = getTodayTip();
-  const tipEl = document.getElementById('stats-tip');
-  if(tipEl){
-    tipEl.innerHTML = `<div style="font-size:14px;line-height:1.6;color:var(--ink);font-style:italic">"${tip.text}"</div><div style="font-size:12px;color:var(--ink3);margin-top:8px;text-align:right;font-weight:600">— ${tip.author}</div>`;
-  }
+// ── TRAGUARDI GLOBALI A LIVELLI ──
+function getGlobalAchievements(){
+  let totalTav=0;
+  projects.forEach(p=>{ totalTav+=Object.values(p.tavole||{}).filter(v=>v>=4).length; });
+  const stars=parseInt(localStorage.getItem('inkflow_stars')||'0');
+  const streak=getStreak();
+  const maxStreak=parseInt(localStorage.getItem('inkflow_max_streak')||'0');
+  const bestStreak=Math.max(streak,maxStreak);
 
+  return [
+    {
+      icon:'🖊️', name:'Tavole finite',
+      value:totalTav,
+      levels:[1,10,50,100,250,500],
+      labels:['Prima china','Dieci tavole','Cinquanta','Cento','Duecentocinquanta','Cinquecento'],
+    },
+    {
+      icon:'⭐', name:'Serate completate',
+      value:stars,
+      levels:[1,10,30,60,120,365],
+      labels:['Prima sera','Dieci serate','Trenta','Sessanta','Cento­venti','Un anno'],
+    },
+    {
+      icon:'🔥', name:'Streak record',
+      value:bestStreak,
+      levels:[3,7,14,30,60,100],
+      labels:['Tre giorni','Una settimana','Due settimane','Un mese','Due mesi','Cento giorni'],
+    },
+  ];
+}
+
+// ── BADGE PER PROGETTO ──
+function getProjectBadges(p){
+  const story=p.story||{};
+  const acts=story.acts||{};
+  const tavDone=Object.values(p.tavole||{}).filter(v=>v>=4).length;
+  return [
+    {icon:'✍️', name:'Soggetto', done:!!(story.soggetto&&story.soggetto.trim())},
+    {icon:'👤', name:'Personaggi', done:!!(story.characters&&story.characters.length>0)},
+    {icon:'🎬', name:'Struttura', done:!!((acts.setup||[]).length&&(acts.confrontation||[]).length&&(acts.resolution||[]).length)},
+    {icon:'🖊️', name:'Prima tavola', done:tavDone>=1},
+    {icon:'🏆', name:'Completato', done:p.numTav>0&&tavDone>=p.numTav},
+  ];
+}
+
+export function renderStats(){
   // Statistiche numeriche
   let totalTav=0, totalDone=0;
   projects.forEach(p=>{
@@ -80,10 +104,9 @@ export function renderStats(){
   });
   const stars=parseInt(localStorage.getItem('inkflow_stars')||'0');
   const streak=getStreak();
-  const completed=projects.filter(p=>{const d=Object.values(p.tavole||{}).filter(v=>v>=4).length;return p.numTav>0&&d>=p.numTav;}).length;
 
   const statsgrid=document.getElementById('stats-numbers');
-  if(statsgrid_exists(statsgrid)){
+  if(statsgrid){
     statsgrid.innerHTML=`
       <div class="stat-cell"><div class="stat-big">${totalDone}</div><div class="stat-lbl">tavole finite</div></div>
       <div class="stat-cell"><div class="stat-big">${projects.length}</div><div class="stat-lbl">progetti</div></div>
@@ -92,10 +115,108 @@ export function renderStats(){
   }
 
   renderHeatmap();
-  renderTrophies();
+  renderMonthlyStars();
+  renderGlobalAchievements();
+  renderProjectBadges();
 }
 
-function statsgrid_exists(el){ return !!el; }
+const MONTH_NAMES_STATS = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
+
+function renderMonthlyStars(){
+  const cont = document.getElementById('stats-monthly');
+  if(!cont) return;
+  const monthly = JSON.parse(localStorage.getItem('inkflow_monthly_stars')||'{}');
+
+  const months = [];
+  const now = new Date();
+  for(let i=11; i>=0; i--){
+    const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    months.push({ label: MONTH_NAMES_STATS[d.getMonth()], count: monthly[key]||0, isCurrent: i===0 });
+  }
+  const maxCount = Math.max(...months.map(m=>m.count), 1);
+  const total = Object.values(monthly).reduce((a,b)=>a+b,0);
+
+  let html = `<div style="display:flex;gap:6px;align-items:flex-end;height:90px;margin-bottom:6px">`;
+  months.forEach(m=>{
+    if(m.count>0){
+      const barH = Math.max(8, Math.round((m.count/maxCount)*60));
+      const color = m.isCurrent ? 'var(--sky)' : m.count>=maxCount*0.8 ? 'var(--green)' : m.count>=maxCount*0.4 ? 'var(--gold)' : 'var(--sand3)';
+      html += `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;justify-content:flex-end">
+        <div style="font-size:10px;font-weight:700;color:var(--ink3)">${m.count}</div>
+        <div style="height:${barH}px;width:100%;border-radius:4px 4px 0 0;background:${color}"></div>
+        <div style="font-size:9px;color:${m.isCurrent?'var(--sky-deep)':'var(--ink3)'};font-weight:${m.isCurrent?'700':'400'}">${m.label}</div>
+      </div>`;
+    } else {
+      html += `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;justify-content:flex-end">
+        <div style="height:3px;width:100%;border-radius:2px;background:var(--sand2);margin-bottom:14px"></div>
+        <div style="font-size:9px;color:var(--ink3)">${m.label}</div>
+      </div>`;
+    }
+  });
+  html += `</div><div style="font-size:11px;color:var(--ink3);text-align:center">${total} stelle totali</div>`;
+  cont.innerHTML = html;
+}
+
+function renderGlobalAchievements(){
+  const cont=document.getElementById('stats-achievements');
+  if(!cont)return;
+  cont.innerHTML='';
+  getGlobalAchievements().forEach(a=>{
+    // Trova livello attuale e prossimo
+    let currentLevel=0, nextThreshold=a.levels[0];
+    for(let i=0;i<a.levels.length;i++){
+      if(a.value>=a.levels[i]){ currentLevel=i+1; nextThreshold=a.levels[i+1]||a.levels[i]; }
+    }
+    const isMaxed=currentLevel>=a.levels.length;
+    const currentLabel=currentLevel>0?a.labels[currentLevel-1]:'Non ancora sbloccato';
+    const progress=isMaxed?100:Math.min(100,Math.round((a.value/nextThreshold)*100));
+
+    const el=document.createElement('div');
+    el.className='achievement';
+    el.innerHTML=`
+      <div class="ach-icon"${currentLevel===0?' style="opacity:.35;filter:grayscale(1)"':''}>${a.icon}</div>
+      <div class="ach-body">
+        <div class="ach-top"><span class="ach-name">${a.name}</span><span class="ach-level">${currentLevel>0?'Lv. '+currentLevel:''}</span></div>
+        <div class="ach-label">${currentLabel}</div>
+        <div class="ach-bar"><div class="ach-bar-fill" style="width:${progress}%"></div></div>
+        <div class="ach-next">${isMaxed?'★ Massimo livello raggiunto':a.value+' / '+nextThreshold}</div>
+      </div>`;
+    cont.appendChild(el);
+  });
+}
+
+function renderProjectBadges(){
+  const cont=document.getElementById('stats-project-badges');
+  if(!cont)return;
+  cont.innerHTML='';
+  if(projects.length===0){
+    cont.innerHTML='<div style="font-size:12px;color:var(--ink3);font-style:italic;text-align:center;padding:10px">Nessun progetto ancora</div>';
+    return;
+  }
+  projects.forEach(p=>{
+    const badges=getProjectBadges(p);
+    const earned=badges.filter(b=>b.done).length;
+    const color=p.color||'#4ab8d8';
+
+    const row=document.createElement('div');
+    row.className='proj-badge-row';
+    row.innerHTML=`
+      <div class="proj-badge-head">
+        <span class="proj-badge-dot" style="background:${color}"></span>
+        <span class="proj-badge-title">${escHtmlStats(p.title)}</span>
+        <span class="proj-badge-count">${earned}/${badges.length}</span>
+      </div>
+      <div class="proj-badge-icons">
+        ${badges.map(b=>`<div class="proj-badge${b.done?' earned':''}" title="${b.name}">${b.done?b.icon:'🔒'}</div>`).join('')}
+      </div>`;
+    cont.appendChild(row);
+  });
+}
+
+function escHtmlStats(s){
+  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
 
 function renderHeatmap(){
   const cont=document.getElementById('stats-heatmap');
@@ -149,18 +270,3 @@ function renderHeatmap(){
   if(legend) legend.textContent=`${totalDays} giorni attivi nell'ultimo anno`;
 }
 
-function renderTrophies(){
-  const cont=document.getElementById('stats-trophies');
-  if(!cont)return;
-  cont.innerHTML='';
-  TROPHIES.forEach(t=>{
-    const unlocked=t.check();
-    const el=document.createElement('div');
-    el.className='trophy'+(unlocked?' unlocked':'');
-    el.innerHTML=`
-      <div class="trophy-icon">${unlocked?t.icon:'🔒'}</div>
-      <div class="trophy-name">${t.name}</div>
-      <div class="trophy-desc">${t.desc}</div>`;
-    cont.appendChild(el);
-  });
-}

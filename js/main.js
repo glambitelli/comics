@@ -49,7 +49,7 @@ onSnapshot(collection(db, COL), snapshot => {
   const hq=document.getElementById('home-quote');
   if(hq){
     const tip=getTodayTip();
-    hq.innerHTML=`<div style="font-size:13px;line-height:1.6;color:var(--ink2);font-style:italic">"${tip.text}"</div><div style="font-size:11px;color:var(--ink3);margin-top:6px;text-align:right;font-weight:600">— ${tip.author}</div>`;
+    hq.innerHTML=`<div style="font-size:13px;line-height:1.65;color:var(--ink2);font-style:italic;max-width:520px;margin:0 auto">"${tip.text}"</div><div style="font-size:11px;color:var(--ink3);margin-top:8px;font-weight:700;letter-spacing:.03em">— ${tip.author}</div>`;
   }
   if(currentId){
     const p = getProject(currentId);

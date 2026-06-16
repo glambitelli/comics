@@ -48,9 +48,10 @@
         <button onclick="toggleSearch()" style="background:none;border:none;font-size:13px;color:var(--ink3);cursor:pointer;padding:0;line-height:1">✕</button>
       </div>
     </div>
-    <div style="height:4px"></div>
+    <!-- Citazione del giorno — in alto, centrata -->
+    <div id="home-quote" style="text-align:center;padding:6px 8px 2px"></div>
+    <div style="height:1px;background:var(--sand2);margin:14px 4px 18px"></div>
     <button class="new-btn" onclick="openNewModal()">+ Nuovo progetto</button>
-    <div id="home-quote" style="margin-top:20px;padding:14px 16px;background:var(--white);border-radius:12px;border:1.5px solid var(--sand2);box-shadow:var(--shadow)"></div>
   </div>
   <button onclick="enterEveningMode()" style="position:fixed;bottom:calc(24px + var(--safe-bot));left:20px;width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#1a1410,#2a2018);border:none;box-shadow:0 4px 16px rgba(0,0,0,.22);font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:50">🌙</button>
   <button onclick="openStats()" style="position:fixed;bottom:calc(24px + var(--safe-bot));left:50%;transform:translateX(-50%);width:48px;height:48px;border-radius:50%;background:var(--white);border:1.5px solid var(--sand3);box-shadow:0 4px 16px rgba(0,0,0,.12);font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:50">📊</button>
@@ -227,7 +228,7 @@
     <div class="evening-header">
       <div class="evening-title">Inkflow</div>
       <div class="evening-header-row">
-        <div class="evening-sub">pipeline · tracker · storyboard <span class="sync-dot" id="sync-dot-evening"></span></div>
+        <div class="evening-sub">pipeline · tracker · storyboard <span class="sync-dot" id="sync-dot-evening"></span><span style="margin-left:6px;opacity:.4;font-size:8px;letter-spacing:.06em">v1.0.0</span></div>
       </div>
     </div>
     <div class="evening-scroll" id="evening-list"></div>
@@ -243,11 +244,6 @@
     <div class="stats-sub">il tuo percorso creativo</div>
   </div>
   <div class="stats-scroll">
-    <!-- Tip del giorno -->
-    <div class="stats-card" style="margin-bottom:16px">
-      <div class="stats-card-label">💡 Ispirazione del giorno</div>
-      <div id="stats-tip"></div>
-    </div>
     <!-- Numeri -->
     <div id="stats-numbers" class="stats-numbers"></div>
     <!-- Heatmap -->
@@ -256,10 +252,20 @@
       <div id="stats-heatmap" style="overflow-x:auto"></div>
       <div id="stats-heatmap-legend" style="font-size:11px;color:var(--ink3);margin-top:8px;text-align:center"></div>
     </div>
-    <!-- Trofei -->
+    <!-- Stelle per mese -->
+    <div class="stats-card" style="margin-bottom:16px">
+      <div class="stats-card-label">⭐ Stelle per mese</div>
+      <div id="stats-monthly"></div>
+    </div>
+    <!-- Traguardi globali a livelli -->
+    <div class="stats-card" style="margin-bottom:16px">
+      <div class="stats-card-label">🎯 Traguardi</div>
+      <div id="stats-achievements" class="achievements-list"></div>
+    </div>
+    <!-- Badge per progetto -->
     <div class="stats-card">
-      <div class="stats-card-label">🏆 Bacheca trofei</div>
-      <div id="stats-trophies" class="trophies-grid"></div>
+      <div class="stats-card-label">🏆 Badge per progetto</div>
+      <div id="stats-project-badges" class="project-badges-list"></div>
     </div>
     <div style="height:calc(20px + var(--safe-bot))"></div>
   </div>

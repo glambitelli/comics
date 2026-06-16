@@ -30,6 +30,8 @@ export function updateStreak(){
   if(lastDay === yesterday) streak++;
   else streak = 1;
   localStorage.setItem('inkflow_streak', streak);
+  const maxStreak=parseInt(localStorage.getItem('inkflow_max_streak')||'0');
+  if(streak>maxStreak) localStorage.setItem('inkflow_max_streak', streak);
   localStorage.setItem('inkflow_streak_last', today);
   const el = document.getElementById('streak-count');
   if(el) el.textContent = streak;
@@ -48,94 +50,21 @@ export function getStreak(){
   return 0;
 }
 
-const MONTH_NAMES = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
-
-function renderMonthlyStars(container){
-  const monthly = JSON.parse(localStorage.getItem('inkflow_monthly_stars')||'{}');
-  const keys = Object.keys(monthly).sort();
-  if(keys.length === 0) return;
-
-  const months = [];
-  const now = new Date();
-  for(let i=11; i>=0; i--){
-    const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
-    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
-    months.push({
-      key,
-      label: MONTH_NAMES[d.getMonth()],
-      year: d.getFullYear(),
-      count: monthly[key]||0,
-      isCurrent: i===0
-    });
-  }
-
-  const maxCount = Math.max(...months.map(m=>m.count), 1);
-
-  const section = document.createElement('div');
-  section.style.cssText = 'margin-top:24px;padding:16px;background:rgba(255,255,255,.05);border-radius:16px;border:1px solid rgba(255,255,255,.08)';
-
-  const label = document.createElement('div');
-  label.style.cssText = 'font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:14px;display:flex;align-items:center;justify-content:space-between';
-  label.innerHTML = `<span>⭐ Stelle per mese</span><span style="font-weight:400;letter-spacing:0">${keys.length > 0 ? Object.values(monthly).reduce((a,b)=>a+b,0)+' totali' : ''}</span>`;
-  section.appendChild(label);
-
-  const grid = document.createElement('div');
-  grid.style.cssText = 'display:flex;gap:6px;align-items:flex-end;height:80px';
-
-  months.forEach(m => {
-    const col = document.createElement('div');
-    col.style.cssText = 'flex:1;display:flex;flex-direction:column;align-items:center;gap:4px';
-
-    if(m.count > 0){
-      const barH = Math.max(8, Math.round((m.count/maxCount)*56));
-      const bar = document.createElement('div');
-      bar.style.cssText = `height:${barH}px;width:100%;border-radius:4px 4px 0 0;background:${
-        m.isCurrent ? 'rgba(74,184,216,.8)' :
-        m.count >= maxCount*0.8 ? 'rgba(72,168,72,.7)' :
-        m.count >= maxCount*0.4 ? 'rgba(240,192,32,.6)' :
-        'rgba(255,255,255,.25)'
-      };transition:height .3s`;
-      col.appendChild(bar);
-
-      const num = document.createElement('div');
-      num.style.cssText = 'font-size:10px;font-weight:700;color:rgba(255,255,255,.6)';
-      num.textContent = m.count;
-      col.appendChild(num);
-    } else {
-      const bar = document.createElement('div');
-      bar.style.cssText = 'height:3px;width:100%;border-radius:2px;background:rgba(255,255,255,.08);margin-bottom:20px';
-      col.appendChild(bar);
-    }
-
-    const lbl = document.createElement('div');
-    lbl.style.cssText = `font-size:9px;color:${m.isCurrent?'rgba(74,184,216,.8)':'rgba(255,255,255,.25)'};font-weight:${m.isCurrent?'700':'400'};margin-top:auto`;
-    lbl.textContent = m.label;
-    col.appendChild(lbl);
-
-    grid.appendChild(col);
-  });
-
-  section.appendChild(grid);
-  container.appendChild(section);
-}
 
 export function renderEveningList(){
   const list = document.getElementById('evening-list');
   list.innerHTML = '';
 
   const totalStars = parseInt(localStorage.getItem('inkflow_stars')||'0');
-  const starsRow = document.createElement('div');
-  starsRow.style.cssText = 'display:flex;align-items:center;gap:8px;padding:4px 0 12px';
-  starsRow.innerHTML = `<span style="font-size:13px">⭐</span><span id="stars-count" style="font-family:'Castoro',serif;font-size:16px;font-weight:700;color:rgba(255,255,255,.85)">${totalStars}</span>`;
-  list.appendChild(starsRow);
-
   const streak = getStreak();
+  const starsRow = document.createElement('div');
+  starsRow.style.cssText = 'display:flex;align-items:center;gap:16px;padding:4px 0 14px';
+  let starsHtml = `<span style="display:flex;align-items:center;gap:6px"><span style="font-size:14px">⭐</span><span id="stars-count" style="font-family:'Castoro',serif;font-size:17px;font-weight:700;color:rgba(255,255,255,.85)">${totalStars}</span></span>`;
   if(streak > 0){
-    const streakEl = document.createElement('div');
-    streakEl.style.cssText='display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.05);border-radius:12px;padding:10px 14px;margin-bottom:10px';
-    streakEl.innerHTML=`<span style="font-size:18px">🔥</span><span style="font-family:'Castoro',serif;font-size:20px;font-weight:700;color:rgba(255,255,255,.9)">${streak}</span><span style="font-size:11px;color:rgba(255,255,255,.4);font-weight:500">${streak===1?'giorno consecutivo':'giorni consecutivi'}</span>`;
-    list.appendChild(streakEl);
+    starsHtml += `<span style="display:flex;align-items:center;gap:6px"><span style="font-size:14px">🔥</span><span style="font-family:'Castoro',serif;font-size:17px;font-weight:700;color:rgba(255,255,255,.85)">${streak}</span></span>`;
   }
+  starsRow.innerHTML = starsHtml;
+  list.appendChild(starsRow);
 
   const history = JSON.parse(localStorage.getItem('inkflow_task_history')||'[]');
   if(history.length > 0){
@@ -209,8 +138,6 @@ export function renderEveningList(){
     clearBtn.innerHTML = `<button onclick="clearTaskHistory()" style="background:none;border:1px solid rgba(255,255,255,.15);border-radius:20px;padding:7px 20px;font-family:'Nunito',sans-serif;font-size:12px;color:rgba(255,255,255,.3);cursor:pointer">clear</button>`;
     list.appendChild(clearBtn);
   }
-
-  renderMonthlyStars(list);
 }
 
 export function completeEveningTask(id, card){
