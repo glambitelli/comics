@@ -76,6 +76,8 @@ export function closeStarsConfirm(){
 
 export function doResetStars(){
   localStorage.setItem('inkflow_stars','0');
+  localStorage.setItem('inkflow_monthly_stars','{}');
+  localStorage.removeItem('inkflow_task_history');
   Object.keys(localStorage).filter(k=>k.startsWith('inkflow_starred_')).forEach(k=>localStorage.removeItem(k));
   saveUserData();
   const el = document.getElementById('settings-stars-count');

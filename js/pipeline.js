@@ -70,21 +70,50 @@ export function renderSfide(p){
   const list=document.getElementById('sfide-list'); list.innerHTML='';
   (p.sfide||[]).forEach((s,i)=>{
     const row=document.createElement('div'); row.className='sfida-row';
-    row.innerHTML=`<div class="step-chk ${s.done?'done':''}">✓</div><div class="sfida-text ${s.done?'done':''}">${s.text}</div><button class="sfida-ref ${s.ref?'yes':'no'}" onclick="window._toggleRef(${i})">${s.ref?'ref ✓':'ref?'}</button><button class="sfida-rm" onclick="window._removeSfida(${i})">×</button>`;
-    row.querySelector('.step-chk').onclick=()=>window._toggleSfidaDone(i);
+
+    const chk=document.createElement('div');
+    chk.className='step-chk'+(s.done?' done':'');
+    chk.textContent='✓';
+    chk.onclick=()=>{
+      const p=getProject(currentId);if(!p||!p.sfide)return;
+      p.sfide[i].done=!p.sfide[i].done;
+      scheduleSave(p);renderSfide(p);
+    };
+
+    const input=document.createElement('input');
+    input.type='text';
+    input.value=s.text;
+    input.className='sfida-text-input';
+    input.style.cssText='flex:1;background:none;border:none;outline:none;font-family:\'Nunito\',sans-serif;font-size:13px;font-weight:500;color:var(--ink);'+(s.done?'text-decoration:line-through;color:var(--ink3)':'');
+    input.addEventListener('input',function(){
+      const p=getProject(currentId);if(!p||!p.sfide)return;
+      p.sfide[i].text=this.value;
+      scheduleSave(p);
+    });
+
+    const rm=document.createElement('button');
+    rm.className='sfida-rm';
+    rm.textContent='×';
+    rm.onclick=()=>{
+      const p=getProject(currentId);if(!p||!p.sfide)return;
+      p.sfide.splice(i,1);
+      scheduleSave(p);renderSfide(p);
+    };
+
+    row.appendChild(chk);
+    row.appendChild(input);
+    row.appendChild(rm);
     list.appendChild(row);
   });
 }
 
 export function addSfida(){
   const p=getProject(currentId); if(!p) return;
-  const text=prompt('Elemento nuovo da disegnare:');
-  if(!text||!text.trim()) return;
   if(!p.sfide) p.sfide=[];
-  p.sfide.push({text:text.trim(),done:false,ref:false});
-  scheduleSave(p); renderSfide(p);
+  p.sfide.push({text:'',done:false});
+  scheduleSave(p);
+  renderSfide(p);
+  // Focus sull'ultimo input aggiunto
+  const inputs=document.querySelectorAll('.sfida-text-input');
+  if(inputs.length) inputs[inputs.length-1].focus();
 }
-
-window._toggleSfidaDone=i=>{const p=getProject(currentId);if(!p||!p.sfide)return;p.sfide[i].done=!p.sfide[i].done;scheduleSave(p);renderSfide(p);};
-window._toggleRef=i=>{const p=getProject(currentId);if(!p||!p.sfide)return;p.sfide[i].ref=!p.sfide[i].ref;scheduleSave(p);renderSfide(p);};
-window._removeSfida=i=>{const p=getProject(currentId);if(!p||!p.sfide)return;p.sfide.splice(i,1);scheduleSave(p);renderSfide(p);};

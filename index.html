@@ -130,13 +130,17 @@
         <div class="phase-chev open" id="ph1-chev">▾</div>
       </div>
       <div class="phase-body open" id="ph1-body">
-        <div class="step-item" onclick="toggleStep(this)"><div class="step-chk">✓</div><div class="step-cnt"><div class="step-nm">Moodboard visiva <span class="tag wm">mattina</span></div><div class="step-ds">Immagini che catturano l'atmosfera. Il "colore emotivo" della storia prima di scrivere.</div></div></div>
-
-        <!-- TACCUINO -->
-        <div class="step-item" style="background:#fdf6d8" onclick="toggleStep(this)"><div class="step-chk">✓</div><div class="step-cnt"><div class="step-nm">Taccuino <span class="tag wm">mattina</span></div><div class="step-ds">Spazio libero per idee grezze, appunti, direzioni narrative. Scrivi senza filtri.</div></div></div>
-        <div style="padding:0 16px 12px;background:#fdf6d8;border-radius:0 0 8px 8px" id="taccuino-wrap">
-          <!-- popolato da JS -->
+        <!-- TACCUINO — blocco di supporto, senza spunta -->
+        <div style="margin:8px 16px 4px;background:#fdf6d8;border-radius:10px;border:1.5px solid #e8d898;overflow:hidden">
+          <div style="padding:10px 14px 6px;display:flex;align-items:center;gap:8px">
+            <span style="font-size:15px;font-weight:700;color:var(--ink)">📓 Taccuino</span>
+            <span style="font-size:11px;color:var(--ink3);font-weight:400">idee grezze · appunti · direzioni narrative</span>
+          </div>
+          <div style="padding:0 14px 12px" id="taccuino-wrap"></div>
         </div>
+
+        <!-- MOODBOARD -->
+        <div class="step-item" onclick="toggleStep(this)"><div class="step-chk">✓</div><div class="step-cnt"><div class="step-nm">Moodboard visiva <span class="tag wm">mattina</span></div><div class="step-ds">Immagini che catturano l'atmosfera. Il "colore emotivo" della storia prima di scrivere.</div></div></div>
 
         <!-- SOGGETTO -->
         <div class="step-item" onclick="toggleStep(this)" id="step-soggetto"><div class="step-chk">✓</div><div class="step-cnt"><div class="step-nm">Soggetto <span class="tag wm">mattina</span></div><div class="step-ds">Chi è il protagonista, cosa vuole, cosa glielo impedisce, come finisce.</div></div></div>

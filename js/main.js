@@ -83,3 +83,44 @@ window.toggleSearch=toggleSearch; window.filterProjects=filterProjects; window.a
 
 loadUserData();
 initNotifications();
+
+// ── MENU CONTESTUALE — tasto destro su textarea/input → Copia tutto ──
+(function(){
+  const menu = document.createElement('div');
+  menu.style.cssText='position:fixed;z-index:9999;background:var(--white);border:1.5px solid var(--sand2);border-radius:10px;box-shadow:0 4px 20px rgba(0,0,0,.15);display:none;overflow:hidden;min-width:130px';
+
+  const btn = document.createElement('button');
+  btn.textContent='📋 Copia tutto';
+  btn.style.cssText='display:block;width:100%;padding:11px 16px;text-align:left;background:none;border:none;font-family:\'Nunito\',sans-serif;font-size:13px;font-weight:600;color:var(--ink);cursor:pointer';
+  btn.onmouseenter=()=>btn.style.background='var(--sand)';
+  btn.onmouseleave=()=>btn.style.background='none';
+  menu.appendChild(btn);
+  document.body.appendChild(menu);
+
+  let target = null;
+
+  document.addEventListener('contextmenu', e=>{
+    const el = e.target;
+    if(el.tagName !== 'TEXTAREA' && el.tagName !== 'INPUT') return;
+    if(!el.value) return;
+    e.preventDefault();
+    target = el;
+    menu.style.display='block';
+    // Posiziona vicino al cursore, evitando bordi
+    const x = Math.min(e.clientX, window.innerWidth - 150);
+    const y = Math.min(e.clientY, window.innerHeight - 60);
+    menu.style.left=x+'px';
+    menu.style.top=y+'px';
+  });
+
+  btn.onclick=()=>{
+    if(!target) return;
+    navigator.clipboard.writeText(target.value).then(()=>{
+      btn.textContent='✓ Copiato!';
+      setTimeout(()=>{ btn.textContent='📋 Copia tutto'; menu.style.display='none'; }, 1000);
+    });
+  };
+
+  document.addEventListener('click', ()=>{ menu.style.display='none'; });
+  document.addEventListener('scroll', ()=>{ menu.style.display='none'; }, true);
+})();
