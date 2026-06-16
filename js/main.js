@@ -3,12 +3,25 @@ import { projects, setProjects, currentId, getProject } from './state.js';
 import { saveDates } from './velocity.js';
 import { exportPDF, exportStoryboard } from './pdf.js';
 import { togglePhase, toggleStep, selectTav, addSfida } from './pipeline.js';
-import { addScene, updateScene, deleteScene, autoResize, saveStoryField, updateCharCount, toggleSubsection, addCharacter, deleteCharacter, toggleCharCard, autoResizeAll } from './story.js';
+import { addScene, updateScene, deleteScene, autoResize, saveStoryField, updateCharCount, toggleSubsection, addCharacter, deleteCharacter, toggleCharCard, autoResizeAll, toggleScreenplay } from './story.js';
 import { updatePlanner, applyPlanner, openPlannerModal, closePlannerModal } from './planner.js';
 import { initNotifications, saveReminderSettings, testNotification } from './notifications.js';
 import { openSettings, closeSettings, resetStarsConfirm, closeStarsConfirm, doResetStars, exportBackup, importBackup, resetStreakConfirm, closeStreakConfirm, doResetStreak } from './settings.js';
 import { renderHome, openNewModal, closeModal, createProject, openCardMenu, exportProjectJSON, confirmDeleteProject, openColorPicker, closeColorPicker, selectProjectColor, toggleSearch, filterProjects, attachCardDrag, applyProjectOrder } from './home.js';
 import { openProject, restoreProject, goHome, confirmDeleteCurrent, closeConfirm, confirmMicrotask } from './project.js';
+import { renderStats, getTodayTip } from './stats.js';
+
+function openStats(){
+  renderStats();
+  document.getElementById('screen-home').classList.remove('active');
+  document.getElementById('screen-stats').classList.add('active');
+}
+function closeStats(){
+  document.getElementById('screen-stats').classList.remove('active');
+  document.getElementById('screen-home').classList.add('active');
+}
+window.openStats=openStats;
+window.closeStats=closeStats;
 
 function hideLoading(){
   const loading = document.getElementById('loading');
@@ -32,6 +45,12 @@ onSnapshot(collection(db, COL), snapshot => {
   syncDot('ok');
   renderHome();
   attachCardDrag();
+  // Citazione del giorno nella home
+  const hq=document.getElementById('home-quote');
+  if(hq){
+    const tip=getTodayTip();
+    hq.innerHTML=`<div style="font-size:13px;line-height:1.6;color:var(--ink2);font-style:italic">"${tip.text}"</div><div style="font-size:11px;color:var(--ink3);margin-top:6px;text-align:right;font-weight:600">— ${tip.author}</div>`;
+  }
   if(currentId){
     const p = getProject(currentId);
     const active = document.activeElement;
@@ -54,7 +73,7 @@ window.testNotification=testNotification; window.updatePlanner=updatePlanner;
 window.applyPlanner=applyPlanner; window.openPlannerModal=openPlannerModal;
 window.closePlannerModal=closePlannerModal; window.toggleSubsection=toggleSubsection;
 window.addCharacter=addCharacter; window.deleteCharacter=deleteCharacter;
-window.toggleCharCard=toggleCharCard; window.confirmMicrotask=confirmMicrotask;
+window.toggleCharCard=toggleCharCard; window.toggleScreenplay=toggleScreenplay; window.confirmMicrotask=confirmMicrotask;
 window.openSettings=openSettings; window.closeSettings=closeSettings;
 window.resetStarsConfirm=resetStarsConfirm; window.closeStarsConfirm=closeStarsConfirm;
 window.doResetStars=doResetStars; window.exportBackup=exportBackup; window.importBackup=importBackup;

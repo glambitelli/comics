@@ -91,7 +91,14 @@ export function renderActBoard(p){
   if(!p.story.acts) p.story.acts={setup:[],confrontation:[],resolution:[]};
   if(!p.story.pp) p.story.pp={pp1:'',pp2:'',inciting:''};
 
+  if(window._screenplayMode){ renderScreenplay(p); return; }
+
   board.innerHTML='';
+
+  const toggleRow=document.createElement('div');
+  toggleRow.style.cssText='display:flex;justify-content:flex-end;margin-bottom:8px';
+  toggleRow.innerHTML='<button onclick="toggleScreenplay()" style="font-size:11px;padding:5px 12px;border-radius:8px;border:1.5px solid var(--sand3);background:var(--white);color:var(--ink2);cursor:pointer;font-family:\'Nunito\',sans-serif;font-weight:600">📜 Vista sceneggiatura</button>';
+  board.appendChild(toggleRow);
   ACT_CONFIG.forEach((act,ai)=>{
     const scenes=p.story.acts[act.id]||[];
 
@@ -282,6 +289,13 @@ export function renderCharacters(p){
 
     const card=document.createElement('div');
     card.className='char-card-v2';
+    card.draggable=true;
+    card.dataset.idx=i;
+
+    // Handle drag
+    const handle=document.createElement('div');
+    handle.className='char-drag-handle';
+    handle.textContent='⠿';
 
     // Cerchio colorato con iniziale
     const avatar=document.createElement('div');
@@ -293,7 +307,6 @@ export function renderCharacters(p){
     const content=document.createElement('div');
     content.className='char-content';
 
-    // Nome (input invisibile finché non lo tocchi)
     const nameInput=document.createElement('input');
     nameInput.type='text';
     nameInput.value=ch.name||'';
@@ -306,7 +319,10 @@ export function renderCharacters(p){
       scheduleSave(p);
     });
 
-    // Descrizione
+    // Divisore
+    const divider=document.createElement('div');
+    divider.className='char-divider';
+
     const descTa=document.createElement('textarea');
     descTa.className='char-desc-v2';
     descTa.value=ch.desc||'';
@@ -322,14 +338,15 @@ export function renderCharacters(p){
     requestAnimationFrame(()=>{ descTa.style.height='auto'; descTa.style.height=descTa.scrollHeight+'px'; });
 
     content.appendChild(nameInput);
+    content.appendChild(divider);
     content.appendChild(descTa);
 
-    // Elimina
     const del=document.createElement('button');
     del.className='char-del-v2';
     del.textContent='×';
     del.onclick=()=>deleteCharacter(i);
 
+    card.appendChild(handle);
     card.appendChild(avatar);
     card.appendChild(content);
     card.appendChild(del);
@@ -337,11 +354,36 @@ export function renderCharacters(p){
 
     if(!ch.name&&!ch.desc) setTimeout(()=>nameInput.focus(),50);
   });
+
+  attachCharDrag(p);
 }
 
-export function toggleCharCard(i){
-  // Non più usato — schede sempre aperte
+function attachCharDrag(p){
+  const list=document.getElementById('chars-list');
+  let dragEl=null, dragIdx=null;
+  list.querySelectorAll('.char-card-v2').forEach(card=>{
+    card.addEventListener('dragstart',e=>{
+      // Non draggare se sto scrivendo
+      if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'){ e.preventDefault(); return; }
+      dragEl=card; dragIdx=parseInt(card.dataset.idx);
+      setTimeout(()=>card.classList.add('char-dragging'),0);
+    });
+    card.addEventListener('dragend',()=>{ if(dragEl)dragEl.classList.remove('char-dragging'); dragEl=null; });
+    card.addEventListener('dragover',e=>e.preventDefault());
+    card.addEventListener('drop',e=>{
+      e.preventDefault();
+      if(dragEl===null||dragEl===card)return;
+      const toIdx=parseInt(card.dataset.idx);
+      if(!p.story||!p.story.characters)return;
+      const [moved]=p.story.characters.splice(dragIdx,1);
+      p.story.characters.splice(toIdx,0,moved);
+      scheduleSave(p);
+      renderCharacters(p);
+    });
+  });
 }
+
+export function toggleCharCard(i){}
 
 export function addCharacter(){
   const p=getProject(currentId);if(!p)return;
@@ -357,4 +399,66 @@ export function deleteCharacter(i){
   p.story.characters.splice(i,1);
   scheduleSave(p);
   renderCharacters(p);
+}
+
+// ── VISTA SCENEGGIATURA — script lineare leggibile ──
+export function toggleScreenplay(){
+  window._screenplayMode = !window._screenplayMode;
+  const p = getProject(currentId);
+  if(p) renderActBoard(p);
+}
+
+function renderScreenplay(p){
+  const board=document.getElementById('act-board');
+  if(!board)return;
+  board.innerHTML='';
+
+  const acts=p.story.acts||{setup:[],confrontation:[],resolution:[]};
+  const pp=p.story.pp||{pp1:'',pp2:'',inciting:''};
+
+  const wrap=document.createElement('div');
+  wrap.style.cssText='background:var(--white);border-radius:12px;border:1.5px solid var(--sand2);padding:20px 18px;box-shadow:var(--shadow)';
+
+  // Toggle per tornare
+  const toggleRow=document.createElement('div');
+  toggleRow.style.cssText='display:flex;justify-content:flex-end;margin-bottom:14px';
+  toggleRow.innerHTML='<button onclick="toggleScreenplay()" style="font-size:11px;padding:5px 12px;border-radius:8px;border:1.5px solid var(--sand3);background:var(--white);color:var(--ink2);cursor:pointer;font-family:\'Nunito\',sans-serif;font-weight:600">▦ Vista board</button>';
+  wrap.appendChild(toggleRow);
+
+  let html='';
+  const ACTS=[
+    {id:'setup',label:'ATTO I · SETUP',color:'#4ab8d8'},
+    {id:'confrontation',label:'ATTO II · CONFRONTATION',color:'#f0c020'},
+    {id:'resolution',label:'ATTO III · RESOLUTION',color:'#48a848'},
+  ];
+
+  if(pp.inciting&&pp.inciting.trim()){
+    html+=`<div style="margin-bottom:18px"><div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#4ab8d8;margin-bottom:5px">Inciting Incident</div><div style="font-size:14px;line-height:1.7;color:var(--ink);white-space:pre-wrap">${escHtml(pp.inciting)}</div></div>`;
+  }
+
+  ACTS.forEach((act,ai)=>{
+    const scenes=(acts[act.id]||[]).filter(s=>s&&s.trim());
+    html+=`<div style="font-size:13px;font-weight:700;letter-spacing:.06em;color:${act.color};margin:20px 0 10px;padding-bottom:5px;border-bottom:2px solid ${act.color}33">${act.label}</div>`;
+    if(scenes.length===0){
+      html+=`<div style="font-size:13px;color:var(--ink3);font-style:italic;margin-bottom:8px">Nessuna scena</div>`;
+    }
+    scenes.forEach((s,si)=>{
+      html+=`<div style="display:flex;gap:10px;margin-bottom:12px"><div style="flex-shrink:0;font-size:12px;font-weight:700;color:${act.color};min-width:20px">${si+1}.</div><div style="flex:1;font-size:14px;line-height:1.7;color:var(--ink);white-space:pre-wrap">${escHtml(s)}</div></div>`;
+    });
+    if(ai===0&&pp.pp1&&pp.pp1.trim()){
+      html+=`<div style="margin:14px 0;padding:10px 14px;background:#fff4f2;border-left:3px solid var(--coral);border-radius:0 8px 8px 0"><div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--coral);margin-bottom:4px">⬡ Plot Point 1</div><div style="font-size:14px;line-height:1.7;color:var(--ink);white-space:pre-wrap">${escHtml(pp.pp1)}</div></div>`;
+    }
+    if(ai===1&&pp.pp2&&pp.pp2.trim()){
+      html+=`<div style="margin:14px 0;padding:10px 14px;background:#fff4f2;border-left:3px solid var(--coral);border-radius:0 8px 8px 0"><div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--coral);margin-bottom:4px">⬡ Plot Point 2</div><div style="font-size:14px;line-height:1.7;color:var(--ink);white-space:pre-wrap">${escHtml(pp.pp2)}</div></div>`;
+    }
+  });
+
+  const content=document.createElement('div');
+  content.innerHTML=html;
+  wrap.appendChild(content);
+  board.appendChild(wrap);
+}
+
+function escHtml(s){
+  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }

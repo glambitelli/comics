@@ -19,6 +19,7 @@
 <link rel="stylesheet" href="css/evening.css">
 <link rel="stylesheet" href="css/settings.css">
 <link rel="stylesheet" href="css/modals.css">
+<link rel="stylesheet" href="css/stats.css">
 </head>
 <body>
 
@@ -49,8 +50,10 @@
     </div>
     <div style="height:4px"></div>
     <button class="new-btn" onclick="openNewModal()">+ Nuovo progetto</button>
+    <div id="home-quote" style="margin-top:20px;padding:14px 16px;background:var(--white);border-radius:12px;border:1.5px solid var(--sand2);box-shadow:var(--shadow)"></div>
   </div>
   <button onclick="enterEveningMode()" style="position:fixed;bottom:calc(24px + var(--safe-bot));left:20px;width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#1a1410,#2a2018);border:none;box-shadow:0 4px 16px rgba(0,0,0,.22);font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:50">🌙</button>
+  <button onclick="openStats()" style="position:fixed;bottom:calc(24px + var(--safe-bot));left:50%;transform:translateX(-50%);width:48px;height:48px;border-radius:50%;background:var(--white);border:1.5px solid var(--sand3);box-shadow:0 4px 16px rgba(0,0,0,.12);font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:50">📊</button>
   <button onclick="openSettings()" style="position:fixed;bottom:calc(24px + var(--safe-bot));right:20px;width:48px;height:48px;border-radius:50%;background:var(--white);border:1.5px solid var(--sand3);box-shadow:0 4px 16px rgba(0,0,0,.12);font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:50">⚙️</button>
 </div>
 
@@ -229,6 +232,36 @@
     </div>
     <div class="evening-scroll" id="evening-list"></div>
     <button onclick="exitEveningMode()" style="position:fixed;bottom:calc(24px + var(--safe-bot));left:20px;width:48px;height:48px;border-radius:50%;background:#f5f0e8;border:none;box-shadow:0 4px 16px rgba(0,0,0,.15);font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:50">☀️</button>
+  </div>
+</div>
+
+<!-- STATS -->
+<div class="screen" id="screen-stats">
+  <div class="stats-header">
+    <button class="back-btn" onclick="closeStats()" style="color:#fff;margin-bottom:10px">← Home</button>
+    <div class="stats-title">Statistiche</div>
+    <div class="stats-sub">il tuo percorso creativo</div>
+  </div>
+  <div class="stats-scroll">
+    <!-- Tip del giorno -->
+    <div class="stats-card" style="margin-bottom:16px">
+      <div class="stats-card-label">💡 Ispirazione del giorno</div>
+      <div id="stats-tip"></div>
+    </div>
+    <!-- Numeri -->
+    <div id="stats-numbers" class="stats-numbers"></div>
+    <!-- Heatmap -->
+    <div class="stats-card" style="margin:16px 0">
+      <div class="stats-card-label">📅 Attività dell'anno</div>
+      <div id="stats-heatmap" style="overflow-x:auto"></div>
+      <div id="stats-heatmap-legend" style="font-size:11px;color:var(--ink3);margin-top:8px;text-align:center"></div>
+    </div>
+    <!-- Trofei -->
+    <div class="stats-card">
+      <div class="stats-card-label">🏆 Bacheca trofei</div>
+      <div id="stats-trophies" class="trophies-grid"></div>
+    </div>
+    <div style="height:calc(20px + var(--safe-bot))"></div>
   </div>
 </div>
 
