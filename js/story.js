@@ -268,6 +268,8 @@ export function restoreWorldFields(p){
   renderCharacters(p);
 }
 
+const CHAR_COLORS = ['#4ab8d8','#e84848','#48a848','#f0c020','#7F77DD','#e89020','#c060a0','#2a88b8'];
+
 export function renderCharacters(p){
   const list=document.getElementById('chars-list');
   if(!list)return;
@@ -275,50 +277,41 @@ export function renderCharacters(p){
   if(!p.story.characters)p.story.characters=[];
   list.innerHTML='';
   p.story.characters.forEach((ch,i)=>{
+    const color = CHAR_COLORS[i % CHAR_COLORS.length];
+    const initial = (ch.name||'?').trim().charAt(0).toUpperCase() || '?';
+
     const card=document.createElement('div');
-    card.className='char-card';
+    card.className='char-card-v2';
 
-    // Header — nome + × 
-    const hdr=document.createElement('div');
-    hdr.className='char-card-header';
-    hdr.onclick=()=>toggleCharCard(i);
-    hdr.innerHTML=`
-      <span style="font-size:13px;color:var(--ink3);margin-right:4px">▾</span>
-      <span class="char-card-name" id="char-name-display-${i}">${ch.name||'Personaggio'}</span>
-      <button class="char-card-del" onclick="event.stopPropagation();deleteCharacter(${i})">×</button>`;
+    // Cerchio colorato con iniziale
+    const avatar=document.createElement('div');
+    avatar.className='char-avatar';
+    avatar.style.background=color;
+    avatar.textContent=initial;
 
-    const body=document.createElement('div');
-    body.className='char-card-body';
-    body.id='char-body-'+i;
+    // Contenuto
+    const content=document.createElement('div');
+    content.className='char-content';
 
-    // Nome
-    const nameWrap=document.createElement('div');
-    nameWrap.className='char-field';
-    nameWrap.innerHTML='<div class="char-field-label">Nome</div>';
+    // Nome (input invisibile finché non lo tocchi)
     const nameInput=document.createElement('input');
-    nameInput.className='char-input';
     nameInput.type='text';
     nameInput.value=ch.name||'';
-    nameInput.placeholder='Nome…';
+    nameInput.placeholder='Nome personaggio';
+    nameInput.className='char-name-v2';
     nameInput.addEventListener('input',function(){
       const p=getProject(currentId);if(!p||!p.story||!p.story.characters)return;
       p.story.characters[i].name=this.value;
-      const disp=document.getElementById('char-name-display-'+i);
-      if(disp)disp.textContent=this.value||'Personaggio';
+      avatar.textContent=(this.value||'?').trim().charAt(0).toUpperCase()||'?';
       scheduleSave(p);
     });
-    nameWrap.appendChild(nameInput);
 
-    // Descrizione — textarea diretta
-    const descWrap=document.createElement('div');
-    descWrap.className='char-field';
-    descWrap.innerHTML='<div class="char-field-label">Descrizione</div>';
+    // Descrizione
     const descTa=document.createElement('textarea');
-    descTa.className='char-input story-textarea';
-    descTa.style.cssText='min-height:70px;overflow:hidden;font-size:13px';
-    descTa.rows=3;
+    descTa.className='char-desc-v2';
     descTa.value=ch.desc||'';
-    descTa.placeholder='Aspetto fisico, personalità, background…';
+    descTa.placeholder='Descrizione — aspetto, personalità, background…';
+    descTa.rows=2;
     descTa.addEventListener('input',function(){
       const p=getProject(currentId);if(!p||!p.story||!p.story.characters)return;
       p.story.characters[i].desc=this.value;
@@ -326,28 +319,28 @@ export function renderCharacters(p){
       this.style.height=this.scrollHeight+'px';
       scheduleSave(p);
     });
-    descWrap.appendChild(descTa);
+    requestAnimationFrame(()=>{ descTa.style.height='auto'; descTa.style.height=descTa.scrollHeight+'px'; });
 
-    body.appendChild(nameWrap);
-    body.appendChild(descWrap);
-    card.appendChild(hdr);
-    card.appendChild(body);
+    content.appendChild(nameInput);
+    content.appendChild(descTa);
+
+    // Elimina
+    const del=document.createElement('button');
+    del.className='char-del-v2';
+    del.textContent='×';
+    del.onclick=()=>deleteCharacter(i);
+
+    card.appendChild(avatar);
+    card.appendChild(content);
+    card.appendChild(del);
     list.appendChild(card);
 
-    // Nuovo personaggio — apri subito
-    if(!ch.name&&!ch.desc){
-      setTimeout(()=>{
-        body.classList.add('open');
-        nameInput.focus();
-      },50);
-    }
+    if(!ch.name&&!ch.desc) setTimeout(()=>nameInput.focus(),50);
   });
 }
 
 export function toggleCharCard(i){
-  const body=document.getElementById('char-body-'+i);
-  if(!body)return;
-  body.classList.toggle('open');
+  // Non più usato — schede sempre aperte
 }
 
 export function addCharacter(){

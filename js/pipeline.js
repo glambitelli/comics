@@ -71,20 +71,14 @@ export function renderSfide(p){
   (p.sfide||[]).forEach((s,i)=>{
     const row=document.createElement('div'); row.className='sfida-row';
 
-    const chk=document.createElement('div');
-    chk.className='step-chk'+(s.done?' done':'');
-    chk.textContent='✓';
-    chk.onclick=()=>{
-      const p=getProject(currentId);if(!p||!p.sfide)return;
-      p.sfide[i].done=!p.sfide[i].done;
-      scheduleSave(p);renderSfide(p);
-    };
+    const dot=document.createElement('div');
+    dot.style.cssText='width:6px;height:6px;border-radius:50%;background:var(--sand3);flex-shrink:0';
 
     const input=document.createElement('input');
     input.type='text';
     input.value=s.text;
     input.className='sfida-text-input';
-    input.style.cssText='flex:1;background:none;border:none;outline:none;font-family:\'Nunito\',sans-serif;font-size:13px;font-weight:500;color:var(--ink);'+(s.done?'text-decoration:line-through;color:var(--ink3)':'');
+    input.style.cssText='flex:1;background:none;border:none;outline:none;font-family:\'Nunito\',sans-serif;font-size:13px;font-weight:500;color:var(--ink)';
     input.addEventListener('input',function(){
       const p=getProject(currentId);if(!p||!p.sfide)return;
       p.sfide[i].text=this.value;
@@ -100,7 +94,7 @@ export function renderSfide(p){
       scheduleSave(p);renderSfide(p);
     };
 
-    row.appendChild(chk);
+    row.appendChild(dot);
     row.appendChild(input);
     row.appendChild(rm);
     list.appendChild(row);
@@ -110,10 +104,9 @@ export function renderSfide(p){
 export function addSfida(){
   const p=getProject(currentId); if(!p) return;
   if(!p.sfide) p.sfide=[];
-  p.sfide.push({text:'',done:false});
+  p.sfide.push({text:''});
   scheduleSave(p);
   renderSfide(p);
-  // Focus sull'ultimo input aggiunto
   const inputs=document.querySelectorAll('.sfida-text-input');
   if(inputs.length) inputs[inputs.length-1].focus();
 }

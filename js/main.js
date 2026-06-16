@@ -1,7 +1,7 @@
 import { db, COL, syncDot, loadUserData, collection, onSnapshot } from './firebase.js';
 import { projects, setProjects, currentId, getProject } from './state.js';
 import { saveDates } from './velocity.js';
-import { exportPDF } from './pdf.js';
+import { exportPDF, exportStoryboard } from './pdf.js';
 import { togglePhase, toggleStep, selectTav, addSfida } from './pipeline.js';
 import { addScene, updateScene, deleteScene, autoResize, saveStoryField, updateCharCount, toggleSubsection, addCharacter, deleteCharacter, toggleCharCard, autoResizeAll } from './story.js';
 import { updatePlanner, applyPlanner, openPlannerModal, closePlannerModal } from './planner.js';
@@ -47,7 +47,7 @@ window.openNewModal=openNewModal; window.closeModal=closeModal; window.createPro
 window.goHome=goHome; window.openProject=openProject; window.togglePhase=togglePhase;
 window.toggleStep=toggleStep; window.selectTav=selectTav; window.addSfida=addSfida;
 window.saveDates=saveDates; window.confirmDeleteCurrent=confirmDeleteCurrent; window.closeConfirm=closeConfirm;
-window.exportPDF=exportPDF; window.addScene=addScene; window.updateScene=updateScene;
+window.exportPDF=exportPDF; window.exportStoryboard=exportStoryboard; window.addScene=addScene; window.updateScene=updateScene;
 window.deleteScene=deleteScene; window.autoResize=autoResize; window.saveStoryField=saveStoryField;
 window.updateCharCount=updateCharCount; window.saveReminderSettings=saveReminderSettings;
 window.testNotification=testNotification; window.updatePlanner=updatePlanner;
