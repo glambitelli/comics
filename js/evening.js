@@ -83,7 +83,7 @@ export function renderEveningList(){
   const totalStars = parseInt(localStorage.getItem('inkflow_stars')||'0');
   const streak = getStreak();
   const starsRow = document.createElement('div');
-  starsRow.style.cssText = 'display:flex;align-items:center;gap:18px;padding:4px 0 16px';
+  starsRow.style.cssText = 'display:flex;align-items:center;justify-content:flex-end;gap:18px;padding:4px 0 16px';
   let starsHtml = `<span style="display:flex;align-items:baseline;gap:7px"><span style="font-size:15px;color:#f0c020;line-height:1">✦</span><span id="stars-count" style="font-family:'Castoro',serif;font-size:18px;font-weight:700;color:rgba(255,255,255,.85)">${totalStars}</span></span>`;
   if(streak > 0){
     starsHtml += `<span style="display:flex;align-items:baseline;gap:7px"><span style="font-size:15px;color:#e8804a;line-height:1">〰</span><span style="font-family:'Castoro',serif;font-size:18px;font-weight:700;color:rgba(255,255,255,.85)">${streak}</span></span>`;
@@ -92,22 +92,6 @@ export function renderEveningList(){
   list.appendChild(starsRow);
 
   const history = JSON.parse(localStorage.getItem('inkflow_task_history')||'[]');
-  if(history.length > 0){
-    const histSection = document.createElement('div');
-    histSection.className = 'evening-completed-section';
-    histSection.innerHTML = `
-      <div class="evening-completed-label">
-        <span>Task completate</span>
-      </div>
-      ${history.slice().reverse().map(h=>`
-        <div class="evening-completed-item">
-          <span style="color:${h.color||'#4ab8d8'}" class="evening-completed-proj">${h.project}</span>
-          <span style="flex:1">${h.task}</span>
-          <span style="font-size:10px;opacity:.4">${h.date}</span>
-        </div>`).join('')}`;
-    list.appendChild(histSection);
-  }
-
   const active = projects.filter(p => p.microtask && p.microtask.trim());
 
   if(active.length === 0 && history.length === 0){
@@ -118,6 +102,7 @@ export function renderEveningList(){
     return;
   }
 
+  // ── DA FARE STASERA (sopra) ──
   if(active.length > 0){
     const activeLabel = document.createElement('div');
     activeLabel.style.cssText = 'font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.3);margin-bottom:8px;margin-top:4px';
@@ -156,8 +141,23 @@ export function renderEveningList(){
     });
   }
 
-  const history2 = JSON.parse(localStorage.getItem('inkflow_task_history')||'[]');
-  if(history2.length > 0){
+  // ── TASK COMPLETATE (sotto) ──
+  if(history.length > 0){
+    const histSection = document.createElement('div');
+    histSection.className = 'evening-completed-section';
+    histSection.style.marginTop = active.length > 0 ? '24px' : '4px';
+    histSection.innerHTML = `
+      <div class="evening-completed-label">
+        <span>Task completate</span>
+      </div>
+      ${history.slice().reverse().map(h=>`
+        <div class="evening-completed-item">
+          <span style="color:${h.color||'#4ab8d8'}" class="evening-completed-proj">${h.project}</span>
+          <span style="flex:1">${h.task}</span>
+          <span style="font-size:10px;opacity:.4">${h.date}</span>
+        </div>`).join('')}`;
+    list.appendChild(histSection);
+
     const clearBtn = document.createElement('div');
     clearBtn.style.cssText = 'text-align:center;margin-top:20px;padding-bottom:8px';
     clearBtn.innerHTML = `<button onclick="clearTaskHistory()" style="background:none;border:1px solid rgba(255,255,255,.15);border-radius:20px;padding:7px 20px;font-family:'Nunito',sans-serif;font-size:12px;color:rgba(255,255,255,.3);cursor:pointer">clear</button>`;
