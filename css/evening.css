@@ -5,6 +5,18 @@
   background:linear-gradient(160deg, #0d1f3c 0%, #071428 40%, #040d1a 100%);
   overflow:hidden;
 }
+.evening-stars{
+  position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden;
+}
+.evening-stars .star{
+  position:absolute;color:rgba(255,255,255,.5);line-height:1;
+  user-select:none;animation:starTwinkle ease-in-out infinite;
+}
+@keyframes starTwinkle{
+  0%,100%{opacity:.15}
+  50%{opacity:.9}
+}
+.evening-header, .evening-scroll{position:relative;z-index:1}
 .evening-header{
   padding:calc(24px + var(--safe-top)) 24px 10px;
   position:relative;overflow:hidden;flex-shrink:0;

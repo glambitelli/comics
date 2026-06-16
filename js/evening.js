@@ -4,8 +4,33 @@ import { drawGem } from './canvas.js';
 
 export function enterEveningMode(){
   renderEveningList();
+  renderStarfield();
   document.getElementById('screen-home').classList.remove('active');
   document.getElementById('screen-evening').classList.add('active');
+}
+
+function renderStarfield(){
+  const cont = document.getElementById('evening-stars');
+  if(!cont || cont.dataset.filled) return; // genera una sola volta
+  const glyphs = ['✦','✧','⋆','·','✦','·','✧'];
+  const N = 46;
+  let html = '';
+  for(let i=0;i<N;i++){
+    const g = glyphs[Math.floor(Math.random()*glyphs.length)];
+    const top = Math.random()*100;
+    const left = Math.random()*100;
+    // stelle più piccole e fitte in alto, qualcuna più grande
+    const size = Math.random()<0.15 ? (9+Math.random()*5) : (5+Math.random()*4);
+    const dur = 3 + Math.random()*5;
+    const delay = Math.random()*5;
+    const baseOp = 0.2 + Math.random()*0.4;
+    // tono: per lo più bianco freddo, qualche stella oro tenue
+    const gold = Math.random()<0.2;
+    const color = gold ? 'rgba(240,200,120,'+baseOp.toFixed(2)+')' : 'rgba(255,255,255,'+baseOp.toFixed(2)+')';
+    html += `<span class="star" style="top:${top.toFixed(1)}%;left:${left.toFixed(1)}%;font-size:${size.toFixed(1)}px;color:${color};animation-duration:${dur.toFixed(1)}s;animation-delay:${delay.toFixed(1)}s">${g}</span>`;
+  }
+  cont.innerHTML = html;
+  cont.dataset.filled = '1';
 }
 
 export function exitEveningMode(){
