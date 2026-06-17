@@ -3,7 +3,7 @@ import { projects, setProjects, currentId, getProject } from './state.js';
 import { saveDates } from './velocity.js';
 import { exportPDF, exportStoryboard } from './pdf.js';
 import { togglePhase, toggleStep, selectTav, addSfida } from './pipeline.js';
-import { addScene, updateScene, deleteScene, autoResize, saveStoryField, updateCharCount, toggleSubsection, addCharacter, deleteCharacter, toggleCharCard, autoResizeAll, toggleScreenplay } from './story.js';
+import { addScene, updateScene, deleteScene, autoResize, saveStoryField, updateCharCount, toggleSubsection, addCharacter, deleteCharacter, toggleCharCard, autoResizeAll, toggleScreenplay, addSceneText, deleteSceneText } from './story.js';
 import { updatePlanner, applyPlanner, openPlannerModal, closePlannerModal } from './planner.js';
 import { initNotifications, saveReminderSettings, testNotification } from './notifications.js';
 import { openSettings, closeSettings, resetStarsConfirm, closeStarsConfirm, doResetStars, exportBackup, importBackup, resetStreakConfirm, closeStreakConfirm, doResetStreak } from './settings.js';
@@ -61,14 +61,17 @@ onSnapshot(collection(db, COL), snapshot => {
     return (a.createdAt||0) > (b.createdAt||0) ? 1 : -1;
   });
   syncDot('ok');
-  renderHome();
-  attachCardDrag();
-  startSandstorm();
-  // Citazione del giorno nella home
-  const hq=document.getElementById('home-quote');
-  if(hq){
-    const tip=getTodayTip();
-    hq.innerHTML=`<div style="font-size:13px;line-height:1.65;color:var(--ink2);font-style:italic">"${tip.text}"</div><div style="font-size:11px;color:var(--ink3);margin-top:8px;font-weight:700;letter-spacing:.03em">— ${tip.author}</div>`;
+  // Ridisegna la home solo se è effettivamente visibile (evita lavoro sprecato mentre scrivi in un progetto)
+  const homeVisible = document.getElementById('screen-home').classList.contains('active');
+  if(homeVisible){
+    renderHome();
+    attachCardDrag();
+    startSandstorm();
+    const hq=document.getElementById('home-quote');
+    if(hq){
+      const tip=getTodayTip();
+      hq.innerHTML=`<div style="font-size:13px;line-height:1.65;color:var(--ink2);font-style:italic">"${tip.text}"</div><div style="font-size:11px;color:var(--ink3);margin-top:8px;font-weight:700;letter-spacing:.03em">— ${tip.author}</div>`;
+    }
   }
   if(currentId){
     const p = getProject(currentId);
@@ -82,7 +85,7 @@ onSnapshot(collection(db, COL), snapshot => {
 });
 
 window.openNewModal=openNewModal; window.closeModal=closeModal; window.createProject=createProject;
-window.goHome=goHome; window.openProject=openProject; window.togglePhase=togglePhase;
+window.goHome=()=>{ goHome(); renderHome(); attachCardDrag(); }; window.openProject=openProject; window.togglePhase=togglePhase;
 window.toggleStep=toggleStep; window.selectTav=selectTav; window.addSfida=addSfida;
 window.saveDates=saveDates; window.confirmDeleteCurrent=confirmDeleteCurrent; window.closeConfirm=closeConfirm;
 window.exportPDF=exportPDF; window.exportStoryboard=exportStoryboard; window.addScene=addScene; window.updateScene=updateScene;
@@ -92,7 +95,7 @@ window.testNotification=testNotification; window.updatePlanner=updatePlanner;
 window.applyPlanner=applyPlanner; window.openPlannerModal=openPlannerModal;
 window.closePlannerModal=closePlannerModal; window.toggleSubsection=toggleSubsection;
 window.addCharacter=addCharacter; window.deleteCharacter=deleteCharacter;
-window.toggleCharCard=toggleCharCard; window.toggleScreenplay=toggleScreenplay; window.confirmMicrotask=confirmMicrotask;
+window.toggleCharCard=toggleCharCard; window.toggleScreenplay=toggleScreenplay; window.addSceneText=addSceneText; window.deleteSceneText=deleteSceneText; window.confirmMicrotask=confirmMicrotask;
 window.openSettings=openSettings; window.closeSettings=closeSettings;
 window.resetStarsConfirm=resetStarsConfirm; window.closeStarsConfirm=closeStarsConfirm;
 window.doResetStars=doResetStars; window.exportBackup=exportBackup; window.importBackup=importBackup;
@@ -123,41 +126,29 @@ loadUserData();
 initNotifications();
 
 // ── PULSANTE COPIA — piccolo tasto sotto i campi di testo lunghi ──
-(function(){
-  // Aggiunge un pulsantino "copia" discreto in basso a destra di textarea con contenuto.
-  // La selezione normale del testo resta intatta (niente menu contestuale custom).
-  function addCopyButtons(){
-    const areas = document.querySelectorAll('textarea.story-textarea, textarea.char-desc-v2');
-    areas.forEach(ta=>{
-      if(ta.dataset.copyWired) return;
-      ta.dataset.copyWired = '1';
-      // Wrapper relativo per posizionare il bottone
-      const host = ta.parentElement;
-      if(host && getComputedStyle(host).position === 'static'){
-        host.style.position = 'relative';
-      }
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'field-copy-btn';
-      btn.textContent = 'copia';
-      btn.title = 'Copia tutto il testo';
-      btn.addEventListener('click', (e)=>{
-        e.preventDefault();
-        if(!ta.value.trim()) return;
-        navigator.clipboard.writeText(ta.value).then(()=>{
-          btn.textContent = '✓ copiato';
-          setTimeout(()=>{ btn.textContent='copia'; }, 1200);
-        });
+function wireCopyButtons(){
+  const areas = document.querySelectorAll('textarea.story-textarea, textarea.char-desc-v2');
+  areas.forEach(ta=>{
+    if(ta.dataset.copyWired) return;
+    ta.dataset.copyWired = '1';
+    const host = ta.parentElement;
+    if(host && host.style.position !== 'relative'){
+      host.style.position = 'relative';
+    }
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'field-copy-btn';
+    btn.textContent = 'copia';
+    btn.title = 'Copia tutto il testo';
+    btn.addEventListener('click', (e)=>{
+      e.preventDefault();
+      if(!ta.value.trim()) return;
+      navigator.clipboard.writeText(ta.value).then(()=>{
+        btn.textContent = '✓ copiato';
+        setTimeout(()=>{ btn.textContent='copia'; }, 1200);
       });
-      host.appendChild(btn);
     });
-  }
-  // Riapplica quando il DOM cambia (cambio progetto, render personaggi, ecc.) con debounce
-  let deb = null;
-  const obs = new MutationObserver(()=>{
-    if(deb) clearTimeout(deb);
-    deb = setTimeout(addCopyButtons, 200);
+    host.appendChild(btn);
   });
-  obs.observe(document.body, {childList:true, subtree:true});
-  addCopyButtons();
-})();
+}
+window.wireCopyButtons = wireCopyButtons;

@@ -82,6 +82,8 @@ export function restoreStoryFields(p){
 
   renderActBoard(p);
   restoreWorldFields(p);
+  renderScenes(p);
+  if(window.wireCopyButtons) window.wireCopyButtons();
 }
 
 export function renderActBoard(p){
@@ -97,7 +99,7 @@ export function renderActBoard(p){
 
   const toggleRow=document.createElement('div');
   toggleRow.style.cssText='display:flex;justify-content:flex-end;margin-bottom:8px';
-  toggleRow.innerHTML='<button onclick="toggleScreenplay()" style="font-size:11px;padding:5px 12px;border-radius:8px;border:1.5px solid var(--sand3);background:var(--white);color:var(--ink2);cursor:pointer;font-family:\'Nunito\',sans-serif;font-weight:600">📜 Vista sceneggiatura</button>';
+  toggleRow.innerHTML='<button onclick="toggleScreenplay()" style="font-size:11px;padding:4px 2px;border:none;background:none;color:var(--ink3);cursor:pointer;font-family:\'Nunito\',sans-serif;font-weight:700;letter-spacing:.04em;display:flex;align-items:center;gap:5px;opacity:.7"><span style="font-size:13px">☰</span> sceneggiatura</button>';
   board.appendChild(toggleRow);
   ACT_CONFIG.forEach((act,ai)=>{
     const scenes=p.story.acts[act.id]||[];
@@ -356,6 +358,7 @@ export function renderCharacters(p){
   });
 
   attachCharDrag(p);
+  if(window.wireCopyButtons) window.wireCopyButtons();
 }
 
 function attachCharDrag(p){
@@ -422,7 +425,7 @@ function renderScreenplay(p){
   // Toggle per tornare
   const toggleRow=document.createElement('div');
   toggleRow.style.cssText='display:flex;justify-content:flex-end;margin-bottom:14px';
-  toggleRow.innerHTML='<button onclick="toggleScreenplay()" style="font-size:11px;padding:5px 12px;border-radius:8px;border:1.5px solid var(--sand3);background:var(--white);color:var(--ink2);cursor:pointer;font-family:\'Nunito\',sans-serif;font-weight:600">▦ Vista board</button>';
+  toggleRow.innerHTML='<button onclick="toggleScreenplay()" style="font-size:11px;padding:4px 2px;border:none;background:none;color:var(--ink3);cursor:pointer;font-family:\'Nunito\',sans-serif;font-weight:700;letter-spacing:.04em;display:flex;align-items:center;gap:5px;opacity:.7"><span style="font-size:13px">▦</span> board</button>';
   wrap.appendChild(toggleRow);
 
   let html='';
@@ -461,4 +464,114 @@ function renderScreenplay(p){
 
 function escHtml(s){
   return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── SCENE — quaderno di scrittura libera con promozione alla board ──
+export function renderScenes(p){
+  const wrap = document.getElementById('scenes-wrap');
+  if(!wrap) return;
+  if(!p.story) p.story={};
+  if(!p.story.scenes) p.story.scenes=[];
+  wrap.innerHTML='';
+
+  p.story.scenes.forEach((sc, i)=>{
+    const card = document.createElement('div');
+    card.className = 'scene-write-card';
+
+    // Header: titolo editabile + azioni
+    const head = document.createElement('div');
+    head.className = 'scene-write-head';
+
+    const titleInput = document.createElement('input');
+    titleInput.type = 'text';
+    titleInput.className = 'scene-write-title';
+    titleInput.value = sc.title || '';
+    titleInput.placeholder = `Scena ${i+1}`;
+    titleInput.addEventListener('input', function(){
+      const p=getProject(currentId); if(!p||!p.story||!p.story.scenes) return;
+      p.story.scenes[i].title = this.value;
+      scheduleSave(p);
+    });
+
+    const actions = document.createElement('div');
+    actions.className = 'scene-write-actions';
+
+    // Pulsante promozione alla board
+    const promoteBtn = document.createElement('button');
+    promoteBtn.className = 'scene-promote-btn';
+    promoteBtn.innerHTML = sc.promoted ? '✓ in struttura' : '→ struttura';
+    promoteBtn.title = 'Aggiungi questa scena alla struttura a 3 atti';
+    if(sc.promoted) promoteBtn.classList.add('promoted');
+    promoteBtn.onclick = ()=> promoteSceneToBoard(i);
+
+    const delBtn = document.createElement('button');
+    delBtn.className = 'scene-write-del';
+    delBtn.textContent = '×';
+    delBtn.onclick = ()=> deleteSceneText(i);
+
+    actions.appendChild(promoteBtn);
+    actions.appendChild(delBtn);
+    head.appendChild(titleInput);
+    head.appendChild(actions);
+
+    // Corpo: scrittura libera
+    const body = document.createElement('textarea');
+    body.className = 'scene-write-body';
+    body.value = sc.text || '';
+    body.placeholder = 'Scrivi la scena — prosa, dialoghi, regia, dettagli…';
+    body.addEventListener('input', function(){
+      const p=getProject(currentId); if(!p||!p.story||!p.story.scenes) return;
+      p.story.scenes[i].text = this.value;
+      this.style.height='auto';
+      this.style.height=this.scrollHeight+'px';
+      scheduleSave(p);
+    });
+    requestAnimationFrame(()=>{ body.style.height='auto'; body.style.height=body.scrollHeight+'px'; });
+
+    card.appendChild(head);
+    card.appendChild(body);
+    wrap.appendChild(card);
+  });
+}
+
+export function addSceneText(){
+  const p=getProject(currentId); if(!p) return;
+  if(!p.story) p.story={};
+  if(!p.story.scenes) p.story.scenes=[];
+  p.story.scenes.push({ title:'', text:'', promoted:false });
+  scheduleSave(p);
+  renderScenes(p);
+  // focus sull'ultima
+  const bodies = document.querySelectorAll('.scene-write-body');
+  if(bodies.length) bodies[bodies.length-1].focus();
+}
+
+export function deleteSceneText(i){
+  const p=getProject(currentId); if(!p||!p.story||!p.story.scenes) return;
+  p.story.scenes.splice(i,1);
+  scheduleSave(p);
+  renderScenes(p);
+}
+
+function promoteSceneToBoard(i){
+  const p=getProject(currentId); if(!p||!p.story||!p.story.scenes) return;
+  const sc = p.story.scenes[i];
+  if(sc.promoted) return; // già promossa
+  if(!p.story.acts) p.story.acts={setup:[],confrontation:[],resolution:[]};
+  // Aggiunge come riga nel primo atto (Setup); poi l'utente la sposta dove vuole
+  const label = (sc.title && sc.title.trim()) ? sc.title.trim() : `Scena ${i+1}`;
+  p.story.acts.setup.push(label);
+  p.story.scenes[i].promoted = true;
+  scheduleSave(p);
+  renderScenes(p);
+  renderActBoard(p);
+  // Feedback visivo
+  const wrap = document.getElementById('scenes-wrap');
+  if(wrap){
+    const btns = wrap.querySelectorAll('.scene-promote-btn');
+    if(btns[i]){
+      btns[i].innerHTML = '✓ in struttura';
+      btns[i].classList.add('promoted');
+    }
+  }
 }

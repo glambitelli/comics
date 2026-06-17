@@ -77,3 +77,17 @@
 /* lo story-textarea e char-desc hanno spazio sotto per il bottone */
 .story-textarea{padding-bottom:26px}
 .char-card-v2{padding-bottom:30px}
+
+/* SCENE — quaderno di scrittura libera */
+.scene-write-card{background:var(--white);border-radius:12px;border:1.5px solid var(--sand2);padding:12px 14px;margin-bottom:10px;box-shadow:var(--shadow)}
+.scene-write-head{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.scene-write-title{flex:1;min-width:0;background:none;border:none;outline:none;font-family:'Castoro',serif;font-size:15px;font-weight:700;color:var(--ink);padding:0}
+.scene-write-title::placeholder{color:var(--ink3);font-style:italic;font-weight:400}
+.scene-write-actions{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.scene-promote-btn{font-size:10px;font-weight:700;letter-spacing:.03em;color:var(--sky-deep);background:none;border:1.5px solid var(--sky);border-radius:8px;padding:4px 10px;cursor:pointer;font-family:'Nunito',sans-serif;white-space:nowrap;transition:all .15s}
+.scene-promote-btn:active{background:var(--sky-pale)}
+.scene-promote-btn.promoted{color:var(--green);border-color:var(--green);opacity:.8;cursor:default}
+.scene-write-del{font-size:18px;color:var(--ink3);background:none;border:none;cursor:pointer;padding:0 4px;line-height:1;flex-shrink:0}
+.scene-write-del:active{color:var(--coral)}
+.scene-write-body{width:100%;background:none;border:none;outline:none;font-family:'Nunito',sans-serif;font-size:14px;color:var(--ink);line-height:1.65;resize:none;overflow:hidden;min-height:80px;padding:0}
+.scene-write-body::placeholder{color:var(--ink3)}
