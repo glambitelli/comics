@@ -19,6 +19,14 @@ const USER_DOC = 'inkflow_user_data';
 // Re-export Firestore primitives per evitare importazioni CDN duplicate
 export { collection, doc, onSnapshot, deleteDoc, setDoc };
 
+// ── CACHE LOCALE PROGETTI — per avvio istantaneo ──
+export function cacheProjects(projs){
+  try{ localStorage.setItem('inkflow_projects_cache', JSON.stringify(projs)); }catch(e){}
+}
+export function getCachedProjects(){
+  try{ return JSON.parse(localStorage.getItem('inkflow_projects_cache')||'[]'); }catch(e){ return []; }
+}
+
 export function syncDot(state){
   ['sync-dot','sync-dot-evening'].forEach(id=>{
     const d=document.getElementById(id); if(!d) return;

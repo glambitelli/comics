@@ -1,4 +1,4 @@
-import { db, COL, syncDot, loadUserData, collection, onSnapshot } from './firebase.js';
+import { db, COL, syncDot, loadUserData, collection, onSnapshot, cacheProjects, getCachedProjects } from './firebase.js';
 import { projects, setProjects, currentId, getProject } from './state.js';
 import { saveDates } from './velocity.js';
 import { exportPDF, exportStoryboard } from './pdf.js';
@@ -34,8 +34,26 @@ function hideLoading(){
 
 hideLoading();
 
+// ── AVVIO ISTANTANEO — mostra subito i progetti dalla cache locale ──
+(function showCachedImmediately(){
+  const cached = getCachedProjects();
+  if(cached.length > 0){
+    setProjects(cached);
+    applyProjectOrder();
+    renderHome();
+    attachCardDrag();
+    startSandstorm();
+    const hq=document.getElementById('home-quote');
+    if(hq){
+      const tip=getTodayTip();
+      hq.innerHTML=`<div style="font-size:13px;line-height:1.65;color:var(--ink2);font-style:italic">"${tip.text}"</div><div style="font-size:11px;color:var(--ink3);margin-top:8px;font-weight:700;letter-spacing:.03em">— ${tip.author}</div>`;
+    }
+  }
+})();
+
 onSnapshot(collection(db, COL), snapshot => {
   setProjects(snapshot.docs.map(d => ({id: d.id, ...d.data()})));
+  cacheProjects(projects);
   applyProjectOrder();
   projects.sort((a,b)=>{
     const order = JSON.parse(localStorage.getItem('inkflow_order')||'[]');

@@ -275,9 +275,12 @@ export function selectProjectColor(color){
 
 // ── TEMPESTA DI SABBIA — sfondo atmosferico leggero della home ──
 let _sandAnim = null;
+let _sandStarted = false;
 export function startSandstorm(){
+  if(_sandStarted) return;
   const canvas = document.getElementById('home-sand');
   if(!canvas) return;
+  _sandStarted = true;
   const ctx = canvas.getContext('2d');
   let W, H, particles;
 
@@ -293,18 +296,18 @@ export function startSandstorm(){
   const rectW = canvas.getBoundingClientRect().width;
   const rectH = canvas.getBoundingClientRect().height;
 
-  // Particelle di sabbia: piccole, tenui, si muovono in diagonale lenta
-  const COUNT = Math.round((rectW*rectH)/9000); // densità proporzionata
+  // Particelle di sabbia: piccolissime, molto tenui, deriva lenta
+  const COUNT = Math.min(70, Math.round((rectW*rectH)/16000)); // densità bassa, cap a 70
   particles = [];
   const sandColors = ['rgba(210,180,140,', 'rgba(196,164,120,', 'rgba(222,196,150,', 'rgba(180,150,110,'];
   for(let i=0;i<COUNT;i++){
     particles.push({
       x: Math.random()*rectW,
       y: Math.random()*rectH,
-      r: 0.4 + Math.random()*1.3,
-      vx: 0.3 + Math.random()*0.7,   // deriva orizzontale verso destra
-      vy: (-0.15 + Math.random()*0.3),
-      a: 0.08 + Math.random()*0.18,  // opacità tenue
+      r: 0.3 + Math.random()*0.8,    // granelli minuti
+      vx: 0.15 + Math.random()*0.4,  // deriva lenta
+      vy: (-0.08 + Math.random()*0.16),
+      a: 0.04 + Math.random()*0.1,   // molto tenui
       c: sandColors[Math.floor(Math.random()*sandColors.length)]
     });
   }
