@@ -2,7 +2,8 @@ import { projects } from './state.js';
 import { getStreak } from './evening.js';
 
 // ── CITAZIONI & TIPS VERIFICATI ──
-// Fonti: Moebius "Breve manual para historietistas" (1996); Miyazaki "Starting Point"
+// Fonti: Moebius "Breve manual para historietistas" (1996); Miyazaki "Starting Point";
+// James Cameron (MasterClass, intervista Charlie Rose, Variety); Quentin Tarantino (interviste Creative Screenwriting, Far Out)
 const TIPS = [
   { text:"Quando disegni, devi prima liberarti dei sentimenti profondi come odio, felicità, ambizione. Questi funzionano come un blocco alla creatività.", author:"Moebius" },
   { text:"È importantissimo educare la mano. Falle raggiungere un alto livello di obbedienza, così potrà esprimere pienamente le tue idee.", author:"Moebius" },
@@ -14,6 +15,20 @@ const TIPS = [
   { text:"Molti realizzano opere con un altissimo livello tecnico, ma con un'idea molto sfocata di cosa vogliono davvero dire.", author:"Hayao Miyazaki" },
   { text:"Se non passi del tempo a osservare le persone reali, non puoi disegnarle: non le hai mai viste davvero.", author:"Hayao Miyazaki" },
   { text:"Traggo ispirazione dalla mia vita di tutti i giorni.", author:"Hayao Miyazaki" },
+  // ── James Cameron ──
+  { text:"Devi trovare una chiave per il cuore del pubblico: universali dell'esperienza umana, espressi in modi nuovi ed esotici.", author:"James Cameron" },
+  { text:"Comincio sempre dal finale: mi chiedo se mi emozionerà il punto in cui tutto va a finire.", author:"James Cameron" },
+  { text:"Ci deve essere conflitto: i personaggi si rivelano attraverso il conflitto, il tradimento e la perdita.", author:"James Cameron" },
+  { text:"Il peggio che puoi avere è che tutti siano d'accordo dalla stessa parte dell'argomento.", author:"James Cameron" },
+  { text:"Lo scopo del raccontare storie è vivere fuori da te stesso, ma deve esserci un legame con ciò che sei.", author:"James Cameron" },
+  { text:"Scrivere una sceneggiatura è come fare giocoleria: quante palle riesci a tenere in aria insieme?", author:"James Cameron" },
+  { text:"Molti non realizzano i loro sogni perché ci pensano troppo, o sono troppo cauti per fare il salto.", author:"James Cameron" },
+  // ── Quentin Tarantino ──
+  { text:"Metto i personaggi nella stanza insieme e li lascio parlare: sono loro a fare la maggior parte del lavoro.", author:"Quentin Tarantino" },
+  { text:"So come deve finire la scena, ma non scrivo i dialoghi in modo strategico.", author:"Quentin Tarantino" },
+  { text:"L'idea è che la conversazione prenda fuoco tra i personaggi.", author:"Quentin Tarantino" },
+  { text:"Prometti al pubblico, fin dalle prime battute, che sta per succedere qualcosa di interessante.", author:"Quentin Tarantino" },
+  { text:"Conta ogni parola: a volte ciò che non viene detto è potente quanto ciò che si dice.", author:"Quentin Tarantino" },
 ];
 
 export function getTodayTip(){

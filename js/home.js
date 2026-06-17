@@ -280,36 +280,38 @@ export function startSandstorm(){
   if(_sandStarted) return;
   const canvas = document.getElementById('home-sand');
   if(!canvas) return;
-  _sandStarted = true;
   const ctx = canvas.getContext('2d');
-  let W, H, particles;
+  let rectW = 0, rectH = 0, particles = [];
+  const sandColors = ['rgba(170,140,100,', 'rgba(150,120,85,', 'rgba(190,160,115,', 'rgba(160,130,95,'];
 
-  function resize(){
+  function measure(){
     const rect = canvas.getBoundingClientRect();
+    rectW = rect.width;
+    rectH = rect.height;
+    return rectW > 0 && rectH > 0;
+  }
+
+  function setupCanvas(){
     const dpr = Math.min(window.devicePixelRatio||1, 2);
-    W = canvas.width = rect.width * dpr;
-    H = canvas.height = rect.height * dpr;
+    canvas.width = rectW * dpr;
+    canvas.height = rectH * dpr;
     ctx.setTransform(dpr,0,0,dpr,0,0);
   }
-  resize();
 
-  const rectW = canvas.getBoundingClientRect().width;
-  const rectH = canvas.getBoundingClientRect().height;
-
-  // Particelle di sabbia: piccolissime, molto tenui, deriva lenta
-  const COUNT = Math.min(70, Math.round((rectW*rectH)/16000)); // densità bassa, cap a 70
-  particles = [];
-  const sandColors = ['rgba(210,180,140,', 'rgba(196,164,120,', 'rgba(222,196,150,', 'rgba(180,150,110,'];
-  for(let i=0;i<COUNT;i++){
-    particles.push({
-      x: Math.random()*rectW,
-      y: Math.random()*rectH,
-      r: 0.3 + Math.random()*0.8,    // granelli minuti
-      vx: 0.15 + Math.random()*0.4,  // deriva lenta
-      vy: (-0.08 + Math.random()*0.16),
-      a: 0.04 + Math.random()*0.1,   // molto tenui
-      c: sandColors[Math.floor(Math.random()*sandColors.length)]
-    });
+  function buildParticles(){
+    const COUNT = Math.max(24, Math.min(90, Math.round((rectW*rectH)/12000)));
+    particles = [];
+    for(let i=0;i<COUNT;i++){
+      particles.push({
+        x: Math.random()*rectW,
+        y: Math.random()*rectH,
+        r: 0.4 + Math.random()*1.1,    // granelli minuti ma visibili
+        vx: 0.18 + Math.random()*0.5,  // deriva lenta
+        vy: (-0.1 + Math.random()*0.2),
+        a: 0.14 + Math.random()*0.20,  // visibili sul fondo chiaro
+        c: sandColors[Math.floor(Math.random()*sandColors.length)]
+      });
+    }
   }
 
   function tick(){
@@ -317,7 +319,6 @@ export function startSandstorm(){
     particles.forEach(p=>{
       p.x += p.vx;
       p.y += p.vy;
-      // wrap ai bordi
       if(p.x > rectW+5){ p.x = -5; p.y = Math.random()*rectH; }
       if(p.y < -5) p.y = rectH+5;
       if(p.y > rectH+5) p.y = -5;
@@ -329,8 +330,22 @@ export function startSandstorm(){
     _sandAnim = requestAnimationFrame(tick);
   }
 
-  if(_sandAnim) cancelAnimationFrame(_sandAnim);
-  tick();
-
-  window.addEventListener('resize', ()=>{ resize(); }, {passive:true});
+  // Aspetta che il canvas abbia dimensioni reali (lo schermo home dev'essere visibile)
+  let attempts = 0;
+  function tryStart(){
+    if(measure()){
+      _sandStarted = true;
+      setupCanvas();
+      buildParticles();
+      if(_sandAnim) cancelAnimationFrame(_sandAnim);
+      tick();
+      window.addEventListener('resize', ()=>{
+        if(measure()){ setupCanvas(); buildParticles(); }
+      }, {passive:true});
+    } else if(attempts++ < 60){
+      // riprova finché lo schermo non è visibile (max ~6s)
+      setTimeout(tryStart, 100);
+    }
+  }
+  tryStart();
 }
