@@ -288,6 +288,14 @@ export function startSandstorm(){
     const rect = canvas.getBoundingClientRect();
     rectW = rect.width;
     rectH = rect.height;
+    // Fallback: se il canvas non ha dimensioni ma la finestra sì, usa quelle
+    if((rectW<=0||rectH<=0) && window.innerWidth>0){
+      const screen = document.getElementById('screen-home');
+      if(screen && screen.classList.contains('active')){
+        rectW = window.innerWidth;
+        rectH = window.innerHeight;
+      }
+    }
     return rectW > 0 && rectH > 0;
   }
 
