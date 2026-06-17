@@ -74,6 +74,13 @@
 .step-nm{font-size:15px;font-weight:700;margin-bottom:2px;color:var(--ink)}
 .step-nm.done{color:var(--ink3);text-decoration:line-through}
 .step-ds{font-size:12px;color:var(--ink2);line-height:1.55;font-weight:400}
+
+/* BLOCCHI DI SUPPORTO (Taccuino, Scene) — allineati agli step ma non spuntabili */
+.support-block{border-bottom:1px solid var(--sand)}
+.support-block .step-item{border-bottom:none}
+.support-block .step-item:active{background:none}
+.support-dot{width:22px;height:22px;border-radius:50%;flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;position:relative}
+.support-dot::after{content:'';width:7px;height:7px;border-radius:50%;background:var(--white);opacity:.9}
 .tag{font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;margin-left:5px;vertical-align:middle}
 .wm{background:var(--gold-pale);color:#8a6800}
 .ws{background:var(--sky-pale);color:var(--sky-deep)}

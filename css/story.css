@@ -86,7 +86,8 @@
 .scene-write-actions{display:flex;align-items:center;gap:6px;flex-shrink:0}
 .scene-promote-btn{font-size:10px;font-weight:700;letter-spacing:.03em;color:var(--sky-deep);background:none;border:1.5px solid var(--sky);border-radius:8px;padding:4px 10px;cursor:pointer;font-family:'Nunito',sans-serif;white-space:nowrap;transition:all .15s}
 .scene-promote-btn:active{background:var(--sky-pale)}
-.scene-promote-btn.promoted{color:var(--green);border-color:var(--green);opacity:.8;cursor:default}
+.scene-promote-btn.promoted{color:var(--green);border-color:var(--green);opacity:.8;cursor:pointer}
+.scene-promote-btn.promoted:active{color:var(--coral);border-color:var(--coral)}
 .scene-write-del{font-size:18px;color:var(--ink3);background:none;border:none;cursor:pointer;padding:0 4px;line-height:1;flex-shrink:0}
 .scene-write-del:active{color:var(--coral)}
 .scene-write-body{width:100%;background:none;border:none;outline:none;font-family:'Nunito',sans-serif;font-size:14px;color:var(--ink);line-height:1.65;resize:none;overflow:hidden;min-height:80px;padding:0}

@@ -59,7 +59,7 @@ export function restoreStoryFields(p){
       if(!p.story)p.story={};
       p.story.taccuino=val;
       scheduleSave(p);
-    }, {placeholder:'Scrivi liberamente — idee, spunti, direzioni narrative…', minHeight:'80px', bg:'#fdf8e8', border:'#e8d898'});
+    }, {placeholder:'Scrivi liberamente — idee, spunti, direzioni narrative…', minHeight:'80px'});
   }
 
   const soggettoWrap = document.getElementById('soggetto-wrap');
@@ -500,7 +500,7 @@ export function renderScenes(p){
     const promoteBtn = document.createElement('button');
     promoteBtn.className = 'scene-promote-btn';
     promoteBtn.innerHTML = sc.promoted ? '✓ in struttura' : '→ struttura';
-    promoteBtn.title = 'Aggiungi questa scena alla struttura a 3 atti';
+    promoteBtn.title = sc.promoted ? 'Premi per togliere dalla struttura' : 'Aggiungi questa scena alla struttura a 3 atti';
     if(sc.promoted) promoteBtn.classList.add('promoted');
     promoteBtn.onclick = ()=> promoteSceneToBoard(i);
 
@@ -556,22 +556,26 @@ export function deleteSceneText(i){
 function promoteSceneToBoard(i){
   const p=getProject(currentId); if(!p||!p.story||!p.story.scenes) return;
   const sc = p.story.scenes[i];
-  if(sc.promoted) return; // già promossa
   if(!p.story.acts) p.story.acts={setup:[],confrontation:[],resolution:[]};
-  // Aggiunge come riga nel primo atto (Setup); poi l'utente la sposta dove vuole
-  const label = (sc.title && sc.title.trim()) ? sc.title.trim() : `Scena ${i+1}`;
-  p.story.acts.setup.push(label);
-  p.story.scenes[i].promoted = true;
+
+  if(sc.promoted){
+    // ── DE-PROMUOVI — rimuove la scena dalla board ──
+    const promotedLabel = sc.promotedLabel || ((sc.title && sc.title.trim()) ? sc.title.trim() : `Scena ${i+1}`);
+    ['setup','confrontation','resolution'].forEach(act=>{
+      const idx = (p.story.acts[act]||[]).indexOf(promotedLabel);
+      if(idx !== -1) p.story.acts[act].splice(idx, 1);
+    });
+    p.story.scenes[i].promoted = false;
+    delete p.story.scenes[i].promotedLabel;
+  } else {
+    // ── PROMUOVI — aggiunge la scena al primo atto ──
+    const label = (sc.title && sc.title.trim()) ? sc.title.trim() : `Scena ${i+1}`;
+    p.story.acts.setup.push(label);
+    p.story.scenes[i].promoted = true;
+    p.story.scenes[i].promotedLabel = label; // memorizza per poterla rimuovere
+  }
+
   scheduleSave(p);
   renderScenes(p);
   renderActBoard(p);
-  // Feedback visivo
-  const wrap = document.getElementById('scenes-wrap');
-  if(wrap){
-    const btns = wrap.querySelectorAll('.scene-promote-btn');
-    if(btns[i]){
-      btns[i].innerHTML = '✓ in struttura';
-      btns[i].classList.add('promoted');
-    }
-  }
 }

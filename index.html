@@ -137,23 +137,31 @@
         <div class="phase-chev open" id="ph1-chev">▾</div>
       </div>
       <div class="phase-body open" id="ph1-body">
-        <!-- TACCUINO — blocco di supporto, senza spunta -->
-        <div style="margin:8px 16px 4px;background:#fdf6d8;border-radius:10px;border:1.5px solid #e8d898;overflow:hidden">
-          <div style="padding:10px 14px 6px;display:flex;align-items:center;gap:8px">
-            <span style="font-size:15px;font-weight:700;color:var(--ink)">📓 Taccuino</span>
-            <span style="font-size:11px;color:var(--ink3);font-weight:400">idee grezze · appunti · direzioni narrative</span>
+        <!-- TACCUINO — blocco di supporto -->
+        <div class="support-block" style="border-left:3px solid var(--gold)">
+          <div class="step-item" style="cursor:default">
+            <div class="support-dot" style="background:var(--gold)"></div>
+            <div class="step-cnt">
+              <div class="step-nm">Taccuino</div>
+              <div class="step-ds">Idee grezze, appunti, direzioni narrative. Scrivi senza filtri.</div>
+            </div>
           </div>
-          <div style="padding:0 14px 12px" id="taccuino-wrap"></div>
+          <div style="padding:0 16px 14px 50px" id="taccuino-wrap"></div>
         </div>
 
         <!-- SCENE — quaderno di scrittura libera -->
-        <div style="margin:16px 16px 4px">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-            <span style="font-size:15px;font-weight:700;color:var(--ink)">✦ Scene</span>
-            <span style="font-size:11px;color:var(--ink3);font-weight:400">scrivi liberamente, una scena alla volta</span>
+        <div class="support-block" style="border-left:3px solid var(--green)">
+          <div class="step-item" style="cursor:default">
+            <div class="support-dot" style="background:var(--green)"></div>
+            <div class="step-cnt">
+              <div class="step-nm">Scene</div>
+              <div class="step-ds">Scrivi liberamente, una scena alla volta. Promuovile alla struttura quando sono pronte.</div>
+            </div>
           </div>
-          <div id="scenes-wrap"></div>
-          <button onclick="addSceneText()" style="margin-top:8px;width:100%;padding:11px;border-radius:10px;border:1.5px dashed var(--sand3);background:none;color:var(--ink3);cursor:pointer;font-family:'Nunito',sans-serif;font-size:13px;font-weight:600">+ Nuova scena</button>
+          <div style="padding:0 16px 4px 50px">
+            <div id="scenes-wrap"></div>
+            <button onclick="addSceneText()" style="margin-top:8px;width:100%;padding:11px;border-radius:10px;border:1.5px dashed var(--sand3);background:none;color:var(--ink3);cursor:pointer;font-family:'Nunito',sans-serif;font-size:13px;font-weight:600">+ Nuova scena</button>
+          </div>
         </div>
 
         <!-- MOODBOARD -->
