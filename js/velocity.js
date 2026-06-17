@@ -72,13 +72,13 @@ export function renderPhaseCalendar(p){
 
   const dpr=window.devicePixelRatio||1;
   const W=Math.max(block.offsetWidth-32,200);
-  const H=64;
+  const H=72;
   canvas.width=Math.round(W*dpr); canvas.height=Math.round(H*dpr);
   canvas.style.width=W+'px'; canvas.style.height=H+'px';
   const ctx=canvas.getContext('2d');
   ctx.scale(dpr,dpr); ctx.clearRect(0,0,W,H);
 
-  const barH=32,barY=8;
+  const barH=32,barY=16;
   let x=0;
   phases.forEach((ph,i)=>{
     const frac=ph.days/totalDays;

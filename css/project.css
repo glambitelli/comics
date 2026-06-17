@@ -22,7 +22,7 @@
 /* MICROTASK */
 .microtask-box{background:linear-gradient(135deg,var(--sky-deep) 0%,var(--sky) 100%);border-radius:var(--r);padding:16px 18px;margin-bottom:20px;box-shadow:var(--shadow-lg)}
 .mt-label{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);margin-bottom:8px}
-.mt-input{background:transparent;border:none;color:#fff;font-family:'Nunito',sans-serif;font-size:16px;font-weight:500;width:100%;outline:none;border-bottom:1.5px solid rgba(255,255,255,.15);padding-bottom:8px}
+.mt-input{background:transparent;border:none;color:#fff;font-family:'Nunito',sans-serif;font-size:16px;font-weight:500;width:100%;outline:none;border-bottom:1.5px solid rgba(255,255,255,.15);padding-bottom:8px;line-height:1.4;min-height:24px}
 .mt-input::placeholder{color:rgba(255,255,255,.3)}
 .mt-hint{font-size:11px;color:rgba(255,255,255,.35);margin-top:8px;font-weight:500}
 

@@ -32,7 +32,10 @@ export function restoreProject(p){
 
   document.getElementById('proj-title').value = p.title||'';
   document.getElementById('meta-tav').textContent = p.numTav;
-  document.getElementById('microtask').value = p.microtask||'';
+  const mtEl = document.getElementById('microtask');
+  mtEl.value = p.microtask||'';
+  mtEl.style.height = 'auto';
+  mtEl.style.height = mtEl.scrollHeight + 'px';
   const mcBtn = document.getElementById('microtask-confirm-btn');
   if(mcBtn) mcBtn.style.opacity = (p.microtask&&p.microtask.trim()) ? '1' : '.4';
   document.getElementById('notes').value = p.notes||'';

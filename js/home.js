@@ -299,16 +299,16 @@ export function startSandstorm(){
   }
 
   function buildParticles(){
-    const COUNT = Math.max(24, Math.min(90, Math.round((rectW*rectH)/12000)));
+    const COUNT = Math.max(60, Math.min(220, Math.round((rectW*rectH)/4500)));
     particles = [];
     for(let i=0;i<COUNT;i++){
       particles.push({
         x: Math.random()*rectW,
         y: Math.random()*rectH,
-        r: 0.4 + Math.random()*1.1,    // granelli minuti ma visibili
-        vx: 0.18 + Math.random()*0.5,  // deriva lenta
+        r: 0.25 + Math.random()*0.6,   // pulviscolo finissimo
+        vx: 0.12 + Math.random()*0.4,  // deriva lenta
         vy: (-0.1 + Math.random()*0.2),
-        a: 0.14 + Math.random()*0.20,  // visibili sul fondo chiaro
+        a: 0.10 + Math.random()*0.16,  // tenui
         c: sandColors[Math.floor(Math.random()*sandColors.length)]
       });
     }

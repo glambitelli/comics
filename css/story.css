@@ -62,3 +62,18 @@
 .add-scene-btn:active{border-color:var(--sky);color:var(--sky-deep)}
 .plot-point-divider{display:flex;flex-direction:column;gap:6px;padding:4px 0}
 .plot-point-label{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--coral);white-space:nowrap}
+
+/* PULSANTE COPIA campo di testo */
+.field-copy-btn{
+  position:absolute;bottom:6px;right:6px;
+  font-size:10px;font-weight:700;letter-spacing:.04em;
+  color:var(--ink3);background:var(--white);
+  border:1px solid var(--sand2);border-radius:6px;
+  padding:3px 9px;cursor:pointer;opacity:.55;
+  font-family:'Nunito',sans-serif;line-height:1;
+  transition:opacity .15s,color .15s;z-index:2;
+}
+.field-copy-btn:hover,.field-copy-btn:active{opacity:1;color:var(--sky-deep);border-color:var(--sky)}
+/* lo story-textarea e char-desc hanno spazio sotto per il bottone */
+.story-textarea{padding-bottom:26px}
+.char-card-v2{padding-bottom:30px}

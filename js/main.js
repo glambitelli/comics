@@ -122,43 +122,42 @@ window.toggleSearch=toggleSearch; window.filterProjects=filterProjects; window.a
 loadUserData();
 initNotifications();
 
-// ── MENU CONTESTUALE — tasto destro su textarea/input → Copia tutto ──
+// ── PULSANTE COPIA — piccolo tasto sotto i campi di testo lunghi ──
 (function(){
-  const menu = document.createElement('div');
-  menu.style.cssText='position:fixed;z-index:9999;background:var(--white);border:1.5px solid var(--sand2);border-radius:10px;box-shadow:0 4px 20px rgba(0,0,0,.15);display:none;overflow:hidden;min-width:130px';
-
-  const btn = document.createElement('button');
-  btn.textContent='📋 Copia tutto';
-  btn.style.cssText='display:block;width:100%;padding:11px 16px;text-align:left;background:none;border:none;font-family:\'Nunito\',sans-serif;font-size:13px;font-weight:600;color:var(--ink);cursor:pointer';
-  btn.onmouseenter=()=>btn.style.background='var(--sand)';
-  btn.onmouseleave=()=>btn.style.background='none';
-  menu.appendChild(btn);
-  document.body.appendChild(menu);
-
-  let target = null;
-
-  document.addEventListener('contextmenu', e=>{
-    const el = e.target;
-    if(el.tagName !== 'TEXTAREA' && el.tagName !== 'INPUT') return;
-    if(!el.value) return;
-    e.preventDefault();
-    target = el;
-    menu.style.display='block';
-    // Posiziona vicino al cursore, evitando bordi
-    const x = Math.min(e.clientX, window.innerWidth - 150);
-    const y = Math.min(e.clientY, window.innerHeight - 60);
-    menu.style.left=x+'px';
-    menu.style.top=y+'px';
-  });
-
-  btn.onclick=()=>{
-    if(!target) return;
-    navigator.clipboard.writeText(target.value).then(()=>{
-      btn.textContent='✓ Copiato!';
-      setTimeout(()=>{ btn.textContent='📋 Copia tutto'; menu.style.display='none'; }, 1000);
+  // Aggiunge un pulsantino "copia" discreto in basso a destra di textarea con contenuto.
+  // La selezione normale del testo resta intatta (niente menu contestuale custom).
+  function addCopyButtons(){
+    const areas = document.querySelectorAll('textarea.story-textarea, textarea.char-desc-v2');
+    areas.forEach(ta=>{
+      if(ta.dataset.copyWired) return;
+      ta.dataset.copyWired = '1';
+      // Wrapper relativo per posizionare il bottone
+      const host = ta.parentElement;
+      if(host && getComputedStyle(host).position === 'static'){
+        host.style.position = 'relative';
+      }
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'field-copy-btn';
+      btn.textContent = 'copia';
+      btn.title = 'Copia tutto il testo';
+      btn.addEventListener('click', (e)=>{
+        e.preventDefault();
+        if(!ta.value.trim()) return;
+        navigator.clipboard.writeText(ta.value).then(()=>{
+          btn.textContent = '✓ copiato';
+          setTimeout(()=>{ btn.textContent='copia'; }, 1200);
+        });
+      });
+      host.appendChild(btn);
     });
-  };
-
-  document.addEventListener('click', ()=>{ menu.style.display='none'; });
-  document.addEventListener('scroll', ()=>{ menu.style.display='none'; }, true);
+  }
+  // Riapplica quando il DOM cambia (cambio progetto, render personaggi, ecc.) con debounce
+  let deb = null;
+  const obs = new MutationObserver(()=>{
+    if(deb) clearTimeout(deb);
+    deb = setTimeout(addCopyButtons, 200);
+  });
+  obs.observe(document.body, {childList:true, subtree:true});
+  addCopyButtons();
 })();

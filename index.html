@@ -82,8 +82,8 @@
       <div class="sec-label">Task di stasera</div>
       <div class="microtask-box">
         <div class="mt-label">✏️ Scrivi la mattina · Leggi quando torni a casa</div>
-        <div style="display:flex;gap:8px;align-items:center">
-          <input class="mt-input" id="microtask" type="text" placeholder="es. inchiostro vignette 3–4 di tavola 5" style="flex:1" onkeydown="if(event.key==='Enter'){confirmMicrotask();event.preventDefault()}"/>
+        <div style="display:flex;gap:8px;align-items:flex-start">
+          <textarea class="mt-input" id="microtask" rows="1" placeholder="es. inchiostro vignette 3–4 di tavola 5" style="flex:1;resize:none;overflow:hidden" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'" onkeydown="if(event.key==='Enter'&&!event.shiftKey){confirmMicrotask();event.preventDefault()}"></textarea>
           <button onclick="confirmMicrotask()" id="microtask-confirm-btn" style="background:var(--coral);border:none;border-radius:10px;padding:9px 14px;color:#fff;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;flex-shrink:0;transition:all .2s;opacity:.4">✓</button>
         </div>
         <div class="mt-hint">Una cosa sola. Concreta. Misurabile.</div>
