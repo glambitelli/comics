@@ -16,12 +16,10 @@ const TIPS = [
   { text:"Se non passi del tempo a osservare le persone reali, non puoi disegnarle: non le hai mai viste davvero.", author:"Hayao Miyazaki" },
   { text:"Traggo ispirazione dalla mia vita di tutti i giorni.", author:"Hayao Miyazaki" },
   // ── James Cameron ──
-  { text:"Devi trovare una chiave per il cuore del pubblico: universali dell'esperienza umana, espressi in modi nuovi ed esotici.", author:"James Cameron" },
+  { text:"Devi trovare una chiave per il cuore del pubblico: temi universali, espressi in modi nuovi e sorprendenti.", author:"James Cameron" },
   { text:"Comincio sempre dal finale: mi chiedo se mi emozionerà il punto in cui tutto va a finire.", author:"James Cameron" },
   { text:"Ci deve essere conflitto: i personaggi si rivelano attraverso il conflitto, il tradimento e la perdita.", author:"James Cameron" },
-  { text:"Il peggio che puoi avere è che tutti siano d'accordo dalla stessa parte dell'argomento.", author:"James Cameron" },
-  { text:"Lo scopo del raccontare storie è vivere fuori da te stesso, ma deve esserci un legame con ciò che sei.", author:"James Cameron" },
-  { text:"Scrivere una sceneggiatura è come fare giocoleria: quante palle riesci a tenere in aria insieme?", author:"James Cameron" },
+  { text:"La cosa peggiore è che tutti siano d'accordo, dalla stessa parte.", author:"James Cameron" },
   { text:"Molti non realizzano i loro sogni perché ci pensano troppo, o sono troppo cauti per fare il salto.", author:"James Cameron" },
   // ── Quentin Tarantino ──
   { text:"Metto i personaggi nella stanza insieme e li lascio parlare: sono loro a fare la maggior parte del lavoro.", author:"Quentin Tarantino" },

@@ -167,7 +167,7 @@
         </div>
 
         <!-- MOODBOARD -->
-        <div class="step-item" onclick="toggleStep(this)"><div class="step-chk">✓</div><div class="step-cnt"><div class="step-nm">Moodboard visiva <span class="tag wm">mattina</span></div><div class="step-ds">Immagini che catturano l'atmosfera. Il "colore emotivo" della storia prima di scrivere.</div></div></div>
+        <div class="step-item" onclick="toggleStep(this)"><div class="step-chk">✓</div><div class="step-cnt"><div class="step-nm">Moodboard <span class="tag wm">mattina</span></div><div class="step-ds">Immagini che catturano l'atmosfera. Il "colore emotivo" della storia prima di scrivere.</div></div></div>
 
         <!-- SOGGETTO -->
         <div class="step-collapse" id="step-soggetto">
@@ -248,10 +248,19 @@
       </div>
     </div>
 
-    <div style="margin-top:8px">
-      <div class="sec-label">Sfide visive</div>
-      <div id="sfide-list"></div>
-      <button class="new-btn" style="margin-top:4px" onclick="addSfida()">+ Aggiungi elemento nuovo</button>
+    <div class="support-block" style="margin-top:8px;border-left:3px solid var(--coral)">
+      <div class="step-item" style="cursor:pointer" onclick="toggleSupport(this)">
+        <div class="support-dot" style="background:var(--coral)"></div>
+        <div class="step-cnt">
+          <div class="step-nm">Sfide visive</div>
+          <div class="step-ds">Elementi difficili da disegnare. Tienili d'occhio per non sovraccaricare una tavola.</div>
+        </div>
+        <div class="support-chev">▾</div>
+      </div>
+      <div class="support-content" style="padding:0 16px 12px 50px;display:none">
+        <div id="sfide-list"></div>
+        <button class="new-btn" style="margin-top:4px" onclick="addSfida()">+ Aggiungi elemento nuovo</button>
+      </div>
     </div>
 
     <div style="margin-top:20px">

@@ -111,8 +111,8 @@ export function renderPhaseCalendar(p){
     ctx.strokeStyle='#e84848'; ctx.lineWidth=2; ctx.setLineDash([3,2]);
     ctx.beginPath(); ctx.moveTo(tx,barY-4); ctx.lineTo(tx,barY+barH+4); ctx.stroke();
     ctx.setLineDash([]);
-    ctx.fillStyle='#e84848'; ctx.font='bold 8px sans-serif'; ctx.textAlign='center';
-    ctx.fillText('oggi',Math.min(Math.max(tx,14),W-14),barY-6);
+    ctx.fillStyle='#e84848'; ctx.font='bold 11px sans-serif'; ctx.textAlign='center';
+    ctx.fillText('oggi',Math.min(Math.max(tx,16),W-16),barY-6);
   }
 
   if(legend){
