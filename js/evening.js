@@ -5,8 +5,7 @@ import { drawGem } from './canvas.js';
 export function enterEveningMode(){
   renderEveningList();
   renderStarfield();
-  renderMoon();
-  scheduleShootingStar();
+  scheduleStarPulse();
   document.getElementById('screen-home').classList.remove('active');
   document.getElementById('screen-evening').classList.add('active');
 }
@@ -85,36 +84,68 @@ function renderMoon(){
   cont.innerHTML = `${svg}<div style="font-size:8px;color:rgba(255,255,255,.4);letter-spacing:.04em;text-align:center;white-space:nowrap">${name}</div>`;
 }
 
-// ── STELLA CADENTE ──
-let _shootingStarted = false;
-function scheduleShootingStar(){
-  if(_shootingStarted) return;
+// Versione compatta della luna, accanto ai contatori
+function renderMoonInline(){
+  const cont = document.getElementById('moon-inline');
+  if(!cont) return;
+  const frac = getMoonPhase(new Date());
+  const name = moonPhaseName(frac);
+  const R = 11;
+  const cx = 13, cy = 13;
+  const illum = (1 - Math.cos(2*Math.PI*frac))/2;
+  const waxing = frac < 0.5;
+  const rx = R * Math.abs(Math.cos(Math.PI*illum));
+  const lit = '#f4ecd8', dark = '#1a2740';
+
+  let svg = `<svg width="26" height="26" viewBox="0 0 26 26" style="display:block">`;
+  svg += `<circle cx="${cx}" cy="${cy}" r="${R}" fill="${dark}"/>`;
+  svg += `<circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="rgba(244,236,216,.18)" stroke-width="1"/>`;
+  if(illum > 0.985){
+    svg += `<circle cx="${cx}" cy="${cy}" r="${R}" fill="${lit}"/>`;
+  } else if(illum > 0.015){
+    svg += `<defs><clipPath id="moonclipinline"><circle cx="${cx}" cy="${cy}" r="${R}"/></clipPath></defs>`;
+    svg += `<g clip-path="url(#moonclipinline)">`;
+    if(waxing){
+      svg += `<path d="M ${cx} ${cy-R} A ${R} ${R} 0 0 1 ${cx} ${cy+R} Z" fill="${lit}"/>`;
+    } else {
+      svg += `<path d="M ${cx} ${cy-R} A ${R} ${R} 0 0 0 ${cx} ${cy+R} Z" fill="${lit}"/>`;
+    }
+    const ellFill = illum < 0.5 ? dark : lit;
+    svg += `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${R}" fill="${ellFill}"/>`;
+    svg += `</g>`;
+  }
+  svg += `</svg>`;
+  cont.innerHTML = svg;
+  cont.title = name;
+}
+
+// ── PULSAR — ogni tanto una stella diventa particolarmente luminosa ──
+let _starPulseStarted = false;
+function scheduleStarPulse(){
+  if(_starPulseStarted) return;
   const layer = document.getElementById('evening-stars');
   if(!layer) return;
-  _shootingStarted = true;
-  function fire(){
-    // Solo se siamo ancora in modalità sera
+  _starPulseStarted = true;
+
+  function pulse(){
     const screen = document.getElementById('screen-evening');
     if(!screen || !screen.classList.contains('active')) return;
-    const star = document.createElement('div');
-    star.className = 'shooting-star';
-    const startTop = Math.random()*40;
-    const startLeft = 30 + Math.random()*60;
-    star.style.top = startTop+'%';
-    star.style.left = startLeft+'%';
-    layer.appendChild(star);
-    setTimeout(()=>star.remove(), 1600);
+    const stars = layer.querySelectorAll('.star');
+    if(!stars.length) return;
+    // Scegli una stella casuale e falla brillare
+    const star = stars[Math.floor(Math.random()*stars.length)];
+    star.classList.add('star-shine');
+    setTimeout(()=>star.classList.remove('star-shine'), 2600);
   }
+
   function loop(){
     const screen = document.getElementById('screen-evening');
-    if(screen && screen.classList.contains('active')){
-      // probabilità ~50% a ogni ciclo, intervallo casuale 12-28s
-      if(Math.random()<0.6) fire();
+    if(screen && screen.classList.contains('active') && !document.hidden){
+      pulse();
     }
-    setTimeout(loop, 12000 + Math.random()*16000);
+    setTimeout(loop, 3500 + Math.random()*4000); // ogni 3.5-7.5s
   }
-  // primo avvio dopo 5-10s
-  setTimeout(loop, 5000 + Math.random()*5000);
+  setTimeout(loop, 2000 + Math.random()*2000);
 }
 
 function renderStarfield(){
@@ -193,12 +224,17 @@ export function renderEveningList(){
   const streak = getStreak();
   const starsRow = document.createElement('div');
   starsRow.style.cssText = 'display:flex;align-items:center;justify-content:flex-end;gap:18px;padding:4px 0 16px';
-  let starsHtml = `<span style="display:flex;align-items:baseline;gap:7px"><span style="font-size:15px;color:#f0c020;line-height:1">✦</span><span id="stars-count" style="font-family:'Castoro',serif;font-size:18px;font-weight:700;color:rgba(255,255,255,.85)">${totalStars}</span></span>`;
-  if(streak > 0){
-    starsHtml += `<span style="display:flex;align-items:baseline;gap:7px"><span style="font-size:15px;color:#e8804a;line-height:1">〰</span><span style="font-family:'Castoro',serif;font-size:18px;font-weight:700;color:rgba(255,255,255,.85)">${streak}</span></span>`;
-  }
+  let starsHtml = '';
+  // Luna (fase reale) accanto ai contatori
+  starsHtml += `<span id="moon-inline" style="display:flex;align-items:center;margin-right:auto"></span>`;
+  // ★ serate
+  starsHtml += `<span style="display:flex;align-items:baseline;gap:7px"><span style="font-size:15px;color:#f0c020;line-height:1">★</span><span id="stars-count" style="font-family:'Castoro',serif;font-size:18px;font-weight:700;color:rgba(255,255,255,.85)">${totalStars}</span></span>`;
+  // 〰 streak (sempre visibile, anche a 0)
+  starsHtml += `<span style="display:flex;align-items:baseline;gap:7px"><span style="font-size:15px;color:#e8804a;line-height:1">〰</span><span style="font-family:'Castoro',serif;font-size:18px;font-weight:700;color:rgba(255,255,255,.85)">${streak}</span></span>`;
   starsRow.innerHTML = starsHtml;
   list.appendChild(starsRow);
+  // Disegna la luna inline
+  renderMoonInline();
 
   const history = JSON.parse(localStorage.getItem('inkflow_task_history')||'[]');
   const active = projects.filter(p => p.microtask && p.microtask.trim());

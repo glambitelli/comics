@@ -252,9 +252,9 @@
       <div class="sec-label sec-collapse" onclick="toggleSection(this)" style="cursor:pointer">
         <span>Sfide visive</span>
         <span class="sec-line"></span>
-        <span class="sec-chev">▾</span>
+        <span class="sec-chev" style="transform:rotate(-90deg)">▾</span>
       </div>
-      <div class="sec-content" id="sfide-content">
+      <div class="sec-content" id="sfide-content" style="display:none">
         <div id="sfide-list"></div>
         <button class="new-btn" style="margin-top:4px" onclick="addSfida()">+ Aggiungi elemento nuovo</button>
       </div>
@@ -280,14 +280,9 @@
   <div class="evening-bg" style="position:relative">
     <div class="evening-stars" id="evening-stars" aria-hidden="true"></div>
     <div class="evening-header">
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
-        <div>
-          <div class="evening-title">Inkflow <span style="font-size:.6em;color:#f0c020;vertical-align:.14em;font-weight:400">✦</span></div>
-          <div class="evening-header-row">
-            <div class="evening-sub">pipeline · tracker · storyboard <span class="sync-dot" id="sync-dot-evening"></span><span style="margin-left:6px;opacity:.4;font-size:8px;letter-spacing:.06em">v1.0.0</span></div>
-          </div>
-        </div>
-        <div id="evening-moon" style="flex-shrink:0;margin-top:6px;display:flex;flex-direction:column;align-items:center;gap:3px"></div>
+      <div class="evening-title">Inkflow <span style="font-size:.6em;color:#f0c020;vertical-align:.14em;font-weight:400">✦</span></div>
+      <div class="evening-header-row">
+        <div class="evening-sub">pipeline · tracker · storyboard <span class="sync-dot" id="sync-dot-evening"></span><span style="margin-left:6px;opacity:.4;font-size:8px;letter-spacing:.06em">v1.0.0</span></div>
       </div>
     </div>
     <div class="evening-scroll" id="evening-list"></div>
@@ -312,7 +307,7 @@
     </div>
     <!-- Stelle per mese -->
     <div class="stats-card" style="margin-bottom:16px">
-      <div class="stats-card-label"><span style="color:#f0c020">✦</span> Stelle per mese</div>
+      <div class="stats-card-label"><span style="color:#f0c020">★</span> Stelle per mese</div>
       <div id="stats-monthly"></div>
     </div>
     <!-- Bacheca trofei -->
@@ -350,14 +345,14 @@
   </div>
 
   <div class="settings-section">
-    <div class="settings-section-label"><span style="color:#f0c020">✦</span> Stelle &amp; <span style="color:#e8804a">〰</span> Streak</div>
+    <div class="settings-section-label"><span style="color:#f0c020">★</span> Stelle &amp; <span style="color:#e8804a">〰</span> Streak</div>
     <div style="font-size:13px;color:var(--ink2);margin-bottom:14px">
       Serate completate: <strong id="settings-stars-count">0</strong>
       &nbsp;·&nbsp;
       Streak attuale: <strong id="settings-streak-count">0</strong> gg
     </div>
     <div style="padding-top:8px;border-top:1px solid var(--sand2);display:flex;gap:10px;flex-wrap:wrap">
-      <button onclick="resetStarsConfirm()" style="font-size:12px;padding:7px 14px;border-radius:10px;border:1.5px solid var(--sand3);background:none;color:var(--ink3);cursor:pointer;font-family:'Nunito',sans-serif;font-weight:600"><span style="color:#f0c020">✦</span> Reset stelle</button>
+      <button onclick="resetStarsConfirm()" style="font-size:12px;padding:7px 14px;border-radius:10px;border:1.5px solid var(--sand3);background:none;color:var(--ink3);cursor:pointer;font-family:'Nunito',sans-serif;font-weight:600"><span style="color:#f0c020">★</span> Reset stelle</button>
       <button onclick="resetStreakConfirm()" style="font-size:12px;padding:7px 14px;border-radius:10px;border:1.5px solid var(--sand3);background:none;color:var(--ink3);cursor:pointer;font-family:'Nunito',sans-serif;font-weight:600"><span style="color:#e8804a">〰</span> Reset streak</button>
     </div>
   </div>

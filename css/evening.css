@@ -18,23 +18,18 @@
 }
 .evening-header, .evening-scroll{position:relative;z-index:1}
 
-/* STELLA CADENTE */
-.shooting-star{
-  position:absolute;width:2px;height:2px;border-radius:50%;
-  background:#fff;box-shadow:0 0 4px 1px rgba(255,255,255,.8);
-  z-index:0;pointer-events:none;
-  animation:shoot 1.4s ease-in forwards;
+/* STELLA CHE BRILLA — una stella casuale si illumina dolcemente */
+.evening-stars .star{transition:none}
+.evening-stars .star.star-shine{
+  animation:starShine 2.6s ease-in-out !important;
+  color:#fff !important;
+  text-shadow:0 0 6px rgba(255,255,255,.9), 0 0 12px rgba(200,220,255,.6);
 }
-.shooting-star::after{
-  content:'';position:absolute;top:50%;right:2px;
-  width:60px;height:1px;transform:translateY(-50%);
-  background:linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,.55));
-}
-@keyframes shoot{
-  0%{opacity:0;transform:translate(0,0) rotate(20deg) scale(.6)}
-  10%{opacity:1}
-  70%{opacity:1}
-  100%{opacity:0;transform:translate(-180px,90px) rotate(20deg) scale(1)}
+@keyframes starShine{
+  0%{opacity:.3;transform:scale(1)}
+  25%{opacity:1;transform:scale(1.6)}
+  50%{opacity:.95;transform:scale(1.4)}
+  100%{opacity:.3;transform:scale(1)}
 }
 .evening-header{
   padding:calc(24px + var(--safe-top)) 24px 10px;
