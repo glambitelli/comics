@@ -97,10 +97,6 @@ export function renderActBoard(p){
 
   board.innerHTML='';
 
-  const toggleRow=document.createElement('div');
-  toggleRow.style.cssText='display:flex;justify-content:flex-end;margin-bottom:8px';
-  toggleRow.innerHTML='<button onclick="toggleScreenplay()" style="font-size:11px;padding:4px 2px;border:none;background:none;color:var(--ink3);cursor:pointer;font-family:\'Nunito\',sans-serif;font-weight:700;letter-spacing:.04em;display:flex;align-items:center;gap:5px;opacity:.7"><span style="font-size:13px">☰</span> sceneggiatura</button>';
-  board.appendChild(toggleRow);
   ACT_CONFIG.forEach((act,ai)=>{
     const scenes=p.story.acts[act.id]||[];
 
@@ -165,6 +161,12 @@ export function renderActBoard(p){
       board.appendChild(div);
     }
   });
+
+  // Toggle vista sceneggiatura in fondo, centrato e discreto
+  const toggleRow=document.createElement('div');
+  toggleRow.style.cssText='display:flex;justify-content:center;margin-top:14px';
+  toggleRow.innerHTML='<button onclick="toggleScreenplay()" style="font-size:11px;padding:6px 14px;border:1px solid var(--sand2);border-radius:20px;background:none;color:var(--ink3);cursor:pointer;font-family:\'Nunito\',sans-serif;font-weight:600;letter-spacing:.03em;display:flex;align-items:center;gap:6px"><span style="font-size:12px">☰</span> Vista sceneggiatura</button>';
+  board.appendChild(toggleRow);
 
   attachDrag(p);
   requestAnimationFrame(autoResizeAll);

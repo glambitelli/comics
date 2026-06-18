@@ -176,11 +176,10 @@ window.toggleSupport = function(headerEl){
 // ── Sezioni con divisore comprimibili (Sfide visive, ecc.) ──
 window.toggleSection = function(labelEl){
   const content = labelEl.nextElementSibling;
-  const toggle = labelEl.querySelector('.sec-toggle');
   if(!content || !content.classList.contains('sec-content')) return;
   const isOpen = content.style.display !== 'none';
   content.style.display = isOpen ? 'none' : 'block';
-  if(toggle) toggle.textContent = isOpen ? '+' : '−';
+  labelEl.classList.toggle('open', !isOpen);
 };
 
 // ── Step comprimibili (Soggetto, Personaggi, Ambientazione, Struttura) ──

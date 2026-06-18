@@ -18,13 +18,13 @@
 /* SECTION LABEL */
 .sec-label{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);margin:0 0 10px;display:flex;align-items:center;gap:8px}
 .sec-label::after{content:'';flex:1;height:1.5px;background:var(--sand3);border-radius:1px}
-/* Sezione comprimibile con linea divisoria */
+/* Sezione comprimibile con linea divisoria pulita */
 .sec-collapse{-webkit-tap-highlight-color:transparent;transition:color .12s}
-.sec-collapse:hover{color:var(--ink2)}
-.sec-collapse:hover .sec-toggle{border-color:var(--ink3);color:var(--ink2)}
+.sec-collapse:hover{color:var(--ink)}
+.sec-collapse:hover .sec-line{background:var(--sand2)}
+.sec-collapse.open{color:var(--ink)}
 .sec-collapse::after{display:none}
-.sec-collapse .sec-line{flex:1;height:1.5px;background:var(--sand3);border-radius:1px}
-.sec-toggle{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;border:1.5px solid var(--sand3);color:var(--ink3);font-size:13px;font-weight:700;line-height:1;flex-shrink:0;transition:all .12s}
+.sec-collapse .sec-line{flex:1;height:1.5px;background:var(--sand3);border-radius:1px;transition:background .12s}
 .sec-content{overflow:hidden}
 
 /* MICROTASK */
@@ -147,8 +147,9 @@
 .save-hint{font-size:11px;color:var(--ink3);margin-top:6px;text-align:right;font-weight:500}
 
 /* AZIONI MINIMALI — export e elimina */
-.ghost-action{background:none;border:none;cursor:pointer;font-family:'Nunito',sans-serif;font-size:13px;font-weight:600;color:var(--sky-deep);display:flex;align-items:center;gap:7px;padding:6px 4px;transition:opacity .15s;opacity:.85}
+.ghost-action{background:none;border:none;cursor:pointer;font-family:'Nunito',sans-serif;font-size:13px;font-weight:600;color:var(--ink);display:flex;align-items:center;gap:7px;padding:6px 4px;transition:opacity .15s;opacity:.85}
 .ghost-action:hover{opacity:1}
 .ghost-glyph{font-size:15px;line-height:1;opacity:.8}
-.ghost-delete{background:none;border:none;cursor:pointer;font-family:'Nunito',sans-serif;font-size:12px;font-weight:500;color:var(--ink3);padding:6px 10px;letter-spacing:.02em;opacity:.6;transition:color .15s,opacity .15s;border-bottom:1px solid transparent}
-.ghost-delete:hover{color:var(--coral);opacity:1}
+.ghost-delete{background:none;border:none;cursor:pointer;font-family:'Nunito',sans-serif;font-size:12px;font-weight:600;color:var(--coral);display:inline-flex;align-items:center;gap:6px;padding:6px 10px;letter-spacing:.02em;opacity:.7;transition:opacity .15s}
+.ghost-delete:hover{opacity:1}
+.ghost-delete .ghost-glyph{font-size:14px}
