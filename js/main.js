@@ -173,6 +173,16 @@ window.toggleSupport = function(headerEl){
   }
 };
 
+// ── Sezioni con divisore comprimibili (Sfide visive, ecc.) ──
+window.toggleSection = function(labelEl){
+  const content = labelEl.nextElementSibling;
+  const chev = labelEl.querySelector('.sec-chev');
+  if(!content || !content.classList.contains('sec-content')) return;
+  const isOpen = content.style.display !== 'none';
+  content.style.display = isOpen ? 'none' : 'block';
+  if(chev) chev.style.transform = isOpen ? 'rotate(-90deg)' : 'rotate(0deg)';
+};
+
 // ── Step comprimibili (Soggetto, Personaggi, Ambientazione, Struttura) ──
 // Spunta: riusa la logica esistente di toggleStep passando la riga
 window.toggleStepCheck = function(chkEl){

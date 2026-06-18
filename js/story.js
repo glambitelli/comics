@@ -173,13 +173,13 @@ export function renderActBoard(p){
 function makeSceneCard(actId, idx, text, p){
   const card=document.createElement('div');
   card.className='scene-card';
-  card.draggable=true;
   card.dataset.act=actId;
   card.dataset.idx=idx;
 
   const handle=document.createElement('span');
   handle.className='scene-handle';
   handle.textContent='⠿';
+  handle.dataset.dragHandle='1';
 
   const ta=document.createElement('textarea');
   ta.className='scene-text';
@@ -235,31 +235,66 @@ export function deleteScene(actId,idx){
 }
 
 function attachDrag(p){
-  let dragAct=null,dragIdx=null;
-  document.querySelectorAll('.scene-card').forEach(card=>{
-    card.addEventListener('dragstart',e=>{
-      dragAct=card.dataset.act;dragIdx=parseInt(card.dataset.idx);
-      setTimeout(()=>card.classList.add('dragging'),0);
-    });
-    card.addEventListener('dragend',()=>card.classList.remove('dragging'));
-  });
-  document.querySelectorAll('.act-col-body').forEach(body=>{
-    body.addEventListener('dragover',e=>e.preventDefault());
-    body.addEventListener('drop',e=>{
+  // Drag delle scene tramite la maniglia ⠿ — funziona con mouse e touch.
+  // Non usa draggable HTML5 (rotto su mobile): usa pointer events e parte solo dalla maniglia.
+  const handles = document.querySelectorAll('.scene-card .scene-handle');
+  handles.forEach(handle=>{
+    handle.style.touchAction = 'none'; // impedisce lo scroll mentre trascini la maniglia
+    handle.addEventListener('pointerdown', e=>{
       e.preventDefault();
-      if(dragAct===null||dragIdx===null)return;
-      const targetAct=body.dataset.act;
-      const cards=[...body.querySelectorAll('.scene-card')];
-      let dropIdx=cards.length;
-      cards.forEach((c,i)=>{
-        const rect=c.getBoundingClientRect();
-        if(e.clientY<rect.top+rect.height/2) dropIdx=Math.min(dropIdx,i);
-      });
-      if(!p.story||!p.story.acts)return;
-      const scene=p.story.acts[dragAct].splice(dragIdx,1)[0];
-      p.story.acts[targetAct].splice(dropIdx,0,scene);
-      dragAct=null;dragIdx=null;
-      scheduleSave(p);renderActBoard(p);
+      const card = handle.closest('.scene-card');
+      if(!card) return;
+      const dragAct = card.dataset.act;
+      const dragIdx = parseInt(card.dataset.idx);
+
+      card.classList.add('dragging');
+      const ghostMoved = { v:false };
+
+      function onMove(ev){
+        ghostMoved.v = true;
+        // Trova la card sotto il dito/cursore
+        const y = ev.clientY;
+        const x = ev.clientX;
+        const elBelow = document.elementFromPoint(x, y);
+        const overCard = elBelow && elBelow.closest && elBelow.closest('.scene-card');
+        // Evidenzia la posizione di drop
+        document.querySelectorAll('.scene-card').forEach(c=>c.classList.remove('drop-target'));
+        if(overCard && overCard!==card) overCard.classList.add('drop-target');
+      }
+
+      function onUp(ev){
+        document.removeEventListener('pointermove', onMove);
+        document.removeEventListener('pointerup', onUp);
+        card.classList.remove('dragging');
+        document.querySelectorAll('.scene-card').forEach(c=>c.classList.remove('drop-target'));
+
+        if(!ghostMoved.v){ return; } // solo un tap, niente drag
+
+        const elBelow = document.elementFromPoint(ev.clientX, ev.clientY);
+        const targetBody = elBelow && elBelow.closest && elBelow.closest('.act-col-body');
+        if(!targetBody || !p.story || !p.story.acts){ return; }
+        const targetAct = targetBody.dataset.act;
+
+        // Calcola l'indice di drop in base alla posizione verticale
+        const cards = [...targetBody.querySelectorAll('.scene-card')];
+        let dropIdx = cards.length;
+        for(let i=0;i<cards.length;i++){
+          const rect = cards[i].getBoundingClientRect();
+          if(ev.clientY < rect.top + rect.height/2){ dropIdx = i; break; }
+        }
+
+        // Sposta la scena
+        const scene = p.story.acts[dragAct].splice(dragIdx,1)[0];
+        // Se sposto nello stesso atto e l'indice di partenza è prima del drop, aggiusta
+        let insertIdx = dropIdx;
+        if(dragAct===targetAct && dragIdx < dropIdx) insertIdx = dropIdx - 1;
+        p.story.acts[targetAct].splice(insertIdx, 0, scene);
+        scheduleSave(p);
+        renderActBoard(p);
+      }
+
+      document.addEventListener('pointermove', onMove);
+      document.addEventListener('pointerup', onUp);
     });
   });
 }
