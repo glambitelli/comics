@@ -137,28 +137,30 @@
         <div class="phase-chev open" id="ph1-chev">▾</div>
       </div>
       <div class="phase-body open" id="ph1-body">
-        <!-- TACCUINO — blocco di supporto -->
+        <!-- TACCUINO — blocco di supporto comprimibile -->
         <div class="support-block" style="border-left:3px solid var(--gold)">
-          <div class="step-item" style="cursor:default">
+          <div class="step-item" style="cursor:pointer" onclick="toggleSupport(this)">
             <div class="support-dot" style="background:var(--gold)"></div>
             <div class="step-cnt">
               <div class="step-nm">Taccuino</div>
               <div class="step-ds">Idee grezze, appunti, direzioni narrative. Scrivi senza filtri.</div>
             </div>
+            <div class="support-chev">▾</div>
           </div>
-          <div style="padding:0 16px 14px 50px" id="taccuino-wrap"></div>
+          <div class="support-content" style="padding:0 16px 14px 50px;display:none" id="taccuino-wrap"></div>
         </div>
 
-        <!-- SCENE — quaderno di scrittura libera -->
+        <!-- SCENE — quaderno di scrittura libera comprimibile -->
         <div class="support-block" style="border-left:3px solid var(--green)">
-          <div class="step-item" style="cursor:default">
+          <div class="step-item" style="cursor:pointer" onclick="toggleSupport(this)">
             <div class="support-dot" style="background:var(--green)"></div>
             <div class="step-cnt">
               <div class="step-nm">Scene</div>
               <div class="step-ds">Scrivi liberamente, una scena alla volta. Promuovile alla struttura quando sono pronte.</div>
             </div>
+            <div class="support-chev">▾</div>
           </div>
-          <div style="padding:0 16px 4px 50px">
+          <div class="support-content" style="padding:0 16px 4px 50px;display:none">
             <div id="scenes-wrap"></div>
             <button onclick="addSceneText()" style="margin-top:8px;width:100%;padding:11px;border-radius:10px;border:1.5px dashed var(--sand3);background:none;color:var(--ink3);cursor:pointer;font-family:'Nunito',sans-serif;font-size:13px;font-weight:600">+ Nuova scena</button>
           </div>
@@ -168,27 +170,51 @@
         <div class="step-item" onclick="toggleStep(this)"><div class="step-chk">✓</div><div class="step-cnt"><div class="step-nm">Moodboard visiva <span class="tag wm">mattina</span></div><div class="step-ds">Immagini che catturano l'atmosfera. Il "colore emotivo" della storia prima di scrivere.</div></div></div>
 
         <!-- SOGGETTO -->
-        <div class="step-item" onclick="toggleStep(this)" id="step-soggetto"><div class="step-chk">✓</div><div class="step-cnt"><div class="step-nm">Soggetto <span class="tag wm">mattina</span></div><div class="step-ds">Chi è il protagonista, cosa vuole, cosa glielo impedisce, come finisce.</div></div></div>
-        <div style="padding:0 16px 12px" id="soggetto-wrap">
-          <!-- popolato da JS con makeReadEditField -->
+        <div class="step-collapse" id="step-soggetto">
+          <div class="step-chk" onclick="toggleStepCheck(this)">✓</div>
+          <div class="step-cnt" onclick="toggleStepBody(this)">
+            <div class="step-nm">Soggetto <span class="tag wm">mattina</span></div>
+            <div class="step-ds">Chi è il protagonista, cosa vuole, cosa glielo impedisce, come finisce.</div>
+          </div>
+          <div class="support-chev" onclick="toggleStepBody(this)">▾</div>
         </div>
+        <div class="step-body" style="padding:0 16px 12px;display:none" id="soggetto-wrap"></div>
 
         <!-- PERSONAGGI -->
-        <div class="step-item" onclick="toggleStep(this)"><div class="step-chk">✓</div><div class="step-cnt"><div class="step-nm">Personaggi <span class="tag wm">mattina</span></div><div class="step-ds">Schede dei personaggi — nome, ruolo, descrizione.</div></div></div>
-        <div style="padding:0 0 4px" id="chars-wrap">
+        <div class="step-collapse">
+          <div class="step-chk" onclick="toggleStepCheck(this)">✓</div>
+          <div class="step-cnt" onclick="toggleStepBody(this)">
+            <div class="step-nm">Personaggi <span class="tag wm">mattina</span></div>
+            <div class="step-ds">Schede dei personaggi — nome, descrizione.</div>
+          </div>
+          <div class="support-chev" onclick="toggleStepBody(this)">▾</div>
+        </div>
+        <div class="step-body" style="padding:0 0 4px;display:none" id="chars-wrap">
           <div id="chars-list"></div>
           <button class="add-scene-btn" style="margin:4px 14px 12px;width:calc(100% - 28px)" onclick="addCharacter()">+ Aggiungi personaggio</button>
         </div>
 
         <!-- AMBIENTAZIONE -->
-        <div class="step-item" onclick="toggleStep(this)"><div class="step-chk">✓</div><div class="step-cnt"><div class="step-nm">Ambientazione <span class="tag wm">mattina</span></div><div class="step-ds">Dove e quando si svolge la storia. Struttura del mondo.</div></div></div>
-        <div style="padding:0 16px 12px" id="world-wrap">
-          <!-- popolato da JS con makeReadEditField -->
+        <div class="step-collapse">
+          <div class="step-chk" onclick="toggleStepCheck(this)">✓</div>
+          <div class="step-cnt" onclick="toggleStepBody(this)">
+            <div class="step-nm">Ambientazione <span class="tag wm">mattina</span></div>
+            <div class="step-ds">Dove e quando si svolge la storia. Struttura del mondo.</div>
+          </div>
+          <div class="support-chev" onclick="toggleStepBody(this)">▾</div>
         </div>
+        <div class="step-body" style="padding:0 16px 12px;display:none" id="world-wrap"></div>
 
         <!-- STRUTTURA 3 ATTI -->
-        <div class="step-item" onclick="toggleStep(this)" id="step-struttura"><div class="step-chk">✓</div><div class="step-cnt"><div class="step-nm">Struttura a 3 atti <span class="tag wm">mattina</span></div><div class="step-ds">Setup → Plot Point 1 → Confrontation → Plot Point 2 → Resolution.</div></div></div>
-        <div style="padding:0 16px 14px" id="struttura-wrap">
+        <div class="step-collapse" id="step-struttura">
+          <div class="step-chk" onclick="toggleStepCheck(this)">✓</div>
+          <div class="step-cnt" onclick="toggleStepBody(this)">
+            <div class="step-nm">Struttura a 3 atti <span class="tag wm">mattina</span></div>
+            <div class="step-ds">Setup → Plot Point 1 → Confrontation → Plot Point 2 → Resolution.</div>
+          </div>
+          <div class="support-chev" onclick="toggleStepBody(this)">▾</div>
+        </div>
+        <div class="step-body" style="padding:0 16px 14px;display:none" id="struttura-wrap">
           <div class="act-board" id="act-board"></div>
         </div>
 

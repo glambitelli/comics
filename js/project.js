@@ -41,9 +41,10 @@ export function restoreProject(p){
   document.getElementById('notes').value = p.notes||'';
   document.getElementById('date-start').value = p.dateStart||'';
   document.getElementById('date-end').value = p.dateEnd||'';
-  document.querySelectorAll('.step-item').forEach(el => {
+  document.querySelectorAll('.step-item, .step-collapse').forEach(el => {
     const chk = el.querySelector('.step-chk');
     const nm = el.querySelector('.step-nm');
+    if(!chk || !nm) return; // salta i blocchi di supporto (Taccuino, Scene) che non hanno spunta
     const key = nm.textContent.trim().slice(0,30);
     const done = !!(p.steps && p.steps[key]);
     chk.classList.toggle('done', done);

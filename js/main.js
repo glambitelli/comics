@@ -19,6 +19,7 @@ function openStats(){
 function closeStats(){
   document.getElementById('screen-stats').classList.remove('active');
   document.getElementById('screen-home').classList.add('active');
+  if(window._resumeSand) window._resumeSand();
 }
 window.openStats=openStats;
 window.closeStats=closeStats;
@@ -85,7 +86,7 @@ onSnapshot(collection(db, COL), snapshot => {
 });
 
 window.openNewModal=openNewModal; window.closeModal=closeModal; window.createProject=createProject;
-window.goHome=()=>{ goHome(); renderHome(); attachCardDrag(); }; window.openProject=openProject; window.togglePhase=togglePhase;
+window.goHome=()=>{ goHome(); renderHome(); attachCardDrag(); if(window._resumeSand) window._resumeSand(); }; window.openProject=openProject; window.togglePhase=togglePhase;
 window.toggleStep=toggleStep; window.selectTav=selectTav; window.addSfida=addSfida;
 window.saveDates=saveDates; window.confirmDeleteCurrent=confirmDeleteCurrent; window.closeConfirm=closeConfirm;
 window.exportPDF=exportPDF; window.exportStoryboard=exportStoryboard; window.addScene=addScene; window.updateScene=updateScene;
@@ -152,3 +153,46 @@ function wireCopyButtons(){
   });
 }
 window.wireCopyButtons = wireCopyButtons;
+
+// ── Espandi/comprimi blocchi di supporto (Taccuino, Scene) ──
+window.toggleSupport = function(headerEl){
+  const block = headerEl.closest('.support-block');
+  if(!block) return;
+  const content = block.querySelector('.support-content');
+  const chev = headerEl.querySelector('.support-chev');
+  if(!content) return;
+  const isOpen = content.style.display !== 'none';
+  content.style.display = isOpen ? 'none' : 'block';
+  if(chev) chev.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
+  // Ricalcola l'altezza delle textarea appena diventano visibili
+  if(!isOpen){
+    content.querySelectorAll('textarea').forEach(ta=>{
+      ta.style.height='auto';
+      ta.style.height=ta.scrollHeight+'px';
+    });
+  }
+};
+
+// ── Step comprimibili (Soggetto, Personaggi, Ambientazione, Struttura) ──
+// Spunta: riusa la logica esistente di toggleStep passando la riga
+window.toggleStepCheck = function(chkEl){
+  const row = chkEl.closest('.step-collapse');
+  if(row) toggleStep(row);
+};
+// Corpo: espande/comprime il contenuto sotto lo step
+window.toggleStepBody = function(el){
+  const row = el.closest('.step-collapse');
+  if(!row) return;
+  const body = row.nextElementSibling;
+  const chev = row.querySelector('.support-chev');
+  if(!body || !body.classList.contains('step-body')) return;
+  const isOpen = body.style.display !== 'none';
+  body.style.display = isOpen ? 'none' : 'block';
+  if(chev) chev.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
+  if(!isOpen){
+    body.querySelectorAll('textarea').forEach(ta=>{
+      ta.style.height='auto';
+      ta.style.height=ta.scrollHeight+'px';
+    });
+  }
+};

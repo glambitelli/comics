@@ -86,9 +86,12 @@ function renderMoon(){
 }
 
 // ── STELLA CADENTE ──
+let _shootingStarted = false;
 function scheduleShootingStar(){
+  if(_shootingStarted) return;
   const layer = document.getElementById('evening-stars');
   if(!layer) return;
+  _shootingStarted = true;
   function fire(){
     // Solo se siamo ancora in modalità sera
     const screen = document.getElementById('screen-evening');
@@ -141,6 +144,7 @@ function renderStarfield(){
 export function exitEveningMode(){
   document.getElementById('screen-evening').classList.remove('active');
   document.getElementById('screen-home').classList.add('active');
+  if(window._resumeSand) window._resumeSand();
 }
 
 export function getTodayKey(){

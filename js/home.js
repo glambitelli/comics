@@ -335,8 +335,24 @@ export function startSandstorm(){
       ctx.fillStyle = p.c + p.a + ')';
       ctx.fill();
     });
-    _sandAnim = requestAnimationFrame(tick);
+    // Continua solo se la home è visibile e la tab è attiva
+    const homeActive = document.getElementById('screen-home')?.classList.contains('active');
+    if(homeActive && !document.hidden){
+      _sandAnim = requestAnimationFrame(tick);
+    } else {
+      _sandAnim = null; // pausa: verrà ripreso da resumeSand()
+    }
   }
+
+  // Riprende l'animazione quando si torna sulla home / tab torna attiva
+  function resumeSand(){
+    const homeActive = document.getElementById('screen-home')?.classList.contains('active');
+    if(homeActive && !document.hidden && _sandStarted && _sandAnim === null){
+      if(measure()){ _sandAnim = requestAnimationFrame(tick); }
+    }
+  }
+  window._resumeSand = resumeSand;
+  document.addEventListener('visibilitychange', resumeSand);
 
   // Aspetta che il canvas abbia dimensioni reali (lo schermo home dev'essere visibile)
   let attempts = 0;

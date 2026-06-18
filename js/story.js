@@ -59,7 +59,7 @@ export function restoreStoryFields(p){
       if(!p.story)p.story={};
       p.story.taccuino=val;
       scheduleSave(p);
-    }, {placeholder:'Scrivi liberamente — idee, spunti, direzioni narrative…', minHeight:'80px'});
+    }, {placeholder:'Scrivi liberamente — idee, spunti, direzioni narrative…', minHeight:'80px', bg:'#fdf8e8', border:'#e8d898'});
   }
 
   const soggettoWrap = document.getElementById('soggetto-wrap');
