@@ -176,11 +176,11 @@ window.toggleSupport = function(headerEl){
 // ── Sezioni con divisore comprimibili (Sfide visive, ecc.) ──
 window.toggleSection = function(labelEl){
   const content = labelEl.nextElementSibling;
-  const chev = labelEl.querySelector('.sec-chev');
+  const toggle = labelEl.querySelector('.sec-toggle');
   if(!content || !content.classList.contains('sec-content')) return;
   const isOpen = content.style.display !== 'none';
   content.style.display = isOpen ? 'none' : 'block';
-  if(chev) chev.style.transform = isOpen ? 'rotate(-90deg)' : 'rotate(0deg)';
+  if(toggle) toggle.textContent = isOpen ? '+' : '−';
 };
 
 // ── Step comprimibili (Soggetto, Personaggi, Ambientazione, Struttura) ──
