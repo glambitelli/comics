@@ -147,7 +147,7 @@
             </div>
             <div class="support-chev">▾</div>
           </div>
-          <div class="support-content" style="padding:0 16px 14px 50px;display:none" id="taccuino-wrap"></div>
+          <div class="support-content" style="padding:10px 16px 14px;display:none" id="taccuino-wrap"></div>
         </div>
 
         <!-- SCENE — quaderno di scrittura libera comprimibile -->
@@ -160,7 +160,7 @@
             </div>
             <div class="support-chev">▾</div>
           </div>
-          <div class="support-content" style="padding:0 16px 4px 50px;display:none">
+          <div class="support-content" style="padding:10px 16px 4px;display:none">
             <div id="scenes-wrap"></div>
             <button onclick="addSceneText()" style="margin-top:8px;width:100%;padding:11px;border-radius:10px;border:1.5px dashed var(--sand3);background:none;color:var(--ink3);cursor:pointer;font-family:'Nunito',sans-serif;font-size:13px;font-weight:600">+ Nuova scena</button>
           </div>
@@ -178,7 +178,7 @@
           </div>
           <div class="support-chev" onclick="toggleStepBody(this)">▾</div>
         </div>
-        <div class="step-body" style="padding:0 16px 12px;display:none" id="soggetto-wrap"></div>
+        <div class="step-body" style="padding:10px 16px 12px;display:none" id="soggetto-wrap"></div>
 
         <!-- PERSONAGGI -->
         <div class="step-collapse">
@@ -189,7 +189,7 @@
           </div>
           <div class="support-chev" onclick="toggleStepBody(this)">▾</div>
         </div>
-        <div class="step-body" style="padding:0 0 4px;display:none" id="chars-wrap">
+        <div class="step-body" style="padding:10px 0 4px;display:none" id="chars-wrap">
           <div id="chars-list"></div>
           <button class="add-scene-btn" style="margin:4px 14px 12px;width:calc(100% - 28px)" onclick="addCharacter()">+ Aggiungi personaggio</button>
         </div>
@@ -203,7 +203,7 @@
           </div>
           <div class="support-chev" onclick="toggleStepBody(this)">▾</div>
         </div>
-        <div class="step-body" style="padding:0 16px 12px;display:none" id="world-wrap"></div>
+        <div class="step-body" style="padding:10px 16px 12px;display:none" id="world-wrap"></div>
 
         <!-- STRUTTURA 3 ATTI -->
         <div class="step-collapse" id="step-struttura">
@@ -214,7 +214,7 @@
           </div>
           <div class="support-chev" onclick="toggleStepBody(this)">▾</div>
         </div>
-        <div class="step-body" style="padding:0 16px 14px;display:none" id="struttura-wrap">
+        <div class="step-body" style="padding:10px 16px 14px;display:none" id="struttura-wrap">
           <div class="act-board" id="act-board"></div>
         </div>
 
@@ -266,10 +266,19 @@
       <div class="save-hint" id="save-hint">Sincronizzato ☁️</div>
     </div>
 
-    <div style="margin-top:28px;padding-bottom:8px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
-      <button onclick="exportPDF()" style="background:none;border:1.5px solid var(--sky);border-radius:12px;padding:12px 24px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:600;color:var(--sky-deep);cursor:pointer">📄 Esporta PDF</button>
-      <button onclick="exportStoryboard()" style="background:none;border:1.5px solid var(--sky);border-radius:12px;padding:12px 24px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:600;color:var(--sky-deep);cursor:pointer">🎬 Storyboard</button>
-      <button onclick="confirmDeleteCurrent()" style="background:none;border:1.5px solid var(--sand3);border-radius:12px;padding:12px 24px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:600;color:var(--ink3);cursor:pointer">🗑 Elimina progetto</button>
+    <div style="margin-top:32px;padding-bottom:4px">
+      <div style="display:flex;gap:28px;justify-content:center;align-items:center">
+        <button onclick="exportPDF()" class="ghost-action">
+          <span class="ghost-glyph">⤓</span> Esporta PDF
+        </button>
+        <span style="color:var(--sand3)">·</span>
+        <button onclick="exportStoryboard()" class="ghost-action">
+          <span class="ghost-glyph">▦</span> Storyboard
+        </button>
+      </div>
+      <div style="text-align:center;margin-top:22px">
+        <button onclick="confirmDeleteCurrent()" class="ghost-delete">Elimina progetto</button>
+      </div>
     </div>
 
   </div>

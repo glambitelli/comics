@@ -1,15 +1,15 @@
 /* EVENING MODE */
-#screen-evening{background:#03060c}
+#screen-evening{background:#0a0807}
 .evening-bg{
   flex:1;display:flex;flex-direction:column;
-  background:linear-gradient(165deg, #0a1626 0%, #060f1e 38%, #030810 100%);
+  background:linear-gradient(165deg, #14100c 0%, #0d0a08 42%, #070504 100%);
   overflow:hidden;
 }
 .evening-stars{
   position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden;
 }
 .evening-stars .star{
-  position:absolute;color:rgba(255,255,255,.5);line-height:1;
+  position:absolute;color:rgba(240,200,120,.5);line-height:1;
   user-select:none;animation:starTwinkle ease-in-out infinite;
 }
 @keyframes starTwinkle{
@@ -22,8 +22,8 @@
 .evening-stars .star{transition:none}
 .evening-stars .star.star-shine{
   animation:starShine 2.6s ease-in-out !important;
-  color:#fff !important;
-  text-shadow:0 0 6px rgba(255,255,255,.9), 0 0 12px rgba(200,220,255,.6);
+  color:#fbe8b8 !important;
+  text-shadow:0 0 6px rgba(245,210,140,.9), 0 0 12px rgba(230,180,90,.6);
 }
 @keyframes starShine{
   0%{opacity:.3;transform:scale(1)}

@@ -163,9 +163,12 @@ function renderStarfield(){
     const dur = 3 + Math.random()*5;
     const delay = Math.random()*5;
     const baseOp = 0.2 + Math.random()*0.4;
-    // tono: per lo più bianco freddo, qualche stella oro tenue
-    const gold = Math.random()<0.2;
-    const color = gold ? 'rgba(240,200,120,'+baseOp.toFixed(2)+')' : 'rgba(255,255,255,'+baseOp.toFixed(2)+')';
+    // Tono: per lo più oro/sabbia caldo, qualcuna bianca calda per varietà
+    const r = Math.random();
+    let color;
+    if(r < 0.6) color = 'rgba(240,200,120,'+baseOp.toFixed(2)+')';       // oro
+    else if(r < 0.85) color = 'rgba(220,180,130,'+baseOp.toFixed(2)+')'; // sabbia calda
+    else color = 'rgba(250,244,228,'+baseOp.toFixed(2)+')';             // bianco caldo
     html += `<span class="star" style="top:${top.toFixed(1)}%;left:${left.toFixed(1)}%;font-size:${size.toFixed(1)}px;color:${color};animation-duration:${dur.toFixed(1)}s;animation-delay:${delay.toFixed(1)}s">${g}</span>`;
   }
   cont.innerHTML = html;

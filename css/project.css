@@ -145,3 +145,10 @@
 .note-area:focus{border-color:var(--ocean)}
 .note-area::placeholder{color:var(--ink3)}
 .save-hint{font-size:11px;color:var(--ink3);margin-top:6px;text-align:right;font-weight:500}
+
+/* AZIONI MINIMALI — export e elimina */
+.ghost-action{background:none;border:none;cursor:pointer;font-family:'Nunito',sans-serif;font-size:13px;font-weight:600;color:var(--sky-deep);display:flex;align-items:center;gap:7px;padding:6px 4px;transition:opacity .15s;opacity:.85}
+.ghost-action:hover{opacity:1}
+.ghost-glyph{font-size:15px;line-height:1;opacity:.8}
+.ghost-delete{background:none;border:none;cursor:pointer;font-family:'Nunito',sans-serif;font-size:12px;font-weight:500;color:var(--ink3);padding:6px 10px;letter-spacing:.02em;opacity:.6;transition:color .15s,opacity .15s;border-bottom:1px solid transparent}
+.ghost-delete:hover{color:var(--coral);opacity:1}
