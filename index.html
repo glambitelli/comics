@@ -56,15 +56,15 @@
     <div style="height:1px;background:var(--sand2);margin:14px 4px 18px"></div>
     <button class="new-btn" onclick="openNewModal()">+ Nuovo progetto</button>
   </div>
-  <button onclick="enterEveningMode()" style="position:fixed;bottom:calc(24px + var(--safe-bot));left:20px;width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#1a1410,#2a2018);border:none;box-shadow:0 4px 16px rgba(0,0,0,.22);font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:50">🌙</button>
-  <button onclick="openStats()" style="position:fixed;bottom:calc(24px + var(--safe-bot));left:50%;transform:translateX(-50%);width:48px;height:48px;border-radius:50%;background:var(--white);border:1.5px solid var(--sand3);box-shadow:0 4px 16px rgba(0,0,0,.12);font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:50">📊</button>
-  <button onclick="openSettings()" style="position:fixed;bottom:calc(24px + var(--safe-bot));right:20px;width:48px;height:48px;border-radius:50%;background:var(--white);border:1.5px solid var(--sand3);box-shadow:0 4px 16px rgba(0,0,0,.12);font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:50">⚙️</button>
+  <button id="btn-evening" onclick="enterEveningMode()" style="position:fixed;bottom:calc(24px + var(--safe-bot));left:20px;width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#1a1410,#2a2018);border:none;box-shadow:0 4px 16px rgba(0,0,0,.22);font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:50">🌙</button>
+  <button id="btn-stats" onclick="openStats()" style="position:fixed;bottom:calc(24px + var(--safe-bot));left:50%;transform:translateX(-50%);width:48px;height:48px;border-radius:50%;background:var(--white);border:1.5px solid var(--sand3);box-shadow:0 4px 16px rgba(0,0,0,.12);font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:50">📊</button>
+  <button id="btn-settings" onclick="openSettings()" style="position:fixed;bottom:calc(24px + var(--safe-bot));right:20px;width:48px;height:48px;border-radius:50%;background:var(--white);border:1.5px solid var(--sand3);box-shadow:0 4px 16px rgba(0,0,0,.12);font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:50">⚙️</button>
 </div>
 
 <!-- PROJECT -->
 <div class="screen" id="screen-project">
   <div class="proj-header">
-    <button class="back-btn" onclick="goHome()" title="Home" aria-label="Home"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5L12 3l9 7.5"/><path d="M5 9.5V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.5"/></svg></button>
+    <button class="back-btn" onclick="goHome()" title="Home" aria-label="Home"><span style="font-size:19px;line-height:1">←</span><svg width="21" height="21" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.5L2 11h2.5v9.5a1 1 0 0 0 1 1H9.5v-6h5v6h4a1 1 0 0 0 1-1V11H22L12 2.5Z"/></svg></button>
     <input class="proj-title-edit" id="proj-title" type="text" value="" placeholder="Titolo progetto"/>
     <div class="proj-meta">
       <div>Tavole: <span id="meta-tav">10</span></div>
@@ -297,7 +297,7 @@
 <!-- STATS -->
 <div class="screen" id="screen-stats">
   <div class="stats-header">
-    <button class="back-btn" onclick="closeStats()" style="margin-bottom:10px" title="Home" aria-label="Home"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5L12 3l9 7.5"/><path d="M5 9.5V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.5"/></svg></button>
+    <button class="back-btn" onclick="closeStats()" style="margin-bottom:10px" title="Home" aria-label="Home"><span style="font-size:19px;line-height:1">←</span><svg width="21" height="21" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.5L2 11h2.5v9.5a1 1 0 0 0 1 1H9.5v-6h5v6h4a1 1 0 0 0 1-1V11H22L12 2.5Z"/></svg></button>
     <div class="stats-title">Stats</div>
   </div>
   <div class="stats-scroll">
@@ -447,6 +447,21 @@
     <div style="height:18px"></div>
   </div>
 </div>
+
+<!-- BARRA-DUNA MOBILE (solo touch) -->
+<nav class="dune-nav" id="dune-nav" aria-label="Navigazione">
+  <svg class="dune-nav-bg" viewBox="0 0 400 96" preserveAspectRatio="none" aria-hidden="true">
+    <path d="M0,40 Q90,8 180,22 T400,30 L400,96 L0,96 Z" fill="#e6b446"/>
+    <path d="M0,40 Q90,8 180,22 T400,30" fill="none" stroke="#d4a02a" stroke-width="1.5"/>
+  </svg>
+  <div class="dune-nav-items">
+    <button class="dune-btn dune-btn-light" onclick="toggleSearch()" aria-label="Cerca">🔍</button>
+    <button class="dune-btn dune-btn-moon" onclick="enterEveningMode()" aria-label="Modalità sera">🌙</button>
+    <button class="dune-btn dune-btn-light dune-btn-home" onclick="goHome()" aria-label="Home">🏠</button>
+    <button class="dune-btn dune-btn-light" onclick="openStats()" aria-label="Statistiche">📊</button>
+    <button class="dune-btn dune-btn-light" onclick="openSettings()" aria-label="Impostazioni">⚙️</button>
+  </div>
+</nav>
 
 <!-- FIREBASE -->
 <script type="module" src="js/main.js"></script>

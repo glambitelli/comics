@@ -11,6 +11,12 @@ import { renderHome, openNewModal, closeModal, createProject, openCardMenu, expo
 import { openProject, restoreProject, goHome, confirmDeleteCurrent, closeConfirm, confirmMicrotask } from './project.js';
 import { renderStats, getTodayTip } from './stats.js';
 
+// ── Rilevamento touch: mostra la barra-duna solo su dispositivi touch ──
+(function(){
+  const isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+  if(isTouch) document.body.classList.add('is-touch');
+})();
+
 function openStats(){
   renderStats();
   document.getElementById('screen-home').classList.remove('active');
@@ -86,7 +92,14 @@ onSnapshot(collection(db, COL), snapshot => {
 });
 
 window.openNewModal=openNewModal; window.closeModal=closeModal; window.createProject=createProject;
-window.goHome=()=>{ goHome(); renderHome(); attachCardDrag(); if(window._resumeSand) window._resumeSand(); }; window.openProject=openProject; window.togglePhase=togglePhase;
+window.goHome=()=>{
+  document.getElementById('screen-project').classList.remove('active');
+  document.getElementById('screen-stats').classList.remove('active');
+  document.getElementById('screen-evening').classList.remove('active');
+  document.getElementById('screen-home').classList.add('active');
+  renderHome(); attachCardDrag();
+  if(window._resumeSand) window._resumeSand();
+}; window.openProject=openProject; window.togglePhase=togglePhase;
 window.toggleStep=toggleStep; window.selectTav=selectTav; window.addSfida=addSfida;
 window.saveDates=saveDates; window.confirmDeleteCurrent=confirmDeleteCurrent; window.closeConfirm=closeConfirm;
 window.exportPDF=exportPDF; window.exportStoryboard=exportStoryboard; window.addScene=addScene; window.updateScene=updateScene;
