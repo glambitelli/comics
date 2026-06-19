@@ -162,12 +162,6 @@ export function renderActBoard(p){
     }
   });
 
-  // Toggle vista sceneggiatura in fondo, centrato e discreto
-  const toggleRow=document.createElement('div');
-  toggleRow.style.cssText='display:flex;justify-content:center;margin-top:14px';
-  toggleRow.innerHTML='<button onclick="toggleScreenplay()" style="font-size:11px;padding:6px 14px;border:1px solid var(--sand2);border-radius:20px;background:none;color:var(--ink3);cursor:pointer;font-family:\'Nunito\',sans-serif;font-weight:600;letter-spacing:.03em;display:flex;align-items:center;gap:6px"><span style="font-size:12px">☰</span> Vista sceneggiatura</button>';
-  board.appendChild(toggleRow);
-
   attachDrag(p);
   requestAnimationFrame(autoResizeAll);
 }
@@ -446,6 +440,13 @@ export function toggleScreenplay(){
   window._screenplayMode = !window._screenplayMode;
   const p = getProject(currentId);
   if(p) renderActBoard(p);
+  // Aggiorna l'icona del pulsante nell'header
+  const btn = document.getElementById('screenplay-toggle-btn');
+  if(btn){
+    btn.textContent = window._screenplayMode ? '▦' : '☰';
+    btn.title = window._screenplayMode ? 'Vista board' : 'Vista sceneggiatura';
+    btn.style.color = window._screenplayMode ? 'var(--sky-deep)' : 'var(--ink3)';
+  }
 }
 
 function renderScreenplay(p){
@@ -458,12 +459,6 @@ function renderScreenplay(p){
 
   const wrap=document.createElement('div');
   wrap.style.cssText='background:var(--white);border-radius:12px;border:1.5px solid var(--sand2);padding:20px 18px;box-shadow:var(--shadow)';
-
-  // Toggle per tornare
-  const toggleRow=document.createElement('div');
-  toggleRow.style.cssText='display:flex;justify-content:flex-end;margin-bottom:14px';
-  toggleRow.innerHTML='<button onclick="toggleScreenplay()" style="font-size:11px;padding:4px 2px;border:none;background:none;color:var(--ink3);cursor:pointer;font-family:\'Nunito\',sans-serif;font-weight:700;letter-spacing:.04em;display:flex;align-items:center;gap:5px;opacity:.7"><span style="font-size:13px">▦</span> board</button>';
-  wrap.appendChild(toggleRow);
 
   let html='';
   const ACTS=[

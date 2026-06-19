@@ -153,3 +153,10 @@
 .ghost-delete{background:none;border:none;cursor:pointer;font-family:'Nunito',sans-serif;font-size:12px;font-weight:600;color:var(--coral);display:inline-flex;align-items:center;gap:6px;padding:6px 10px;letter-spacing:.02em;opacity:.7;transition:opacity .15s}
 .ghost-delete:hover{opacity:1}
 .ghost-delete .ghost-glyph{font-size:14px}
+
+/* SFIDE VISIVE — pill compatte a vista */
+.sfida-pill{display:inline-flex;align-items:center;gap:4px;background:var(--sand);border:1px solid var(--sand2);border-radius:16px;padding:5px 8px 5px 12px}
+.sfida-text-input{background:none;border:none;outline:none;font-family:'Nunito',sans-serif;font-size:13px;font-weight:600;color:var(--ink);min-width:30px;padding:0}
+.sfida-text-input::placeholder{color:var(--ink3)}
+.sfida-rm{background:none;border:none;cursor:pointer;color:var(--ink3);font-size:15px;line-height:1;padding:0 2px;flex-shrink:0;transition:color .15s}
+.sfida-rm:hover,.sfida-rm:active{color:var(--coral)}

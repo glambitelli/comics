@@ -64,7 +64,7 @@
 <!-- PROJECT -->
 <div class="screen" id="screen-project">
   <div class="proj-header">
-    <button class="back-btn" onclick="goHome()">← Home</button>
+    <button class="back-btn" onclick="goHome()" title="Home" aria-label="Home"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5L12 3l9 7.5"/><path d="M5 9.5V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.5"/></svg></button>
     <input class="proj-title-edit" id="proj-title" type="text" value="" placeholder="Titolo progetto"/>
     <div class="proj-meta">
       <div>Tavole: <span id="meta-tav">10</span></div>
@@ -212,6 +212,7 @@
             <div class="step-nm">Struttura a 3 atti <span class="tag wm">mattina</span></div>
             <div class="step-ds">Setup → Plot Point 1 → Confrontation → Plot Point 2 → Resolution.</div>
           </div>
+          <button onclick="event.stopPropagation();toggleScreenplay()" id="screenplay-toggle-btn" title="Vista sceneggiatura" style="background:none;border:none;cursor:pointer;color:var(--ink3);font-size:17px;padding:4px 6px;align-self:center;flex-shrink:0">☰</button>
           <div class="support-chev" onclick="toggleStepBody(this)">▾</div>
         </div>
         <div class="step-body" style="padding:10px 16px 14px;display:none" id="struttura-wrap">
@@ -249,14 +250,9 @@
     </div>
 
     <div style="margin-top:20px">
-      <div class="sec-label sec-collapse" onclick="toggleSection(this)" style="cursor:pointer">
-        <span>Sfide visive</span>
-        <span class="sec-line"></span>
-      </div>
-      <div class="sec-content" id="sfide-content" style="display:none">
-        <div id="sfide-list"></div>
-        <button class="new-btn" style="margin-top:4px" onclick="addSfida()">+ Aggiungi elemento nuovo</button>
-      </div>
+      <div class="sec-label">Sfide visive</div>
+      <div id="sfide-list"></div>
+      <button class="new-btn" style="margin-top:8px" onclick="addSfida()">+ Aggiungi elemento</button>
     </div>
 
     <div style="margin-top:20px">
@@ -301,8 +297,8 @@
 <!-- STATS -->
 <div class="screen" id="screen-stats">
   <div class="stats-header">
-    <button class="back-btn" onclick="closeStats()" style="color:#fff;margin-bottom:10px">← Home</button>
-    <div class="stats-title">Statistiche</div>
+    <button class="back-btn" onclick="closeStats()" style="margin-bottom:10px" title="Home" aria-label="Home"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5L12 3l9 7.5"/><path d="M5 9.5V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.5"/></svg></button>
+    <div class="stats-title">Stats</div>
   </div>
   <div class="stats-scroll">
     <!-- Numeri -->

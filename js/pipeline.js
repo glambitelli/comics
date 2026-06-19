@@ -68,20 +68,21 @@ export function renderTavDetail(p){
 
 export function renderSfide(p){
   const list=document.getElementById('sfide-list'); list.innerHTML='';
+  list.style.cssText='display:flex;flex-wrap:wrap;gap:8px';
   (p.sfide||[]).forEach((s,i)=>{
-    const row=document.createElement('div'); row.className='sfida-row';
-
-    const dot=document.createElement('div');
-    dot.style.cssText='width:6px;height:6px;border-radius:50%;background:var(--sand3);flex-shrink:0';
+    const pill=document.createElement('div'); pill.className='sfida-pill';
 
     const input=document.createElement('input');
     input.type='text';
     input.value=s.text;
     input.className='sfida-text-input';
-    input.style.cssText='flex:1;background:none;border:none;outline:none;font-family:\'Nunito\',sans-serif;font-size:13px;font-weight:500;color:var(--ink)';
+    input.placeholder='…';
+    // larghezza auto in base al contenuto
+    input.size = Math.max(3, (s.text||'').length || 3);
     input.addEventListener('input',function(){
       const p=getProject(currentId);if(!p||!p.sfide)return;
       p.sfide[i].text=this.value;
+      this.size = Math.max(3, this.value.length || 3);
       scheduleSave(p);
     });
 
@@ -94,10 +95,9 @@ export function renderSfide(p){
       scheduleSave(p);renderSfide(p);
     };
 
-    row.appendChild(dot);
-    row.appendChild(input);
-    row.appendChild(rm);
-    list.appendChild(row);
+    pill.appendChild(input);
+    pill.appendChild(rm);
+    list.appendChild(pill);
   });
 }
 
