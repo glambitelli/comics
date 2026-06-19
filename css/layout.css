@@ -35,32 +35,34 @@
 body.is-touch .dune-nav{
   display:block;position:fixed;bottom:0;left:0;right:0;height:calc(88px + var(--safe-bot));
   z-index:200;pointer-events:none;
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
 }
-.dune-nav-bg{position:absolute;bottom:0;left:0;width:100%;height:100%;filter:drop-shadow(0 -3px 12px rgba(0,0,0,.12))}
+.dune-nav-bg{position:absolute;bottom:0;left:0;width:100%;height:100%;filter:drop-shadow(0 -4px 16px rgba(0,0,0,.14))}
 .dune-nav-items{
-  position:absolute;bottom:var(--safe-bot);left:0;right:0;height:62px;
-  display:flex;align-items:center;justify-content:space-around;padding:0 18px;
+  position:absolute;bottom:var(--safe-bot);left:0;right:0;height:64px;
+  display:flex;align-items:center;justify-content:space-around;padding:0 16px;
   pointer-events:auto;
 }
 .dune-btn{
   background:none;border:none;cursor:pointer;padding:0;
   width:44px;height:44px;border-radius:50%;
   display:flex;align-items:center;justify-content:center;
-  font-size:21px;line-height:1;
+  font-size:22px;line-height:1;color:#3d2606;
   transition:transform .12s;
+  -webkit-tap-highlight-color:transparent;
 }
-.dune-btn:active{transform:scale(.88)}
-/* Tondo chiaro (cerca, home, stats, opzioni) — come i pulsanti originali */
-.dune-btn-light{background:var(--white);border:1.5px solid var(--sand3);box-shadow:0 2px 8px rgba(0,0,0,.12)}
-/* Luna (sera) — tondo scuro identico all'originale */
+.dune-btn span{font-size:22px;line-height:1}
+.dune-btn:active{transform:scale(.87)}
+.dune-btn-light{background:rgba(255,252,244,.92);border:1px solid rgba(160,120,50,.25);box-shadow:0 2px 6px rgba(0,0,0,.09)}
 .dune-btn-moon{background:linear-gradient(135deg,#1a1410,#2a2018);box-shadow:0 2px 10px rgba(0,0,0,.28)}
-/* Home un filo più grande */
-.dune-btn-home{width:50px;height:50px;font-size:23px;margin-top:-12px}
+.dune-btn-home{width:50px;height:50px;margin-top:-12px}
+.dune-btn-home span{font-size:25px}
 
-/* Nascondi i pulsanti flottanti su touch (sostituiti dalla barra) */
+/* Nascondi pulsanti flottanti e cerca header su touch */
 body.is-touch #btn-evening,
 body.is-touch #btn-stats,
-body.is-touch #btn-settings{display:none !important}
+body.is-touch #btn-settings,
+body.is-touch .header-search-btn{display:none !important}
 
 /* Spazio extra in fondo agli scroll per non finire sotto la duna */
 body.is-touch .home-scroll,

@@ -39,7 +39,7 @@
     <div class="home-title">Inkflow <span style="font-size:.6em;color:#f0c020;vertical-align:.14em;font-weight:400">✦</span></div>
     <div class="home-sub-row">
       <div class="home-sub">pipeline · tracker · storyboard <span class="sync-dot" id="sync-dot"></span><span style="margin-left:6px;opacity:.4;font-size:8px;letter-spacing:.06em">v1.0.0</span></div>
-      <button onclick="toggleSearch()" style="background:none;border:none;font-size:15px;cursor:pointer;color:var(--ink3);padding:0;line-height:1;opacity:.55">🔍</button>
+      <button onclick="toggleSearch()" class="header-search-btn" style="background:none;border:none;font-size:15px;cursor:pointer;color:var(--ink3);padding:0;line-height:1;opacity:.55">🔍</button>
     </div>
   </div>
   <div class="home-scroll" id="home-scroll">
@@ -451,15 +451,15 @@
 <!-- BARRA-DUNA MOBILE (solo touch) -->
 <nav class="dune-nav" id="dune-nav" aria-label="Navigazione">
   <svg class="dune-nav-bg" viewBox="0 0 400 96" preserveAspectRatio="none" aria-hidden="true">
-    <path d="M0,40 Q90,8 180,22 T400,30 L400,96 L0,96 Z" fill="#e6b446"/>
-    <path d="M0,40 Q90,8 180,22 T400,30" fill="none" stroke="#d4a02a" stroke-width="1.5"/>
+    <path d="M0,40 Q90,8 180,22 T400,30 L400,96 L0,96 Z" fill="rgba(190,145,48,.92)"/>
+    <path d="M0,40 Q90,8 180,22 T400,30" fill="none" stroke="rgba(170,125,35,.7)" stroke-width="1.2"/>
   </svg>
   <div class="dune-nav-items">
-    <button class="dune-btn dune-btn-light" onclick="toggleSearch()" aria-label="Cerca">🔍</button>
+    <button class="dune-btn dune-btn-light" onclick="duneSearch()" aria-label="Cerca"><span>◎</span></button>
     <button class="dune-btn dune-btn-moon" onclick="enterEveningMode()" aria-label="Modalità sera">🌙</button>
-    <button class="dune-btn dune-btn-light dune-btn-home" onclick="goHome()" aria-label="Home">🏠</button>
-    <button class="dune-btn dune-btn-light" onclick="openStats()" aria-label="Statistiche">📊</button>
-    <button class="dune-btn dune-btn-light" onclick="openSettings()" aria-label="Impostazioni">⚙️</button>
+    <button class="dune-btn dune-btn-light dune-btn-home" onclick="goHome()" aria-label="Home"><span>⌂</span></button>
+    <button class="dune-btn dune-btn-light" onclick="openStats()" aria-label="Statistiche"><span>◈</span></button>
+    <button class="dune-btn dune-btn-light" onclick="toggleSettings()" aria-label="Impostazioni"><span>⊙</span></button>
   </div>
 </nav>
 

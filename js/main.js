@@ -17,9 +17,22 @@ import { renderStats, getTodayTip } from './stats.js';
   if(isTouch) document.body.classList.add('is-touch');
 })();
 
+// ── Navigazione centralizzata: chiude tutte le schermate prima di aprirne una ──
+function hideAllScreens(){
+  ['screen-home','screen-project','screen-stats','screen-evening'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.classList.remove('active');
+  });
+  // Chiude anche settings se aperto
+  const so = document.getElementById('settings-overlay');
+  const sp = document.getElementById('settings-panel');
+  if(so) so.classList.remove('open');
+  if(sp) sp.classList.remove('open');
+}
+
 function openStats(){
+  hideAllScreens();
   renderStats();
-  document.getElementById('screen-home').classList.remove('active');
   document.getElementById('screen-stats').classList.add('active');
 }
 function closeStats(){
@@ -27,8 +40,27 @@ function closeStats(){
   document.getElementById('screen-home').classList.add('active');
   if(window._resumeSand) window._resumeSand();
 }
+// Toggle settings (punto 2: ripremi e si chiude)
+function toggleSettings(){
+  const overlay = document.getElementById('settings-overlay');
+  if(overlay && overlay.classList.contains('open')){
+    closeSettings();
+  } else {
+    openSettings();
+  }
+}
+// Cerca: torna alla home e apre la ricerca (punto 4)
+function duneSearch(){
+  hideAllScreens();
+  document.getElementById('screen-home').classList.add('active');
+  if(window._resumeSand) window._resumeSand();
+  renderHome(); attachCardDrag();
+  setTimeout(()=>{ if(window.toggleSearch) window.toggleSearch(); }, 80);
+}
 window.openStats=openStats;
 window.closeStats=closeStats;
+window.toggleSettings=toggleSettings;
+window.duneSearch=duneSearch;
 
 function hideLoading(){
   const loading = document.getElementById('loading');
@@ -93,9 +125,7 @@ onSnapshot(collection(db, COL), snapshot => {
 
 window.openNewModal=openNewModal; window.closeModal=closeModal; window.createProject=createProject;
 window.goHome=()=>{
-  document.getElementById('screen-project').classList.remove('active');
-  document.getElementById('screen-stats').classList.remove('active');
-  document.getElementById('screen-evening').classList.remove('active');
+  hideAllScreens();
   document.getElementById('screen-home').classList.add('active');
   renderHome(); attachCardDrag();
   if(window._resumeSand) window._resumeSand();
