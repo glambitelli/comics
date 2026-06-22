@@ -36,12 +36,23 @@ body.is-touch .dune-nav{
   display:block;position:fixed;bottom:0;left:0;right:0;height:calc(88px + var(--safe-bot));
   z-index:200;pointer-events:none;
   transition:transform .32s cubic-bezier(.4,0,.2,1);
+  overflow:hidden;
 }
-/* La barra si nasconde scrollando giù, riappare scrollando su */
 body.is-touch .dune-nav.dune-hidden{transform:translateY(calc(100% + 4px))}
 
-.dune-nav-bg{position:absolute;bottom:0;left:0;width:100%;height:100%;filter:drop-shadow(0 -4px 14px rgba(0,0,0,.16))}
-.dune-fill{transition:fill .4s ease}
+/* Layer blur + colore — clip-path segue ESATTAMENTE la curva bezier della duna */
+.dune-blur,.dune-color{
+  position:absolute;bottom:0;left:0;right:0;height:100%;
+  clip-path:polygon(0.0% 40.62%, 5.0% 33.81%, 10.0% 28.18%, 15.0% 23.73%, 20.0% 20.46%, 25.0% 18.38%, 30.0% 17.48%, 35.0% 17.76%, 40.0% 19.23%, 45.0% 21.88%, 50.12% 24.86%, 55.49% 27.33%, 61.11% 29.28%, 66.98% 30.72%, 73.09% 31.65%, 79.44% 32.06%, 86.05% 31.96%, 92.9% 31.34%, 100.0% 30.21%, 100% 100%, 0% 100%);
+}
+.dune-blur{
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+}
+.dune-color{
+  background:rgba(148,105,22,.58);
+  transition:background .4s ease;
+}
+.dune-nav-bg{position:absolute;bottom:0;left:0;width:100%;height:100%;pointer-events:none}
 .dune-stroke{transition:stroke .4s ease}
 .dune-nav-items{
   position:absolute;bottom:var(--safe-bot);left:0;right:0;height:64px;
@@ -69,7 +80,7 @@ body.is-touch .dune-nav.dune-hidden{transform:translateY(calc(100% + 4px))}
 .dune-home-svg{width:30px;height:30px;display:block}
 
 /* ── Modalità sera: barra scura coordinata ── */
-body.evening-mode.is-touch .dune-fill{fill:#332a1a}
+body.evening-mode.is-touch .dune-color{background:rgba(30,22,10,.72)}
 body.evening-mode.is-touch .dune-stroke{stroke:#46381f}
 body.evening-mode.is-touch .dune-btn-light{background:rgba(255,248,232,.12);border-color:rgba(232,200,120,.2);color:#e8c878;box-shadow:none}
 body.evening-mode.is-touch .dune-home-svg{fill:#e8c878}

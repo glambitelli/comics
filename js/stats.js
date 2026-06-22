@@ -19,7 +19,6 @@ const TIPS = [
   { text:"Devi trovare una chiave per il cuore del pubblico: temi universali, espressi in modi nuovi e sorprendenti.", author:"James Cameron" },
   { text:"Comincio sempre dal finale: mi chiedo se mi emozionerà il punto in cui tutto va a finire.", author:"James Cameron" },
   { text:"Ci deve essere conflitto: i personaggi si rivelano attraverso il conflitto, il tradimento e la perdita.", author:"James Cameron" },
-  { text:"La cosa peggiore è che tutti siano d'accordo, dalla stessa parte.", author:"James Cameron" },
   { text:"Molti non realizzano i loro sogni perché ci pensano troppo, o sono troppo cauti per fare il salto.", author:"James Cameron" },
   // ── Quentin Tarantino ──
   { text:"Metto i personaggi nella stanza insieme e li lascio parlare: sono loro a fare la maggior parte del lavoro.", author:"Quentin Tarantino" },

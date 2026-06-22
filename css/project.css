@@ -160,3 +160,6 @@
 .sfida-text-input::placeholder{color:var(--ink3)}
 .sfida-rm{background:none;border:none;cursor:pointer;color:var(--ink3);font-size:15px;line-height:1;padding:0 2px;flex-shrink:0;transition:color .15s}
 .sfida-rm:hover,.sfida-rm:active{color:var(--coral)}
+
+/* Su touch la barra-duna gestisce la navigazione: nascondi il back-btn nel progetto */
+body.is-touch .back-btn{display:none}

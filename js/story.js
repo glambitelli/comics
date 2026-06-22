@@ -188,6 +188,9 @@ function makeSceneCard(actId, idx, text, p){
     p.story.acts[actId][idx]=this.value;
     scheduleSave(p);
   });
+  // Ridimensiona dopo che il DOM è visibile (funziona anche se lo step era collassato)
+  requestAnimationFrame(()=>{ if(ta.offsetParent!==null) autoResize(ta); });
+  setTimeout(()=>autoResize(ta), 120);
 
   const del=document.createElement('button');
   del.className='scene-del';
@@ -624,4 +627,15 @@ function promoteSceneToBoard(i){
   scheduleSave(p);
   renderScenes(p);
   renderActBoard(p);
+
+  // Se ho appena promosso, apro lo step "Struttura a 3 atti" così la scena è subito visibile
+  if(p.story.scenes[i] && p.story.scenes[i].promoted){
+    const wrap = document.getElementById('struttura-wrap');
+    if(wrap && wrap.style.display === 'none'){
+      wrap.style.display = 'block';
+      // aggiorno la freccetta dello step se presente
+      const step = document.getElementById('step-struttura');
+      if(step){ const chev = step.querySelector('.support-chev'); if(chev) chev.textContent = '▴'; }
+    }
+  }
 }
