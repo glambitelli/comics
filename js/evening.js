@@ -8,6 +8,7 @@ export function enterEveningMode(){
   scheduleStarPulse();
   document.getElementById('screen-home').classList.remove('active');
   document.getElementById('screen-evening').classList.add('active');
+  document.body.classList.add('evening-mode');
 }
 
 // ── FASE LUNARE ──
@@ -178,6 +179,7 @@ function renderStarfield(){
 export function exitEveningMode(){
   document.getElementById('screen-evening').classList.remove('active');
   document.getElementById('screen-home').classList.add('active');
+  document.body.classList.remove('evening-mode');
   if(window._resumeSand) window._resumeSand();
 }
 

@@ -12,7 +12,7 @@
 <title>Inkflow</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Castoro&family=Nunito:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Castoro&family=Courier+Prime:wght@400;700&family=Nunito:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/variables.css">
 <link rel="stylesheet" href="css/layout.css">
 <link rel="stylesheet" href="css/home.css">
@@ -22,6 +22,7 @@
 <link rel="stylesheet" href="css/settings.css">
 <link rel="stylesheet" href="css/modals.css">
 <link rel="stylesheet" href="css/stats.css">
+<link rel="stylesheet" href="css/sequence.css">
 </head>
 <body>
 
@@ -54,8 +55,8 @@
     <!-- Citazione del giorno — in alto, centrata -->
     <div id="home-quote" style="text-align:center;padding:6px 8px 2px"></div>
     <div style="height:1px;background:var(--sand2);margin:14px 4px 18px"></div>
-    <button class="new-btn" onclick="openNewModal()">+ Nuovo progetto</button>
   </div>
+  <button class="new-fab" onclick="openTypeChooser()" aria-label="Nuovo progetto">+</button>
   <button id="btn-evening" onclick="enterEveningMode()" style="position:fixed;bottom:calc(24px + var(--safe-bot));left:20px;width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#1a1410,#2a2018);border:none;box-shadow:0 4px 16px rgba(0,0,0,.22);font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:50">🌙</button>
   <button id="btn-stats" onclick="openStats()" style="position:fixed;bottom:calc(24px + var(--safe-bot));left:50%;transform:translateX(-50%);width:48px;height:48px;border-radius:50%;background:var(--white);border:1.5px solid var(--sand3);box-shadow:0 4px 16px rgba(0,0,0,.12);font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:50">📊</button>
   <button id="btn-settings" onclick="openSettings()" style="position:fixed;bottom:calc(24px + var(--safe-bot));right:20px;width:48px;height:48px;border-radius:50%;background:var(--white);border:1.5px solid var(--sand3);box-shadow:0 4px 16px rgba(0,0,0,.12);font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:50">⚙️</button>
@@ -137,6 +138,8 @@
         <div class="phase-chev open" id="ph1-chev">▾</div>
       </div>
       <div class="phase-body open" id="ph1-body">
+        <!-- CONTENUTO STORIA (type=story) -->
+        <div id="ph1-story">
         <!-- TACCUINO — blocco di supporto comprimibile -->
         <div class="support-block" style="border-left:3px solid var(--gold)">
           <div class="step-item" style="cursor:pointer" onclick="toggleSupport(this)">
@@ -218,6 +221,53 @@
         <div class="step-body" style="padding:10px 16px 14px;display:none" id="struttura-wrap">
           <div class="act-board" id="act-board"></div>
         </div>
+        </div><!-- /ph1-story -->
+
+        <!-- CONTENUTO SEQUENZA (type=sequence) -->
+        <div id="ph1-sequence" style="display:none">
+          <!-- Spina dorsale (timeline beat) -->
+          <div id="seq-spine" class="seq-spine"></div>
+
+          <!-- SCENE screenplay -->
+          <div style="padding:4px 14px 0">
+            <div class="seq-sub-label">Scene</div>
+            <div id="seq-scenes"></div>
+            <button class="add-scene-btn" style="margin-top:6px;width:100%" onclick="addSeqScene()">+ Nuova scena</button>
+            <div style="display:flex;justify-content:center;margin-top:12px">
+              <button class="seq-read-btn" onclick="openReadMode()">☷ Vista lettura</button>
+            </div>
+          </div>
+
+          <!-- SUPPORTO -->
+          <div style="padding:18px 14px 4px">
+            <div class="seq-sub-label">Supporto</div>
+            <div class="support-block" style="border-left:3px solid var(--gold)">
+              <div class="step-item" style="cursor:pointer" onclick="toggleSupport(this)">
+                <div class="support-dot" style="background:var(--gold)"></div>
+                <div class="step-cnt">
+                  <div class="step-nm">Moodboard <span class="tag ws">sera</span></div>
+                  <div class="step-ds">Immagini che catturano l'atmosfera.</div>
+                </div>
+                <div class="support-chev">▾</div>
+              </div>
+              <div class="support-content" style="padding:10px 16px 14px;display:none" id="seq-moodboard-wrap"></div>
+            </div>
+            <div class="support-block" style="border-left:3px solid var(--sky)">
+              <div class="step-item" style="cursor:pointer" onclick="toggleSupport(this)">
+                <div class="support-dot" style="background:var(--sky)"></div>
+                <div class="step-cnt">
+                  <div class="step-nm">Personaggi</div>
+                  <div class="step-ds">Schede dei personaggi della sequenza.</div>
+                </div>
+                <div class="support-chev">▾</div>
+              </div>
+              <div class="support-content" style="padding:10px 0 4px;display:none">
+                <div id="seq-chars-list"></div>
+                <button class="add-scene-btn" style="margin:4px 14px 12px;width:calc(100% - 28px)" onclick="addSeqCharacter()">+ Aggiungi personaggio</button>
+              </div>
+            </div>
+          </div>
+        </div><!-- /ph1-sequence -->
 
       </div>
     </div>
@@ -263,8 +313,8 @@
 
     <div style="margin-top:32px;padding-bottom:4px">
       <div style="display:flex;gap:28px;justify-content:center;align-items:center">
-        <button onclick="exportPDF()" class="ghost-action">
-          <span class="ghost-glyph">⤓</span> Esporta PDF
+        <button onclick="exportMain()" class="ghost-action" id="export-main-btn">
+          <span class="ghost-glyph">⤓</span> <span id="export-main-label">Esporta PDF</span>
         </button>
         <span style="color:var(--sand3)">·</span>
         <button onclick="exportStoryboard()" class="ghost-action">
@@ -290,7 +340,7 @@
       </div>
     </div>
     <div class="evening-scroll" id="evening-list"></div>
-    <button onclick="exitEveningMode()" style="position:fixed;bottom:calc(24px + var(--safe-bot));left:20px;width:48px;height:48px;border-radius:50%;background:#f5f0e8;border:none;box-shadow:0 4px 16px rgba(0,0,0,.15);font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:50">☀️</button>
+    <button id="evening-exit" onclick="exitEveningMode()" style="position:fixed;bottom:calc(24px + var(--safe-bot));left:20px;width:48px;height:48px;border-radius:50%;background:#f5f0e8;border:none;box-shadow:0 4px 16px rgba(0,0,0,.15);font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:50">☀️</button>
   </div>
 </div>
 
@@ -326,6 +376,16 @@
     </div>
     <div style="height:calc(20px + var(--safe-bot))"></div>
   </div>
+</div>
+
+<!-- VISTA LETTURA (manoscritto Sequenza) -->
+<div class="screen" id="screen-read">
+  <div class="read-header">
+    <button class="read-back" onclick="closeReadMode()" aria-label="Torna">←</button>
+    <div class="read-proj-title" id="read-proj-title"></div>
+    <div class="read-proj-sub">vista lettura</div>
+  </div>
+  <div class="read-scroll" id="read-body"></div>
 </div>
 
 <!-- SETTINGS PANEL -->
@@ -418,6 +478,37 @@
 </div>
 
 <!-- MODAL NUOVO -->
+<!-- SCELTA TIPO PROGETTO -->
+<div class="modal-overlay" id="type-chooser">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-head"><h3>Che tipo di progetto?</h3><p>Puoi cambiare idea dopo. Decide come scrivi.</p></div>
+    <div class="modal-body">
+      <button class="type-choice" onclick="chooseType('story')">
+        <span class="type-choice-ico" style="background:var(--sky-pale)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#2a88b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>
+        </span>
+        <span class="type-choice-txt">
+          <span class="type-choice-h">Storia</span>
+          <span class="type-choice-p">Struttura a 3 atti, soggetto, scene. Per un'opera pianificata.</span>
+        </span>
+      </button>
+      <button class="type-choice" onclick="chooseType('sequence')">
+        <span class="type-choice-ico" style="background:#efe2c8">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#9a7820" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="4" rx="1"/><rect x="3" y="10" width="18" height="4" rx="1"/><rect x="3" y="16" width="18" height="4" rx="1"/></svg>
+        </span>
+        <span class="type-choice-txt">
+          <span class="type-choice-h">Sequenza</span>
+          <span class="type-choice-p">Scene che fluiscono, in formato sceneggiatura. Scrivi dal basso, senza pressione.</span>
+        </span>
+      </button>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeTypeChooser()">Annulla</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modal">
   <div class="modal">
     <div class="modal-handle"></div>
@@ -451,15 +542,20 @@
 <!-- BARRA-DUNA MOBILE (solo touch) -->
 <nav class="dune-nav" id="dune-nav" aria-label="Navigazione">
   <svg class="dune-nav-bg" viewBox="0 0 400 96" preserveAspectRatio="none" aria-hidden="true">
-    <path d="M0,40 Q90,8 180,22 T400,30 L400,96 L0,96 Z" fill="rgba(190,145,48,.92)"/>
-    <path d="M0,40 Q90,8 180,22 T400,30" fill="none" stroke="rgba(170,125,35,.7)" stroke-width="1.2"/>
+    <path class="dune-fill" d="M0,40 Q90,8 180,22 T400,30 L400,96 L0,96 Z" fill="#d9a83e"/>
+    <path class="dune-stroke" d="M0,40 Q90,8 180,22 T400,30" fill="none" stroke="#c2922e" stroke-width="1.2"/>
   </svg>
   <div class="dune-nav-items">
-    <button class="dune-btn dune-btn-light" onclick="duneSearch()" aria-label="Cerca"><span>◎</span></button>
-    <button class="dune-btn dune-btn-moon" onclick="enterEveningMode()" aria-label="Modalità sera">🌙</button>
-    <button class="dune-btn dune-btn-light dune-btn-home" onclick="goHome()" aria-label="Home"><span>⌂</span></button>
-    <button class="dune-btn dune-btn-light" onclick="openStats()" aria-label="Statistiche"><span>◈</span></button>
-    <button class="dune-btn dune-btn-light" onclick="toggleSettings()" aria-label="Impostazioni"><span>⊙</span></button>
+    <button class="dune-btn dune-btn-light" onclick="duneSearch()" aria-label="Cerca"><span class="dune-g-search">⚲</span></button>
+    <button class="dune-btn dune-btn-moon" onclick="toggleEvening()" aria-label="Modalità sera" id="dune-moon-btn">
+      <svg class="dune-moon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2a10 10 0 1 0 7.5 16.6A8 8 0 0 1 13 2Z" fill="#f0c068"/></svg>
+      <span class="dune-sun-glyph">✷</span>
+    </button>
+    <button class="dune-btn dune-btn-light dune-btn-home" onclick="goHome()" aria-label="Home">
+      <svg class="dune-home-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3L2 11h2.3v9a1 1 0 0 0 1 1H10v-6h4v6h4.7a1 1 0 0 0 1-1v-9H22L12 3Z" fill="currentColor"/></svg>
+    </button>
+    <button class="dune-btn dune-btn-light" onclick="openStats()" aria-label="Statistiche"><span class="dune-g-stats">≣</span></button>
+    <button class="dune-btn dune-btn-light" onclick="toggleSettings()" aria-label="Impostazioni"><span class="dune-g-gear">⚙</span></button>
   </div>
 </nav>
 

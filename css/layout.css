@@ -35,9 +35,14 @@
 body.is-touch .dune-nav{
   display:block;position:fixed;bottom:0;left:0;right:0;height:calc(88px + var(--safe-bot));
   z-index:200;pointer-events:none;
-  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  transition:transform .32s cubic-bezier(.4,0,.2,1);
 }
-.dune-nav-bg{position:absolute;bottom:0;left:0;width:100%;height:100%;filter:drop-shadow(0 -4px 16px rgba(0,0,0,.14))}
+/* La barra si nasconde scrollando giù, riappare scrollando su */
+body.is-touch .dune-nav.dune-hidden{transform:translateY(calc(100% + 4px))}
+
+.dune-nav-bg{position:absolute;bottom:0;left:0;width:100%;height:100%;filter:drop-shadow(0 -4px 14px rgba(0,0,0,.16))}
+.dune-fill{transition:fill .4s ease}
+.dune-stroke{transition:stroke .4s ease}
 .dune-nav-items{
   position:absolute;bottom:var(--safe-bot);left:0;right:0;height:64px;
   display:flex;align-items:center;justify-content:space-around;padding:0 16px;
@@ -45,27 +50,47 @@ body.is-touch .dune-nav{
 }
 .dune-btn{
   background:none;border:none;cursor:pointer;padding:0;
-  width:44px;height:44px;border-radius:50%;
+  width:46px;height:46px;border-radius:50%;
   display:flex;align-items:center;justify-content:center;
-  font-size:22px;line-height:1;color:#3d2606;
+  line-height:1;color:#4a2e08;
   transition:transform .12s;
   -webkit-tap-highlight-color:transparent;
 }
-.dune-btn span{font-size:22px;line-height:1}
 .dune-btn:active{transform:scale(.87)}
-.dune-btn-light{background:rgba(255,252,244,.92);border:1px solid rgba(160,120,50,.25);box-shadow:0 2px 6px rgba(0,0,0,.09)}
-.dune-btn-moon{background:linear-gradient(135deg,#1a1410,#2a2018);box-shadow:0 2px 10px rgba(0,0,0,.28)}
-.dune-btn-home{width:50px;height:50px;margin-top:-12px}
-.dune-btn-home span{font-size:25px}
+.dune-btn-light{background:#fffbf2;border:1px solid rgba(160,120,50,.22);box-shadow:0 2px 6px rgba(90,60,20,.18)}
+.dune-btn-moon{background:linear-gradient(135deg,#241c14,#120d08);border:1.5px solid rgba(220,170,70,.4);box-shadow:0 2px 10px rgba(0,0,0,.28)}
+.dune-btn-home{width:52px;height:52px;margin-top:-12px}
+
+/* Glifi bilanciati otticamente (dimensioni diverse per pareggiare la resa) */
+.dune-g-search{font-size:29px;line-height:1}
+.dune-g-stats{font-size:25px;font-weight:700;line-height:1}
+.dune-g-gear{font-size:29px;line-height:1}
+.dune-moon-svg{width:30px;height:30px;display:block}
+.dune-home-svg{width:30px;height:30px;display:block}
+
+/* ── Modalità sera: barra scura coordinata ── */
+body.evening-mode.is-touch .dune-fill{fill:#332a1a}
+body.evening-mode.is-touch .dune-stroke{stroke:#46381f}
+body.evening-mode.is-touch .dune-btn-light{background:rgba(255,248,232,.12);border-color:rgba(232,200,120,.2);color:#e8c878;box-shadow:none}
+body.evening-mode.is-touch .dune-home-svg{fill:#e8c878}
+/* la luna nel tondo nero resta uguale; in sera mostra il sole ✷ */
+body.evening-mode .dune-moon-svg{display:none}
+.dune-sun-glyph{display:none;font-size:28px;line-height:1;color:#f0c040}
+body.evening-mode .dune-sun-glyph{display:block}
 
 /* Nascondi pulsanti flottanti e cerca header su touch */
 body.is-touch #btn-evening,
 body.is-touch #btn-stats,
 body.is-touch #btn-settings,
 body.is-touch .header-search-btn{display:none !important}
+/* Nascondi anche il pulsante "esci dalla sera" flottante su touch (luce-fantasma) */
+body.is-touch #evening-exit,
+body.is-touch .evening-exit-btn,
+body.is-touch #btn-evening-exit{display:none !important}
 
 /* Spazio extra in fondo agli scroll per non finire sotto la duna */
 body.is-touch .home-scroll,
-body.is-touch .project-scroll,
+body.is-touch .proj-scroll,
 body.is-touch .evening-scroll,
+body.is-touch .read-scroll,
 body.is-touch .stats-scroll{padding-bottom:calc(110px + var(--safe-bot)) !important}

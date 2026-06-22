@@ -592,19 +592,33 @@ function promoteSceneToBoard(i){
 
   if(sc.promoted){
     // ── DE-PROMUOVI — rimuove la scena dalla board ──
-    const promotedLabel = sc.promotedLabel || ((sc.title && sc.title.trim()) ? sc.title.trim() : `Scena ${i+1}`);
-    ['setup','confrontation','resolution'].forEach(act=>{
-      const idx = (p.story.acts[act]||[]).indexOf(promotedLabel);
-      if(idx !== -1) p.story.acts[act].splice(idx, 1);
-    });
+    const promotedLabel = sc.promotedLabel;
+    let removed = false;
+    if(promotedLabel){
+      ['setup','confrontation','resolution'].forEach(act=>{
+        const idx = (p.story.acts[act]||[]).indexOf(promotedLabel);
+        if(idx !== -1){ p.story.acts[act].splice(idx, 1); removed = true; }
+      });
+    }
+    // Fallback: se il testo nella board è stato modificato, cerca per titolo iniziale
+    if(!removed){
+      const title = (sc.title && sc.title.trim()) ? sc.title.trim() : `Scena ${i+1}`;
+      ['setup','confrontation','resolution'].forEach(act=>{
+        const arr = p.story.acts[act]||[];
+        const idx = arr.findIndex(s => typeof s==='string' && (s===title || s.startsWith(title+'\n')));
+        if(idx !== -1){ arr.splice(idx, 1); removed = true; }
+      });
+    }
     p.story.scenes[i].promoted = false;
     delete p.story.scenes[i].promotedLabel;
   } else {
-    // ── PROMUOVI — aggiunge la scena al primo atto ──
-    const label = (sc.title && sc.title.trim()) ? sc.title.trim() : `Scena ${i+1}`;
+    // ── PROMUOVI — aggiunge titolo + contenuto della scena al primo atto ──
+    const title = (sc.title && sc.title.trim()) ? sc.title.trim() : `Scena ${i+1}`;
+    const txt = (sc.text && sc.text.trim()) ? sc.text.trim() : '';
+    const label = txt ? `${title}\n${txt}` : title;
     p.story.acts.setup.push(label);
     p.story.scenes[i].promoted = true;
-    p.story.scenes[i].promotedLabel = label; // memorizza per poterla rimuovere
+    p.story.scenes[i].promotedLabel = label; // memorizza l'intera stringa per poterla rimuovere
   }
 
   scheduleSave(p);

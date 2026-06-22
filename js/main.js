@@ -1,14 +1,17 @@
 import { db, COL, syncDot, loadUserData, collection, onSnapshot, cacheProjects, getCachedProjects } from './firebase.js';
 import { projects, setProjects, currentId, getProject } from './state.js';
 import { saveDates } from './velocity.js';
-import { exportPDF, exportStoryboard } from './pdf.js';
+import { exportPDF, exportStoryboard, exportScreenplay } from './pdf.js';
 import { togglePhase, toggleStep, selectTav, addSfida } from './pipeline.js';
 import { addScene, updateScene, deleteScene, autoResize, saveStoryField, updateCharCount, toggleSubsection, addCharacter, deleteCharacter, toggleCharCard, autoResizeAll, toggleScreenplay, addSceneText, deleteSceneText } from './story.js';
 import { updatePlanner, applyPlanner, openPlannerModal, closePlannerModal } from './planner.js';
 import { initNotifications, saveReminderSettings, testNotification } from './notifications.js';
 import { openSettings, closeSettings, resetStarsConfirm, closeStarsConfirm, doResetStars, exportBackup, importBackup, resetStreakConfirm, closeStreakConfirm, doResetStreak } from './settings.js';
-import { renderHome, openNewModal, closeModal, createProject, openCardMenu, exportProjectJSON, confirmDeleteProject, openColorPicker, closeColorPicker, selectProjectColor, toggleSearch, filterProjects, attachCardDrag, applyProjectOrder, startSandstorm } from './home.js';
+import { renderHome, openNewModal, closeModal, createProject, openCardMenu, exportProjectJSON, confirmDeleteProject, openColorPicker, closeColorPicker, selectProjectColor, toggleSearch, filterProjects, attachCardDrag, applyProjectOrder, startSandstorm, openTypeChooser, closeTypeChooser, chooseType } from './home.js';
 import { openProject, restoreProject, goHome, confirmDeleteCurrent, closeConfirm, confirmMicrotask } from './project.js';
+import { addSeqScene, deleteSeqScene, openSeqScene, openReadMode, closeReadMode, addSeqCharacter } from './sequence.js';
+window.addSeqScene=addSeqScene; window.deleteSeqScene=deleteSeqScene; window.openSeqScene=openSeqScene;
+window.openReadMode=openReadMode; window.closeReadMode=closeReadMode; window.addSeqCharacter=addSeqCharacter;
 import { renderStats, getTodayTip } from './stats.js';
 
 // ── Rilevamento touch: mostra la barra-duna solo su dispositivi touch ──
@@ -19,7 +22,7 @@ import { renderStats, getTodayTip } from './stats.js';
 
 // ── Navigazione centralizzata: chiude tutte le schermate prima di aprirne una ──
 function hideAllScreens(){
-  ['screen-home','screen-project','screen-stats','screen-evening'].forEach(id=>{
+  ['screen-home','screen-project','screen-stats','screen-evening','screen-read'].forEach(id=>{
     const el = document.getElementById(id);
     if(el) el.classList.remove('active');
   });
@@ -28,6 +31,8 @@ function hideAllScreens(){
   const sp = document.getElementById('settings-panel');
   if(so) so.classList.remove('open');
   if(sp) sp.classList.remove('open');
+  // Esce dalla modalità sera (barra torna chiara) se si naviga altrove
+  document.body.classList.remove('evening-mode');
 }
 
 function openStats(){
@@ -57,10 +62,50 @@ function duneSearch(){
   renderHome(); attachCardDrag();
   setTimeout(()=>{ if(window.toggleSearch) window.toggleSearch(); }, 80);
 }
+// Toggle giorno/sera dal pulsante luna della barra-duna
+function toggleEvening(){
+  if(document.body.classList.contains('evening-mode')){
+    if(window.exitEveningMode) window.exitEveningMode();
+  } else {
+    hideAllScreens();
+    if(window.enterEveningMode) window.enterEveningMode();
+  }
+}
 window.openStats=openStats;
 window.closeStats=closeStats;
 window.toggleSettings=toggleSettings;
 window.duneSearch=duneSearch;
+window.toggleEvening=toggleEvening;
+
+// ── Barra-duna: nascondi scrollando giù, mostra scrollando su ──
+(function(){
+  const isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+  if(!isTouch) return;
+  function wireScrollHide(){
+    const nav = document.getElementById('dune-nav');
+    if(!nav) return;
+    const containers = document.querySelectorAll('.home-scroll,.proj-scroll,.evening-scroll,.stats-scroll,.read-scroll');
+    containers.forEach(el=>{
+      if(el.dataset.duneWired) return;
+      el.dataset.duneWired = '1';
+      let lastY = 0;
+      el.addEventListener('scroll', ()=>{
+        const y = el.scrollTop;
+        // vicino al fondo o in cima: mostra sempre
+        if(y < 40 || (el.scrollHeight - y - el.clientHeight) < 60){
+          nav.classList.remove('dune-hidden');
+          lastY = y; return;
+        }
+        if(y > lastY + 8){ nav.classList.add('dune-hidden'); lastY = y; }      // giù
+        else if(y < lastY - 8){ nav.classList.remove('dune-hidden'); lastY = y; } // su
+      }, {passive:true});
+    });
+  }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wireScrollHide);
+  else wireScrollHide();
+  // ri-agganciare dopo un attimo (alcuni contenitori si popolano dopo)
+  setTimeout(wireScrollHide, 1500);
+})();
 
 function hideLoading(){
   const loading = document.getElementById('loading');
@@ -124,6 +169,7 @@ onSnapshot(collection(db, COL), snapshot => {
 });
 
 window.openNewModal=openNewModal; window.closeModal=closeModal; window.createProject=createProject;
+window.openTypeChooser=openTypeChooser; window.closeTypeChooser=closeTypeChooser; window.chooseType=chooseType;
 window.goHome=()=>{
   hideAllScreens();
   document.getElementById('screen-home').classList.add('active');
@@ -132,7 +178,14 @@ window.goHome=()=>{
 }; window.openProject=openProject; window.togglePhase=togglePhase;
 window.toggleStep=toggleStep; window.selectTav=selectTav; window.addSfida=addSfida;
 window.saveDates=saveDates; window.confirmDeleteCurrent=confirmDeleteCurrent; window.closeConfirm=closeConfirm;
-window.exportPDF=exportPDF; window.exportStoryboard=exportStoryboard; window.addScene=addScene; window.updateScene=updateScene;
+window.exportPDF=exportPDF; window.exportStoryboard=exportStoryboard; window.exportScreenplay=exportScreenplay;
+// Dispatcher: nella Sequenza esporta il copione, nella Storia il PDF classico
+window.exportMain=()=>{
+  const p = getProject(currentId);
+  if(p && p.type==='sequence') exportScreenplay();
+  else exportPDF();
+};
+window.addScene=addScene; window.updateScene=updateScene;
 window.deleteScene=deleteScene; window.autoResize=autoResize; window.saveStoryField=saveStoryField;
 window.updateCharCount=updateCharCount; window.saveReminderSettings=saveReminderSettings;
 window.testNotification=testNotification; window.updatePlanner=updatePlanner;

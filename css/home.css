@@ -17,3 +17,42 @@
 .card-pct{font-size:18px;font-weight:700}
 .new-btn{width:100%;padding:16px;border-radius:var(--r);border:2px dashed var(--sand3);background:transparent;color:var(--ink3);font-family:'Nunito',sans-serif;font-size:14px;font-weight:600;cursor:pointer;margin-top:4px;transition:border-color .2s,color .2s}
 .new-btn:active{border-color:var(--coral);color:var(--coral)}
+
+/* ── FAB nuovo progetto (minimale) ── */
+.new-fab{
+  position:absolute;bottom:calc(22px + var(--safe-bot));right:22px;
+  width:54px;height:54px;border-radius:50%;
+  background:linear-gradient(135deg,#2a2018,#1a1410);color:var(--gold);
+  font-size:30px;font-weight:300;line-height:1;
+  border:none;cursor:pointer;z-index:60;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 4px 16px rgba(0,0,0,.28);
+  transition:transform .12s;
+}
+.new-fab:active{transform:scale(.9)}
+/* su touch la barra-duna copre l'angolo: alzo il FAB */
+body.is-touch .new-fab{bottom:calc(104px + var(--safe-bot))}
+
+/* ── Tag tipo progetto sulla card ── */
+.card-type-tag{
+  display:inline-block;font-size:8px;font-weight:800;letter-spacing:.05em;
+  text-transform:uppercase;padding:2px 6px;border-radius:6px;
+  vertical-align:middle;margin-left:6px;position:relative;top:-1px;
+}
+.tag-story{background:var(--sky-pale);color:var(--sky-deep)}
+.tag-seq{background:#efe2c8;color:#9a7820}
+
+/* ── Scelta tipo progetto ── */
+.type-choice{
+  display:flex;align-items:center;gap:14px;width:100%;text-align:left;
+  background:var(--white);border:1.5px solid var(--sand2);border-radius:16px;
+  padding:16px 15px;margin-bottom:12px;cursor:pointer;
+  transition:border-color .15s,transform .1s;font-family:inherit;
+}
+.type-choice:active{transform:scale(.985)}
+.type-choice:hover{border-color:var(--sand3)}
+.type-choice-ico{width:46px;height:46px;border-radius:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.type-choice-ico svg{width:25px;height:25px}
+.type-choice-txt{display:flex;flex-direction:column;gap:3px}
+.type-choice-h{font-family:'Castoro',serif;font-size:17px;color:var(--ink)}
+.type-choice-p{font-size:11.5px;color:var(--ink3);line-height:1.4}

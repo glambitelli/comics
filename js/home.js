@@ -6,13 +6,15 @@ import { calcDaysLeft } from './velocity.js';
 import { exportPDF } from './pdf.js';
 import { openProject, confirmDeleteCurrent } from './project.js';
 
-function newProjectObj(title, numTav){
+function newProjectObj(title, numTav, type){
   const idx = projects.length % PROJECT_PALETTE.length;
   const pal = PROJECT_PALETTE[idx];
   return {
     id: Date.now().toString(),
     title: title||'Nuovo progetto',
     numTav: parseInt(numTav)||10,
+    type: type==='sequence' ? 'sequence' : 'story',
+    scenes: [],
     microtask:'', steps:{}, tavole:{}, sfide:[], notes:'',
     selectedTav: null, dateStart:'', dateEnd:'',
     emoji: pal.emoji, color: pal.bg, colorLight: pal.light,
@@ -66,9 +68,13 @@ export function renderHome(){
       dStr ? `⏱ ${dStr}` : '',
     ].filter(Boolean).join(' · ');
 
+    const typeTag = (p.type==='sequence')
+      ? '<span class="card-type-tag tag-seq">Sequenza</span>'
+      : '<span class="card-type-tag tag-story">Storia</span>';
+
     cardInner.innerHTML=`
       <div class="card-info">
-        <div class="card-title">${p.title}</div>
+        <div class="card-title">${p.title} ${typeTag}</div>
         <div class="card-meta">${metaLine}</div>
         ${createdDate?`<div style="font-size:10px;color:var(--ink3);margin-top:2px;font-weight:400">Iniziato il ${createdDate}</div>`:''}
       </div>
@@ -147,6 +153,21 @@ export function confirmDeleteProject(id){
   confirmDeleteCurrent();
 }
 
+// Apre la scelta del tipo di progetto (bottom-sheet)
+export function openTypeChooser(){
+  document.getElementById('type-chooser').classList.add('open');
+}
+export function closeTypeChooser(){
+  document.getElementById('type-chooser').classList.remove('open');
+}
+// Tipo scelto → chiude il chooser e apre il modale titolo/tavole
+let _pendingType = 'story';
+export function chooseType(type){
+  _pendingType = type;
+  closeTypeChooser();
+  openNewModal();
+}
+
 export function openNewModal(){
   document.getElementById('new-title').value='';
   document.getElementById('new-tav').value='10';
@@ -159,7 +180,8 @@ export function closeModal(){ document.getElementById('modal').classList.remove(
 export async function createProject(){
   const title = document.getElementById('new-title').value.trim()||'Nuovo progetto';
   const tav = document.getElementById('new-tav').value;
-  const p = newProjectObj(title, tav);
+  const p = newProjectObj(title, tav, _pendingType);
+  _pendingType = 'story'; // reset
   closeModal();
   await saveProject(p);
 }

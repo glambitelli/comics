@@ -5,6 +5,7 @@ import { updateProgress } from './progress.js';
 import { renderDeadline, renderVelocity, renderVelocityHistory, renderPhaseCalendar } from './velocity.js';
 import { renderTavole, renderSfide } from './pipeline.js';
 import { restoreStoryFields, autoResizeAll } from './story.js';
+import { applyProjectType } from './sequence.js';
 import { restorePlanner } from './planner.js';
 
 export function openProject(id){
@@ -51,6 +52,7 @@ export function restoreProject(p){
     nm.classList.toggle('done', done);
   });
   renderTavole(p); renderSfide(p); updateProgress(p); renderDeadline(p); renderVelocity(p); restoreStoryFields(p); restorePlanner(p);
+  applyProjectType(p);
   requestAnimationFrame(() => { renderVelocityHistory(p); renderPhaseCalendar(p); autoResizeAll(); });
 }
 
