@@ -123,7 +123,8 @@ export function formatScriptment(){
   if(!ta) return;
 
   const original = ta.value;
-  const formatted = autoFormatScreenplay(original);
+  const column = measureColumnChars(ta);
+  const formatted = autoFormatScreenplay(original, column);
 
   // Se non cambia nulla, avvisa e basta
   if(formatted === original){
@@ -175,26 +176,53 @@ export function applyFormatPreview(){
 // - NOME: "Battuta"  →  NOME centrato, battuta rientrata sotto
 // - Etichette tipo "Voce fuori campo:", "V.O.:", "O.S.:" riconosciute come parlato
 // - (parentetiche) lasciate come sono
-function autoFormatScreenplay(text){
+// Misura quanti caratteri monospace ci stanno nella larghezza della textarea
+function measureColumnChars(ta){
+  try{
+    const cs = getComputedStyle(ta);
+    const padL = parseFloat(cs.paddingLeft) || 0;
+    const padR = parseFloat(cs.paddingRight) || 0;
+    // larghezza realmente disponibile per il testo (clientWidth esclude già lo scrollbar)
+    const contentW = ta.clientWidth - padL - padR;
+    // misura la larghezza di un carattere col font ESATTO via canvas
+    const canvas = measureColumnChars._c || (measureColumnChars._c = document.createElement('canvas'));
+    const ctx = canvas.getContext('2d');
+    ctx.font = `${cs.fontStyle} ${cs.fontWeight} ${cs.fontSize}/${cs.lineHeight} ${cs.fontFamily}`;
+    let charW = ctx.measureText('0000000000').width / 10;
+    // fallback: Courier ha larghezza ≈ 0.6em
+    if(!(charW > 0)) charW = (parseFloat(cs.fontSize) || 13) * 0.6;
+    if(contentW > 0){
+      // -1 carattere di margine di sicurezza per evitare a-capo sul bordo
+      return Math.max(20, Math.floor(contentW / charW) - 1);
+    }
+  }catch(e){}
+  return 48;
+}
+
+function autoFormatScreenplay(text, columnArg){
   const lines = text.split('\n');
   const out = [];
 
-  // Larghezza colonna di riferimento (caratteri) per centrare i nomi
-  // Calibrata sulla larghezza visibile dell'editor (560px - padding ≈ 64 char Courier)
-  const COLUMN = 64;
+  // Larghezza colonna di riferimento (caratteri) per centrare nomi e dialoghi.
+  // Misurata sulla textarea reale; fallback a 64 se non disponibile.
+  const COLUMN = Math.max(30, Math.min(90, columnArg || 64));
+  // larghezza max blocco dialogo prima dell'a-capo (~70% colonna)
+  const DIAL_WIDTH = Math.max(12, Math.round(COLUMN * 0.70));
   // Centra una stringa nella colonna (per nomi e dialoghi)
+  // Garantisce che pad + lunghezza non superi mai COLUMN (niente a-capo sul bordo)
   const center = (s)=>{
-    const pad = Math.max(0, Math.round((COLUMN - s.length) / 2));
+    if(s.length >= COLUMN) return s; // già pieno: nessun padding
+    const pad = Math.max(0, Math.min(COLUMN - s.length, Math.round((COLUMN - s.length) / 2)));
     return ' '.repeat(pad) + s;
   };
   const centerName = center;
   // Centra un dialogo: se è lungo lo spezza in righe e centra ognuna
-  const DIAL_WIDTH = 38; // larghezza max del blocco dialogo (poi va a capo)
   const centerSpeech = (speech)=>{
     const words = speech.split(/\s+/);
     const rows = [];
     let cur = '';
-    for(const w of words){
+    for(let w of words){
+      // parola singola più lunga del blocco: lasciala intera (verrà gestita)
       if((cur + ' ' + w).trim().length > DIAL_WIDTH){
         if(cur) rows.push(cur.trim());
         cur = w;

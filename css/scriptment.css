@@ -106,7 +106,7 @@
   position:relative;
 }
 .scriptment-page{
-  width:100%;max-width:560px;border:none;outline:none;resize:none;
+  width:100%;max-width:620px;border:none;outline:none;resize:none;
   padding:28px 24px 60px;background:var(--white);color:#1a1a1a;
   line-height:1.75;height:100%;box-sizing:border-box;
   -webkit-tap-highlight-color:transparent;
