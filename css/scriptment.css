@@ -60,15 +60,20 @@
 .scriptment-top{
   display:flex;align-items:center;gap:8px;
   padding:14px 14px;border-bottom:1px solid var(--sand2);flex-shrink:0;
+  position:relative;
 }
 .scriptment-close{
   font-size:20px;color:var(--ink);font-weight:800;
   background:none;border:none;cursor:pointer;line-height:1;padding:2px 6px;
+  position:relative;z-index:1;
 }
 .scriptment-proj-title{
-  flex:1;font-family:'Courier Prime','Courier New',monospace;font-size:14px;font-weight:700;color:var(--ink);
+  position:absolute;left:50%;transform:translateX(-50%);
+  max-width:60%;
+  font-family:'Courier Prime','Courier New',monospace;font-size:14px;font-weight:700;color:var(--ink);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
   text-align:center;text-transform:uppercase;letter-spacing:.1em;
+  pointer-events:none;
 }
 .scriptment-act{
   font-size:11px;font-weight:700;color:var(--ink3);
@@ -104,9 +109,10 @@
   flex:1;overflow-y:auto;background:var(--white);
   display:flex;justify-content:center;
   position:relative;
+  scrollbar-gutter:stable both-edges;
 }
 .scriptment-page{
-  width:100%;max-width:620px;border:none;outline:none;
+  width:100%;max-width:620px;margin:0 auto;border:none;outline:none;
   padding:28px 24px 60px;background:var(--white);color:#1a1a1a;
   line-height:1.75;min-height:100%;box-sizing:border-box;
   overflow-wrap:break-word;word-wrap:break-word;
@@ -186,6 +192,7 @@ body.is-touch .scriptment-foot-shortcut{display:none}
   font-size:16px;color:var(--ink3);
   background:none;border:none;cursor:pointer;padding:4px 8px;
   border-radius:8px;transition:background .15s,color .15s;flex-shrink:0;
+  margin-left:auto;position:relative;z-index:1;
 }
 .scriptment-read-toggle:hover,.scriptment-read-toggle:active{
   background:var(--sand);color:var(--ink);
@@ -198,9 +205,10 @@ body.is-touch .scriptment-foot-shortcut{display:none}
 .scriptment-read-wrap{
   flex:1;overflow-y:auto;background:var(--white);
   display:flex;justify-content:center;
+  scrollbar-gutter:stable both-edges;
 }
 .scriptment-read-inner{
-  width:100%;max-width:680px;
+  width:100%;max-width:620px;margin:0 auto;
   padding:28px 24px 60px;
   word-wrap:break-word;
   line-height:1.85;color:var(--ink);font-size:14px;
