@@ -180,7 +180,8 @@ function autoFormatScreenplay(text){
   const out = [];
 
   // Larghezza colonna di riferimento (caratteri) per centrare i nomi
-  const COLUMN = 58;
+  // Calibrata sulla larghezza visibile dell'editor (560px - padding ≈ 64 char Courier)
+  const COLUMN = 64;
   // Centra una stringa nella colonna (per nomi e dialoghi)
   const center = (s)=>{
     const pad = Math.max(0, Math.round((COLUMN - s.length) / 2));
@@ -208,20 +209,24 @@ function autoFormatScreenplay(text){
   // Indicatori di "parlato" comuni (voice over, ecc.)
   const speakerLabels = /^(voce fuori campo|voce narrante|voce|v\.?o\.?|o\.?s\.?|off|f\.?c\.?)\s*:/i;
 
+  // Stato: stiamo emettendo il dialogo che segue un nome personaggio?
+  let inDialogue = false;
+
   for(let raw of lines){
     let line = raw.replace(/\s+$/,''); // trim destro
     const trimmed = line.trim();
 
-    if(trimmed === ''){ out.push(''); continue; }
+    if(trimmed === ''){ out.push(''); inDialogue = false; continue; }
 
     // Le note dell'autore (// ...) restano intatte, mai formattate
-    if(/^\/\//.test(trimmed)){ out.push(line); continue; }
+    if(/^\/\//.test(trimmed)){ out.push(line); inDialogue = false; continue; }
 
     // Scene heading: inizia con INT/EST (case-insensitive)
     if(/^(int|est|int\.\/est|interno|esterno)\b[\.\s]/i.test(trimmed)){
       if(out.length && out[out.length-1] !== '') out.push('');
       out.push(trimmed.toUpperCase());
       out.push('');
+      inDialogue = false;
       continue;
     }
 
@@ -234,6 +239,7 @@ function autoFormatScreenplay(text){
       out.push(centerName(vo[1].toUpperCase().replace(/\s*:\s*$/,'')));
       if(rest) centerSpeech(rest).forEach(r=>out.push(r));
       out.push('');
+      inDialogue = false;
       continue;
     }
 
@@ -250,6 +256,7 @@ function autoFormatScreenplay(text){
         out.push(centerName(namePart.toUpperCase()));
         centerSpeech(speech).forEach(r=>out.push(r));
         out.push('');
+        inDialogue = false;
         continue;
       }
     }
@@ -259,6 +266,13 @@ function autoFormatScreenplay(text){
     if(trimmed === trimmed.toUpperCase() && /^[A-ZÀ-Ý][A-ZÀ-Ý0-9 '\.\-]{1,20}$/.test(trimmed) && trimmed.split(/\s+/).length <= 3){
       if(out.length && out[out.length-1] !== '') out.push('');
       out.push(centerName(trimmed));
+      inDialogue = true; // le righe seguenti sono il dialogo
+      continue;
+    }
+
+    // Siamo subito dopo un nome personaggio → questa riga è dialogo: centrala
+    if(inDialogue){
+      centerSpeech(trimmed).forEach(r=>out.push(r));
       continue;
     }
 
