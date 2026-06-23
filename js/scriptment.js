@@ -123,25 +123,23 @@ export function formatScriptment(){
   if(!ta) return;
 
   const original = ta.value;
-  const column = measureColumnChars(ta);
-  const formatted = autoFormatScreenplay(original, column);
+  const formatted = autoFormatScreenplay(original);
 
   // Se non cambia nulla, avvisa e basta
   if(formatted === original){
-    const hint = document.getElementById('fmt-preview-hint');
     showFormatPreview(original, formatted, true);
     return;
   }
   showFormatPreview(original, formatted, false);
 }
 
-// Mostra l'anteprima del testo formattato nel pannello
+// Mostra l'anteprima del testo formattato nel pannello (resa con stile screenplay)
 function showFormatPreview(original, formatted, noChange){
   const overlay = document.getElementById('fmt-preview-overlay');
   const pre = document.getElementById('fmt-preview-text');
   const hint = document.getElementById('fmt-preview-hint');
   if(!overlay || !pre) return;
-  pre.textContent = formatted;
+  pre.innerHTML = renderScreenplayHTML(formatted);
   if(hint) hint.textContent = noChange
     ? 'Nessuna modifica: il testo è già a posto così.'
     : 'Ecco come verrebbe formattato. Applichi?';
@@ -171,192 +169,148 @@ export function applyFormatPreview(){
   closeFormatPreview();
 }
 
-// Regole di formattazione (testo → testo):
-// - INT./EST. a inizio riga → scene heading numerata "N  HEADING  N" (sx+dx)
-// - CUT TO:, DISSOLVE TO:, FADE IN/OUT: ecc. → transizione allineata a destra
-// - NOME: "Battuta"  →  NOME centrato, battuta centrata sotto
-// - Etichette tipo "Voce fuori campo:", "V.O.:", "O.S.:" riconosciute come parlato
-// - (parentetiche) lasciate come sono
-// Misura quanti caratteri monospace ci stanno nella larghezza della textarea
-function measureColumnChars(ta){
-  try{
-    const cs = getComputedStyle(ta);
-    const padL = parseFloat(cs.paddingLeft) || 0;
-    const padR = parseFloat(cs.paddingRight) || 0;
-    // larghezza realmente disponibile per il testo (clientWidth esclude già lo scrollbar)
-    const contentW = ta.clientWidth - padL - padR;
-    // misura la larghezza di un carattere col font ESATTO via canvas
-    const canvas = measureColumnChars._c || (measureColumnChars._c = document.createElement('canvas'));
-    const ctx = canvas.getContext('2d');
-    ctx.font = `${cs.fontStyle} ${cs.fontWeight} ${cs.fontSize}/${cs.lineHeight} ${cs.fontFamily}`;
-    let charW = ctx.measureText('0000000000').width / 10;
-    // fallback: Courier ha larghezza ≈ 0.6em
-    if(!(charW > 0)) charW = (parseFloat(cs.fontSize) || 13) * 0.6;
-    if(contentW > 0){
-      // -1 carattere di margine di sicurezza per evitare a-capo sul bordo
-      return Math.max(20, Math.floor(contentW / charW) - 1);
-    }
-  }catch(e){}
-  return 48;
-}
+// Regole di formattazione: il testo salvato resta PULITO (allineato a sinistra,
+// senza spazi di centratura). La centratura visiva è applicata via CSS in lettura,
+// così risulta identica su browser e mobile a qualsiasi larghezza.
+// - INT./EST. → scena numerata; CUT TO: ecc. → transizione; NOME/battuta → dialogo
+// Riconoscitori condivisi (usati sia da format che da parse)
+const RE_SPEAKER = /^(voce fuori campo|voce narrante|voce|v\.?o\.?|o\.?s\.?|off|f\.?c\.?)\s*:/i;
+const RE_TRANSITION = /^(cut to|smash cut|match cut|hard cut|jump cut|dissolve to|cross dissolve|fade in|fade out|fade to black|fade to white|fade to|wipe to|iris in|iris out|stacca su|stacca|dissolvenza|titoli di coda|fine)\s*:?\s*$/i;
+const RE_SCENE = /^(int|est|int\.\/est|interno|esterno)\b[\.\s]/i;
+// scena con numerazione già presente: "12. INT..." oppure "12  INT...  12"
+const RE_SCENE_NUMBERED = /^\s*\d+[\.\s]+(.*?)(?:\s+\d+\s*)?$/;
 
-function autoFormatScreenplay(text, columnArg){
-  const lines = text.split('\n');
-  const out = [];
-
-  // Larghezza colonna di riferimento (caratteri) per centrare nomi e dialoghi.
-  // Misurata sulla textarea reale; fallback a 64 se non disponibile.
-  const COLUMN = Math.max(30, Math.min(90, columnArg || 64));
-  // larghezza max blocco dialogo prima dell'a-capo (~70% colonna)
-  const DIAL_WIDTH = Math.max(12, Math.round(COLUMN * 0.70));
-  // Centra una stringa nella colonna (per nomi e dialoghi)
-  // Garantisce che pad + lunghezza non superi mai COLUMN (niente a-capo sul bordo)
-  const center = (s)=>{
-    if(s.length >= COLUMN) return s; // già pieno: nessun padding
-    const pad = Math.max(0, Math.min(COLUMN - s.length, Math.round((COLUMN - s.length) / 2)));
-    return ' '.repeat(pad) + s;
-  };
-  const centerName = center;
-  // Allinea una stringa al margine destro della colonna
-  const rightAlign = (s)=>{
-    if(s.length >= COLUMN) return s;
-    return ' '.repeat(COLUMN - s.length) + s;
-  };
-  // Numero di scena a sinistra e destra: "N  HEADING  N"
-  const sceneLine = (n, heading)=>{
-    const num = String(n);
-    const left = num + '  ';
-    const right = '  ' + num;
-    const room = COLUMN - left.length - right.length;
-    let h = heading;
-    if(h.length > room) h = h.slice(0, room);
-    const pad = Math.max(0, room - h.length);
-    return left + h + ' '.repeat(pad) + right;
-  };
-  // Centra un dialogo: se è lungo lo spezza in righe e centra ognuna
-  const centerSpeech = (speech)=>{
-    const words = speech.split(/\s+/);
-    const rows = [];
-    let cur = '';
-    for(let w of words){
-      // parola singola più lunga del blocco: lasciala intera (verrà gestita)
-      if((cur + ' ' + w).trim().length > DIAL_WIDTH){
-        if(cur) rows.push(cur.trim());
-        cur = w;
-      } else {
-        cur = (cur + ' ' + w).trim();
-      }
-    }
-    if(cur) rows.push(cur.trim());
-    return rows.map(center);
-  };
-
-  // Indicatori di "parlato" comuni (voice over, ecc.)
-  const speakerLabels = /^(voce fuori campo|voce narrante|voce|v\.?o\.?|o\.?s\.?|off|f\.?c\.?)\s*:/i;
-
-  // Transizioni → allineate a destra (CUT TO:, DISSOLVE TO:, ecc.)
-  const transitionRe = /^(cut to|smash cut|match cut|hard cut|jump cut|dissolve to|cross dissolve|fade in|fade out|fade to black|fade to white|fade to|wipe to|iris in|iris out|stacca su|stacca|dissolvenza|titoli di coda|fine)\s*:?\s*$/i;
-
-  // Scene heading già numerata in precedenza: "N  HEADING  N" o "N HEADING" → estrai heading puro
-  const numberedScene = /^\s*\d+\s+(.*?)(?:\s+\d+\s*)?$/;
-
-  // Contatore scene
+// Analizza il testo "pulito" e restituisce righe tipizzate per il rendering.
+// type ∈ scene | transition | character | dialogue | action | blank | note
+export function parseScreenplay(text){
+  const lines = (text || '').split('\n');
+  const result = [];
   let sceneNum = 0;
-
-  // Stato: stiamo emettendo il dialogo che segue un nome personaggio?
   let inDialogue = false;
 
-  for(let raw of lines){
-    let line = raw.replace(/\s+$/,''); // trim destro
-    const trimmed = line.trim();
+  for(const raw of lines){
+    const trimmed = raw.trim();
 
-    if(trimmed === ''){ out.push(''); inDialogue = false; continue; }
+    if(trimmed === ''){ result.push({type:'blank', text:''}); inDialogue = false; continue; }
+    if(/^\/\//.test(trimmed)){ result.push({type:'note', text:trimmed}); inDialogue = false; continue; }
 
-    // Le note dell'autore (// ...) restano intatte, mai formattate
-    if(/^\/\//.test(trimmed)){ out.push(line); inDialogue = false; continue; }
-
-    // Transizione (CUT TO:, DISSOLVE TO:, ecc.) → allineata a destra, maiuscolo
-    if(transitionRe.test(trimmed)){
-      if(out.length && out[out.length-1] !== '') out.push('');
+    if(RE_TRANSITION.test(trimmed)){
       let t = trimmed.toUpperCase().replace(/\s*:?\s*$/, '');
-      out.push(rightAlign(t + ':'));
-      out.push('');
-      inDialogue = false;
-      continue;
+      result.push({type:'transition', text:t + ':'});
+      inDialogue = false; continue;
     }
 
-    // Scene heading: inizia con INT/EST (anche se già numerata da prima)
-    // Prima togliamo un'eventuale numerazione esistente per ri-numerare pulito
-    let headingCandidate = trimmed;
-    const stripped = trimmed.match(numberedScene);
-    if(stripped && /^(int|est|int\.\/est|interno|esterno)\b/i.test(stripped[1])){
-      headingCandidate = stripped[1].trim();
-    }
-    if(/^(int|est|int\.\/est|interno|esterno)\b[\.\s]/i.test(headingCandidate)){
-      if(out.length && out[out.length-1] !== '') out.push('');
+    // scena (anche se già numerata)
+    let heading = trimmed;
+    const sn = trimmed.match(RE_SCENE_NUMBERED);
+    if(sn && RE_SCENE.test(sn[1])) heading = sn[1].trim();
+    if(RE_SCENE.test(heading)){
       sceneNum++;
-      out.push(sceneLine(sceneNum, headingCandidate.toUpperCase()));
-      out.push('');
-      inDialogue = false;
-      continue;
+      result.push({type:'scene', text:heading.toUpperCase(), scene:sceneNum});
+      inDialogue = false; continue;
     }
 
-    // Etichetta di parlato "Voce fuori campo: ..." → personaggio + dialogo
-    const vo = trimmed.match(speakerLabels);
+    // "Voce fuori campo: ..." → personaggio + dialogo
+    const vo = trimmed.match(RE_SPEAKER);
     if(vo){
-      let rest = trimmed.slice(vo[0].length).trim();
-      rest = rest.replace(/^["«»"']+/, '').replace(/["«»"']+([.,;!?]*)$/, '$1').trim();
-      if(out.length && out[out.length-1] !== '') out.push('');
-      out.push(centerName(vo[1].toUpperCase().replace(/\s*:\s*$/,'')));
-      if(rest) centerSpeech(rest).forEach(r=>out.push(r));
-      out.push('');
-      inDialogue = false;
-      continue;
+      let rest = trimmed.slice(vo[0].length).trim().replace(/^["«»"']+/, '').replace(/["«»"']+([.,;!?]*)$/, '$1').trim();
+      result.push({type:'character', text:vo[1].toUpperCase().replace(/\s*:\s*$/,'')});
+      if(rest) result.push({type:'dialogue', text:rest});
+      inDialogue = false; continue;
     }
 
-    // Dialogo "NOME: battuta" — SOLO nome breve (max 2 parole, ≤18 char), evita di pescare frasi
+    // "NOME: battuta"
     const m = trimmed.match(/^([A-ZÀ-Ý][A-Za-zÀ-ÿ'\.\-]{1,16})(\s[A-ZÀ-Ý][A-Za-zÀ-ÿ'\.\-]{1,16})?:\s*(.+)$/);
     if(m){
       const namePart = (m[1] + (m[2]||'')).trim();
-      let speech = m[3].trim();
-      speech = speech.replace(/^["«»"']+/, '').replace(/["«»"']+([.,;!?]*)$/, '$1').trim();
-      // accetta solo se il "nome" è plausibile (poche parole, niente punteggiatura interna strana)
-      const wordCount = namePart.split(/\s+/).length;
-      if(wordCount <= 2 && namePart.length <= 18){
-        if(out.length && out[out.length-1] !== '') out.push('');
-        out.push(centerName(namePart.toUpperCase()));
-        centerSpeech(speech).forEach(r=>out.push(r));
-        out.push('');
-        inDialogue = false;
-        continue;
+      let speech = m[3].trim().replace(/^["«»"']+/, '').replace(/["«»"']+([.,;!?]*)$/, '$1').trim();
+      if(namePart.split(/\s+/).length <= 2 && namePart.length <= 18){
+        result.push({type:'character', text:namePart.toUpperCase()});
+        result.push({type:'dialogue', text:speech});
+        inDialogue = false; continue;
       }
     }
 
-    // Riga GIÀ tutta in maiuscolo dall'autore e corta = nome personaggio isolato
-    // (solo se l'autore l'ha scritta maiuscola di proposito, non la forziamo noi)
+    // riga tutta maiuscola e corta = nome personaggio isolato
     if(trimmed === trimmed.toUpperCase() && /^[A-ZÀ-Ý][A-ZÀ-Ý0-9 '\.\-]{1,20}$/.test(trimmed) && trimmed.split(/\s+/).length <= 3){
-      if(out.length && out[out.length-1] !== '') out.push('');
-      out.push(centerName(trimmed));
-      inDialogue = true; // le righe seguenti sono il dialogo
-      continue;
+      result.push({type:'character', text:trimmed});
+      inDialogue = true; continue;
     }
 
-    // Siamo subito dopo un nome personaggio → questa riga è dialogo: centrala
-    if(inDialogue){
-      centerSpeech(trimmed).forEach(r=>out.push(r));
-      continue;
-    }
+    // riga dopo un nome = dialogo
+    if(inDialogue){ result.push({type:'dialogue', text:trimmed}); continue; }
 
-    // altrimenti: prosa/azione, lasciata invariata
-    out.push(line);
+    // prosa / azione
+    result.push({type:'action', text:trimmed});
+  }
+  return result;
+}
+
+// Genera HTML stilizzato (centratura via CSS) dal testo screenplay.
+export function renderScreenplayHTML(text){
+  const esc = (s)=> s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const nodes = parseScreenplay(text);
+  let html = '';
+  for(const n of nodes){
+    switch(n.type){
+      case 'blank': html += '<div class="sp-blank"></div>'; break;
+      case 'note': html += `<div class="sp-note">${esc(n.text)}</div>`; break;
+      case 'scene':
+        html += `<div class="sp-scene"><span class="sp-scene-n">${n.scene}</span><span class="sp-scene-h">${esc(n.text)}</span><span class="sp-scene-n">${n.scene}</span></div>`;
+        break;
+      case 'transition': html += `<div class="sp-transition">${esc(n.text)}</div>`; break;
+      case 'character': html += `<div class="sp-character">${esc(n.text)}</div>`; break;
+      case 'dialogue': html += `<div class="sp-dialogue">${esc(n.text)}</div>`; break;
+      default: html += `<div class="sp-action">${esc(n.text)}</div>`;
+    }
+  }
+  return html;
+}
+
+// Formatta il testo grezzo in forma LOGICA PULITA (allineata a sinistra, senza
+// spazi di centratura). La centratura visiva è gestita dal CSS in fase di lettura.
+function autoFormatScreenplay(text){
+  const parsed = parseScreenplay(text);
+  const out = [];
+  const pushBlankBefore = ()=>{ if(out.length && out[out.length-1] !== '') out.push(''); };
+
+  for(let i=0;i<parsed.length;i++){
+    const node = parsed[i];
+    switch(node.type){
+      case 'blank': out.push(''); break;
+      case 'note': out.push(node.text); break;
+      case 'scene':
+        pushBlankBefore();
+        out.push(node.scene + '. ' + node.text);
+        out.push('');
+        break;
+      case 'transition':
+        pushBlankBefore();
+        out.push(node.text);
+        out.push('');
+        break;
+      case 'character':
+        pushBlankBefore();
+        out.push(node.text);
+        break;
+      case 'dialogue':
+        out.push(node.text);
+        // riga vuota dopo l'ultima battuta del blocco
+        if(!(parsed[i+1] && parsed[i+1].type === 'dialogue')) out.push('');
+        break;
+      default:
+        out.push(node.text);
+    }
   }
 
   // collassa righe vuote multiple
   const cleaned = [];
-  for(let l of out){
+  for(const l of out){
     if(l === '' && cleaned.length && cleaned[cleaned.length-1] === '') continue;
     cleaned.push(l);
   }
+  // togli righe vuote iniziali
+  while(cleaned.length && cleaned[0] === '') cleaned.shift();
   return cleaned.join('\n');
 }
 
@@ -383,7 +337,7 @@ export function toggleScriptmentRead(){
     const fontCls = FONT_CLASS[sm.font] || 'sm-font-courier';
     readWrap.className = 'scriptment-read-wrap ' + fontCls;
     readWrap.style.fontSize = (sm.size || 13) + 'px';
-    if(readInner) readInner.textContent = sm.text || '(ancora niente scritto)';
+    if(readInner) readInner.innerHTML = renderScreenplayHTML(sm.text || '(ancora niente scritto)');
     editorWrap.style.display = 'none';
     if(tools) tools.style.display = 'none';
     readWrap.style.display = 'flex';

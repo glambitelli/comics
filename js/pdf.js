@@ -1,6 +1,7 @@
 import { getProject, currentId, PHASE_NAMES } from './state.js';
 import { calcPct, getPhaseIndex } from './progress.js';
 import { calcVelocity, calcDaysLeft } from './velocity.js';
+import { renderScreenplayHTML } from './scriptment.js';
 
 export function exportPDF(){
   const p = getProject(currentId); if(!p) return;
@@ -237,9 +238,9 @@ export function exportScreenplay(){
   body += '<div style="margin-top:90px;font-size:12px;color:#555">Inkflow · '+new Date().toLocaleDateString('it-IT')+'</div>';
   body += '</div><div style="page-break-after:always"></div>';
 
-  // Corpo: il testo dello scriptment, preservando ritorni a capo e tabulazioni
+  // Corpo: rendering screenplay strutturato (scene, dialoghi centrati, transizioni)
   if(text.trim()){
-    body += '<pre class="scriptment-body">'+esc(text)+'</pre>';
+    body += '<div class="scriptment-body">'+renderScreenplayHTML(text)+'</div>';
   } else {
     body += '<div style="text-align:center;color:#999;margin-top:60px">Ancora niente scritto.</div>';
   }
@@ -248,7 +249,16 @@ export function exportScreenplay(){
     *{box-sizing:border-box;margin:0;padding:0}
     body{font-family:'Courier New',Courier,monospace;color:#111;background:#fff;font-size:12pt;line-height:1.5}
     .page{max-width:8.5in;margin:0 auto;padding:1in 1in 1in 1.4in}
-    .scriptment-body{font-family:'Courier New',Courier,monospace;font-size:12pt;line-height:1.5;white-space:pre-wrap;word-wrap:break-word;tab-size:6}
+    .scriptment-body{font-family:'Courier New',Courier,monospace;font-size:12pt;line-height:1.6}
+    .sp-blank{height:.9em}
+    .sp-action{margin:.1em 0}
+    .sp-note{margin:.1em 0;color:#777;font-style:italic}
+    .sp-scene{display:flex;justify-content:space-between;align-items:baseline;gap:12px;font-weight:700;text-transform:uppercase;margin:.5em 0 .2em}
+    .sp-scene-h{flex:1;text-align:center}
+    .sp-scene-n{flex:0 0 auto;color:#666}
+    .sp-transition{text-align:right;font-weight:700;text-transform:uppercase;margin:.3em 0}
+    .sp-character{text-align:center;text-transform:uppercase;font-weight:700;margin:.5em 0 0}
+    .sp-dialogue{text-align:center;margin:0 auto;max-width:62%}
     @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
   `;
   const win = window.open('','_blank');
