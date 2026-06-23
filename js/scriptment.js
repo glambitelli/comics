@@ -42,6 +42,15 @@ export function closeScriptment(){
   const overlay = document.getElementById('scriptment-overlay');
   if(overlay) overlay.classList.remove('open');
   document.body.classList.remove('scriptment-open');
+  // reset vista lettura inline
+  const editorWrap = document.getElementById('scriptment-editor-wrap');
+  const readWrap   = document.getElementById('scriptment-read-wrap');
+  const tools      = document.getElementById('scriptment-tools');
+  const toggleBtn  = document.getElementById('scriptment-read-toggle');
+  if(editorWrap) editorWrap.style.display = 'flex';
+  if(readWrap)   readWrap.style.display = 'none';
+  if(tools)      tools.style.display = 'flex';
+  if(toggleBtn)  toggleBtn.classList.remove('active');
   // aggiorna il conteggio parole sul pulsante in fase Sviluppo
   refreshScriptmentButton();
 }
@@ -215,35 +224,40 @@ function autoFormatScreenplay(text){
   return cleaned.join('\n');
 }
 
-// ── VISTA LETTURA dello scriptment ──
-export function openScriptmentRead(){
-  const p = getProject(currentId); if(!p) return;
-  const sm = getScriptment(p);
-  const body = document.getElementById('read-body');
-  const title = document.getElementById('read-proj-title');
-  if(title) title.textContent = p.title || '';
-  if(body){
-    body.className = 'read-scroll read-scriptment ' + (FONT_CLASS[sm.font] || 'sm-font-courier');
-    body.innerHTML = '';
-    const pre = document.createElement('div');
-    pre.className = 'read-scriptment-text';
-    pre.textContent = sm.text || '(ancora niente scritto)';
-    body.appendChild(pre);
+// ── VISTA LETTURA inline (toggle dentro lo scriptment) ──
+export function toggleScriptmentRead(){
+  const editorWrap = document.getElementById('scriptment-editor-wrap');
+  const readWrap   = document.getElementById('scriptment-read-wrap');
+  const readInner  = document.getElementById('scriptment-read-inner');
+  const toggleBtn  = document.getElementById('scriptment-read-toggle');
+  const tools      = document.getElementById('scriptment-tools');
+  if(!editorWrap || !readWrap) return;
+
+  const isReading = readWrap.style.display !== 'none';
+  if(isReading){
+    // torna all'editor
+    readWrap.style.display = 'none';
+    editorWrap.style.display = 'flex';
+    if(tools) tools.style.display = 'flex';
+    if(toggleBtn) toggleBtn.classList.remove('active');
+  } else {
+    // entra in lettura
+    const p = getProject(currentId); if(!p) return;
+    const sm = getScriptment(p);
+    const fontCls = FONT_CLASS[sm.font] || 'sm-font-courier';
+    readWrap.className = 'scriptment-read-wrap ' + fontCls;
+    readWrap.style.fontSize = (sm.size || 13) + 'px';
+    if(readInner) readInner.textContent = sm.text || '(ancora niente scritto)';
+    editorWrap.style.display = 'none';
+    if(tools) tools.style.display = 'none';
+    readWrap.style.display = 'flex';
+    readWrap.scrollTop = 0;
+    if(toggleBtn) toggleBtn.classList.add('active');
   }
-  document.getElementById('screen-read').classList.add('active');
 }
 
-// Chiude la vista lettura e torna all'editor (o al progetto se l'editor è chiuso)
-export function closeReadMode(){
-  const screen = document.getElementById('screen-read');
-  if(screen) screen.classList.remove('active');
-  // se l'editor scriptment è aperto torna lì, altrimenti al progetto
-  if(document.body.classList.contains('scriptment-open')){
-    // resta nell'editor (è un overlay sopra il progetto)
-  } else {
-    document.getElementById('screen-project').classList.add('active');
-  }
-}
+// Manteniamo openScriptmentRead per compatibilità (non fa nulla di visibile ora)
+export function openScriptmentRead(){ toggleScriptmentRead(); }
 
 // ── Helpers UI ──
 function applyFontClass(ta, font){

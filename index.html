@@ -337,10 +337,9 @@
     <div class="scriptment-top">
       <button class="scriptment-close" onclick="closeScriptment()" aria-label="Chiudi">✕</button>
       <div class="scriptment-proj-title" id="scriptment-proj-title"></div>
-      <button class="scriptment-act" onclick="formatScriptment()" title="Formatta lo screenplay">⤓ formatta</button>
-      <button class="scriptment-act" onclick="openScriptmentRead()" title="Vista lettura">☷ lettura</button>
+      <button class="scriptment-read-toggle" id="scriptment-read-toggle" onclick="toggleScriptmentRead()" title="Vista lettura">☷</button>
     </div>
-    <div class="scriptment-tools">
+    <div class="scriptment-tools" id="scriptment-tools">
       <button class="font-pill" data-font="courier" onclick="setScriptmentFont('courier')">Courier</button>
       <button class="font-pill" data-font="serif" onclick="setScriptmentFont('serif')">Lora</button>
       <button class="font-pill" data-font="sans" onclick="setScriptmentFont('sans')">Sans</button>
@@ -350,9 +349,17 @@
         <button class="size-btn" onclick="stepScriptmentSize(1)" aria-label="Aumenta">+</button>
       </span>
     </div>
-    <textarea class="scriptment-page" id="scriptment-text" placeholder="Butta vernice contro il muro. Scrivi libero — prosa, note, dialoghi. Poi premi «formatta» per mettere in ordine lo screenplay."></textarea>
+    <!-- Vista editor -->
+    <div class="scriptment-page-wrap" id="scriptment-editor-wrap">
+      <textarea class="scriptment-page" id="scriptment-text" placeholder="Butta vernice contro il muro. Scrivi libero — prosa, note, dialoghi. Poi premi «formatta» per mettere in ordine lo screenplay."></textarea>
+    </div>
+    <!-- Vista lettura inline -->
+    <div class="scriptment-read-wrap" id="scriptment-read-wrap" style="display:none">
+      <div class="scriptment-read-inner" id="scriptment-read-inner"></div>
+    </div>
     <div class="scriptment-foot">
       <span id="scriptment-foot-count">0 parole</span>
+      <button class="scriptment-fmt-btn" onclick="formatScriptment()" title="Formatta lo screenplay">⤓ formatta</button>
       <span id="scriptment-foot-saved">salvato ✓</span>
     </div>
   </div>

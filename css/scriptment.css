@@ -66,8 +66,9 @@
   background:none;border:none;cursor:pointer;line-height:1;padding:2px 6px;
 }
 .scriptment-proj-title{
-  flex:1;font-family:'Castoro',serif;font-size:16px;color:var(--ink);
+  flex:1;font-family:'Castoro',serif;font-size:15px;color:var(--ink);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  text-align:center;text-transform:uppercase;letter-spacing:.06em;
 }
 .scriptment-act{
   font-size:11px;font-weight:700;color:var(--ink3);
@@ -99,10 +100,14 @@
 .size-val{font-size:11px;color:var(--ink2);font-weight:700;min-width:18px;text-align:center}
 
 /* ── Foglio di scrittura ── */
+.scriptment-page-wrap{
+  flex:1;overflow-y:auto;background:var(--white);
+  display:flex;justify-content:center;
+}
 .scriptment-page{
-  flex:1;width:100%;border:none;outline:none;resize:none;
-  padding:22px 20px;background:var(--white);color:#1a1a1a;
-  line-height:1.75;
+  width:100%;max-width:680px;border:none;outline:none;resize:none;
+  padding:28px 24px 40px;background:var(--white);color:#1a1a1a;
+  line-height:1.75;height:100%;box-sizing:border-box;
   -webkit-tap-highlight-color:transparent;
 }
 .scriptment-page::placeholder{color:var(--ink3);opacity:.7}
@@ -112,12 +117,56 @@
 .sm-font-serif{font-family:'Lora',Georgia,serif}
 .sm-font-sans{font-family:'Nunito',sans-serif}
 
+/* Tab-size per allineamento dialoghi (nome centrato, battuta rientrata) */
+.scriptment-page{ tab-size:4;-moz-tab-size:4; }
+.sm-font-courier{ tab-size:4;-moz-tab-size:4; }
+
 /* ── Footer ── */
 .scriptment-foot{
   display:flex;justify-content:space-between;align-items:center;
   padding:8px 16px calc(8px + var(--safe-bot));
   border-top:1px solid var(--sand2);background:var(--sand);
   font-size:10px;color:var(--ink3);flex-shrink:0;
+}
+.scriptment-fmt-btn{
+  font-size:11px;font-weight:700;color:var(--ink2);
+  background:none;border:1px solid var(--sand2);border-radius:14px;
+  padding:5px 11px;cursor:pointer;font-family:inherit;
+}
+.scriptment-fmt-btn:active{background:var(--sand2)}
+
+/* Pulsante lettura nella top bar */
+.scriptment-read-toggle{
+  font-size:16px;color:var(--ink3);
+  background:none;border:none;cursor:pointer;padding:4px 8px;
+  border-radius:8px;transition:background .15s,color .15s;flex-shrink:0;
+}
+.scriptment-read-toggle:hover,.scriptment-read-toggle:active{
+  background:var(--sand);color:var(--ink);
+}
+.scriptment-read-toggle.active{
+  background:#2a2018;color:#f0c068;
+}
+
+/* ── Vista lettura inline ── */
+.scriptment-read-wrap{
+  flex:1;overflow-y:auto;background:var(--white);
+  display:flex;justify-content:center;
+}
+.scriptment-read-inner{
+  width:100%;max-width:680px;
+  padding:28px 24px 60px;
+  white-space:pre-wrap;word-wrap:break-word;
+  line-height:1.85;color:var(--ink);font-size:14px;
+}
+.scriptment-read-wrap.sm-font-courier .scriptment-read-inner{
+  font-family:'Courier Prime',monospace;font-size:13px;
+}
+.scriptment-read-wrap.sm-font-serif .scriptment-read-inner{
+  font-family:'Lora',Georgia,serif;
+}
+.scriptment-read-wrap.sm-font-sans .scriptment-read-inner{
+  font-family:'Nunito',sans-serif;
 }
 
 /* ── Vista lettura dello scriptment ── */

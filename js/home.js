@@ -189,8 +189,11 @@ export function toggleSearch(){
   const input = document.getElementById('search-input');
   const visible = bar.style.display !== 'none';
   bar.style.display = visible ? 'none' : 'block';
-  if(!visible){ input.focus(); filterProjects(''); }
-  else { input.value=''; filterProjects(''); }
+  if(!visible){
+    filterProjects('');
+    // delay focus su mobile: evita che la tastiera salti su durante la transizione
+    setTimeout(()=>{ input.focus(); }, 350);
+  } else { input.value=''; filterProjects(''); }
 }
 
 export function filterProjects(query){

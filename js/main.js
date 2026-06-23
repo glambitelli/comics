@@ -9,11 +9,11 @@ import { initNotifications, saveReminderSettings, testNotification } from './not
 import { openSettings, closeSettings, resetStarsConfirm, closeStarsConfirm, doResetStars, exportBackup, importBackup, resetStreakConfirm, closeStreakConfirm, doResetStreak } from './settings.js';
 import { renderHome, openNewModal, closeModal, createProject, openCardMenu, exportProjectJSON, confirmDeleteProject, openColorPicker, closeColorPicker, selectProjectColor, toggleSearch, filterProjects, attachCardDrag, applyProjectOrder, startSandstorm, getScriptment } from './home.js';
 import { openProject, restoreProject, goHome, confirmDeleteCurrent, closeConfirm, confirmMicrotask } from './project.js';
-import { openScriptment, closeScriptment, onScriptmentInput, setScriptmentFont, stepScriptmentSize, formatScriptment, openScriptmentRead, closeReadMode, refreshScriptmentButton, closeFormatPreview, applyFormatPreview } from './scriptment.js';
+import { openScriptment, closeScriptment, onScriptmentInput, setScriptmentFont, stepScriptmentSize, formatScriptment, openScriptmentRead, toggleScriptmentRead, refreshScriptmentButton, closeFormatPreview, applyFormatPreview } from './scriptment.js';
 window.openScriptment=openScriptment; window.closeScriptment=closeScriptment;
 window.setScriptmentFont=setScriptmentFont; window.stepScriptmentSize=stepScriptmentSize;
 window.formatScriptment=formatScriptment; window.openScriptmentRead=openScriptmentRead;
-window.closeReadMode=closeReadMode;
+window.toggleScriptmentRead=toggleScriptmentRead;
 window.closeFormatPreview=closeFormatPreview; window.applyFormatPreview=applyFormatPreview;
 
 // Aggancia l'autosave della textarea scriptment
