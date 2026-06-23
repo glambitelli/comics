@@ -46,10 +46,10 @@ body.is-touch .dune-nav.dune-hidden{transform:translateY(calc(100% + 4px))}
   clip-path:polygon(0.0% 40.62%, 5.0% 33.81%, 10.0% 28.18%, 15.0% 23.73%, 20.0% 20.46%, 25.0% 18.38%, 30.0% 17.48%, 35.0% 17.76%, 40.0% 19.23%, 45.0% 21.88%, 50.12% 24.86%, 55.49% 27.33%, 61.11% 29.28%, 66.98% 30.72%, 73.09% 31.65%, 79.44% 32.06%, 86.05% 31.96%, 92.9% 31.34%, 100.0% 30.21%, 100% 100%, 0% 100%);
 }
 .dune-blur{
-  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  backdrop-filter:blur(28px) saturate(1.6);-webkit-backdrop-filter:blur(28px) saturate(1.6);
 }
 .dune-color{
-  background:rgba(148,105,22,.58);
+  background:rgba(160,100,30,.42);
   transition:background .4s ease;
 }
 .dune-nav-bg{position:absolute;bottom:0;left:0;width:100%;height:100%;pointer-events:none}

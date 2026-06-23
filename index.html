@@ -59,8 +59,8 @@
   </div>
   <button class="new-fab" onclick="openNewModal()" aria-label="Nuovo progetto">+</button>
   <button id="btn-evening" onclick="enterEveningMode()" style="position:fixed;bottom:calc(24px + var(--safe-bot));left:20px;width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#1a1410,#2a2018);border:none;box-shadow:0 4px 16px rgba(0,0,0,.22);font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:50">🌙</button>
-  <button id="btn-stats" onclick="openStats()" style="position:fixed;bottom:calc(24px + var(--safe-bot));left:50%;transform:translateX(-50%);width:48px;height:48px;border-radius:50%;background:var(--white);border:1.5px solid var(--sand3);box-shadow:0 4px 16px rgba(0,0,0,.12);font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:50">📊</button>
-  <button id="btn-settings" onclick="openSettings()" style="position:fixed;bottom:calc(24px + var(--safe-bot));right:20px;width:48px;height:48px;border-radius:50%;background:var(--white);border:1.5px solid var(--sand3);box-shadow:0 4px 16px rgba(0,0,0,.12);font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:50">⚙️</button>
+  <button id="btn-stats" onclick="openStats()" style="position:fixed;bottom:calc(24px + var(--safe-bot));left:50%;transform:translateX(-50%);width:48px;height:48px;border-radius:50%;background:var(--white);border:1.5px solid var(--sand3);box-shadow:0 4px 16px rgba(0,0,0,.12);font-size:22px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:50;color:var(--ink2);line-height:1">≣</button>
+  <button id="btn-settings" onclick="openSettings()" style="position:fixed;bottom:calc(24px + var(--safe-bot));right:20px;width:48px;height:48px;border-radius:50%;background:var(--white);border:1.5px solid var(--sand3);box-shadow:0 4px 16px rgba(0,0,0,.12);font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:50;color:var(--ink2);line-height:1">⚙</button>
 </div>
 
 <!-- PROJECT -->
@@ -352,6 +352,9 @@
     <!-- Vista editor -->
     <div class="scriptment-page-wrap" id="scriptment-editor-wrap">
       <textarea class="scriptment-page" id="scriptment-text" placeholder="Butta vernice contro il muro. Scrivi libero — prosa, note, dialoghi. Poi premi «formatta» per mettere in ordine lo screenplay."></textarea>
+      <button class="scriptment-fmt-float" id="scriptment-fmt-float" onclick="formatScriptment()" title="Formatta (⌘⇧F)">
+        ⤓ formatta <kbd>⌘⇧F</kbd>
+      </button>
     </div>
     <!-- Vista lettura inline -->
     <div class="scriptment-read-wrap" id="scriptment-read-wrap" style="display:none">
@@ -359,7 +362,6 @@
     </div>
     <div class="scriptment-foot">
       <span id="scriptment-foot-count">0 parole</span>
-      <button class="scriptment-fmt-btn" onclick="formatScriptment()" title="Formatta lo screenplay">⤓ formatta</button>
       <span id="scriptment-foot-saved">salvato ✓</span>
     </div>
   </div>

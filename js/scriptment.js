@@ -36,6 +36,17 @@ export function openScriptment(){
   document.body.classList.add('scriptment-open');
   // focus dopo l'animazione
   setTimeout(()=>{ if(ta) ta.focus(); }, 250);
+
+  // Shortcut ⌘⇧F / Ctrl+Shift+F per formattare
+  if(!overlay._fmtShortcut){
+    overlay._fmtShortcut = (e)=>{
+      if((e.metaKey||e.ctrlKey) && e.shiftKey && e.key.toLowerCase()==='f'){
+        e.preventDefault();
+        formatScriptment();
+      }
+    };
+    document.addEventListener('keydown', overlay._fmtShortcut);
+  }
 }
 
 export function closeScriptment(){
@@ -51,6 +62,12 @@ export function closeScriptment(){
   if(readWrap)   readWrap.style.display = 'none';
   if(tools)      tools.style.display = 'flex';
   if(toggleBtn)  toggleBtn.classList.remove('active');
+  // rimuovi shortcut formattazione
+  const overlay2 = document.getElementById('scriptment-overlay');
+  if(overlay2 && overlay2._fmtShortcut){
+    document.removeEventListener('keydown', overlay2._fmtShortcut);
+    overlay2._fmtShortcut = null;
+  }
   // aggiorna il conteggio parole sul pulsante in fase Sviluppo
   refreshScriptmentButton();
 }
