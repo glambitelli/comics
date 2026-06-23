@@ -30,7 +30,7 @@
 
 .sub-label-ref{
   font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
-  color:var(--ink3);margin:6px 0 12px;
+  color:var(--ink3);margin:6px 0 12px;padding:0 16px;
 }
 
 /* ── Overlay a tutto schermo ── */
@@ -66,9 +66,9 @@
   background:none;border:none;cursor:pointer;line-height:1;padding:2px 6px;
 }
 .scriptment-proj-title{
-  flex:1;font-family:'Courier Prime','Courier New',monospace;font-size:15px;font-weight:700;color:var(--ink);
+  flex:1;font-family:'Courier Prime','Courier New',monospace;font-size:14px;font-weight:700;color:var(--ink);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-  text-align:center;text-transform:uppercase;letter-spacing:.08em;
+  text-align:left;text-transform:uppercase;letter-spacing:.1em;
 }
 .scriptment-act{
   font-size:11px;font-weight:700;color:var(--ink3);
@@ -113,29 +113,19 @@
 }
 .scriptment-page::placeholder{color:var(--ink3);opacity:.7}
 
-/* Bottone formatta flottante sopra il testo (angolo basso destra del max-width) */
+/* Bottone formatta flottante in alto a destra della zona scrittura */
 .scriptment-fmt-float{
-  position:absolute;bottom:18px;right:calc(50% - 340px + 12px);
+  position:absolute;top:14px;right:18px;
   background:#2a2018;color:#f0c068;
-  border:none;border-radius:20px;padding:7px 14px;
+  border:none;border-radius:20px;padding:7px 15px;
   font-size:11px;font-weight:700;font-family:inherit;cursor:pointer;
   box-shadow:0 2px 10px rgba(0,0,0,.22);
   display:flex;align-items:center;gap:6px;
-  opacity:.82;transition:opacity .15s,transform .12s;
+  opacity:.9;transition:opacity .15s,transform .12s;
   z-index:5;
 }
 .scriptment-fmt-float:hover{opacity:1}
 .scriptment-fmt-float:active{transform:scale(.96)}
-.scriptment-fmt-float kbd{
-  font-size:9px;font-family:inherit;
-  background:rgba(255,255,255,.15);border-radius:4px;
-  padding:1px 5px;letter-spacing:.03em;
-}
-/* Su schermi stretti (mobile) ancora a destra con margine fisso */
-@media(max-width:760px){
-  .scriptment-fmt-float{ right:12px; }
-  .scriptment-fmt-float kbd{ display:none; }
-}
 
 /* Font dello scriptment */
 .sm-font-courier{font-family:'Courier Prime','Courier New',monospace}

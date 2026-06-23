@@ -34,8 +34,16 @@ export function openScriptment(){
 
   if(overlay) overlay.classList.add('open');
   document.body.classList.add('scriptment-open');
-  // focus dopo l'animazione
-  setTimeout(()=>{ if(ta) ta.focus(); }, 250);
+  // focus dopo l'animazione, partendo dall'alto (no salto al cursore)
+  setTimeout(()=>{
+    if(ta){
+      ta.focus({preventScroll:true});
+      ta.setSelectionRange(0,0);
+      ta.scrollTop = 0;
+      const wrap = document.getElementById('scriptment-editor-wrap');
+      if(wrap) wrap.scrollTop = 0;
+    }
+  }, 250);
 
   // Shortcut ⌘⇧F / Ctrl+Shift+F per formattare
   if(!overlay._fmtShortcut){
@@ -164,12 +172,16 @@ export function applyFormatPreview(){
 
 // Regole di formattazione (testo → testo):
 // - INT./EST. a inizio riga → maiuscolo, riga isolata (scene heading)
-// - NOME: "Battuta"  →  NOME su riga, battuta a capo rientrata
+// - NOME: "Battuta"  →  NOME centrato, battuta rientrata sotto
 // - Etichette tipo "Voce fuori campo:", "V.O.:", "O.S.:" riconosciute come parlato
 // - (parentetiche) lasciate come sono
 function autoFormatScreenplay(text){
   const lines = text.split('\n');
   const out = [];
+
+  // Indentazioni stile sceneggiatura (spazi fissi: indipendenti dal tab-size)
+  const NAME_INDENT = '          '; // 10 spazi → nome personaggio
+  const DIAL_INDENT = '      ';     // 6 spazi  → battuta
 
   // Indicatori di "parlato" comuni (voice over, ecc.)
   const speakerLabels = /^(voce fuori campo|voce narrante|voce|v\.?o\.?|o\.?s\.?|off|f\.?c\.?)\s*:/i;
@@ -197,8 +209,8 @@ function autoFormatScreenplay(text){
       let rest = trimmed.slice(vo[0].length).trim();
       rest = rest.replace(/^["«»"']+/, '').replace(/["«»"']+([.,;!?]*)$/, '$1').trim();
       if(out.length && out[out.length-1] !== '') out.push('');
-      out.push('\t\t\t' + vo[1].toUpperCase().replace(/\s*:\s*$/,''));
-      if(rest) out.push('\t' + rest);
+      out.push(NAME_INDENT + vo[1].toUpperCase().replace(/\s*:\s*$/,''));
+      if(rest) out.push(DIAL_INDENT + rest);
       out.push('');
       continue;
     }
@@ -213,8 +225,8 @@ function autoFormatScreenplay(text){
       const wordCount = namePart.split(/\s+/).length;
       if(wordCount <= 2 && namePart.length <= 18){
         if(out.length && out[out.length-1] !== '') out.push('');
-        out.push('\t\t\t' + namePart.toUpperCase());
-        out.push('\t' + speech);
+        out.push(NAME_INDENT + namePart.toUpperCase());
+        out.push(DIAL_INDENT + speech);
         out.push('');
         continue;
       }
@@ -224,7 +236,7 @@ function autoFormatScreenplay(text){
     // (solo se l'autore l'ha scritta maiuscola di proposito, non la forziamo noi)
     if(trimmed === trimmed.toUpperCase() && /^[A-ZÀ-Ý][A-ZÀ-Ý0-9 '\.\-]{1,20}$/.test(trimmed) && trimmed.split(/\s+/).length <= 3){
       if(out.length && out[out.length-1] !== '') out.push('');
-      out.push('\t\t\t' + trimmed);
+      out.push(NAME_INDENT + trimmed);
       continue;
     }
 
