@@ -181,11 +181,28 @@ function autoFormatScreenplay(text){
 
   // Larghezza colonna di riferimento (caratteri) per centrare i nomi
   const COLUMN = 58;
-  const DIAL_INDENT = '                '; // 16 spazi → battuta rientrata sotto il nome
-  // Centra un nome personaggio nella colonna
-  const centerName = (name)=>{
-    const pad = Math.max(0, Math.round((COLUMN - name.length) / 2));
-    return ' '.repeat(pad) + name;
+  // Centra una stringa nella colonna (per nomi e dialoghi)
+  const center = (s)=>{
+    const pad = Math.max(0, Math.round((COLUMN - s.length) / 2));
+    return ' '.repeat(pad) + s;
+  };
+  const centerName = center;
+  // Centra un dialogo: se è lungo lo spezza in righe e centra ognuna
+  const DIAL_WIDTH = 38; // larghezza max del blocco dialogo (poi va a capo)
+  const centerSpeech = (speech)=>{
+    const words = speech.split(/\s+/);
+    const rows = [];
+    let cur = '';
+    for(const w of words){
+      if((cur + ' ' + w).trim().length > DIAL_WIDTH){
+        if(cur) rows.push(cur.trim());
+        cur = w;
+      } else {
+        cur = (cur + ' ' + w).trim();
+      }
+    }
+    if(cur) rows.push(cur.trim());
+    return rows.map(center);
   };
 
   // Indicatori di "parlato" comuni (voice over, ecc.)
@@ -215,7 +232,7 @@ function autoFormatScreenplay(text){
       rest = rest.replace(/^["«»"']+/, '').replace(/["«»"']+([.,;!?]*)$/, '$1').trim();
       if(out.length && out[out.length-1] !== '') out.push('');
       out.push(centerName(vo[1].toUpperCase().replace(/\s*:\s*$/,'')));
-      if(rest) out.push(DIAL_INDENT + rest);
+      if(rest) centerSpeech(rest).forEach(r=>out.push(r));
       out.push('');
       continue;
     }
@@ -231,7 +248,7 @@ function autoFormatScreenplay(text){
       if(wordCount <= 2 && namePart.length <= 18){
         if(out.length && out[out.length-1] !== '') out.push('');
         out.push(centerName(namePart.toUpperCase()));
-        out.push(DIAL_INDENT + speech);
+        centerSpeech(speech).forEach(r=>out.push(r));
         out.push('');
         continue;
       }
