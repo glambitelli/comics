@@ -16,13 +16,18 @@ window.formatScriptment=formatScriptment; window.openScriptmentRead=openScriptme
 window.toggleScriptmentRead=toggleScriptmentRead;
 window.closeFormatPreview=closeFormatPreview; window.applyFormatPreview=applyFormatPreview;
 
-// Aggancia l'autosave della textarea scriptment
+// Aggancia l'autosave dell'editor scriptment (contenteditable)
 (function(){
   function wire(){
     const ta = document.getElementById('scriptment-text');
     if(ta && !ta.dataset.wired){
       ta.dataset.wired = '1';
       ta.addEventListener('input', ()=>{ if(window.onScriptmentInput) window.onScriptmentInput(); });
+      ta.addEventListener('paste', (e)=>{
+        e.preventDefault();
+        const text = (e.clipboardData || window.clipboardData).getData('text/plain');
+        document.execCommand('insertText', false, text);
+      });
     }
   }
   if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wire);

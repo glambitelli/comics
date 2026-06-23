@@ -106,12 +106,29 @@
   position:relative;
 }
 .scriptment-page{
-  width:100%;max-width:620px;border:none;outline:none;resize:none;
+  width:100%;max-width:620px;border:none;outline:none;
   padding:28px 24px 60px;background:var(--white);color:#1a1a1a;
-  line-height:1.75;height:100%;box-sizing:border-box;
+  line-height:1.75;min-height:100%;box-sizing:border-box;
+  overflow-wrap:break-word;word-wrap:break-word;
   -webkit-tap-highlight-color:transparent;
 }
-.scriptment-page::placeholder{color:var(--ink3);opacity:.7}
+/* placeholder per contenteditable vuoto */
+.scriptment-page:empty:before{
+  content:attr(data-placeholder);color:var(--ink3);opacity:.7;pointer-events:none;
+}
+/* i blocchi screenplay dentro l'editor: stessa resa della vista lettura */
+.scriptment-page .sp-blank{height:.9em}
+.scriptment-page .sp-action{margin:.1em 0}
+.scriptment-page .sp-note{margin:.1em 0;color:var(--ink3);font-style:italic}
+.scriptment-page .sp-scene{
+  display:flex;justify-content:space-between;align-items:baseline;gap:10px;
+  font-weight:700;text-transform:uppercase;margin:.4em 0 .2em;
+}
+.scriptment-page .sp-scene-h{flex:1;text-align:center}
+.scriptment-page .sp-scene-n{flex:0 0 auto;color:var(--ink3);font-weight:700}
+.scriptment-page .sp-transition{text-align:right;font-weight:700;text-transform:uppercase;margin:.3em 0}
+.scriptment-page .sp-character{text-align:center;text-transform:uppercase;font-weight:700;margin:.5em 0 0;letter-spacing:.04em}
+.scriptment-page .sp-dialogue{text-align:center;margin:0 auto;max-width:62%}
 
 /* Bottone formatta flottante, ancorato dentro la colonna (lontano dallo scrollbar) */
 .scriptment-fmt-float{
@@ -127,6 +144,7 @@
 }
 .scriptment-fmt-float:hover{opacity:1}
 .scriptment-fmt-float:active{transform:scale(.96)}
+.scriptment-fmt-float.fmt-done{background:#48a848;color:#fff}
 .scriptment-fmt-float kbd{
   font-size:9px;font-family:inherit;font-weight:700;
   background:rgba(240,200,100,.18);border-radius:5px;

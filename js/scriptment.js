@@ -13,6 +13,59 @@ const FONT_CLASS = {
 };
 let _savedTimer = null;
 
+// ── Helper editor contenteditable ──
+// Legge il testo "pulito" (logico) dal contenteditable, riga per riga.
+function editorGetText(el){
+  if(!el) return '';
+  const lines = [];
+  el.childNodes.forEach(node=>{
+    // testo nudo (può contenere \n da incolla)
+    if(node.nodeType === 3){
+      const parts = node.textContent.split('\n');
+      parts.forEach(pp=>{ if(pp.trim()!=='' || parts.length>1) lines.push(pp.replace(/\s+$/,'')); });
+      return;
+    }
+    if(node.nodeType !== 1) return;
+    if(node.tagName === 'BR'){ lines.push(''); return; }
+    const cls = node.className || '';
+    if(cls.includes('sp-blank')){ lines.push(''); return; }
+    if(cls.includes('sp-scene')){
+      const h = node.querySelector('.sp-scene-h');
+      const n = node.querySelector('.sp-scene-n');
+      const num = n ? n.textContent.trim() : '';
+      const head = h ? h.textContent.trim() : node.textContent.trim();
+      lines.push((num ? num + '. ' : '') + head);
+      return;
+    }
+    // div generico / sp-* : prendi il testo, e se contiene <br> spezzalo
+    const html = node.innerHTML || '';
+    if(/<br\s*\/?>/i.test(html)){
+      node.innerText.split('\n').forEach(l=>lines.push(l.replace(/\s+$/,'')));
+    } else {
+      lines.push((node.textContent || '').replace(/\s+$/,''));
+    }
+  });
+  // se per qualche motivo non abbiamo righe ma c'è testo, fallback su innerText
+  if(lines.length === 0){
+    return (el.innerText || '').replace(/\u00a0/g,' ');
+  }
+  return lines.join('\n').replace(/\u00a0/g,' ');
+}
+
+// Scrive nel contenteditable: se il testo è "formattabile" lo renderizza,
+// altrimenti lo mette come righe semplici modificabili.
+function editorRender(el, text){
+  if(!el) return;
+  el.innerHTML = renderScreenplayHTML(text || '');
+}
+// Scrive testo grezzo (durante editing libero non rirenderizziamo)
+function editorSetPlain(el, text){
+  if(!el) return;
+  const lines = (text||'').split('\n');
+  el.innerHTML = lines.map(l=> l==='' ? '<div class="sp-blank"></div>' : `<div class="sp-action">${l.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>`).join('');
+}
+
+
 // ── Apertura / chiusura ──
 export function openScriptment(){
   const p = getProject(currentId); if(!p) return;
@@ -24,7 +77,8 @@ export function openScriptment(){
 
   if(title) title.textContent = p.title || 'Scriptment';
   if(ta){
-    ta.value = sm.text || '';
+    // renderizza il testo già formattato (centratura via CSS)
+    editorRender(ta, sm.text || '');
     applyFontClass(ta, sm.font);
     applySize(ta, sm.size);
   }
@@ -38,7 +92,6 @@ export function openScriptment(){
   setTimeout(()=>{
     if(ta){
       ta.focus({preventScroll:true});
-      ta.setSelectionRange(0,0);
       ta.scrollTop = 0;
       const wrap = document.getElementById('scriptment-editor-wrap');
       if(wrap) wrap.scrollTop = 0;
@@ -86,7 +139,7 @@ export function onScriptmentInput(){
   const sm = getScriptment(p);
   const ta = document.getElementById('scriptment-text');
   if(!ta) return;
-  sm.text = ta.value;
+  sm.text = editorGetText(ta);
   updateWordCount(sm.text);
   flagSaving();
   scheduleSave(p);
@@ -116,58 +169,37 @@ export function stepScriptmentSize(delta){
   scheduleSave(p);
 }
 
-// ── AUTO-FORMATO — mostra ANTEPRIMA, poi l'utente decide se applicare ──
+// ── AUTO-FORMATO — formatta e re-impagina direttamente l'editor ──
 export function formatScriptment(){
-  const p = getProject(currentId); if(!p) return;
-  const ta = document.getElementById('scriptment-text');
-  if(!ta) return;
-
-  const original = ta.value;
-  const formatted = autoFormatScreenplay(original);
-
-  // Se non cambia nulla, avvisa e basta
-  if(formatted === original){
-    showFormatPreview(original, formatted, true);
-    return;
-  }
-  showFormatPreview(original, formatted, false);
-}
-
-// Mostra l'anteprima del testo formattato nel pannello (resa con stile screenplay)
-function showFormatPreview(original, formatted, noChange){
-  const overlay = document.getElementById('fmt-preview-overlay');
-  const pre = document.getElementById('fmt-preview-text');
-  const hint = document.getElementById('fmt-preview-hint');
-  if(!overlay || !pre) return;
-  pre.innerHTML = renderScreenplayHTML(formatted);
-  if(hint) hint.textContent = noChange
-    ? 'Nessuna modifica: il testo è già a posto così.'
-    : 'Ecco come verrebbe formattato. Applichi?';
-  // memorizzo il testo formattato sul pannello per l'applica
-  overlay.dataset.formatted = formatted;
-  overlay.classList.add('open');
-}
-
-export function closeFormatPreview(){
-  const overlay = document.getElementById('fmt-preview-overlay');
-  if(overlay) overlay.classList.remove('open');
-}
-
-// Applica davvero il testo formattato
-export function applyFormatPreview(){
   const p = getProject(currentId); if(!p) return;
   const sm = getScriptment(p);
   const ta = document.getElementById('scriptment-text');
-  const overlay = document.getElementById('fmt-preview-overlay');
-  if(!ta || !overlay) return;
-  const formatted = overlay.dataset.formatted || ta.value;
-  ta.value = formatted;
+  if(!ta) return;
+
+  const original = editorGetText(ta);
+  const formatted = autoFormatScreenplay(original);
+
+  // re-impagina l'editor con la formattazione (centratura via CSS)
+  editorRender(ta, formatted);
   sm.text = formatted;
   updateWordCount(formatted);
   flagSaving();
   scheduleSave(p);
-  closeFormatPreview();
+
+  // feedback rapido sul pulsante
+  const btn = document.getElementById('scriptment-fmt-float');
+  if(btn){
+    btn.classList.add('fmt-done');
+    setTimeout(()=>btn.classList.remove('fmt-done'), 700);
+  }
 }
+
+// (Anteprima formattazione rimossa: ora formatta impagina direttamente l'editor)
+export function closeFormatPreview(){
+  const overlay = document.getElementById('fmt-preview-overlay');
+  if(overlay) overlay.classList.remove('open');
+}
+export function applyFormatPreview(){ closeFormatPreview(); }
 
 // Regole di formattazione: il testo salvato resta PULITO (allineato a sinistra,
 // senza spazi di centratura). La centratura visiva è applicata via CSS in lettura,

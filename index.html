@@ -351,7 +351,7 @@
     </div>
     <!-- Vista editor -->
     <div class="scriptment-page-wrap" id="scriptment-editor-wrap">
-      <textarea class="scriptment-page" id="scriptment-text" placeholder="Butta vernice contro il muro. Scrivi libero — prosa, note, dialoghi. Poi premi «formatta» per mettere in ordine lo screenplay."></textarea>
+      <div class="scriptment-page" id="scriptment-text" contenteditable="true" spellcheck="false" data-placeholder="Butta vernice contro il muro. Scrivi libero — prosa, note, dialoghi. Poi premi «formatta» per mettere in ordine lo screenplay."></div>
       <button class="scriptment-fmt-float" id="scriptment-fmt-float" onclick="formatScriptment()" title="Formatta lo screenplay">
         ⤓ formatta <kbd>⌘⇧F</kbd>
       </button>
@@ -366,21 +366,6 @@
     </div>
   </div>
 
-  <!-- Anteprima formattazione -->
-  <div class="fmt-preview-overlay" id="fmt-preview-overlay">
-    <div class="fmt-preview-card">
-      <div class="fmt-preview-head">
-        <span>Anteprima formattazione</span>
-        <button class="fmt-preview-x" onclick="closeFormatPreview()" aria-label="Chiudi">✕</button>
-      </div>
-      <div class="fmt-preview-hint" id="fmt-preview-hint"></div>
-      <pre class="fmt-preview-text" id="fmt-preview-text"></pre>
-      <div class="fmt-preview-actions">
-        <button class="fmt-btn-cancel" onclick="closeFormatPreview()">Annulla</button>
-        <button class="fmt-btn-apply" onclick="applyFormatPreview()">Applica</button>
-      </div>
-    </div>
-  </div>
 </div>
 
 <!-- SETTINGS PANEL -->
