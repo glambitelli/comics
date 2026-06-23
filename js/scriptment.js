@@ -172,8 +172,9 @@ export function applyFormatPreview(){
 }
 
 // Regole di formattazione (testo → testo):
-// - INT./EST. a inizio riga → maiuscolo, riga isolata (scene heading)
-// - NOME: "Battuta"  →  NOME centrato, battuta rientrata sotto
+// - INT./EST. a inizio riga → scene heading numerata "N  HEADING  N" (sx+dx)
+// - CUT TO:, DISSOLVE TO:, FADE IN/OUT: ecc. → transizione allineata a destra
+// - NOME: "Battuta"  →  NOME centrato, battuta centrata sotto
 // - Etichette tipo "Voce fuori campo:", "V.O.:", "O.S.:" riconosciute come parlato
 // - (parentetiche) lasciate come sono
 // Misura quanti caratteri monospace ci stanno nella larghezza della textarea
@@ -216,6 +217,22 @@ function autoFormatScreenplay(text, columnArg){
     return ' '.repeat(pad) + s;
   };
   const centerName = center;
+  // Allinea una stringa al margine destro della colonna
+  const rightAlign = (s)=>{
+    if(s.length >= COLUMN) return s;
+    return ' '.repeat(COLUMN - s.length) + s;
+  };
+  // Numero di scena a sinistra e destra: "N  HEADING  N"
+  const sceneLine = (n, heading)=>{
+    const num = String(n);
+    const left = num + '  ';
+    const right = '  ' + num;
+    const room = COLUMN - left.length - right.length;
+    let h = heading;
+    if(h.length > room) h = h.slice(0, room);
+    const pad = Math.max(0, room - h.length);
+    return left + h + ' '.repeat(pad) + right;
+  };
   // Centra un dialogo: se è lungo lo spezza in righe e centra ognuna
   const centerSpeech = (speech)=>{
     const words = speech.split(/\s+/);
@@ -237,6 +254,15 @@ function autoFormatScreenplay(text, columnArg){
   // Indicatori di "parlato" comuni (voice over, ecc.)
   const speakerLabels = /^(voce fuori campo|voce narrante|voce|v\.?o\.?|o\.?s\.?|off|f\.?c\.?)\s*:/i;
 
+  // Transizioni → allineate a destra (CUT TO:, DISSOLVE TO:, ecc.)
+  const transitionRe = /^(cut to|smash cut|match cut|hard cut|jump cut|dissolve to|cross dissolve|fade in|fade out|fade to black|fade to white|fade to|wipe to|iris in|iris out|stacca su|stacca|dissolvenza|titoli di coda|fine)\s*:?\s*$/i;
+
+  // Scene heading già numerata in precedenza: "N  HEADING  N" o "N HEADING" → estrai heading puro
+  const numberedScene = /^\s*\d+\s+(.*?)(?:\s+\d+\s*)?$/;
+
+  // Contatore scene
+  let sceneNum = 0;
+
   // Stato: stiamo emettendo il dialogo che segue un nome personaggio?
   let inDialogue = false;
 
@@ -249,10 +275,27 @@ function autoFormatScreenplay(text, columnArg){
     // Le note dell'autore (// ...) restano intatte, mai formattate
     if(/^\/\//.test(trimmed)){ out.push(line); inDialogue = false; continue; }
 
-    // Scene heading: inizia con INT/EST (case-insensitive)
-    if(/^(int|est|int\.\/est|interno|esterno)\b[\.\s]/i.test(trimmed)){
+    // Transizione (CUT TO:, DISSOLVE TO:, ecc.) → allineata a destra, maiuscolo
+    if(transitionRe.test(trimmed)){
       if(out.length && out[out.length-1] !== '') out.push('');
-      out.push(trimmed.toUpperCase());
+      let t = trimmed.toUpperCase().replace(/\s*:?\s*$/, '');
+      out.push(rightAlign(t + ':'));
+      out.push('');
+      inDialogue = false;
+      continue;
+    }
+
+    // Scene heading: inizia con INT/EST (anche se già numerata da prima)
+    // Prima togliamo un'eventuale numerazione esistente per ri-numerare pulito
+    let headingCandidate = trimmed;
+    const stripped = trimmed.match(numberedScene);
+    if(stripped && /^(int|est|int\.\/est|interno|esterno)\b/i.test(stripped[1])){
+      headingCandidate = stripped[1].trim();
+    }
+    if(/^(int|est|int\.\/est|interno|esterno)\b[\.\s]/i.test(headingCandidate)){
+      if(out.length && out[out.length-1] !== '') out.push('');
+      sceneNum++;
+      out.push(sceneLine(sceneNum, headingCandidate.toUpperCase()));
       out.push('');
       inDialogue = false;
       continue;

@@ -31,10 +31,23 @@ window.closeFormatPreview=closeFormatPreview; window.applyFormatPreview=applyFor
 window.onScriptmentInput = onScriptmentInput;
 import { renderStats, getTodayTip } from './stats.js';
 
-// ── Rilevamento touch: mostra la barra-duna solo su dispositivi touch ──
+// ── Rilevamento mobile: barra-duna solo su dispositivi touch CON schermo stretto ──
+// (un laptop con touchscreen ha maxTouchPoints>0 ma schermo largo → resta desktop)
 (function(){
-  const isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
-  if(isTouch) document.body.classList.add('is-touch');
+  const coarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+  const touch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+  const narrow = window.innerWidth <= 820;
+  const isMobile = (touch || coarse) && narrow;
+  document.body.classList.toggle('is-touch', isMobile);
+  // ri-valuta al resize/rotazione
+  let _t;
+  window.addEventListener('resize', ()=>{
+    clearTimeout(_t);
+    _t = setTimeout(()=>{
+      const n = window.innerWidth <= 820;
+      document.body.classList.toggle('is-touch', (touch || coarse) && n);
+    }, 200);
+  });
 })();
 
 // ── Navigazione centralizzata: chiude tutte le schermate prima di aprirne una ──
@@ -96,8 +109,7 @@ window.toggleEvening=toggleEvening;
 
 // ── Barra-duna: nascondi scrollando giù, mostra scrollando su ──
 (function(){
-  const isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
-  if(!isTouch) return;
+  if(!document.body.classList.contains('is-touch')) return;
   function wireScrollHide(){
     const nav = document.getElementById('dune-nav');
     if(!nav) return;

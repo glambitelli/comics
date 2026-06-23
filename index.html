@@ -505,13 +505,19 @@
 
 <!-- BARRA-DUNA MOBILE (solo touch) -->
 <nav class="dune-nav" id="dune-nav" aria-label="Navigazione">
-  <!-- Layer 1: blur SOLO sulla forma duna (clip-path poligono che approssima la curva) -->
+  <!-- Layer 1: blur clippato sulla forma -->
   <div class="dune-blur"></div>
-  <!-- Layer 2: colore terracotta semi-opaco sopra il blur -->
+  <!-- Layer 2: colore ambra semi-opaco sopra il blur -->
   <div class="dune-color"></div>
-  <!-- Layer 3: bordo SVG (linea superiore della duna) — niente fill, solo stroke -->
+  <!-- Layer 3: granulosità vetro (rumore procedurale) -->
+  <div class="dune-grain"></div>
+  <!-- Layer 4: bordo superiore (arco simmetrico) -->
   <svg class="dune-nav-bg" viewBox="0 0 400 96" preserveAspectRatio="none" aria-hidden="true">
-    <path class="dune-stroke" d="M0,40 Q90,8 180,22 T400,30" fill="none" stroke="#a07830" stroke-width="1.4"/>
+    <path class="dune-stroke" d="M0,34 Q200,2 400,34" fill="none" stroke="#b07a24" stroke-width="1.4"/>
+  </svg>
+  <!-- filtro grana SVG (definizione) -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <filter id="dune-grain-filter"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/><feComponentTransfer><feFuncA type="linear" slope="0.6"/></feComponentTransfer></filter>
   </svg>
   <div class="dune-nav-items">
     <button class="dune-btn dune-btn-light" onclick="duneSearch()" aria-label="Cerca"><span class="dune-g-search">⚲</span></button>
