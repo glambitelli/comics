@@ -7,11 +7,28 @@ import { addScene, updateScene, deleteScene, autoResize, saveStoryField, updateC
 import { updatePlanner, applyPlanner, openPlannerModal, closePlannerModal } from './planner.js';
 import { initNotifications, saveReminderSettings, testNotification } from './notifications.js';
 import { openSettings, closeSettings, resetStarsConfirm, closeStarsConfirm, doResetStars, exportBackup, importBackup, resetStreakConfirm, closeStreakConfirm, doResetStreak } from './settings.js';
-import { renderHome, openNewModal, closeModal, createProject, openCardMenu, exportProjectJSON, confirmDeleteProject, openColorPicker, closeColorPicker, selectProjectColor, toggleSearch, filterProjects, attachCardDrag, applyProjectOrder, startSandstorm, openTypeChooser, closeTypeChooser, chooseType } from './home.js';
+import { renderHome, openNewModal, closeModal, createProject, openCardMenu, exportProjectJSON, confirmDeleteProject, openColorPicker, closeColorPicker, selectProjectColor, toggleSearch, filterProjects, attachCardDrag, applyProjectOrder, startSandstorm, getScriptment } from './home.js';
 import { openProject, restoreProject, goHome, confirmDeleteCurrent, closeConfirm, confirmMicrotask } from './project.js';
-import { addSeqScene, deleteSeqScene, openSeqScene, openReadMode, closeReadMode, addSeqCharacter } from './sequence.js';
-window.addSeqScene=addSeqScene; window.deleteSeqScene=deleteSeqScene; window.openSeqScene=openSeqScene;
-window.openReadMode=openReadMode; window.closeReadMode=closeReadMode; window.addSeqCharacter=addSeqCharacter;
+import { openScriptment, closeScriptment, onScriptmentInput, setScriptmentFont, stepScriptmentSize, formatScriptment, openScriptmentRead, closeReadMode, refreshScriptmentButton, closeFormatPreview, applyFormatPreview } from './scriptment.js';
+window.openScriptment=openScriptment; window.closeScriptment=closeScriptment;
+window.setScriptmentFont=setScriptmentFont; window.stepScriptmentSize=stepScriptmentSize;
+window.formatScriptment=formatScriptment; window.openScriptmentRead=openScriptmentRead;
+window.closeReadMode=closeReadMode;
+window.closeFormatPreview=closeFormatPreview; window.applyFormatPreview=applyFormatPreview;
+
+// Aggancia l'autosave della textarea scriptment
+(function(){
+  function wire(){
+    const ta = document.getElementById('scriptment-text');
+    if(ta && !ta.dataset.wired){
+      ta.dataset.wired = '1';
+      ta.addEventListener('input', ()=>{ if(window.onScriptmentInput) window.onScriptmentInput(); });
+    }
+  }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wire);
+  else wire();
+})();
+window.onScriptmentInput = onScriptmentInput;
 import { renderStats, getTodayTip } from './stats.js';
 
 // ── Rilevamento touch: mostra la barra-duna solo su dispositivi touch ──
@@ -169,7 +186,7 @@ onSnapshot(collection(db, COL), snapshot => {
 });
 
 window.openNewModal=openNewModal; window.closeModal=closeModal; window.createProject=createProject;
-window.openTypeChooser=openTypeChooser; window.closeTypeChooser=closeTypeChooser; window.chooseType=chooseType;
+
 window.goHome=()=>{
   hideAllScreens();
   document.getElementById('screen-home').classList.add('active');
@@ -179,12 +196,8 @@ window.goHome=()=>{
 window.toggleStep=toggleStep; window.selectTav=selectTav; window.addSfida=addSfida;
 window.saveDates=saveDates; window.confirmDeleteCurrent=confirmDeleteCurrent; window.closeConfirm=closeConfirm;
 window.exportPDF=exportPDF; window.exportStoryboard=exportStoryboard; window.exportScreenplay=exportScreenplay;
-// Dispatcher: nella Sequenza esporta il copione, nella Storia il PDF classico
-window.exportMain=()=>{
-  const p = getProject(currentId);
-  if(p && p.type==='sequence') exportScreenplay();
-  else exportPDF();
-};
+// Export principale: il PDF classico del progetto
+window.exportMain=()=>{ exportPDF(); };
 window.addScene=addScene; window.updateScene=updateScene;
 window.deleteScene=deleteScene; window.autoResize=autoResize; window.saveStoryField=saveStoryField;
 window.updateCharCount=updateCharCount; window.saveReminderSettings=saveReminderSettings;

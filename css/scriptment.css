@@ -1,0 +1,168 @@
+/* ════════════════════════════════════════════
+   SCRIPTMENT — editor di scrittura libera
+   ════════════════════════════════════════════ */
+
+/* ── Pulsante che apre l'editor (fase Sviluppo) ── */
+.scriptment-open-btn{
+  display:flex;align-items:center;gap:13px;width:100%;
+  background:linear-gradient(135deg,#2a2018,#1a1410);
+  border:none;border-radius:14px;padding:16px 17px;cursor:pointer;
+  margin-bottom:16px;box-shadow:0 3px 12px rgba(0,0,0,.18);
+  transition:transform .12s;
+  font-family:inherit;
+}
+.scriptment-open-btn:active{transform:scale(.985)}
+.scriptment-btn-ico{
+  width:40px;height:40px;border-radius:11px;
+  background:rgba(240,200,100,.16);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.scriptment-btn-ico svg{width:22px;height:22px}
+.scriptment-btn-txt{text-align:left;flex:1;min-width:0}
+.scriptment-btn-h{
+  display:block;font-family:'Castoro',serif;font-size:17px;color:#f5ecd8;line-height:1.1;
+}
+.scriptment-btn-p{
+  display:block;font-size:11px;color:rgba(245,236,216,.55);margin-top:3px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.scriptment-btn-arrow{color:#f0c068;font-size:20px;flex-shrink:0}
+
+.sub-label-ref{
+  font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--ink3);margin:6px 0 12px;
+}
+
+/* ── Overlay a tutto schermo ── */
+.scriptment-overlay{
+  position:fixed;inset:0;z-index:300;display:none;
+}
+.scriptment-overlay.open{display:block}
+.scriptment-blur{
+  position:absolute;inset:0;
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  background:rgba(30,24,16,.36);
+}
+.scriptment-sheet{
+  position:absolute;inset:max(10px,var(--safe-top)) 6px 0;
+  background:var(--white);
+  border-radius:22px 22px 0 0;
+  box-shadow:0 -8px 40px rgba(0,0,0,.32);
+  display:flex;flex-direction:column;overflow:hidden;
+  animation:scriptment-rise .28s cubic-bezier(.2,.7,.3,1);
+}
+@keyframes scriptment-rise{
+  from{transform:translateY(40px);opacity:.6}
+  to{transform:translateY(0);opacity:1}
+}
+
+/* ── Barra superiore ── */
+.scriptment-top{
+  display:flex;align-items:center;gap:8px;
+  padding:14px 14px;border-bottom:1px solid var(--sand2);flex-shrink:0;
+}
+.scriptment-close{
+  font-size:20px;color:var(--ink);font-weight:800;
+  background:none;border:none;cursor:pointer;line-height:1;padding:2px 6px;
+}
+.scriptment-proj-title{
+  flex:1;font-family:'Castoro',serif;font-size:16px;color:var(--ink);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.scriptment-act{
+  font-size:11px;font-weight:700;color:var(--ink3);
+  background:none;border:1px solid var(--sand2);border-radius:14px;
+  padding:5px 10px;cursor:pointer;white-space:nowrap;flex-shrink:0;
+  font-family:inherit;
+}
+.scriptment-act:active{background:var(--sand)}
+
+/* ── Barra font + dimensione ── */
+.scriptment-tools{
+  display:flex;align-items:center;gap:7px;
+  padding:9px 14px;border-bottom:1px solid var(--sand2);
+  background:var(--sand);flex-shrink:0;
+}
+.scriptment-tools .font-pill{
+  font-size:11px;font-weight:600;color:var(--ink2);
+  background:var(--white);border:1px solid var(--sand2);border-radius:14px;
+  padding:5px 11px;cursor:pointer;font-family:inherit;
+}
+.scriptment-tools .font-pill[data-font="serif"]{font-family:'Lora',serif}
+.scriptment-tools .font-pill.active{background:#2a2018;color:#f0c068;border-color:#2a2018}
+.size-step{display:flex;align-items:center;gap:7px;margin-left:auto;flex-shrink:0}
+.size-btn{
+  width:26px;height:26px;border-radius:50%;
+  border:1px solid var(--sand2);background:var(--white);color:var(--ink2);
+  font-size:14px;display:flex;align-items:center;justify-content:center;cursor:pointer;
+}
+.size-val{font-size:11px;color:var(--ink2);font-weight:700;min-width:18px;text-align:center}
+
+/* ── Foglio di scrittura ── */
+.scriptment-page{
+  flex:1;width:100%;border:none;outline:none;resize:none;
+  padding:22px 20px;background:var(--white);color:#1a1a1a;
+  line-height:1.75;
+  -webkit-tap-highlight-color:transparent;
+}
+.scriptment-page::placeholder{color:var(--ink3);opacity:.7}
+
+/* Font dello scriptment */
+.sm-font-courier{font-family:'Courier Prime','Courier New',monospace}
+.sm-font-serif{font-family:'Lora',Georgia,serif}
+.sm-font-sans{font-family:'Nunito',sans-serif}
+
+/* ── Footer ── */
+.scriptment-foot{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:8px 16px calc(8px + var(--safe-bot));
+  border-top:1px solid var(--sand2);background:var(--sand);
+  font-size:10px;color:var(--ink3);flex-shrink:0;
+}
+
+/* ── Vista lettura dello scriptment ── */
+.read-scriptment{padding:24px 22px calc(40px + var(--safe-bot))}
+.read-scriptment-text{
+  white-space:pre-wrap;word-wrap:break-word;
+  line-height:1.8;color:var(--ink);font-size:15px;
+}
+.read-scriptment.sm-font-courier .read-scriptment-text{font-family:'Courier Prime',monospace;font-size:13.5px}
+.read-scriptment.sm-font-serif .read-scriptment-text{font-family:'Lora',Georgia,serif}
+.read-scriptment.sm-font-sans .read-scriptment-text{font-family:'Nunito',sans-serif}
+
+/* ── Anteprima formattazione ── */
+.fmt-preview-overlay{
+  position:absolute;inset:0;z-index:10;display:none;
+  align-items:center;justify-content:center;padding:18px;
+  background:rgba(20,16,10,.5);
+}
+.fmt-preview-overlay.open{display:flex}
+.fmt-preview-card{
+  background:var(--white);border-radius:18px;width:100%;max-width:440px;
+  max-height:80%;display:flex;flex-direction:column;overflow:hidden;
+  box-shadow:0 12px 40px rgba(0,0,0,.34);
+}
+.fmt-preview-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 16px;border-bottom:1px solid var(--sand2);
+  font-family:'Castoro',serif;font-size:15px;color:var(--ink);
+}
+.fmt-preview-x{background:none;border:none;font-size:18px;color:var(--ink3);cursor:pointer;font-weight:800}
+.fmt-preview-hint{padding:11px 16px 0;font-size:12px;color:var(--ink3)}
+.fmt-preview-text{
+  flex:1;overflow-y:auto;margin:11px 16px;padding:12px;
+  background:var(--sand);border-radius:10px;
+  font-family:'Courier Prime',monospace;font-size:12px;line-height:1.6;
+  color:var(--ink);white-space:pre-wrap;word-wrap:break-word;tab-size:4;
+}
+.fmt-preview-actions{
+  display:flex;gap:10px;padding:12px 16px calc(14px + var(--safe-bot));
+  border-top:1px solid var(--sand2);
+}
+.fmt-btn-cancel,.fmt-btn-apply{
+  flex:1;padding:12px;border-radius:11px;font-size:14px;font-weight:700;
+  cursor:pointer;font-family:inherit;border:none;
+}
+.fmt-btn-cancel{background:var(--sand);color:var(--ink2);border:1px solid var(--sand2)}
+.fmt-btn-apply{background:#2a2018;color:#f0c068}
+.fmt-btn-apply:active,.fmt-btn-cancel:active{transform:scale(.98)}

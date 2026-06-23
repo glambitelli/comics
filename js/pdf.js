@@ -226,52 +226,35 @@ export function exportStoryboard(){
 export function exportScreenplay(){
   const p = getProject(currentId); if(!p) return;
   const esc = s => (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  const scenes = p.scenes || [];
+  const sm = p.scriptment || {};
+  const text = sm.text || '';
 
   let body = '';
   // Frontespizio
   body += '<div style="text-align:center;margin:140px 0 0">';
   body += '<div style="font-size:26px;font-weight:700;letter-spacing:.04em;text-transform:uppercase">'+esc(p.title)+'</div>';
-  body += '<div style="margin-top:14px;font-size:13px">una sequenza</div>';
+  body += '<div style="margin-top:14px;font-size:13px">scriptment</div>';
   body += '<div style="margin-top:90px;font-size:12px;color:#555">Inkflow · '+new Date().toLocaleDateString('it-IT')+'</div>';
   body += '</div><div style="page-break-after:always"></div>';
 
-  // Scene
-  scenes.forEach((sc, i) => {
-    body += '<div class="scene-block">';
-    if(sc.title){
-      body += '<div class="sp-scenetitle">'+esc(sc.title).toUpperCase()+'</div>';
-    }
-    (sc.blocks||[]).forEach(blk => {
-      const t = esc(blk.text||'');
-      if(!t) return;
-      if(blk.type==='heading')      body += '<div class="c-heading">'+t.toUpperCase()+'</div>';
-      else if(blk.type==='action')  body += '<div class="c-action">'+t+'</div>';
-      else if(blk.type==='character') body += '<div class="c-character">'+t.toUpperCase()+'</div>';
-      else if(blk.type==='paren')   body += '<div class="c-paren">'+t+'</div>';
-      else if(blk.type==='dialog')  body += '<div class="c-dialog">'+t+'</div>';
-    });
-    body += '</div>';
-  });
-  if(!scenes.length) body += '<div style="text-align:center;color:#999;margin-top:60px">Nessuna scena.</div>';
+  // Corpo: il testo dello scriptment, preservando ritorni a capo e tabulazioni
+  if(text.trim()){
+    body += '<pre class="scriptment-body">'+esc(text)+'</pre>';
+  } else {
+    body += '<div style="text-align:center;color:#999;margin-top:60px">Ancora niente scritto.</div>';
+  }
 
   const css = `
     *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:'Courier New',Courier,monospace;color:#111;background:#fff;font-size:12pt;line-height:1}
-    .page{max-width:8.5in;margin:0 auto;padding:1in 1in 1in 1.5in}
-    .scene-block{margin-bottom:6pt}
-    .sp-scenetitle{font-weight:700;margin:18pt 0 10pt}
-    .c-heading{font-weight:700;text-transform:uppercase;margin:14pt 0 10pt}
-    .c-action{margin:0 0 10pt}
-    .c-character{text-transform:uppercase;margin:10pt 0 0;padding-left:2.2in}
-    .c-paren{padding-left:1.6in;margin:0}
-    .c-dialog{padding-left:1in;padding-right:1.5in;margin:0 0 10pt}
+    body{font-family:'Courier New',Courier,monospace;color:#111;background:#fff;font-size:12pt;line-height:1.5}
+    .page{max-width:8.5in;margin:0 auto;padding:1in 1in 1in 1.4in}
+    .scriptment-body{font-family:'Courier New',Courier,monospace;font-size:12pt;line-height:1.5;white-space:pre-wrap;word-wrap:break-word;tab-size:6}
     @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
   `;
   const win = window.open('','_blank');
   if(!win){alert('Abilita i popup per esportare il copione');return;}
   win.document.open();
-  win.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>'+esc(p.title)+' — Copione</title><style>'+css+'</style></head><body><div class="page">'+body+'</div></body></html>');
+  win.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>'+esc(p.title)+' — Scriptment</title><style>'+css+'</style></head><body><div class="page">'+body+'</div></body></html>');
   win.document.close();
   setTimeout(()=>win.print(),600);
 }

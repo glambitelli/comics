@@ -12,7 +12,7 @@
 <title>Inkflow</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Castoro&family=Courier+Prime:wght@400;700&family=Nunito:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Castoro&family=Courier+Prime:wght@400;700&family=Lora:ital,wght@0,400;0,600;1,400&family=Nunito:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/variables.css">
 <link rel="stylesheet" href="css/layout.css">
 <link rel="stylesheet" href="css/home.css">
@@ -23,6 +23,7 @@
 <link rel="stylesheet" href="css/modals.css">
 <link rel="stylesheet" href="css/stats.css">
 <link rel="stylesheet" href="css/sequence.css">
+<link rel="stylesheet" href="css/scriptment.css">
 </head>
 <body>
 
@@ -56,7 +57,7 @@
     <div id="home-quote" style="text-align:center;padding:6px 8px 2px"></div>
     <div style="height:1px;background:var(--sand2);margin:14px 4px 18px"></div>
   </div>
-  <button class="new-fab" onclick="openTypeChooser()" aria-label="Nuovo progetto">+</button>
+  <button class="new-fab" onclick="openNewModal()" aria-label="Nuovo progetto">+</button>
   <button id="btn-evening" onclick="enterEveningMode()" style="position:fixed;bottom:calc(24px + var(--safe-bot));left:20px;width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#1a1410,#2a2018);border:none;box-shadow:0 4px 16px rgba(0,0,0,.22);font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:50">🌙</button>
   <button id="btn-stats" onclick="openStats()" style="position:fixed;bottom:calc(24px + var(--safe-bot));left:50%;transform:translateX(-50%);width:48px;height:48px;border-radius:50%;background:var(--white);border:1.5px solid var(--sand3);box-shadow:0 4px 16px rgba(0,0,0,.12);font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:50">📊</button>
   <button id="btn-settings" onclick="openSettings()" style="position:fixed;bottom:calc(24px + var(--safe-bot));right:20px;width:48px;height:48px;border-radius:50%;background:var(--white);border:1.5px solid var(--sand3);box-shadow:0 4px 16px rgba(0,0,0,.12);font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:50">⚙️</button>
@@ -140,34 +141,19 @@
       <div class="phase-body open" id="ph1-body">
         <!-- CONTENUTO STORIA (type=story) -->
         <div id="ph1-story">
-        <!-- TACCUINO — blocco di supporto comprimibile -->
-        <div class="support-block" style="border-left:3px solid var(--gold)">
-          <div class="step-item" style="cursor:pointer" onclick="toggleSupport(this)">
-            <div class="support-dot" style="background:var(--gold)"></div>
-            <div class="step-cnt">
-              <div class="step-nm">Taccuino</div>
-              <div class="step-ds">Idee grezze, appunti, direzioni narrative. Scrivi senza filtri.</div>
-            </div>
-            <div class="support-chev">▾</div>
-          </div>
-          <div class="support-content" style="padding:10px 16px 14px;display:none" id="taccuino-wrap"></div>
-        </div>
+        <!-- SCRIPTMENT — editor di scrittura libera a tutto schermo -->
+        <button class="scriptment-open-btn" onclick="openScriptment()">
+          <span class="scriptment-btn-ico">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#f0c068" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+          </span>
+          <span class="scriptment-btn-txt">
+            <span class="scriptment-btn-h">Scriptment</span>
+            <span class="scriptment-btn-p" id="scriptment-wordcount">butta vernice contro il muro</span>
+          </span>
+          <span class="scriptment-btn-arrow">→</span>
+        </button>
 
-        <!-- SCENE — quaderno di scrittura libera comprimibile -->
-        <div class="support-block" style="border-left:3px solid var(--green)">
-          <div class="step-item" style="cursor:pointer" onclick="toggleSupport(this)">
-            <div class="support-dot" style="background:var(--green)"></div>
-            <div class="step-cnt">
-              <div class="step-nm">Scene</div>
-              <div class="step-ds">Scrivi liberamente, una scena alla volta. Promuovile alla struttura quando sono pronte.</div>
-            </div>
-            <div class="support-chev">▾</div>
-          </div>
-          <div class="support-content" style="padding:10px 16px 4px;display:none">
-            <div id="scenes-wrap"></div>
-            <button onclick="addSceneText()" style="margin-top:8px;width:100%;padding:11px;border-radius:10px;border:1.5px dashed var(--sand3);background:none;color:var(--ink3);cursor:pointer;font-family:'Nunito',sans-serif;font-size:13px;font-weight:600">+ Nuova scena</button>
-          </div>
-        </div>
+        <div class="sub-label-ref">Supporto · riferimento</div>
 
         <!-- MOODBOARD -->
         <div class="step-item" onclick="toggleStep(this)"><div class="step-chk">✓</div><div class="step-cnt"><div class="step-nm">Moodboard <span class="tag ws">sera</span></div><div class="step-ds">Immagini che catturano l'atmosfera. Il "colore emotivo" della storia prima di scrivere.</div></div></div>
@@ -223,52 +209,6 @@
         </div>
         </div><!-- /ph1-story -->
 
-        <!-- CONTENUTO SEQUENZA (type=sequence) -->
-        <div id="ph1-sequence" style="display:none">
-          <!-- Spina dorsale (timeline beat) -->
-          <div id="seq-spine" class="seq-spine"></div>
-
-          <!-- SCENE screenplay -->
-          <div style="padding:4px 14px 0">
-            <div class="seq-sub-label">Scene</div>
-            <div id="seq-scenes"></div>
-            <button class="add-scene-btn" style="margin-top:6px;width:100%" onclick="addSeqScene()">+ Nuova scena</button>
-            <div style="display:flex;justify-content:center;margin-top:12px">
-              <button class="seq-read-btn" onclick="openReadMode()">☷ Vista lettura</button>
-            </div>
-          </div>
-
-          <!-- SUPPORTO -->
-          <div style="padding:18px 14px 4px">
-            <div class="seq-sub-label">Supporto</div>
-            <div class="support-block" style="border-left:3px solid var(--gold)">
-              <div class="step-item" style="cursor:pointer" onclick="toggleSupport(this)">
-                <div class="support-dot" style="background:var(--gold)"></div>
-                <div class="step-cnt">
-                  <div class="step-nm">Moodboard <span class="tag ws">sera</span></div>
-                  <div class="step-ds">Immagini che catturano l'atmosfera.</div>
-                </div>
-                <div class="support-chev">▾</div>
-              </div>
-              <div class="support-content" style="padding:10px 16px 14px;display:none" id="seq-moodboard-wrap"></div>
-            </div>
-            <div class="support-block" style="border-left:3px solid var(--sky)">
-              <div class="step-item" style="cursor:pointer" onclick="toggleSupport(this)">
-                <div class="support-dot" style="background:var(--sky)"></div>
-                <div class="step-cnt">
-                  <div class="step-nm">Personaggi</div>
-                  <div class="step-ds">Schede dei personaggi della sequenza.</div>
-                </div>
-                <div class="support-chev">▾</div>
-              </div>
-              <div class="support-content" style="padding:10px 0 4px;display:none">
-                <div id="seq-chars-list"></div>
-                <button class="add-scene-btn" style="margin:4px 14px 12px;width:calc(100% - 28px)" onclick="addSeqCharacter()">+ Aggiungi personaggio</button>
-              </div>
-            </div>
-          </div>
-        </div><!-- /ph1-sequence -->
-
       </div>
     </div>
 
@@ -312,16 +252,18 @@
     </div>
 
     <div style="margin-top:32px;padding-bottom:4px">
-      <div style="display:flex;gap:28px;justify-content:center;align-items:center">
+      <div class="export-row">
         <button onclick="exportMain()" class="ghost-action" id="export-main-btn">
-          <span class="ghost-glyph">⤓</span> <span id="export-main-label">Esporta PDF</span>
+          <span class="ghost-glyph">⤓</span> <span id="export-main-label">PDF</span>
         </button>
-        <span style="color:var(--sand3)">·</span>
+        <button onclick="exportScreenplay()" class="ghost-action">
+          <span class="ghost-glyph">✎</span> Scriptment
+        </button>
         <button onclick="exportStoryboard()" class="ghost-action">
           <span class="ghost-glyph">▦</span> Storyboard
         </button>
       </div>
-      <div style="text-align:center;margin-top:22px">
+      <div style="text-align:center;margin-top:20px">
         <button onclick="confirmDeleteCurrent()" class="ghost-delete"><span class="ghost-glyph">⌫</span> Elimina progetto</button>
       </div>
     </div>
@@ -386,6 +328,50 @@
     <div class="read-proj-sub">vista lettura</div>
   </div>
   <div class="read-scroll" id="read-body"></div>
+</div>
+
+<!-- EDITOR SCRIPTMENT (overlay a tutto schermo con blur dietro) -->
+<div class="scriptment-overlay" id="scriptment-overlay">
+  <div class="scriptment-blur" onclick="closeScriptment()"></div>
+  <div class="scriptment-sheet">
+    <div class="scriptment-top">
+      <button class="scriptment-close" onclick="closeScriptment()" aria-label="Chiudi">✕</button>
+      <div class="scriptment-proj-title" id="scriptment-proj-title"></div>
+      <button class="scriptment-act" onclick="formatScriptment()" title="Formatta lo screenplay">⤓ formatta</button>
+      <button class="scriptment-act" onclick="openScriptmentRead()" title="Vista lettura">☷ lettura</button>
+    </div>
+    <div class="scriptment-tools">
+      <button class="font-pill" data-font="courier" onclick="setScriptmentFont('courier')">Courier</button>
+      <button class="font-pill" data-font="serif" onclick="setScriptmentFont('serif')">Lora</button>
+      <button class="font-pill" data-font="sans" onclick="setScriptmentFont('sans')">Sans</button>
+      <span class="size-step">
+        <button class="size-btn" onclick="stepScriptmentSize(-1)" aria-label="Riduci">−</button>
+        <span class="size-val" id="scriptment-size-val">13</span>
+        <button class="size-btn" onclick="stepScriptmentSize(1)" aria-label="Aumenta">+</button>
+      </span>
+    </div>
+    <textarea class="scriptment-page" id="scriptment-text" placeholder="Butta vernice contro il muro. Scrivi libero — prosa, note, dialoghi. Poi premi «formatta» per mettere in ordine lo screenplay."></textarea>
+    <div class="scriptment-foot">
+      <span id="scriptment-foot-count">0 parole</span>
+      <span id="scriptment-foot-saved">salvato ✓</span>
+    </div>
+  </div>
+
+  <!-- Anteprima formattazione -->
+  <div class="fmt-preview-overlay" id="fmt-preview-overlay">
+    <div class="fmt-preview-card">
+      <div class="fmt-preview-head">
+        <span>Anteprima formattazione</span>
+        <button class="fmt-preview-x" onclick="closeFormatPreview()" aria-label="Chiudi">✕</button>
+      </div>
+      <div class="fmt-preview-hint" id="fmt-preview-hint"></div>
+      <pre class="fmt-preview-text" id="fmt-preview-text"></pre>
+      <div class="fmt-preview-actions">
+        <button class="fmt-btn-cancel" onclick="closeFormatPreview()">Annulla</button>
+        <button class="fmt-btn-apply" onclick="applyFormatPreview()">Applica</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- SETTINGS PANEL -->
@@ -478,37 +464,6 @@
 </div>
 
 <!-- MODAL NUOVO -->
-<!-- SCELTA TIPO PROGETTO -->
-<div class="modal-overlay" id="type-chooser">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <div class="modal-head"><h3>Che tipo di progetto?</h3><p>Puoi cambiare idea dopo. Decide come scrivi.</p></div>
-    <div class="modal-body">
-      <button class="type-choice" onclick="chooseType('story')">
-        <span class="type-choice-ico" style="background:var(--sky-pale)">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#2a88b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>
-        </span>
-        <span class="type-choice-txt">
-          <span class="type-choice-h">Storia</span>
-          <span class="type-choice-p">Struttura a 3 atti, soggetto, scene. Per un'opera pianificata.</span>
-        </span>
-      </button>
-      <button class="type-choice" onclick="chooseType('sequence')">
-        <span class="type-choice-ico" style="background:#efe2c8">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#9a7820" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="4" rx="1"/><rect x="3" y="10" width="18" height="4" rx="1"/><rect x="3" y="16" width="18" height="4" rx="1"/></svg>
-        </span>
-        <span class="type-choice-txt">
-          <span class="type-choice-h">Sequenza</span>
-          <span class="type-choice-p">Scene che fluiscono, in formato sceneggiatura. Scrivi dal basso, senza pressione.</span>
-        </span>
-      </button>
-    </div>
-    <div class="modal-actions">
-      <button class="btn-cancel" onclick="closeTypeChooser()">Annulla</button>
-    </div>
-  </div>
-</div>
-
 <div class="modal-overlay" id="modal">
   <div class="modal">
     <div class="modal-handle"></div>

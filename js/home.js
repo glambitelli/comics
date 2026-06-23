@@ -6,20 +6,35 @@ import { calcDaysLeft } from './velocity.js';
 import { exportPDF } from './pdf.js';
 import { openProject, confirmDeleteCurrent } from './project.js';
 
-function newProjectObj(title, numTav, type){
+function newProjectObj(title, numTav){
   const idx = projects.length % PROJECT_PALETTE.length;
   const pal = PROJECT_PALETTE[idx];
   return {
     id: Date.now().toString(),
     title: title||'Nuovo progetto',
     numTav: parseInt(numTav)||10,
-    type: type==='sequence' ? 'sequence' : 'story',
-    scenes: [],
+    scriptment: { text:'', font:'courier', size:13 },
     microtask:'', steps:{}, tavole:{}, sfide:[], notes:'',
     selectedTav: null, dateStart:'', dateEnd:'',
     emoji: pal.emoji, color: pal.bg, colorLight: pal.light,
     createdAt: Date.now()
   };
+}
+
+// Restituisce l'oggetto scriptment del progetto, creandolo/migrando se assente.
+// Migrazione non distruttiva: se vuoto, eredita dal vecchio taccuino.
+export function getScriptment(p){
+  if(!p.scriptment || typeof p.scriptment !== 'object'){
+    p.scriptment = { text:'', font:'courier', size:13 };
+  }
+  if(!p.scriptment.text){
+    // eredita dal vecchio taccuino se presente
+    const tac = (p.story && p.story.taccuino) ? p.story.taccuino : '';
+    if(tac) p.scriptment.text = tac;
+  }
+  if(!p.scriptment.font) p.scriptment.font = 'courier';
+  if(!p.scriptment.size) p.scriptment.size = 13;
+  return p.scriptment;
 }
 
 export function renderHome(){
@@ -68,13 +83,9 @@ export function renderHome(){
       dStr ? `⏱ ${dStr}` : '',
     ].filter(Boolean).join(' · ');
 
-    const typeTag = (p.type==='sequence')
-      ? '<span class="card-type-tag tag-seq">Sequenza</span>'
-      : '<span class="card-type-tag tag-story">Storia</span>';
-
     cardInner.innerHTML=`
       <div class="card-info">
-        <div class="card-title">${p.title} ${typeTag}</div>
+        <div class="card-title">${p.title}</div>
         <div class="card-meta">${metaLine}</div>
         ${createdDate?`<div style="font-size:10px;color:var(--ink3);margin-top:2px;font-weight:400">Iniziato il ${createdDate}</div>`:''}
       </div>
@@ -153,21 +164,6 @@ export function confirmDeleteProject(id){
   confirmDeleteCurrent();
 }
 
-// Apre la scelta del tipo di progetto (bottom-sheet)
-export function openTypeChooser(){
-  document.getElementById('type-chooser').classList.add('open');
-}
-export function closeTypeChooser(){
-  document.getElementById('type-chooser').classList.remove('open');
-}
-// Tipo scelto → chiude il chooser e apre il modale titolo/tavole
-let _pendingType = 'story';
-export function chooseType(type){
-  _pendingType = type;
-  closeTypeChooser();
-  openNewModal();
-}
-
 export function openNewModal(){
   document.getElementById('new-title').value='';
   document.getElementById('new-tav').value='10';
@@ -180,8 +176,7 @@ export function closeModal(){ document.getElementById('modal').classList.remove(
 export async function createProject(){
   const title = document.getElementById('new-title').value.trim()||'Nuovo progetto';
   const tav = document.getElementById('new-tav').value;
-  const p = newProjectObj(title, tav, _pendingType);
-  _pendingType = 'story'; // reset
+  const p = newProjectObj(title, tav);
   closeModal();
   await saveProject(p);
 }
