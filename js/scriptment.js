@@ -181,7 +181,7 @@ function autoFormatScreenplay(text){
 
   // Larghezza colonna di riferimento (caratteri) per centrare i nomi
   const COLUMN = 58;
-  const DIAL_INDENT = '      '; // 6 spazi → battuta leggermente rientrata
+  const DIAL_INDENT = '                '; // 16 spazi → battuta rientrata sotto il nome
   // Centra un nome personaggio nella colonna
   const centerName = (name)=>{
     const pad = Math.max(0, Math.round((COLUMN - name.length) / 2));
