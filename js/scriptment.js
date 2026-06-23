@@ -179,9 +179,14 @@ function autoFormatScreenplay(text){
   const lines = text.split('\n');
   const out = [];
 
-  // Indentazioni stile sceneggiatura (spazi fissi: indipendenti dal tab-size)
-  const NAME_INDENT = '          '; // 10 spazi → nome personaggio
-  const DIAL_INDENT = '      ';     // 6 spazi  → battuta
+  // Larghezza colonna di riferimento (caratteri) per centrare i nomi
+  const COLUMN = 58;
+  const DIAL_INDENT = '      '; // 6 spazi → battuta leggermente rientrata
+  // Centra un nome personaggio nella colonna
+  const centerName = (name)=>{
+    const pad = Math.max(0, Math.round((COLUMN - name.length) / 2));
+    return ' '.repeat(pad) + name;
+  };
 
   // Indicatori di "parlato" comuni (voice over, ecc.)
   const speakerLabels = /^(voce fuori campo|voce narrante|voce|v\.?o\.?|o\.?s\.?|off|f\.?c\.?)\s*:/i;
@@ -209,7 +214,7 @@ function autoFormatScreenplay(text){
       let rest = trimmed.slice(vo[0].length).trim();
       rest = rest.replace(/^["«»"']+/, '').replace(/["«»"']+([.,;!?]*)$/, '$1').trim();
       if(out.length && out[out.length-1] !== '') out.push('');
-      out.push(NAME_INDENT + vo[1].toUpperCase().replace(/\s*:\s*$/,''));
+      out.push(centerName(vo[1].toUpperCase().replace(/\s*:\s*$/,'')));
       if(rest) out.push(DIAL_INDENT + rest);
       out.push('');
       continue;
@@ -225,7 +230,7 @@ function autoFormatScreenplay(text){
       const wordCount = namePart.split(/\s+/).length;
       if(wordCount <= 2 && namePart.length <= 18){
         if(out.length && out[out.length-1] !== '') out.push('');
-        out.push(NAME_INDENT + namePart.toUpperCase());
+        out.push(centerName(namePart.toUpperCase()));
         out.push(DIAL_INDENT + speech);
         out.push('');
         continue;
@@ -236,7 +241,7 @@ function autoFormatScreenplay(text){
     // (solo se l'autore l'ha scritta maiuscola di proposito, non la forziamo noi)
     if(trimmed === trimmed.toUpperCase() && /^[A-ZÀ-Ý][A-ZÀ-Ý0-9 '\.\-]{1,20}$/.test(trimmed) && trimmed.split(/\s+/).length <= 3){
       if(out.length && out[out.length-1] !== '') out.push('');
-      out.push(NAME_INDENT + trimmed);
+      out.push(centerName(trimmed));
       continue;
     }
 

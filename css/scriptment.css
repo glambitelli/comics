@@ -106,16 +106,17 @@
   position:relative;
 }
 .scriptment-page{
-  width:100%;max-width:680px;border:none;outline:none;resize:none;
+  width:100%;max-width:560px;border:none;outline:none;resize:none;
   padding:28px 24px 60px;background:var(--white);color:#1a1a1a;
   line-height:1.75;height:100%;box-sizing:border-box;
   -webkit-tap-highlight-color:transparent;
 }
 .scriptment-page::placeholder{color:var(--ink3);opacity:.7}
 
-/* Bottone formatta flottante in alto a destra della zona scrittura */
+/* Bottone formatta flottante, ancorato al bordo destro della colonna di testo */
 .scriptment-fmt-float{
-  position:absolute;top:14px;right:18px;
+  position:absolute;top:14px;
+  right:max(18px, calc(50% - 280px - 6px));
   background:#2a2018;color:#f0c068;
   border:none;border-radius:20px;padding:7px 15px;
   font-size:11px;font-weight:700;font-family:inherit;cursor:pointer;
@@ -149,6 +150,12 @@
   padding:5px 11px;cursor:pointer;font-family:inherit;
 }
 .scriptment-fmt-btn:active{background:var(--sand2)}
+
+/* Dicitura shortcut nel footer (solo desktop) */
+.scriptment-foot-shortcut{
+  font-size:10px;color:var(--ink3);opacity:.7;letter-spacing:.02em;
+}
+body.is-touch .scriptment-foot-shortcut{display:none}
 
 /* Pulsante lettura nella top bar */
 .scriptment-read-toggle{

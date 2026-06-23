@@ -59,8 +59,8 @@
   </div>
   <button class="new-fab" onclick="openNewModal()" aria-label="Nuovo progetto">+</button>
   <button id="btn-evening" onclick="enterEveningMode()" style="position:fixed;bottom:calc(24px + var(--safe-bot));left:20px;width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#1a1410,#2a2018);border:none;box-shadow:0 4px 16px rgba(0,0,0,.22);font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:50">🌙</button>
-  <button id="btn-stats" onclick="openStats()" style="position:fixed;bottom:calc(24px + var(--safe-bot));left:50%;transform:translateX(-50%);width:48px;height:48px;border-radius:50%;background:var(--white);border:1.5px solid var(--sand3);box-shadow:0 4px 16px rgba(0,0,0,.12);font-size:22px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:50;color:var(--ink2);line-height:1">≣</button>
-  <button id="btn-settings" onclick="openSettings()" style="position:fixed;bottom:calc(24px + var(--safe-bot));right:20px;width:48px;height:48px;border-radius:50%;background:var(--white);border:1.5px solid var(--sand3);box-shadow:0 4px 16px rgba(0,0,0,.12);font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:50;color:var(--ink2);line-height:1">⚙</button>
+  <button id="btn-stats" onclick="openStats()" style="position:fixed;bottom:calc(24px + var(--safe-bot));left:50%;transform:translateX(-50%);width:48px;height:48px;border-radius:50%;background:var(--white);border:1.5px solid var(--sand3);box-shadow:0 4px 16px rgba(0,0,0,.12);cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:50;color:var(--ink2)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="20" x2="6" y2="13"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="18" y1="20" x2="18" y2="9"/></svg></button>
+  <button id="btn-settings" onclick="openSettings()" style="position:fixed;bottom:calc(24px + var(--safe-bot));right:20px;width:48px;height:48px;border-radius:50%;background:var(--white);border:1.5px solid var(--sand3);box-shadow:0 4px 16px rgba(0,0,0,.12);cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:50;color:var(--ink2)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
 </div>
 
 <!-- PROJECT -->
@@ -362,6 +362,7 @@
     </div>
     <div class="scriptment-foot">
       <span id="scriptment-foot-count">0 parole</span>
+      <span class="scriptment-foot-shortcut">⌘⇧F per formattare</span>
       <span id="scriptment-foot-saved">salvato ✓</span>
     </div>
   </div>
