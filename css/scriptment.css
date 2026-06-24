@@ -106,11 +106,13 @@
 
 /* ── Foglio di scrittura ── */
 .scriptment-page-wrap{
-  flex:1;overflow-y:scroll;background:var(--white);
+  flex:1;overflow-y:auto;background:var(--white);
   display:flex;justify-content:center;
   position:relative;
-  scrollbar-gutter:stable both-edges;
+  scrollbar-width:none;            /* Firefox: nascondi scrollbar */
+  -ms-overflow-style:none;         /* IE/Edge legacy */
 }
+.scriptment-page-wrap::-webkit-scrollbar{display:none}  /* Chrome/Safari */
 .scriptment-page{
   width:100%;max-width:600px;border:none;outline:none;
   padding:28px 24px 60px;background:var(--white);color:#1a1a1a;
@@ -141,10 +143,9 @@
   text-align:center;text-transform:uppercase;font-weight:700;
   margin:.7em 0 .1em;
 }
-/* DIALOGO: centrato, larghezza contenuta */
+/* DIALOGO: stesso identico box del nome → stesso centro */
 .scriptment-page .sp-dialogue{
-  text-align:center;
-  padding:0 15%;
+  text-align:center;margin:0 0 .1em;
 }
 
 /* Bottone formatta flottante, ancorato dentro la colonna (lontano dallo scrollbar) */
@@ -216,10 +217,11 @@ body.is-touch .scriptment-foot-shortcut{display:none}
 .scriptment-read-wrap{
   flex:1;overflow-y:auto;background:var(--white);
   display:flex;justify-content:center;
-  scrollbar-gutter:stable both-edges;
+  scrollbar-width:none;-ms-overflow-style:none;
 }
+.scriptment-read-wrap::-webkit-scrollbar{display:none}
 .scriptment-read-inner{
-  width:100%;max-width:620px;margin:0 auto;
+  width:100%;max-width:600px;
   padding:28px 24px 60px;
   word-wrap:break-word;
   line-height:1.85;color:var(--ink);font-size:14px;
@@ -235,7 +237,6 @@ body.is-touch .scriptment-foot-shortcut{display:none}
 }
 
 /* ── Elementi screenplay (centratura/allineamento via CSS, adattivo) ── */
-.sp-blank{height:.9em}
 .sp-blank{height:.85em}
 .sp-action{margin:.1em 0;text-align:left}
 .sp-note{margin:.1em 0;color:var(--ink3);font-style:italic;text-align:left}
@@ -253,7 +254,7 @@ body.is-touch .scriptment-foot-shortcut{display:none}
   margin:.7em 0 .1em;
 }
 .sp-dialogue{
-  text-align:center;padding:0 15%;
+  text-align:center;margin:0 0 .1em;
 }
 
 /* ── Vista lettura dello scriptment ── */
