@@ -14,52 +14,67 @@ const FONT_CLASS = {
 let _savedTimer = null;
 
 // ── Helper editor contenteditable ──
-// Legge il testo "pulito" (logico) dal contenteditable, riga per riga.
+// Legge il testo "pulito" (logico) dal contenteditable.
+// Cammina ricorsivamente l'albero ed è robusto a qualunque annidamento
+// che il browser crea durante la digitazione (div annidati, <br>, span...).
 function editorGetText(el){
   if(!el) return '';
   const lines = [];
-  el.childNodes.forEach(node=>{
-    // testo nudo (può contenere \n da incolla)
-    if(node.nodeType === 3){
-      const parts = node.textContent.split('\n');
-      parts.forEach(pp=>{ if(pp.trim()!=='' || parts.length>1) lines.push(pp.replace(/\s+$/,'')); });
-      return;
+  let buf = '';
+  const pushLine = ()=>{ lines.push(buf); buf = ''; };
+
+  function walk(node){
+    const kids = node.childNodes;
+    for(let i=0;i<kids.length;i++){
+      const child = kids[i];
+      if(child.nodeType === 3){            // nodo di testo
+        buf += child.textContent.replace(/\n/g,'');
+        continue;
+      }
+      if(child.nodeType !== 1) continue;
+      const tag = child.tagName;
+      const cls = child.className || '';
+
+      if(tag === 'BR'){ pushLine(); continue; }
+
+      // scena: ricostruisci "N. HEADING" (ignora il doppio numero del render)
+      if(cls && cls.includes && cls.includes('sp-scene')){
+        if(buf !== '') pushLine();
+        const h = child.querySelector ? child.querySelector('.sp-scene-h') : null;
+        const n = child.querySelector ? child.querySelector('.sp-scene-n') : null;
+        const num = n ? n.textContent.trim() : '';
+        const head = h ? h.textContent.trim() : child.textContent.trim();
+        buf = (num ? num + '. ' : '') + head;
+        pushLine();
+        continue;
+      }
+      // riga vuota esplicita
+      if(cls && cls.includes && cls.includes('sp-blank')){
+        if(buf !== '') pushLine();
+        pushLine();
+        continue;
+      }
+
+      // elemento di blocco → nuova riga
+      const isBlock = (tag === 'DIV' || tag === 'P' || tag === 'LI');
+      if(isBlock){
+        if(buf !== '') pushLine();   // chiudi il testo inline accumulato
+        const before = lines.length;
+        walk(child);                 // raccogli il contenuto del blocco
+        if(buf !== '') pushLine();
+        else if(lines.length === before) pushLine(); // blocco vuoto = riga vuota
+      } else {
+        walk(child);                 // inline (span, b, i...) → continua
+      }
     }
-    if(node.nodeType !== 1) return;
-    if(node.tagName === 'BR'){ lines.push(''); return; }
-    const cls = node.className || '';
-    if(cls.includes('sp-blank')){ lines.push(''); return; }
-    if(cls.includes('sp-scene')){
-      const h = node.querySelector('.sp-scene-h');
-      const n = node.querySelector('.sp-scene-n');
-      const num = n ? n.textContent.trim() : '';
-      const head = h ? h.textContent.trim() : node.textContent.trim();
-      lines.push((num ? num + '. ' : '') + head);
-      return;
-    }
-    // div generico / sp-* : prendi il testo, e se contiene <br> spezzalo
-    const html = node.innerHTML || '';
-    if(/<br\s*\/?>/i.test(html)){
-      // converti i <br> in newline in modo robusto (senza dipendere da innerText)
-      const tmp = html
-        .replace(/<br\s*\/?>/gi, '\n')
-        .replace(/<[^>]+>/g, '');
-      const decoded = tmp
-        .replace(/&nbsp;/g, ' ')
-        .replace(/&lt;/g, '<')
-        .replace(/&gt;/g, '>')
-        .replace(/&amp;/g, '&');
-      decoded.split('\n').forEach(l=>lines.push(l.replace(/\s+$/,'')));
-    } else {
-      lines.push((node.textContent || '').replace(/\s+$/,''));
-    }
-  });
-  // se per qualche motivo non abbiamo righe ma c'è testo, fallback sicuro
-  if(lines.length === 0){
-    const t = (el.innerText != null) ? el.innerText : (el.textContent || '');
-    return t.replace(/\u00a0/g,' ');
   }
-  return lines.join('\n').replace(/\u00a0/g,' ');
+
+  walk(el);
+  if(buf !== '') pushLine();
+
+  let result = lines.map(l => l.replace(/\u00a0/g,' ').replace(/\s+$/,''));
+  while(result.length > 1 && result[result.length-1] === '') result.pop();
+  return result.join('\n');
 }
 
 // Scrive nel contenteditable: se il testo è "formattabile" lo renderizza,
@@ -189,7 +204,16 @@ export function formatScriptment(){
   if(!ta) return;
 
   const original = editorGetText(ta);
+  // RETE DI SICUREZZA: se la lettura risulta vuota ma l'editor ha testo visibile,
+  // non formattare (eviterebbe di cancellare tutto). Meglio non fare nulla.
+  if(original.trim() === '' && (ta.textContent || '').trim() !== ''){
+    return;
+  }
   const formatted = autoFormatScreenplay(original);
+  // Ulteriore sicurezza: non sostituire con vuoto se prima c'era testo.
+  if(formatted.trim() === '' && original.trim() !== ''){
+    return;
+  }
 
   // re-impagina l'editor con la formattazione (centratura via CSS)
   editorRender(ta, formatted);
