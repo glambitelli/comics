@@ -72,7 +72,7 @@
   max-width:60%;
   font-family:'Courier Prime','Courier New',monospace;font-size:14px;font-weight:700;color:var(--ink);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-  text-align:center;text-transform:uppercase;letter-spacing:.1em;
+  text-align:center;text-transform:uppercase;
   pointer-events:none;
 }
 .scriptment-act{
@@ -106,13 +106,13 @@
 
 /* ── Foglio di scrittura ── */
 .scriptment-page-wrap{
-  flex:1;overflow-y:auto;background:var(--white);
+  flex:1;overflow-y:scroll;background:var(--white);
   display:flex;justify-content:center;
   position:relative;
   scrollbar-gutter:stable both-edges;
 }
 .scriptment-page{
-  width:100%;max-width:580px;margin:0 auto;border:none;outline:none;
+  width:100%;max-width:600px;border:none;outline:none;
   padding:28px 24px 60px;background:var(--white);color:#1a1a1a;
   line-height:1.75;min-height:100%;box-sizing:border-box;
   overflow-wrap:break-word;word-wrap:break-word;
@@ -139,7 +139,7 @@
 /* NOME PERSONAGGIO: centrato */
 .scriptment-page .sp-character{
   text-align:center;text-transform:uppercase;font-weight:700;
-  margin:.7em 0 .1em;letter-spacing:.06em;
+  margin:.7em 0 .1em;
 }
 /* DIALOGO: centrato, larghezza contenuta */
 .scriptment-page .sp-dialogue{
@@ -250,7 +250,7 @@ body.is-touch .scriptment-foot-shortcut{display:none}
 }
 .sp-character{
   text-align:center;text-transform:uppercase;font-weight:700;
-  margin:.7em 0 .1em;letter-spacing:.06em;
+  margin:.7em 0 .1em;
 }
 .sp-dialogue{
   text-align:center;padding:0 15%;
