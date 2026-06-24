@@ -264,7 +264,7 @@ export function parseScreenplay(text){
     }
 
     // "NOME: battuta"
-    const m = trimmed.match(/^([A-ZÀ-Ý][A-Za-zÀ-ÿ'\.\-]{1,16})(\s[A-ZÀ-Ý][A-Za-zÀ-ÿ'\.\-]{1,16})?:\s*(.+)$/);
+    const m = trimmed.match(/^([A-ZÀ-Ý][A-Za-z0-9À-ÿ'\.\-]{1,16})(\s[A-ZÀ-Ý0-9][A-Za-z0-9À-ÿ'\.\-]{1,16})?:\s*(.+)$/);
     if(m){
       const namePart = (m[1] + (m[2]||'')).trim();
       let speech = m[3].trim().replace(/^["«»"']+/, '').replace(/["«»"']+([.,;!?]*)$/, '$1').trim();

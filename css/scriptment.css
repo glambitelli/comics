@@ -136,14 +136,14 @@
 .scriptment-page .sp-scene-n{flex:0 0 auto;color:var(--ink3);font-weight:700;font-size:.9em}
 /* TRANSIZIONE: destra */
 .scriptment-page .sp-transition{text-align:right;font-weight:700;text-transform:uppercase;margin:.4em 0}
-/* NOME PERSONAGGIO: centrato */
+/* NOME PERSONAGGIO: centrato (azzero il padding ereditato da sequence.css) */
 .scriptment-page .sp-character{
   text-align:center;text-transform:uppercase;font-weight:700;
-  margin:.7em 0 .1em;
+  margin:.7em 0 .1em;padding:0;
 }
 /* DIALOGO: stesso identico box del nome → stesso centro */
 .scriptment-page .sp-dialogue{
-  text-align:center;margin:0 0 .1em;
+  text-align:center;margin:0 0 .1em;padding:0;
 }
 
 /* Bottone formatta flottante, ancorato dentro la colonna (lontano dallo scrollbar) */
@@ -249,10 +249,10 @@ body.is-touch .scriptment-foot-shortcut{display:none}
 }
 .sp-character{
   text-align:center;text-transform:uppercase;font-weight:700;
-  margin:.7em 0 .1em;
+  margin:.7em 0 .1em;padding:0;
 }
 .sp-dialogue{
-  text-align:center;margin:0 0 .1em;
+  text-align:center;margin:0 0 .1em;padding:0;
 }
 
 /* ── Vista lettura dello scriptment ── */
