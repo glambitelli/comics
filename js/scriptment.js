@@ -40,14 +40,24 @@ function editorGetText(el){
     // div generico / sp-* : prendi il testo, e se contiene <br> spezzalo
     const html = node.innerHTML || '';
     if(/<br\s*\/?>/i.test(html)){
-      node.innerText.split('\n').forEach(l=>lines.push(l.replace(/\s+$/,'')));
+      // converti i <br> in newline in modo robusto (senza dipendere da innerText)
+      const tmp = html
+        .replace(/<br\s*\/?>/gi, '\n')
+        .replace(/<[^>]+>/g, '');
+      const decoded = tmp
+        .replace(/&nbsp;/g, ' ')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&amp;/g, '&');
+      decoded.split('\n').forEach(l=>lines.push(l.replace(/\s+$/,'')));
     } else {
       lines.push((node.textContent || '').replace(/\s+$/,''));
     }
   });
-  // se per qualche motivo non abbiamo righe ma c'è testo, fallback su innerText
+  // se per qualche motivo non abbiamo righe ma c'è testo, fallback sicuro
   if(lines.length === 0){
-    return (el.innerText || '').replace(/\u00a0/g,' ');
+    const t = (el.innerText != null) ? el.innerText : (el.textContent || '');
+    return t.replace(/\u00a0/g,' ');
   }
   return lines.join('\n').replace(/\u00a0/g,' ');
 }
@@ -88,13 +98,15 @@ export function openScriptment(){
 
   if(overlay) overlay.classList.add('open');
   document.body.classList.add('scriptment-open');
-  // focus dopo l'animazione, partendo dall'alto (no salto al cursore)
+  // Su desktop: focus automatico (comodo). Su touch: NIENTE focus automatico,
+  // così la tastiera non salta su di colpo — sale solo quando l'utente tocca.
+  const isTouch = document.body.classList.contains('is-touch');
   setTimeout(()=>{
+    const wrap = document.getElementById('scriptment-editor-wrap');
+    if(wrap) wrap.scrollTop = 0;
     if(ta){
-      ta.focus({preventScroll:true});
       ta.scrollTop = 0;
-      const wrap = document.getElementById('scriptment-editor-wrap');
-      if(wrap) wrap.scrollTop = 0;
+      if(!isTouch) ta.focus({preventScroll:true});
     }
   }, 250);
 

@@ -31,7 +31,10 @@ export function restoreProject(p){
     hdr.style.borderBottomColor = color;
   }
 
-  document.getElementById('proj-title').value = p.title||'';
+  const ptEl = document.getElementById('proj-title');
+  ptEl.value = p.title||'';
+  // auto-dimensiona l'input alla lunghezza del titolo (così i glifi gli stanno vicino)
+  ptEl.size = Math.max(4, (p.title||'Titolo progetto').length);
   document.getElementById('meta-tav').textContent = p.numTav;
   const mtEl = document.getElementById('microtask');
   mtEl.value = p.microtask||'';
@@ -99,7 +102,7 @@ document.getElementById('confirm-ok').onclick = async () => {
 };
 document.getElementById('confirm-modal').addEventListener('click', e => { if(e.target===e.currentTarget) closeConfirm(); });
 
-document.getElementById('proj-title').addEventListener('input', e => { const p=getProject(currentId); if(!p)return; p.title=e.target.value; scheduleSave(p); });
+document.getElementById('proj-title').addEventListener('input', e => { const p=getProject(currentId); if(!p)return; p.title=e.target.value; e.target.size=Math.max(4,(e.target.value||'Titolo progetto').length); scheduleSave(p); });
 document.getElementById('microtask').addEventListener('input', e => {
   const p=getProject(currentId); if(!p)return;
   p.microtask=e.target.value;

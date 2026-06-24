@@ -67,7 +67,11 @@
 <div class="screen" id="screen-project">
   <div class="proj-header">
     <button class="back-btn" onclick="goHome()" title="Home" aria-label="Home"><span style="font-size:19px;line-height:1">←</span><svg width="21" height="21" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.5L2 11h2.5v9.5a1 1 0 0 0 1 1H9.5v-6h5v6h4a1 1 0 0 0 1-1V11H22L12 2.5Z"/></svg></button>
-    <input class="proj-title-edit" id="proj-title" type="text" value="" placeholder="Titolo progetto"/>
+    <div class="proj-title-row">
+      <span class="proj-glyph proj-glyph-l" aria-hidden="true">✶</span>
+      <input class="proj-title-edit" id="proj-title" type="text" value="" placeholder="Titolo progetto"/>
+      <span class="proj-glyph proj-glyph-r" aria-hidden="true">✶</span>
+    </div>
     <div class="proj-meta">
       <div>Tavole: <span id="meta-tav">10</span></div>
       <div>Fase: <span id="meta-fase">—</span></div>
@@ -500,7 +504,7 @@
   <div class="dune-grain dune-grain-fine"></div>
   <!-- Layer 5: bordo superiore (arco simmetrico) -->
   <svg class="dune-nav-bg" viewBox="0 0 400 96" preserveAspectRatio="none" aria-hidden="true">
-    <path class="dune-stroke" d="M0,34 Q200,2 400,34" fill="none" stroke="#b07a24" stroke-width="1.4"/>
+    <path class="dune-stroke" d="M0,34 Q200,2 400,34" fill="none" stroke="#c89830" stroke-width="1.4"/>
   </svg>
   <!-- filtri grana SVG (definizioni) -->
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
