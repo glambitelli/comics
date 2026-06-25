@@ -343,7 +343,12 @@ export function startSandstorm(){
   }
 
   function tick(){
-    ctx.clearRect(0,0,rectW,rectH);
+    // Pulisci l'INTERO bitmap (non solo l'area logica): evita scie residue
+    // nella striscia bassa quando il canvas è più grande dell'area misurata.
+    ctx.save();
+    ctx.setTransform(1,0,0,1,0,0);
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.restore();
     particles.forEach(p=>{
       p.x += p.vx;
       p.y += p.vy;

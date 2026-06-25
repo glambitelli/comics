@@ -67,13 +67,18 @@
 <div class="screen" id="screen-project">
   <div class="proj-header">
     <button class="proj-inkflow-logo" onclick="goHome()" aria-label="Torna alla home">Inkflow <span style="font-size:.6em;color:var(--gold);vertical-align:.14em;font-weight:400">✦</span></button>
-    <input class="proj-title-edit" id="proj-title" type="text" value="" placeholder="Titolo progetto"/>
-    <div class="proj-sub"><span id="meta-fase">—</span> · <span id="meta-tav">10</span> tavole</div>
-    <div class="proj-prog">
-      <div class="proj-prog-track"><div class="proj-prog-fill" id="prog-fill" style="width:0%"></div></div>
-      <span class="proj-prog-pct" id="meta-pct">0%</span>
+    <div class="proj-title-row">
+      <input class="proj-title-edit" id="proj-title" type="text" value="" placeholder="Titolo progetto"/>
     </div>
-    <div class="proj-prog-steps" id="prog-lbl">0 / 0 step</div>
+    <div class="proj-meta">
+      <div>Tavole: <span id="meta-tav">10</span></div>
+      <div>Fase: <span id="meta-fase">—</span></div>
+      <div>Avanzamento: <span id="meta-pct">0%</span></div>
+    </div>
+  </div>
+  <div class="prog-bar-wrap">
+    <div class="prog-bar"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
+    <div class="prog-lbl" id="prog-lbl">0 / 0</div>
   </div>
   <div class="proj-scroll">
 

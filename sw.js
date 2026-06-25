@@ -1,5 +1,5 @@
 // Service Worker — cache file statici locali, Firebase sempre da rete
-const CACHE = 'inkflow-static-v47';
+const CACHE = 'inkflow-static-v49';
 
 self.addEventListener('install', e => {
   self.skipWaiting();
