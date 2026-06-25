@@ -36,22 +36,19 @@ window.closeFormatPreview=closeFormatPreview; window.applyFormatPreview=applyFor
 window.onScriptmentInput = onScriptmentInput;
 import { renderStats, getTodayTip } from './stats.js';
 
-// ── Rilevamento mobile: barra-duna solo su dispositivi touch CON schermo stretto ──
-// (un laptop con touchscreen ha maxTouchPoints>0 ma schermo largo → resta desktop)
+// ── Rilevamento mobile: barra-duna solo su dispositivi touch SENZA mouse/trackpad
+// e con schermo stretto. Un laptop touchscreen ha un puntatore fine (trackpad)
+// → resta desktop, così i pulsanti flottanti (impostazioni, stats) restano visibili.
 (function(){
   const coarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+  const fine = window.matchMedia && window.matchMedia('(any-pointer: fine)').matches; // ha mouse/trackpad
   const touch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
-  const narrow = window.innerWidth <= 820;
-  const isMobile = (touch || coarse) && narrow;
-  document.body.classList.toggle('is-touch', isMobile);
-  // ri-valuta al resize/rotazione
+  const compute = ()=> (touch || coarse) && !fine && (window.innerWidth <= 820);
+  document.body.classList.toggle('is-touch', compute());
   let _t;
   window.addEventListener('resize', ()=>{
     clearTimeout(_t);
-    _t = setTimeout(()=>{
-      const n = window.innerWidth <= 820;
-      document.body.classList.toggle('is-touch', (touch || coarse) && n);
-    }, 200);
+    _t = setTimeout(()=>{ document.body.classList.toggle('is-touch', compute()); }, 200);
   });
 })();
 
