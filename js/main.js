@@ -22,7 +22,7 @@ window.closeFormatPreview=closeFormatPreview; window.applyFormatPreview=applyFor
     const ta = document.getElementById('scriptment-text');
     if(ta && !ta.dataset.wired){
       ta.dataset.wired = '1';
-      ta.addEventListener('input', ()=>{ if(window.onScriptmentInput) window.onScriptmentInput(); });
+      ta.addEventListener('input', (e)=>{ if(window.onScriptmentInput) window.onScriptmentInput(e); });
       ta.addEventListener('paste', (e)=>{
         e.preventDefault();
         const text = (e.clipboardData || window.clipboardData).getData('text/plain');
@@ -36,14 +36,14 @@ window.closeFormatPreview=closeFormatPreview; window.applyFormatPreview=applyFor
 window.onScriptmentInput = onScriptmentInput;
 import { renderStats, getTodayTip } from './stats.js';
 
-// ── Rilevamento mobile: barra-duna solo su dispositivi touch SENZA mouse/trackpad
-// e con schermo stretto. Un laptop touchscreen ha un puntatore fine (trackpad)
-// → resta desktop, così i pulsanti flottanti (impostazioni, stats) restano visibili.
+// ── Rilevamento mobile: barra-duna solo quando l'input PRINCIPALE è il tocco.
+// '(pointer: coarse)' è true sui telefoni (input primario = dito), false su
+// desktop e laptop touchscreen (input primario = mouse/trackpad). Più affidabile
+// di any-pointer, che includeva i telefoni con stylus tra i "desktop".
 (function(){
-  const coarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
-  const fine = window.matchMedia && window.matchMedia('(any-pointer: fine)').matches; // ha mouse/trackpad
+  const coarsePrimary = ()=> window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
   const touch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
-  const compute = ()=> (touch || coarse) && !fine && (window.innerWidth <= 820);
+  const compute = ()=> (coarsePrimary() || (touch && window.innerWidth <= 560)) && (window.innerWidth <= 820);
   document.body.classList.toggle('is-touch', compute());
   let _t;
   window.addEventListener('resize', ()=>{
@@ -206,6 +206,13 @@ window.goHome=()=>{
   document.getElementById('screen-home').classList.add('active');
   renderHome(); attachCardDrag();
   if(window._resumeSand) window._resumeSand();
+};
+// Click sul logo "Inkflow": torna sempre alla home giorno (esce dalla notte se attiva)
+window.goHomeFromLogo=()=>{
+  if(document.body.classList.contains('evening-mode') && window.exitEveningMode){
+    window.exitEveningMode();
+  }
+  window.goHome();
 }; window.openProject=openProject; window.togglePhase=togglePhase;
 window.toggleStep=toggleStep; window.selectTav=selectTav; window.addSfida=addSfida;
 window.saveDates=saveDates; window.confirmDeleteCurrent=confirmDeleteCurrent; window.closeConfirm=closeConfirm;

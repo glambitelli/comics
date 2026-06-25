@@ -1,8 +1,6 @@
 /* PROJECT HEADER */
 .proj-header{background:var(--sky-pale);padding:calc(18px + var(--safe-top)) 20px 18px;flex-shrink:0;position:relative;overflow:hidden;border-radius:0 0 24px 24px;border-bottom:3px solid var(--sky)}
 .proj-header::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,var(--coral),var(--gold),var(--green),var(--sky))}
-.proj-inkflow-logo{font-family:'Castoro',serif;font-size:17px;font-weight:700;color:var(--ink);background:none;border:none;cursor:pointer;padding:0;margin-bottom:10px;display:block;letter-spacing:-.01em;opacity:.75;transition:opacity .15s;text-align:center;width:100%}
-.proj-inkflow-logo:hover{opacity:1}
 .proj-title-row{display:flex;align-items:center;justify-content:center}
 .proj-title-edit{font-size:30px;font-weight:700;color:var(--ink);background:transparent;border:none;outline:none;width:auto;max-width:88%;border-bottom:2px solid transparent;transition:border-color .2s;font-family:'Courier Prime','Courier New',monospace;text-transform:uppercase;letter-spacing:.01em;text-align:center;padding:0}
 .proj-title-edit:focus{border-bottom-color:var(--sky)}

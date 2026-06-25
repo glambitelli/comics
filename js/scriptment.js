@@ -219,12 +219,17 @@ function normalizeCaretBlock(editor){
   }catch(e){/* non bloccare mai la digitazione */}
 }
 
-export function onScriptmentInput(){
+export function onScriptmentInput(e){
   const p = getProject(currentId); if(!p) return;
   const sm = getScriptment(p);
   const ta = document.getElementById('scriptment-text');
   if(!ta) return;
-  normalizeCaretBlock(ta);
+  // Normalizza il blocco SOLO se l'utente ha digitato/cancellato testo, NON
+  // quando ha premuto Invio (a capo): in quel caso un nome non deve perdere
+  // il suo ruolo. inputType insertParagraph/insertLineBreak = a capo.
+  const it = e && e.inputType ? e.inputType : '';
+  const isNewline = it === 'insertParagraph' || it === 'insertLineBreak';
+  if(!isNewline) normalizeCaretBlock(ta);
   sm.text = editorGetText(ta);
   updateWordCount(sm.text);
   flagSaving();
