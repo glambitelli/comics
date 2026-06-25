@@ -76,12 +76,22 @@ function editorGetText(el){
   while(result.length > 1 && result[result.length-1] === '') result.pop();
   const joined = result.join('\n');
 
-  // FALLBACK: se la camminata non ha prodotto testo ma l'editor ne ha,
-  // usa innerText (browser reale) o textContent. Così non restituiamo mai
-  // vuoto quando c'è contenuto visibile.
-  if(joined.trim() === '' && (el.textContent || '').trim() !== ''){
-    const fb = (el.innerText != null && el.innerText !== '') ? el.innerText : (el.textContent || '');
-    return fb.replace(/\u00a0/g,' ').replace(/\n{3,}/g,'\n\n');
+  // CONTROLLO DI COMPLETEZZA: se la camminata ha perso delle PAROLE presenti
+  // nel testo visibile (textContent), usa innerText del browser. Confronto per
+  // parole, normalizzando i confini cifra/lettera (le scene attaccano il numero
+  // al testo nel textContent, es. "NOTTE1", e falserebbero il confronto).
+  const norm = s => (s || '').toLowerCase()
+    .replace(/(\d)(\p{L})/gu,'$1 $2').replace(/(\p{L})(\d)/gu,'$1 $2');
+  const wordsOf = s => (norm(s).match(/[\p{L}\p{N}]+/gu) || []);
+  const haveWords = new Set(wordsOf(joined));
+  const missing = wordsOf(el.textContent).filter(w => !haveWords.has(w));
+  if(missing.length > 0){
+    if(typeof el.innerText === 'string' && el.innerText.trim() !== ''){
+      return el.innerText.replace(/\u00a0/g,' ').replace(/\n{3,}/g,'\n\n');
+    }
+    if(joined.trim() === '' && (el.textContent || '').trim() !== ''){
+      return (el.textContent || '').replace(/\u00a0/g,' ');
+    }
   }
   return joined;
 }
