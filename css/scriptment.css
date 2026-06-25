@@ -157,8 +157,9 @@
 /* ── Formatta: gruppo fisso in alto a destra (non scrolla) ── */
 .scriptment-fmt-group{
   position:absolute;z-index:6;
-  top:112px;right:14px;
-  display:flex;flex-direction:column;align-items:flex-end;gap:5px;
+  top:150px;
+  left:min(calc(50% + 312px), calc(100% - 140px));
+  display:flex;flex-direction:column;align-items:flex-start;gap:5px;
   pointer-events:none;
 }
 .scriptment-fmt-group > *{pointer-events:auto}
@@ -178,7 +179,7 @@
 /* shortcut sotto il pulsante */
 .scriptment-fmt-hint{
   display:flex;align-items:center;gap:4px;
-  font-size:10px;color:var(--ink3);padding-right:4px;
+  font-size:10px;color:var(--ink3);padding-left:4px;
 }
 .scriptment-fmt-hint kbd{
   font-family:'Courier Prime',monospace;font-size:9.5px;font-weight:700;

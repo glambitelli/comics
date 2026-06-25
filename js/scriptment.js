@@ -74,7 +74,16 @@ function editorGetText(el){
 
   let result = lines.map(l => l.replace(/\u00a0/g,' ').replace(/\s+$/,''));
   while(result.length > 1 && result[result.length-1] === '') result.pop();
-  return result.join('\n');
+  const joined = result.join('\n');
+
+  // FALLBACK: se la camminata non ha prodotto testo ma l'editor ne ha,
+  // usa innerText (browser reale) o textContent. Così non restituiamo mai
+  // vuoto quando c'è contenuto visibile.
+  if(joined.trim() === '' && (el.textContent || '').trim() !== ''){
+    const fb = (el.innerText != null && el.innerText !== '') ? el.innerText : (el.textContent || '');
+    return fb.replace(/\u00a0/g,' ').replace(/\n{3,}/g,'\n\n');
+  }
+  return joined;
 }
 
 // Scrive nel contenteditable: se il testo è "formattabile" lo renderizza,
@@ -203,17 +212,18 @@ export function formatScriptment(){
   const ta = document.getElementById('scriptment-text');
   if(!ta) return;
 
-  const original = editorGetText(ta);
-  // RETE DI SICUREZZA: se la lettura risulta vuota ma l'editor ha testo visibile,
-  // non formattare (eviterebbe di cancellare tutto). Meglio non fare nulla.
+  let original = editorGetText(ta);
+  // Se la lettura è vuota ma c'è testo visibile, recupera dal textContent
+  // (non blocchiamo mai silenziosamente: meglio formattare il recuperabile).
   if(original.trim() === '' && (ta.textContent || '').trim() !== ''){
-    return;
+    original = (ta.textContent || '').replace(/\u00a0/g,' ');
   }
+  // Se davvero non c'è nulla, non fare niente.
+  if(original.trim() === '') return;
+
   const formatted = autoFormatScreenplay(original);
-  // Ulteriore sicurezza: non sostituire con vuoto se prima c'era testo.
-  if(formatted.trim() === '' && original.trim() !== ''){
-    return;
-  }
+  // Sicurezza estrema: non sostituire con vuoto se prima c'era testo.
+  if(formatted.trim() === '' && original.trim() !== '') return;
 
   // re-impagina l'editor con la formattazione (centratura via CSS)
   editorRender(ta, formatted);
