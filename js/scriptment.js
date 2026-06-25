@@ -180,11 +180,41 @@ export function closeScriptment(){
 }
 
 // ── Salvataggio del testo (durante la digitazione) ──
+// Quando l'utente scrive dentro un blocco "nome/scena/transizione" (maiuscolo/
+// grassetto), lo riporta a testo normale all'istante. La formattazione si
+// riapplica solo premendo formatta. Risolve il testo che appare in maiuscolo
+// dopo aver cancellato tutto e riscritto.
+function normalizeCaretBlock(editor){
+  try{
+    const sel = window.getSelection();
+    if(!sel || !sel.rangeCount) return;
+    let node = sel.anchorNode;
+    if(!node) return;
+    // sali fino al figlio diretto dell'editor
+    while(node && node.parentNode && node.parentNode !== editor) node = node.parentNode;
+    if(!node || node.nodeType !== 1 || node.parentNode !== editor) return;
+    const cls = node.className || '';
+    if(/sp-(character|scene|transition)/.test(cls)){
+      // appiattisci eventuali span interni (scene) mantenendo solo il testo
+      const txt = node.textContent;
+      node.className = 'sp-action';
+      if(node.querySelector && node.querySelector('span')){
+        node.textContent = txt;
+        // riposiziona il cursore a fine blocco
+        const r = document.createRange();
+        r.selectNodeContents(node); r.collapse(false);
+        sel.removeAllRanges(); sel.addRange(r);
+      }
+    }
+  }catch(e){/* non bloccare mai la digitazione */}
+}
+
 export function onScriptmentInput(){
   const p = getProject(currentId); if(!p) return;
   const sm = getScriptment(p);
   const ta = document.getElementById('scriptment-text');
   if(!ta) return;
+  normalizeCaretBlock(ta);
   sm.text = editorGetText(ta);
   updateWordCount(sm.text);
   flagSaving();
@@ -278,7 +308,29 @@ const RE_SCENE_NUMBERED = /^\s*\d+[\.\s]+(.*?)(?:\s+\d+\s*)?$/;
 // Analizza il testo "pulito" e restituisce righe tipizzate per il rendering.
 // type ∈ scene | transition | character | dialogue | action | blank | note
 export function parseScreenplay(text){
-  const lines = (text || '').split('\n');
+  // Pre-split: spezza battute "in linea" tipo "...frase. Nome: battuta"
+  // (solo dopo un terminatore di frase . ! ? per evitare falsi positivi).
+  function splitInlineCue(line){
+    const out = [];
+    let rest = line;
+    let guard = 0;
+    while(guard++ < 8){
+      const m = rest.match(/^(.+?[.!?])\s+([A-ZÀ-Ý][A-Za-z0-9À-ÿ'’.\-]{0,16}(?:\s[A-ZÀ-Ý0-9][A-Za-z0-9À-ÿ'’.\-]{1,16})?):\s+(.+)$/);
+      if(!m) break;
+      const name = m[2].trim();
+      if(name.split(/\s+/).length > 2 || name.length > 18) break;
+      out.push(m[1].trim());
+      rest = name + ': ' + m[3].trim();
+    }
+    out.push(rest);
+    return out;
+  }
+  const rawLines = (text || '').split('\n');
+  const lines = [];
+  for(const l of rawLines){
+    if(l.trim() === ''){ lines.push(l); continue; }
+    for(const part of splitInlineCue(l)) lines.push(part);
+  }
   const result = [];
   let sceneNum = 0;
   let inDialogue = false;
