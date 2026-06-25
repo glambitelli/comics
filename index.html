@@ -340,7 +340,10 @@
   <div class="scriptment-sheet">
     <div class="scriptment-top">
       <button class="scriptment-close" onclick="closeScriptment()" aria-label="Chiudi">✕</button>
-      <div class="scriptment-proj-title" id="scriptment-proj-title"></div>
+      <div class="scriptment-titlewrap">
+        <div class="scriptment-proj-title" id="scriptment-proj-title"></div>
+        <div class="scriptment-proj-by">by Giovanni Lambitelli</div>
+      </div>
       <button class="scriptment-read-toggle" id="scriptment-read-toggle" onclick="toggleScriptmentRead()" title="Vista lettura">☷</button>
     </div>
     <div class="scriptment-tools" id="scriptment-tools">
@@ -353,12 +356,26 @@
         <button class="size-btn" onclick="stepScriptmentSize(1)" aria-label="Aumenta">+</button>
       </span>
     </div>
+
+    <!-- Formatta: fisso in alto a destra (non scrolla), con shortcut sotto -->
+    <div class="scriptment-fmt-group">
+      <button class="scriptment-fmt-float" id="scriptment-fmt-float" onclick="formatScriptment()" title="Formatta lo screenplay">
+        <svg class="fmt-ic" width="13" height="11" viewBox="0 0 13 11" aria-hidden="true">
+          <line x1="1" y1="2"  x2="12" y2="2"  stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+          <line x1="3" y1="5.5" x2="10" y2="5.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+          <line x1="1" y1="9"  x2="12" y2="9"  stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+        </svg>
+        <span class="fmt-label">formatta</span>
+      </button>
+      <div class="scriptment-fmt-hint">
+        <span>shortcut</span>
+        <kbd>⌘</kbd><kbd>⇧</kbd><kbd>F</kbd>
+      </div>
+    </div>
+
     <!-- Vista editor -->
     <div class="scriptment-page-wrap" id="scriptment-editor-wrap">
       <div class="scriptment-page" id="scriptment-text" contenteditable="true" spellcheck="false" data-placeholder="Butta vernice contro il muro. Scrivi libero — prosa, note, dialoghi. Poi premi «formatta» per mettere in ordine lo screenplay."></div>
-      <button class="scriptment-fmt-float" id="scriptment-fmt-float" onclick="formatScriptment()" title="Formatta lo screenplay">
-        ⤓ formatta <kbd>⌘⇧F</kbd>
-      </button>
     </div>
     <!-- Vista lettura inline -->
     <div class="scriptment-read-wrap" id="scriptment-read-wrap" style="display:none">

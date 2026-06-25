@@ -100,7 +100,7 @@ export function openScriptment(){
   const ta = document.getElementById('scriptment-text');
   const title = document.getElementById('scriptment-proj-title');
 
-  if(title) title.textContent = p.title || 'Scriptment';
+  if(title) title.textContent = '"' + (p.title || 'Scriptment') + '"';
   if(ta){
     // renderizza il testo già formattato (centratura via CSS)
     editorRender(ta, sm.text || '');
@@ -222,11 +222,18 @@ export function formatScriptment(){
   flagSaving();
   scheduleSave(p);
 
-  // feedback rapido sul pulsante
+  // feedback chiaro sul pulsante: la label diventa "✓ fatto" per un attimo
   const btn = document.getElementById('scriptment-fmt-float');
-  if(btn){
+  const lbl = btn ? btn.querySelector('.fmt-label') : null;
+  if(btn && lbl){
+    if(!lbl._orig) lbl._orig = lbl.textContent;
     btn.classList.add('fmt-done');
-    setTimeout(()=>btn.classList.remove('fmt-done'), 700);
+    lbl.textContent = '✓ fatto';
+    clearTimeout(btn._fbTimer);
+    btn._fbTimer = setTimeout(()=>{
+      btn.classList.remove('fmt-done');
+      lbl.textContent = lbl._orig;
+    }, 900);
   }
 }
 
