@@ -1,8 +1,8 @@
 /* PROJECT HEADER */
 .proj-header{background:linear-gradient(135deg,var(--sand) 0%,var(--sand2) 100%);padding:calc(18px + var(--safe-top)) 24px 18px;flex-shrink:0;position:relative;overflow:hidden;border-radius:0 0 22px 22px;border-bottom:1px solid var(--sand3)}
 .proj-header::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--coral),var(--gold),var(--green),var(--sky))}
-.back-btn{font-size:15px;color:var(--ink3);font-weight:600;background:none;border:none;cursor:pointer;padding:0;margin-bottom:8px;display:flex;align-items:center;gap:7px;letter-spacing:.02em}
-.back-btn:active{color:var(--coral)}
+.proj-inkflow-logo{font-family:'Castoro',serif;font-size:18px;font-weight:700;color:var(--ink);background:none;border:none;cursor:pointer;padding:0;margin-bottom:6px;display:block;letter-spacing:-.01em;opacity:.8;transition:opacity .15s}
+.proj-inkflow-logo:hover{opacity:1}
 .proj-title-edit{display:block;font-size:30px;font-weight:700;color:var(--ink);background:transparent;border:none;outline:none;width:auto;max-width:90%;border-bottom:2px solid transparent;transition:border-color .2s;font-family:'Courier Prime','Courier New',monospace;text-transform:uppercase;letter-spacing:.01em;text-align:left;padding:0}
 .proj-title-edit:focus{border-bottom-color:var(--sand3)}
 .proj-sub{font-size:12.5px;color:var(--ink3);margin-top:4px;font-weight:500;letter-spacing:.01em}

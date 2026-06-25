@@ -66,7 +66,7 @@
 <!-- PROJECT -->
 <div class="screen" id="screen-project">
   <div class="proj-header">
-    <button class="back-btn" onclick="goHome()" title="Home" aria-label="Home"><span style="font-size:19px;line-height:1">←</span><svg width="21" height="21" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.5L2 11h2.5v9.5a1 1 0 0 0 1 1H9.5v-6h5v6h4a1 1 0 0 0 1-1V11H22L12 2.5Z"/></svg></button>
+    <button class="proj-inkflow-logo" onclick="goHome()" aria-label="Torna alla home">Inkflow <span style="font-size:.6em;color:var(--gold);vertical-align:.14em;font-weight:400">✦</span></button>
     <input class="proj-title-edit" id="proj-title" type="text" value="" placeholder="Titolo progetto"/>
     <div class="proj-sub"><span id="meta-fase">—</span> · <span id="meta-tav">10</span> tavole</div>
     <div class="proj-prog">
@@ -361,8 +361,8 @@
         <span class="fmt-label">formatta</span>
       </button>
       <div class="scriptment-fmt-hint">
-        <span>shortcut</span>
-        <kbd>⌘</kbd><kbd>⇧</kbd><kbd>F</kbd>
+        <div class="fmt-hint-keys"><kbd>⌘</kbd><kbd>⇧</kbd><kbd>F</kbd></div>
+        <div class="fmt-hint-label">shortcut</div>
       </div>
     </div>
 

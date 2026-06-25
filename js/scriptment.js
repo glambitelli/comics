@@ -76,15 +76,25 @@ function editorGetText(el){
   while(result.length > 1 && result[result.length-1] === '') result.pop();
   const joined = result.join('\n');
 
-  // CONTROLLO DI COMPLETEZZA: se la camminata ha perso delle PAROLE presenti
-  // nel testo visibile (textContent), usa innerText del browser. Confronto per
-  // parole, normalizzando i confini cifra/lettera (le scene attaccano il numero
-  // al testo nel textContent, es. "NOTTE1", e falserebbero il confronto).
+  // CONTROLLO DI COMPLETEZZA: confronta le parole lette con quelle visibili,
+  // escludendo i numeri-scena (.sp-scene-n) che appaiono nel textContent ma
+  // non nel testo logico (evita il loop "1" → fallback → riformatta → "1" ancora).
   const norm = s => (s || '').toLowerCase()
     .replace(/(\d)(\p{L})/gu,'$1 $2').replace(/(\p{L})(\d)/gu,'$1 $2');
   const wordsOf = s => (norm(s).match(/[\p{L}\p{N}]+/gu) || []);
+
+  // Costruisci textContent escludendo i nodi sp-scene-n
+  let visibleText = '';
+  const collectVisible = (node) => {
+    if(node.nodeType === 3){ visibleText += node.textContent; return; }
+    if(node.nodeType !== 1) return;
+    if((node.className||'').includes('sp-scene-n')) return; // salta numeri scena
+    node.childNodes.forEach(collectVisible);
+  };
+  collectVisible(el);
+
   const haveWords = new Set(wordsOf(joined));
-  const missing = wordsOf(el.textContent).filter(w => !haveWords.has(w));
+  const missing = wordsOf(visibleText).filter(w => !haveWords.has(w));
   if(missing.length > 0){
     if(typeof el.innerText === 'string' && el.innerText.trim() !== ''){
       return el.innerText.replace(/\u00a0/g,' ').replace(/\n{3,}/g,'\n\n');
@@ -299,9 +309,12 @@ export function applyFormatPreview(){ closeFormatPreview(); }
 // così risulta identica su browser e mobile a qualsiasi larghezza.
 // - INT./EST. → scena numerata; CUT TO: ecc. → transizione; NOME/battuta → dialogo
 // Riconoscitori condivisi (usati sia da format che da parse)
+// Capitalizza la prima lettera di una stringa
+const cap = s => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+
 const RE_SPEAKER = /^(voce fuori campo|voce narrante|voce|v\.?o\.?|o\.?s\.?|off|f\.?c\.?)\s*:/i;
 const RE_TRANSITION = /^(cut to|smash cut|match cut|hard cut|jump cut|dissolve to|cross dissolve|fade in|fade out|fade to black|fade to white|fade to|wipe to|iris in|iris out|stacca su|stacca|dissolvenza|titoli di coda|fine)\s*:?\s*$/i;
-const RE_SCENE = /^(int|est|int\.\/est|interno|esterno)\b[\.\s]/i;
+const RE_SCENE = /^(int|est|ext|int\./est|int\./ext|interno|esterno)\b[.\s]/i;
 // scena con numerazione già presente: "12. INT..." oppure "12  INT...  12"
 const RE_SCENE_NUMBERED = /^\s*\d+[\.\s]+(.*?)(?:\s+\d+\s*)?$/;
 
@@ -367,7 +380,7 @@ export function parseScreenplay(text){
     if(vo){
       let rest = trimmed.slice(vo[0].length).trim().replace(/^["«»"']+/, '').replace(/["«»"']+([.,;!?]*)$/, '$1').trim();
       result.push({type:'character', text:vo[1].toUpperCase().replace(/\s*:\s*$/,'')});
-      if(rest) result.push({type:'dialogue', text:rest});
+      if(rest) result.push({type:'dialogue', text:cap(rest)});
       inDialogue = false; continue;
     }
 
@@ -378,7 +391,7 @@ export function parseScreenplay(text){
       let speech = m[3].trim().replace(/^["«»"']+/, '').replace(/["«»"']+([.,;!?]*)$/, '$1').trim();
       if(namePart.split(/\s+/).length <= 2 && namePart.length <= 18){
         result.push({type:'character', text:namePart.toUpperCase()});
-        result.push({type:'dialogue', text:speech});
+        result.push({type:'dialogue', text:cap(speech)});
         inDialogue = false; continue;
       }
     }
@@ -390,7 +403,7 @@ export function parseScreenplay(text){
     }
 
     // riga dopo un nome = dialogo
-    if(inDialogue){ result.push({type:'dialogue', text:trimmed}); continue; }
+    if(inDialogue){ result.push({type:'dialogue', text:cap(trimmed)}); continue; }
 
     // prosa / azione
     result.push({type:'action', text:trimmed});

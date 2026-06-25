@@ -178,14 +178,17 @@
 .scriptment-fmt-float.fmt-done .fmt-ic{color:#3f8f3f}
 /* shortcut sotto il pulsante */
 .scriptment-fmt-hint{
-  display:flex;align-items:center;gap:4px;
-  font-size:10px;color:var(--ink3);padding-left:4px;
+  display:flex;flex-direction:column;align-items:flex-start;gap:3px;
+  padding-left:2px;
 }
+.fmt-hint-keys{display:flex;gap:3px;align-items:center}
 .scriptment-fmt-hint kbd{
-  font-family:'Courier Prime',monospace;font-size:9.5px;font-weight:700;
-  background:#fff;border:1px solid #d8c8a0;border-radius:4px;
-  padding:1px 5px;color:#7a5a32;min-width:9px;text-align:center;line-height:1.4;
+  font-family:'Courier Prime',monospace;font-size:12px;font-weight:700;
+  background:#fff;border:1.5px solid #d8c8a0;border-radius:5px;
+  padding:2px 7px;color:#7a5a32;min-width:22px;text-align:center;line-height:1.5;
+  box-shadow:0 1px 2px rgba(0,0,0,.08);
 }
+.fmt-hint-label{font-size:11px;color:var(--ink3);letter-spacing:.02em}
 body.is-touch .scriptment-fmt-hint{display:none}
 
 /* Font dello scriptment */
