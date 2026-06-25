@@ -33,8 +33,8 @@ export function restoreProject(p){
 
   const ptEl = document.getElementById('proj-title');
   ptEl.value = p.title||'';
-  // auto-dimensiona l'input alla lunghezza del titolo (così i glifi gli stanno vicino)
-  ptEl.size = Math.max(4, (p.title||'Titolo progetto').length);
+  // auto-dimensiona l'input: con la spaziatura larga del titolo serve un margine
+  ptEl.size = Math.max(6, Math.ceil((p.title||'Titolo progetto').length * 1.4) + 1);
   document.getElementById('meta-tav').textContent = p.numTav;
   const mtEl = document.getElementById('microtask');
   mtEl.value = p.microtask||'';
@@ -102,7 +102,7 @@ document.getElementById('confirm-ok').onclick = async () => {
 };
 document.getElementById('confirm-modal').addEventListener('click', e => { if(e.target===e.currentTarget) closeConfirm(); });
 
-document.getElementById('proj-title').addEventListener('input', e => { const p=getProject(currentId); if(!p)return; p.title=e.target.value; e.target.size=Math.max(4,(e.target.value||'Titolo progetto').length); scheduleSave(p); });
+document.getElementById('proj-title').addEventListener('input', e => { const p=getProject(currentId); if(!p)return; p.title=e.target.value; e.target.size=Math.max(6,Math.ceil((e.target.value||'Titolo progetto').length*1.4)+1); scheduleSave(p); });
 document.getElementById('microtask').addEventListener('input', e => {
   const p=getProject(currentId); if(!p)return;
   p.microtask=e.target.value;
