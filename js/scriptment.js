@@ -311,11 +311,16 @@ export function parseScreenplay(text){
   // Pre-split: spezza battute "in linea" tipo "...frase. Nome: battuta"
   // (solo dopo un terminatore di frase . ! ? per evitare falsi positivi).
   function splitInlineCue(line){
+    // Non spezzare righe che iniziano come scene (INT./EST./ecc.)
+    const t = line.trim();
+    if(RE_SCENE.test(t)) return [line];
+    const snCheck = t.match(/^\d+[.\s]+/);
+    if(snCheck && RE_SCENE.test(t.slice(snCheck[0].length))) return [line];
     const out = [];
     let rest = line;
     let guard = 0;
     while(guard++ < 8){
-      const m = rest.match(/^(.+?[.!?])\s+([A-ZÀ-Ý][A-Za-z0-9À-ÿ'’.\-]{0,16}(?:\s[A-ZÀ-Ý0-9][A-Za-z0-9À-ÿ'’.\-]{1,16})?):\s+(.+)$/);
+      const m = rest.match(/^(.+?[.!?])\s+([A-ZÀ-Ý][A-Za-z0-9À-ÿ‘’'.\-]{0,16}(?:\s[A-ZÀ-Ý0-9][A-Za-z0-9À-ÿ‘’'.\-]{1,16})?):[ \t]+(.+)$/);
       if(!m) break;
       const name = m[2].trim();
       if(name.split(/\s+/).length > 2 || name.length > 18) break;
@@ -403,7 +408,7 @@ export function renderScreenplayHTML(text){
       case 'blank': html += '<div class="sp-blank"></div>'; break;
       case 'note': html += `<div class="sp-note">${esc(n.text)}</div>`; break;
       case 'scene':
-        html += `<div class="sp-scene"><span class="sp-scene-n">${n.scene}</span><span class="sp-scene-h">${esc(n.text)}</span><span class="sp-scene-n">${n.scene}</span></div>`;
+        html += `<div class="sp-scene"><span class="sp-scene-h">${esc(n.text)}</span><span class="sp-scene-n">${n.scene}</span></div>`;
         break;
       case 'transition': html += `<div class="sp-transition">${esc(n.text)}</div>`; break;
       case 'character': html += `<div class="sp-character">${esc(n.text)}</div>`; break;

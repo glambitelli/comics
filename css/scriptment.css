@@ -134,12 +134,12 @@
 /* AZIONE/PROSA: testo normale allineato a sinistra */
 .scriptment-page .sp-action{margin:.1em 0;text-align:left}
 .scriptment-page .sp-note{margin:.1em 0;color:var(--ink3);font-style:italic;text-align:left}
-/* SCENA: numero sx + heading centrato + numero dx */
+/* SCENA: heading a sinistra + numero a destra (stile Aliens) */
 .scriptment-page .sp-scene{
   display:flex;justify-content:space-between;align-items:baseline;gap:8px;
   font-weight:700;text-transform:uppercase;margin:.6em 0 .2em;
 }
-.scriptment-page .sp-scene-h{flex:1;text-align:center}
+.scriptment-page .sp-scene-h{flex:1;text-align:left}
 .scriptment-page .sp-scene-n{flex:0 0 auto;color:var(--ink3);font-weight:700;font-size:.9em}
 /* TRANSIZIONE: destra */
 .scriptment-page .sp-transition{text-align:right;font-weight:700;text-transform:uppercase;margin:.4em 0}
@@ -219,7 +219,7 @@ body.is-touch .scriptment-foot-shortcut{display:none}
 
 /* Pulsante lettura nella top bar */
 .scriptment-read-toggle{
-  position:absolute;right:8px;top:50%;transform:translateY(-50%);
+  position:absolute;right:20px;top:50%;transform:translateY(-50%);
   font-size:20px;color:var(--ink3);
   background:#f0ead8;border:none;cursor:pointer;padding:5px 11px;
   border-radius:9px;transition:background .15s,color .15s;
@@ -262,7 +262,7 @@ body.is-touch .scriptment-foot-shortcut{display:none}
   display:flex;justify-content:space-between;align-items:baseline;gap:8px;
   font-weight:700;text-transform:uppercase;margin:.6em 0 .2em;
 }
-.sp-scene-h{flex:1;text-align:center}
+.sp-scene-h{flex:1;text-align:left}
 .sp-scene-n{flex:0 0 auto;color:var(--ink3);font-weight:700;font-size:.9em}
 .sp-transition{
   text-align:right;font-weight:700;text-transform:uppercase;margin:.4em 0;
