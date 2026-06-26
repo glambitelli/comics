@@ -66,14 +66,18 @@
 <!-- PROJECT -->
 <div class="screen" id="screen-project">
   <div class="proj-header">
-    <svg class="proj-sun" width="30" height="30" viewBox="0 0 30 30" aria-hidden="true"><circle cx="15" cy="15" r="13" fill="none" stroke="#d9b850" stroke-width="1.4"/></svg>
     <div class="proj-title-row">
       <input class="proj-title-edit" id="proj-title" type="text" value="" placeholder="Titolo progetto"/>
     </div>
-    <svg class="proj-dune" viewBox="0 0 300 16" preserveAspectRatio="none" aria-hidden="true"><path d="M4,11 Q80,3 150,8 T296,6" fill="none" stroke="#cdbb95" stroke-width="1.4"/></svg>
-    <div class="proj-meta"><span id="meta-fase">—</span> · <span id="meta-tav">10</span> tavole · <span id="meta-pct">0%</span></div>
-    <div class="proj-trace"><div class="proj-trace-fill" id="prog-fill" style="width:0%"></div></div>
-    <div class="proj-trace-lbl" id="prog-lbl">0 / 0</div>
+    <div class="proj-meta">
+      <div>Tavole: <span id="meta-tav">10</span></div>
+      <div>Fase: <span id="meta-fase">—</span></div>
+      <div>Avanzamento: <span id="meta-pct">0%</span></div>
+    </div>
+  </div>
+  <div class="prog-bar-wrap">
+    <div class="prog-bar"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
+    <div class="prog-lbl" id="prog-lbl">0 / 0</div>
   </div>
   <div class="proj-scroll">
 
