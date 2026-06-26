@@ -1,5 +1,5 @@
 // Service Worker — cache file statici locali, Firebase sempre da rete
-const CACHE = 'inkflow-static-v54';
+const CACHE = 'inkflow-static-v55';
 
 self.addEventListener('install', e => {
   self.skipWaiting();
@@ -24,16 +24,17 @@ self.addEventListener('fetch', e => {
     return;
   }
 
-  // Stale-while-revalidate: rispondi dalla cache subito, aggiorna in background
+  // NETWORK-FIRST: online prendi sempre l'ultima versione (così i deploy hanno
+  // effetto subito), la cache è solo fallback quando sei offline.
   e.respondWith(
-    caches.open(CACHE).then(cache =>
-      cache.match(e.request).then(cached => {
-        const network = fetch(e.request).then(resp => {
-          if(resp && resp.status === 200) cache.put(e.request, resp.clone());
-          return resp;
-        }).catch(() => cached);
-        return cached || network;
-      })
+    fetch(e.request).then(resp => {
+      if(resp && resp.status === 200){
+        const clone = resp.clone();
+        caches.open(CACHE).then(cache => cache.put(e.request, clone));
+      }
+      return resp;
+    }).catch(() =>
+      caches.open(CACHE).then(cache => cache.match(e.request))
     )
   );
 });

@@ -14,6 +14,7 @@ export function openProject(id){
   if(!p) return;
   document.getElementById('screen-home').classList.remove('active');
   document.getElementById('screen-project').classList.add('active');
+  if(window.__navSync) window.__navSync('project', id);
   restoreProject(p);
 }
 

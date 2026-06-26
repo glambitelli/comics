@@ -3,12 +3,13 @@ import { saveUserData, scheduleSave, bumpDataRev } from './firebase.js';
 import { drawGem } from './canvas.js';
 
 export function enterEveningMode(){
-  renderEveningList();
-  renderStarfield();
-  scheduleStarPulse();
   document.getElementById('screen-home').classList.remove('active');
   document.getElementById('screen-evening').classList.add('active');
   document.body.classList.add('evening-mode');
+  if(window.__navSync) window.__navSync('evening');
+  renderEveningList();
+  renderStarfield();
+  scheduleStarPulse();
 }
 
 // ── FASE LUNARE ──

@@ -70,8 +70,9 @@ function hideAllScreens(){
 
 function openStats(){
   hideAllScreens();
-  renderStats();
   document.getElementById('screen-stats').classList.add('active');
+  if(window.__navSync) window.__navSync('stats');
+  renderStats();
 }
 function closeStats(){
   document.getElementById('screen-stats').classList.remove('active');
@@ -242,7 +243,10 @@ function navPush(view, id){
   if(s && s.view === view && (s.id||null) === (id||null)) return; // già qui
   try{ history.pushState({ view, id: id||null }, ''); }catch(e){}
 }
-// Mostra una schermata SENZA toccare la cronologia (guidato dal tasto Indietro)
+// Esposta globalmente: le funzioni di apertura (anche chiamate come binding
+// importato, es. dal click sulle card) registrano da sole lo stato.
+window.__navSync = navPush;
+// Mostra una schermata SENZA registrare un nuovo stato (guidato dal tasto Indietro)
 function showScreen(view, id){
   _navReplaying = true;
   try{
@@ -262,10 +266,11 @@ window.addEventListener('popstate', e=>{
 });
 try{ if(!history.state) history.replaceState({ view:'home' }, ''); }catch(e){}
 
-// Wrapper pubblici — vanno "avanti" e registrano lo stato nella cronologia
-window.openProject = (id)=>{ openProject(id); navPush('project', id); };
-window.openStats   = ()=>{ openStats(); navPush('stats'); };
-window.enterEveningMode = ()=>{ enterEveningImpl(); navPush('evening'); };
+// Le impl registrano da sole lo stato (vedi window.__navSync), quindi qui basta
+// esporle. Funziona qualunque sia il chiamante (window o binding importato).
+window.openProject = openProject;
+window.openStats = openStats;
+window.enterEveningMode = enterEveningImpl;
 // Azioni "indietro" — passano dalla cronologia, così il back del browser resta coerente
 const _backOrHome = ()=>{
   if(history.state && history.state.view && history.state.view !== 'home') history.back();
