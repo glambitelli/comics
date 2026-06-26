@@ -9,6 +9,7 @@ import { initNotifications, saveReminderSettings, testNotification } from './not
 import { openSettings, closeSettings, resetStarsConfirm, closeStarsConfirm, doResetStars, exportBackup, importBackup, resetStreakConfirm, closeStreakConfirm, doResetStreak } from './settings.js';
 import { renderHome, openNewModal, closeModal, createProject, openCardMenu, exportProjectJSON, confirmDeleteProject, openColorPicker, closeColorPicker, selectProjectColor, toggleSearch, filterProjects, attachCardDrag, applyProjectOrder, startSandstorm, getScriptment } from './home.js';
 import { openProject, restoreProject, goHome, confirmDeleteCurrent, closeConfirm, confirmMicrotask } from './project.js';
+import { enterEveningMode as enterEveningImpl, exitEveningMode as exitEveningImpl } from './evening.js';
 import { openScriptment, closeScriptment, onScriptmentInput, setScriptmentFont, stepScriptmentSize, formatScriptment, openScriptmentRead, toggleScriptmentRead, refreshScriptmentButton, closeFormatPreview, applyFormatPreview } from './scriptment.js';
 window.openScriptment=openScriptment; window.closeScriptment=closeScriptment;
 window.setScriptmentFont=setScriptmentFont; window.stepScriptmentSize=stepScriptmentSize;
@@ -201,19 +202,13 @@ onSnapshot(collection(db, COL), snapshot => {
 
 window.openNewModal=openNewModal; window.closeModal=closeModal; window.createProject=createProject;
 
-window.goHome=()=>{
+const goHomeImpl=()=>{
   hideAllScreens();
   document.getElementById('screen-home').classList.add('active');
   renderHome(); attachCardDrag();
   if(window._resumeSand) window._resumeSand();
 };
-// Click sul logo "Inkflow": torna sempre alla home giorno (esce dalla notte se attiva)
-window.goHomeFromLogo=()=>{
-  if(document.body.classList.contains('evening-mode') && window.exitEveningMode){
-    window.exitEveningMode();
-  }
-  window.goHome();
-}; window.openProject=openProject; window.togglePhase=togglePhase;
+window.togglePhase=togglePhase;
 window.toggleStep=toggleStep; window.selectTav=selectTav; window.addSfida=addSfida;
 window.saveDates=saveDates; window.confirmDeleteCurrent=confirmDeleteCurrent; window.closeConfirm=closeConfirm;
 window.exportPDF=exportPDF; window.exportStoryboard=exportStoryboard; window.exportScreenplay=exportScreenplay;
@@ -235,6 +230,52 @@ window.openCardMenu=openCardMenu; window.exportProjectJSON=exportProjectJSON; wi
 window.openColorPicker=openColorPicker; window.closeColorPicker=closeColorPicker; window.selectProjectColor=selectProjectColor;
 window.toggleSearch=toggleSearch; window.filterProjects=filterProjects; window.autoResizeAll=autoResizeAll;
 
+// ─────────────────────────────────────────────────────────
+// Navigazione con la cronologia del browser (tasto Indietro)
+// Home è lo stato base; progetto / stats / sera stanno "sopra".
+// Premendo Indietro nel browser si torna alla home (o alla schermata precedente).
+// ─────────────────────────────────────────────────────────
+let _navReplaying = false;
+function navPush(view, id){
+  if(_navReplaying) return;
+  const s = history.state;
+  if(s && s.view === view && (s.id||null) === (id||null)) return; // già qui
+  try{ history.pushState({ view, id: id||null }, ''); }catch(e){}
+}
+// Mostra una schermata SENZA toccare la cronologia (guidato dal tasto Indietro)
+function showScreen(view, id){
+  _navReplaying = true;
+  try{
+    if(view === 'project' && id && getProject(id)){ openProject(id); }
+    else if(view === 'stats'){ openStats(); }
+    else if(view === 'evening'){ enterEveningImpl(); }
+    else { // home (o stato sconosciuto)
+      if(document.body.classList.contains('evening-mode')) exitEveningImpl();
+      goHomeImpl();
+    }
+  }catch(e){ goHomeImpl(); }
+  finally{ _navReplaying = false; }
+}
+window.addEventListener('popstate', e=>{
+  const st = e.state || { view:'home' };
+  showScreen(st.view, st.id);
+});
+try{ if(!history.state) history.replaceState({ view:'home' }, ''); }catch(e){}
+
+// Wrapper pubblici — vanno "avanti" e registrano lo stato nella cronologia
+window.openProject = (id)=>{ openProject(id); navPush('project', id); };
+window.openStats   = ()=>{ openStats(); navPush('stats'); };
+window.enterEveningMode = ()=>{ enterEveningImpl(); navPush('evening'); };
+// Azioni "indietro" — passano dalla cronologia, così il back del browser resta coerente
+const _backOrHome = ()=>{
+  if(history.state && history.state.view && history.state.view !== 'home') history.back();
+  else { if(document.body.classList.contains('evening-mode')) exitEveningImpl(); goHomeImpl(); }
+};
+window.closeStats = _backOrHome;
+window.exitEveningMode = _backOrHome;
+window.goHome = _backOrHome;
+window.goHomeFromLogo = _backOrHome;
+
 (function(){
   let startX=0, startY=0;
   const proj = document.getElementById('screen-project');
@@ -248,7 +289,7 @@ window.toggleSearch=toggleSearch; window.filterProjects=filterProjects; window.a
     if(dx > 80 && dy < 60){
       const tag = e.target.tagName;
       if(tag==='TEXTAREA'||tag==='INPUT') return;
-      goHome();
+      window.goHome();
     }
   }, {passive:true});
 })();

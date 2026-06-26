@@ -98,7 +98,7 @@ document.getElementById('confirm-ok').onclick = async () => {
     await deleteDoc(doc(db, COL, deleteId));
   } catch(e){ console.error(e); }
   closeConfirm();
-  if(wasCurrentProject) goHome();
+  if(wasCurrentProject){ if(window.goHome) window.goHome(); else goHome(); }
 };
 document.getElementById('confirm-modal').addEventListener('click', e => { if(e.target===e.currentTarget) closeConfirm(); });
 
