@@ -36,36 +36,41 @@ body.is-touch .dune-nav{
   display:block;position:fixed;bottom:0;left:0;right:0;height:calc(88px + var(--safe-bot));
   z-index:200;pointer-events:none;
   transition:transform .32s cubic-bezier(.4,0,.2,1);
-  overflow:hidden;
 }
 body.is-touch .dune-nav.dune-hidden{transform:translateY(calc(100% + 4px))}
 
-/* Layer blur + colore + grana — clip-path arco simmetrico */
+/* Layer blur + colore + grana — CAPSULA FLOTTANTE (pill staccata dai bordi) */
 .dune-blur,.dune-color,.dune-grain{
-  position:absolute;bottom:0;left:0;right:0;height:100%;
-  clip-path:polygon(0.00% 35.42%, 5.00% 32.25%, 10.00% 29.42%, 15.00% 26.92%, 20.00% 24.75%, 25.00% 22.92%, 30.00% 21.42%, 35.00% 20.25%, 40.00% 19.42%, 45.00% 18.92%, 50.00% 18.75%, 55.00% 18.92%, 60.00% 19.42%, 65.00% 20.25%, 70.00% 21.42%, 75.00% 22.92%, 80.00% 24.75%, 85.00% 26.92%, 90.00% 29.42%, 95.00% 32.25%, 100.00% 35.42%, 100% 100%, 0% 100%);
+  position:absolute;
+  left:16px;right:16px;
+  bottom:calc(var(--safe-bot) + 12px);
+  height:58px;
+  border-radius:29px;
+  overflow:hidden;
 }
 .dune-blur{
-  backdrop-filter:blur(20px) saturate(1.5);-webkit-backdrop-filter:blur(20px) saturate(1.5);
+  backdrop-filter:blur(8px) saturate(1.15);-webkit-backdrop-filter:blur(8px) saturate(1.15);
+  box-shadow:0 6px 22px rgba(90,70,40,.18);
 }
 .dune-color{
-  background:rgba(220,168,48,.55);
-  transition:background .4s ease;
+  background:rgba(225,212,186,.42);
+  border:1px solid rgba(150,128,86,.30);
+  transition:background .4s ease,border-color .4s ease;
 }
 .dune-grain{pointer-events:none}
 .dune-grain-coarse{
   filter:url(#dune-sand-coarse);
-  opacity:.30;mix-blend-mode:screen;
+  opacity:.55;mix-blend-mode:multiply;
 }
 .dune-grain-fine{
   filter:url(#dune-sand-fine);
-  opacity:.35;mix-blend-mode:overlay;
+  opacity:.40;mix-blend-mode:normal;
 }
-.dune-nav-bg{position:absolute;bottom:0;left:0;width:100%;height:100%;pointer-events:none}
+.dune-nav-bg{display:none}
 .dune-stroke{transition:stroke .4s ease}
 .dune-nav-items{
-  position:absolute;bottom:var(--safe-bot);left:0;right:0;height:64px;
-  display:flex;align-items:center;justify-content:space-around;padding:0 16px;
+  position:absolute;bottom:calc(var(--safe-bot) + 12px);left:16px;right:16px;height:58px;
+  display:flex;align-items:center;justify-content:space-around;padding:0 12px;
   pointer-events:auto;
 }
 .dune-btn{
@@ -79,7 +84,7 @@ body.is-touch .dune-nav.dune-hidden{transform:translateY(calc(100% + 4px))}
 .dune-btn:active{transform:scale(.87)}
 .dune-btn-light{background:#fffbf2;border:1px solid rgba(160,120,50,.22);box-shadow:0 2px 6px rgba(90,60,20,.18)}
 .dune-btn-moon{background:linear-gradient(135deg,#241c14,#120d08);border:1.5px solid rgba(220,170,70,.4);box-shadow:0 2px 10px rgba(0,0,0,.28)}
-.dune-btn-home{width:52px;height:52px;margin-top:-12px}
+.dune-btn-home{width:50px;height:50px;margin-top:0}
 
 /* Glifi bilanciati otticamente (dimensioni diverse per pareggiare la resa) */
 .dune-g-search{font-size:29px;line-height:1}
@@ -89,8 +94,7 @@ body.is-touch .dune-nav.dune-hidden{transform:translateY(calc(100% + 4px))}
 .dune-home-svg{width:30px;height:30px;display:block}
 
 /* ── Modalità sera: barra scura coordinata ── */
-body.evening-mode.is-touch .dune-color{background:rgba(30,22,10,.42)}
-body.evening-mode.is-touch .dune-stroke{stroke:#46381f}
+body.evening-mode.is-touch .dune-color{background:rgba(30,22,10,.40);border-color:rgba(232,200,120,.18)}
 body.evening-mode.is-touch .dune-btn-light{background:rgba(255,248,232,.12);border-color:rgba(232,200,120,.2);color:#e8c878;box-shadow:none}
 body.evening-mode.is-touch .dune-home-svg{fill:#e8c878}
 /* la luna nel tondo nero resta uguale; in sera mostra il sole ✷ */
