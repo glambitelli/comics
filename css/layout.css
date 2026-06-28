@@ -47,14 +47,15 @@ body.is-touch .dune-nav.dune-hidden{transform:translateY(calc(100% + 4px))}
   height:58px;
   border-radius:29px;
   overflow:hidden;
+  clip-path:inset(0 round 29px);
 }
 .dune-blur{
   backdrop-filter:blur(8px) saturate(1.15);-webkit-backdrop-filter:blur(8px) saturate(1.15);
   box-shadow:0 6px 22px rgba(90,70,40,.18);
 }
 .dune-color{
-  background:rgba(225,212,186,.42);
-  border:1px solid rgba(150,128,86,.30);
+  background:rgba(228,200,148,.40);
+  border:1px solid rgba(150,116,56,.28);
   transition:background .4s ease,border-color .4s ease;
 }
 .dune-grain{pointer-events:none}
@@ -95,6 +96,8 @@ body.is-touch .dune-nav.dune-hidden{transform:translateY(calc(100% + 4px))}
 
 /* ── Modalità sera: barra scura coordinata ── */
 body.evening-mode.is-touch .dune-color{background:rgba(30,22,10,.40);border-color:rgba(232,200,120,.18)}
+body.evening-mode.is-touch .dune-grain-coarse{opacity:.14;mix-blend-mode:screen}
+body.evening-mode.is-touch .dune-grain-fine{opacity:.10;mix-blend-mode:screen}
 body.evening-mode.is-touch .dune-btn-light{background:rgba(255,248,232,.12);border-color:rgba(232,200,120,.2);color:#e8c878;box-shadow:none}
 body.evening-mode.is-touch .dune-home-svg{fill:#e8c878}
 /* la luna nel tondo nero resta uguale; in sera mostra il sole ✷ */
