@@ -68,21 +68,20 @@ export function renderTavDetail(p){
 
 export function renderSfide(p){
   const list=document.getElementById('sfide-list'); list.innerHTML='';
-  list.style.cssText='display:flex;flex-wrap:wrap;gap:8px';
+  list.style.cssText='display:flex;flex-direction:column;gap:2px';
   (p.sfide||[]).forEach((s,i)=>{
-    const pill=document.createElement('div'); pill.className='sfida-pill';
+    const item=document.createElement('div'); item.className='sfida-item';
+
+    const bullet=document.createElement('span'); bullet.className='sfida-bullet'; bullet.textContent='•';
 
     const input=document.createElement('input');
     input.type='text';
     input.value=s.text;
     input.className='sfida-text-input';
-    input.placeholder='…';
-    // larghezza auto in base al contenuto
-    input.size = Math.max(3, (s.text||'').length || 3);
+    input.placeholder='Nuova sfida…';
     input.addEventListener('input',function(){
       const p=getProject(currentId);if(!p||!p.sfide)return;
       p.sfide[i].text=this.value;
-      this.size = Math.max(3, this.value.length || 3);
       scheduleSave(p);
     });
 
@@ -95,10 +94,63 @@ export function renderSfide(p){
       scheduleSave(p);renderSfide(p);
     };
 
-    pill.appendChild(input);
-    pill.appendChild(rm);
-    list.appendChild(pill);
+    item.appendChild(bullet);
+    item.appendChild(input);
+    item.appendChild(rm);
+    list.appendChild(item);
   });
+}
+
+/* ===== TO DO ===== */
+export function renderTodos(p){
+  const list=document.getElementById('todo-list'); if(!list) return;
+  list.innerHTML='';
+  const todos=p.todos||[];
+  if(!todos.length){
+    const empty=document.createElement('div'); empty.className='todo-empty';
+    empty.textContent='Nessuna attività. Aggiungine una qui sotto.';
+    list.appendChild(empty);
+    return;
+  }
+  todos.forEach((t,i)=>{
+    const item=document.createElement('div'); item.className='todo-item'+(t.done?' done':'');
+
+    const chk=document.createElement('button'); chk.className='todo-chk'; chk.textContent='✓';
+    chk.onclick=()=>toggleTodo(i);
+
+    const txt=document.createElement('span'); txt.className='todo-text'; txt.textContent=t.text;
+
+    const rm=document.createElement('button'); rm.className='todo-rm'; rm.textContent='×';
+    rm.onclick=()=>{
+      const p=getProject(currentId);if(!p||!p.todos)return;
+      p.todos.splice(i,1); scheduleSave(p); renderTodos(p);
+    };
+
+    item.appendChild(chk); item.appendChild(txt); item.appendChild(rm);
+    list.appendChild(item);
+  });
+}
+
+export function addTodo(){
+  const p=getProject(currentId); if(!p) return;
+  const input=document.getElementById('todo-input'); if(!input) return;
+  const text=input.value.trim(); if(!text) return;
+  if(!p.todos) p.todos=[];
+  p.todos.push({text, done:false});
+  input.value='';
+  scheduleSave(p); renderTodos(p);
+}
+
+export function toggleTodo(i){
+  const p=getProject(currentId); if(!p||!p.todos||!p.todos[i]) return;
+  p.todos[i].done=!p.todos[i].done;
+  scheduleSave(p); renderTodos(p);
+}
+
+export function clearCompletedTodos(){
+  const p=getProject(currentId); if(!p||!p.todos) return;
+  p.todos=p.todos.filter(t=>!t.done);
+  scheduleSave(p); renderTodos(p);
 }
 
 export function addSfida(){

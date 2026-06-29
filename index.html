@@ -130,6 +130,18 @@
       </div>
     </div>
 
+    <div style="margin-bottom:20px">
+      <div class="sec-label">To Do</div>
+      <div class="todo-box">
+        <div id="todo-list"></div>
+        <div class="todo-add">
+          <input id="todo-input" type="text" class="todo-input" placeholder="Aggiungi attività…" onkeydown="if(event.key==='Enter'){addTodo();return false}"/>
+          <button class="todo-add-btn" onclick="addTodo()" aria-label="Aggiungi">+</button>
+        </div>
+        <button class="todo-clear" onclick="clearCompletedTodos()">Pulisci completate</button>
+      </div>
+    </div>
+
     <div class="sec-label">Pipeline</div>
 
     <div class="phase-block" id="ph1">

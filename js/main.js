@@ -2,7 +2,7 @@ import { db, COL, syncDot, loadUserData, collection, onSnapshot, cacheProjects, 
 import { projects, setProjects, currentId, getProject } from './state.js';
 import { saveDates } from './velocity.js';
 import { exportPDF, exportStoryboard, exportScreenplay } from './pdf.js';
-import { togglePhase, toggleStep, selectTav, addSfida } from './pipeline.js';
+import { togglePhase, toggleStep, selectTav, addSfida, addTodo, toggleTodo, clearCompletedTodos } from './pipeline.js';
 import { addScene, updateScene, deleteScene, autoResize, saveStoryField, updateCharCount, toggleSubsection, addCharacter, deleteCharacter, toggleCharCard, autoResizeAll, toggleScreenplay, addSceneText, deleteSceneText } from './story.js';
 import { updatePlanner, applyPlanner, openPlannerModal, closePlannerModal } from './planner.js';
 import { initNotifications, saveReminderSettings, testNotification } from './notifications.js';
@@ -211,6 +211,7 @@ const goHomeImpl=()=>{
 };
 window.togglePhase=togglePhase;
 window.toggleStep=toggleStep; window.selectTav=selectTav; window.addSfida=addSfida;
+window.addTodo=addTodo; window.toggleTodo=toggleTodo; window.clearCompletedTodos=clearCompletedTodos;
 window.saveDates=saveDates; window.confirmDeleteCurrent=confirmDeleteCurrent; window.closeConfirm=closeConfirm;
 window.exportPDF=exportPDF; window.exportStoryboard=exportStoryboard; window.exportScreenplay=exportScreenplay;
 // Export principale: il PDF classico del progetto

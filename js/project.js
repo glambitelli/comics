@@ -3,7 +3,7 @@ import { db, COL, scheduleSave, deleteDoc, doc } from './firebase.js';
 import { hexToRgb } from './canvas.js';
 import { updateProgress } from './progress.js';
 import { renderDeadline, renderVelocity, renderVelocityHistory, renderPhaseCalendar } from './velocity.js';
-import { renderTavole, renderSfide } from './pipeline.js';
+import { renderTavole, renderSfide, renderTodos } from './pipeline.js';
 import { restoreStoryFields, autoResizeAll } from './story.js';
 import { refreshScriptmentButton } from './scriptment.js';
 import { restorePlanner } from './planner.js';
@@ -55,7 +55,7 @@ export function restoreProject(p){
     chk.classList.toggle('done', done);
     nm.classList.toggle('done', done);
   });
-  renderTavole(p); renderSfide(p); updateProgress(p); renderDeadline(p); renderVelocity(p); restoreStoryFields(p); restorePlanner(p);
+  renderTavole(p); renderSfide(p); renderTodos(p); updateProgress(p); renderDeadline(p); renderVelocity(p); restoreStoryFields(p); restorePlanner(p);
   refreshScriptmentButton();
   requestAnimationFrame(() => { renderVelocityHistory(p); renderPhaseCalendar(p); autoResizeAll(); });
 }
