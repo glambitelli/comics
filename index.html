@@ -138,7 +138,7 @@
           <input id="todo-input" type="text" class="todo-input" placeholder="Aggiungi attività…" onkeydown="if(event.key==='Enter'){addTodo();return false}"/>
           <button class="todo-add-btn" onclick="addTodo()" aria-label="Aggiungi">+</button>
         </div>
-        <button class="todo-clear" onclick="clearCompletedTodos()">Pulisci completate</button>
+        <button class="todo-clear" onclick="clearCompletedTodos()">Clear</button>
       </div>
     </div>
 
@@ -302,7 +302,6 @@
 <!-- STATS -->
 <div class="screen" id="screen-stats">
   <div class="stats-header">
-    <button class="back-btn" onclick="closeStats()" style="margin-bottom:10px" title="Home" aria-label="Home"><span style="font-size:19px;line-height:1">←</span><svg width="21" height="21" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.5L2 11h2.5v9.5a1 1 0 0 0 1 1H9.5v-6h5v6h4a1 1 0 0 0 1-1V11H22L12 2.5Z"/></svg></button>
     <div class="stats-title">Stats</div>
   </div>
   <div class="stats-scroll">
