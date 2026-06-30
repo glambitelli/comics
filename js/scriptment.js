@@ -226,6 +226,24 @@ function normalizeCaretBlock(editor){
   }catch(e){/* non bloccare mai la digitazione */}
 }
 
+// Su "a capo": una riga NUOVA e VUOTA non deve ereditare la formattazione del
+// blocco precedente (nome/scena/transizione/dialogo). Tocchiamo SOLO i blocchi
+// vuoti, così un nome con testo non perde mai il suo ruolo (fix v51 preservato).
+function normalizeEmptyCaretBlock(editor){
+  try{
+    const sel = window.getSelection();
+    if(!sel || !sel.rangeCount) return;
+    let node = sel.anchorNode;
+    if(!node) return;
+    while(node && node.parentNode && node.parentNode !== editor) node = node.parentNode;
+    if(!node || node.nodeType !== 1 || node.parentNode !== editor) return;
+    const cls = node.className || '';
+    if(/sp-(character|scene|transition|dialogue)/.test(cls) && (node.textContent||'').trim() === ''){
+      node.className = 'sp-action';
+    }
+  }catch(e){/* non bloccare mai la digitazione */}
+}
+
 export function onScriptmentInput(e){
   const p = getProject(currentId); if(!p) return;
   const sm = getScriptment(p);
@@ -237,6 +255,7 @@ export function onScriptmentInput(e){
   const it = e && e.inputType ? e.inputType : '';
   const isNewline = it === 'insertParagraph' || it === 'insertLineBreak';
   if(!isNewline) normalizeCaretBlock(ta);
+  else normalizeEmptyCaretBlock(ta);
   sm.text = editorGetText(ta);
   updateWordCount(sm.text);
   flagSaving();
