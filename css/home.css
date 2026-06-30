@@ -33,6 +33,19 @@
 /* su touch la barra-duna copre l'angolo: alzo il FAB */
 body.is-touch .new-fab{bottom:calc(104px + var(--safe-bot))}
 
+/* + Nuovo progetto: minimale, in coda alla lista */
+.home-new-add{
+  display:flex;align-items:center;justify-content:center;
+  width:46px;height:46px;margin:4px auto 10px;
+  border-radius:50%;
+  background:linear-gradient(135deg,#2a2018,#1a1410);color:var(--gold);
+  font-size:28px;font-weight:300;line-height:0;
+  border:none;cursor:pointer;
+  box-shadow:0 3px 12px rgba(0,0,0,.18);
+  transition:transform .12s;
+}
+.home-new-add:active{transform:scale(.9)}
+
 /* ── Tag tipo progetto sulla card ── */
 .card-type-tag{
   display:inline-block;font-size:8px;font-weight:800;letter-spacing:.05em;

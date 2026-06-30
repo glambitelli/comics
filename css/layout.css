@@ -54,8 +54,8 @@ body.is-touch .dune-nav.dune-hidden{transform:translateY(calc(100% + 4px))}
   box-shadow:0 6px 22px rgba(90,70,40,.18);
 }
 .dune-color{
-  background:rgba(230,196,142,.46);
-  border:1px solid rgba(146,108,48,.30);
+  background:rgba(231,184,120,.48);
+  border:1px solid rgba(150,104,40,.32);
   transition:background .4s ease,border-color .4s ease;
 }
 .dune-grain{pointer-events:none}

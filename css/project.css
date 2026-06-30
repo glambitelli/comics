@@ -160,6 +160,21 @@
 .sfida-rm{background:none;border:none;cursor:pointer;color:var(--ink3);font-size:15px;line-height:1;padding:0 2px;flex-shrink:0;transition:color .15s}
 .sfida-rm:hover,.sfida-rm:active{color:var(--coral)}
 
+/* Supporto: sotto-categoria a tendina */
+.support-toggle{display:flex;align-items:center;gap:10px;padding:13px 14px;margin:2px 0 10px;background:#f3ead5;border:1px solid #e6d8ba;border-radius:12px;cursor:pointer;user-select:none;transition:background .15s}
+.support-toggle:active{background:#eee0c6}
+.support-toggle-ico{font-size:12px;color:#9a8458;transition:transform .22s;display:inline-block;flex-shrink:0}
+.support-toggle:not(.open) .support-toggle-ico{transform:rotate(-90deg)}
+.support-toggle-h{font-size:14px;font-weight:700;color:#5a4626}
+.support-toggle-sub{font-size:10px;color:#b0a080;margin-left:auto;letter-spacing:.03em;white-space:nowrap}
+.support-body{padding:2px 0 0;border-left:2px solid #efe2c8;margin-left:6px;padding-left:8px}
+
+/* Pulsanti estrazione dallo Scriptment */
+.extract-row{display:flex;gap:8px;margin:-4px 0 14px}
+.extract-btn{flex:1;min-width:0;background:#fdf0b0;border:1px solid #ecd97a;border-radius:10px;padding:9px 8px;font-family:'Nunito',sans-serif;font-size:11.5px;font-weight:700;color:#8a6a10;cursor:pointer;transition:background .15s,transform .12s,color .15s,border-color .15s;line-height:1.2;text-align:center}
+.extract-btn:active{transform:scale(.97);background:#fbe89a}
+.extract-btn.extract-done{background:#c8ecc8;border-color:#9fd4a0;color:#2a7a2a}
+
 /* Sfide visive: elenco puntato */
 .sfida-item{display:flex;align-items:center;gap:8px;padding:6px 2px;border-bottom:1px solid var(--sand2)}
 .sfida-item:last-child{border-bottom:none}
@@ -167,10 +182,11 @@
 .sfida-item .sfida-text-input{flex:1;min-width:0;width:100%;font-size:14px}
 
 /* To Do — minimale */
-.todo-box{background:var(--white);border:1px solid #ece2cd;border-radius:14px;padding:4px 14px 10px}
+.todo-box{background:none;border:none;padding:0}
 .todo-empty{font-size:13px;color:#b0a488;padding:10px 0;font-style:italic;text-align:center}
-.todo-item{display:flex;align-items:center;gap:12px;padding:11px 2px;border-bottom:1px solid #efe6d4}
-.todo-item:last-of-type{border-bottom:none}
+.todo-item{display:flex;align-items:center;gap:12px;padding:11px 13px;background:#fffdf8;border:1px solid #ece2cd;border-radius:11px;margin-bottom:7px}
+.todo-item:last-of-type{margin-bottom:0}
+.todo-item.done{background:#f8f3e8;border-color:#ede3cf}
 .todo-chk{width:21px;height:21px;flex-shrink:0;border-radius:50%;border:2px solid var(--sand3);background:none;color:transparent;font-size:12px;font-weight:800;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .18s;padding:0}
 .todo-chk:active{transform:scale(.9)}
 .todo-item.done .todo-chk{background:var(--gold);border-color:var(--gold);color:#2a2420}
@@ -185,7 +201,7 @@
 .todo-input{flex:1;min-width:0;background:none;border:none;border-bottom:1.5px solid #e6dcc4;border-radius:0;padding:7px 2px;font-family:'Nunito',sans-serif;font-size:14px;color:var(--ink);outline:none;transition:border-color .2s}
 .todo-input::placeholder{color:#b8ac90}
 .todo-input:focus{border-bottom-color:var(--gold)}
-.todo-clear{display:block;width:100%;text-align:right;margin-top:8px;background:none;border:none;color:#a89878;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;padding:2px}
+.todo-clear{display:block;width:100%;text-align:center;margin-top:12px;background:none;border:none;color:#a89878;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;padding:4px}
 .todo-clear:hover,.todo-clear:active{color:var(--coral)}
 
 /* Su touch la barra-duna gestisce la navigazione: nascondi il back-btn nel progetto */

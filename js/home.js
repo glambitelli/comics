@@ -40,7 +40,7 @@ export function getScriptment(p){
 export function renderHome(){
   const scroll = document.getElementById('home-scroll');
   scroll.querySelectorAll('.project-card').forEach(c => c.remove());
-  const newBtn = scroll.querySelector('.new-btn');
+  const newBtn = scroll.querySelector('.home-new-add');
   projects.forEach(p => {
     const pct = calcPct(p);
     const phIdx = getPhaseIndex(p);

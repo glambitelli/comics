@@ -162,3 +162,16 @@ export function addSfida(){
   const inputs=document.querySelectorAll('.sfida-text-input');
   if(inputs.length) inputs[inputs.length-1].focus();
 }
+
+export function toggleSupport(el){
+  const body=document.getElementById('support-body');
+  if(!body) return;
+  const open = body.style.display==='none' || !body.style.display;
+  body.style.display = open ? 'block' : 'none';
+  el.classList.toggle('open', open);
+  if(open){
+    body.querySelectorAll('textarea').forEach(ta=>{
+      if(ta.offsetParent!==null){ ta.style.height='auto'; ta.style.height=ta.scrollHeight+'px'; }
+    });
+  }
+}

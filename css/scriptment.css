@@ -5,9 +5,9 @@
 /* ── Pulsante che apre l'editor (fase Sviluppo) ── */
 .scriptment-open-btn{
   display:flex;align-items:center;gap:13px;width:100%;
-  background:linear-gradient(135deg,#2a2018,#1a1410);
+  background:linear-gradient(135deg,#44321e,#2c1f10);
   border:none;border-radius:14px;padding:16px 17px;cursor:pointer;
-  margin-bottom:16px;box-shadow:0 3px 12px rgba(0,0,0,.18);
+  margin-bottom:16px;box-shadow:0 3px 12px rgba(70,48,20,.22);
   transition:transform .12s;
   font-family:inherit;
 }

@@ -2,8 +2,8 @@ import { db, COL, syncDot, loadUserData, collection, onSnapshot, cacheProjects, 
 import { projects, setProjects, currentId, getProject } from './state.js';
 import { saveDates } from './velocity.js';
 import { exportPDF, exportStoryboard, exportScreenplay } from './pdf.js';
-import { togglePhase, toggleStep, selectTav, addSfida, addTodo, toggleTodo, clearCompletedTodos } from './pipeline.js';
-import { addScene, updateScene, deleteScene, autoResize, saveStoryField, updateCharCount, toggleSubsection, addCharacter, deleteCharacter, toggleCharCard, autoResizeAll, toggleScreenplay, addSceneText, deleteSceneText } from './story.js';
+import { togglePhase, toggleStep, selectTav, addSfida, addTodo, toggleTodo, clearCompletedTodos, toggleSupport } from './pipeline.js';
+import { addScene, updateScene, deleteScene, autoResize, saveStoryField, updateCharCount, toggleSubsection, addCharacter, deleteCharacter, toggleCharCard, autoResizeAll, toggleScreenplay, addSceneText, deleteSceneText, extractCharsFromScript, extractScenesFromScript } from './story.js';
 import { updatePlanner, applyPlanner, openPlannerModal, closePlannerModal } from './planner.js';
 import { initNotifications, saveReminderSettings, testNotification } from './notifications.js';
 import { openSettings, closeSettings, resetStarsConfirm, closeStarsConfirm, doResetStars, exportBackup, importBackup, resetStreakConfirm, closeStreakConfirm, doResetStreak } from './settings.js';
@@ -212,6 +212,8 @@ const goHomeImpl=()=>{
 window.togglePhase=togglePhase;
 window.toggleStep=toggleStep; window.selectTav=selectTav; window.addSfida=addSfida;
 window.addTodo=addTodo; window.toggleTodo=toggleTodo; window.clearCompletedTodos=clearCompletedTodos;
+window.toggleSupport=toggleSupport;
+window.extractCharsFromScript=extractCharsFromScript; window.extractScenesFromScript=extractScenesFromScript;
 window.saveDates=saveDates; window.confirmDeleteCurrent=confirmDeleteCurrent; window.closeConfirm=closeConfirm;
 window.exportPDF=exportPDF; window.exportStoryboard=exportStoryboard; window.exportScreenplay=exportScreenplay;
 // Export principale: il PDF classico del progetto
@@ -332,23 +334,7 @@ function wireCopyButtons(){
 window.wireCopyButtons = wireCopyButtons;
 
 // ── Espandi/comprimi blocchi di supporto (Taccuino, Scene) ──
-window.toggleSupport = function(headerEl){
-  const block = headerEl.closest('.support-block');
-  if(!block) return;
-  const content = block.querySelector('.support-content');
-  const chev = headerEl.querySelector('.support-chev');
-  if(!content) return;
-  const isOpen = content.style.display !== 'none';
-  content.style.display = isOpen ? 'none' : 'block';
-  if(chev) chev.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
-  // Ricalcola l'altezza delle textarea appena diventano visibili
-  if(!isOpen){
-    content.querySelectorAll('textarea').forEach(ta=>{
-      ta.style.height='auto';
-      ta.style.height=ta.scrollHeight+'px';
-    });
-  }
-};
+
 
 // ── Sezioni con divisore comprimibili (Sfide visive, ecc.) ──
 window.toggleSection = function(labelEl){

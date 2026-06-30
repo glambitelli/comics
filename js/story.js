@@ -1,5 +1,7 @@
 import { getProject, currentId } from './state.js';
 import { scheduleSave } from './firebase.js';
+import { parseScreenplay } from './scriptment.js';
+import { getScriptment } from './home.js';
 
 const ACT_CONFIG=[
   {id:'setup',     label:'Setup',        color:'#4ab8d8',light:'#d0eefc', pp_after:'Plot Point 1', inciting:true},
@@ -638,4 +640,74 @@ function promoteSceneToBoard(i){
       if(step){ const chev = step.querySelector('.support-chev'); if(chev) chev.textContent = '▴'; }
     }
   }
+}
+
+/* ===== ESTRAZIONE DALLO SCRIPTMENT (a senso unico, merge non distruttivo) ===== */
+function _openSupportFor(which){
+  const sb=document.getElementById('support-body');
+  const tog=document.querySelector('.support-toggle');
+  if(sb){ sb.style.display='block'; if(tog) tog.classList.add('open'); }
+  const wrap=document.getElementById(which==='chars'?'chars-wrap':'struttura-wrap');
+  if(wrap) wrap.style.display='block';
+}
+function _flashBtn(btn,n){
+  if(!btn) return;
+  if(!btn.dataset.orig) btn.dataset.orig=btn.textContent;
+  btn.textContent = n>0 ? ('✓ '+n+(n===1?' aggiunto':' aggiunti')) : 'già aggiornato';
+  btn.classList.add('extract-done');
+  clearTimeout(btn._t);
+  btn._t=setTimeout(()=>{ btn.textContent=btn.dataset.orig; btn.classList.remove('extract-done'); },1700);
+}
+
+export function extractCharsFromScript(btn){
+  const p=getProject(currentId); if(!p) return;
+  const sm=getScriptment(p);
+  const items=parseScreenplay((sm&&sm.text)||'');
+  if(!p.story)p.story={};
+  if(!p.story.characters)p.story.characters=[];
+  const existing=new Set(p.story.characters.map(c=>(c.name||'').trim().toUpperCase()).filter(Boolean));
+  const seen=new Set();
+  let added=0;
+  for(const it of items){
+    if(it.type!=='character') continue;
+    const name=(it.text||'').trim();
+    if(!name) continue;
+    const key=name.toUpperCase();
+    if(seen.has(key)) continue;
+    seen.add(key);
+    if(!existing.has(key)){
+      p.story.characters.push({name, desc:''});
+      existing.add(key);
+      added++;
+    }
+  }
+  if(added){ scheduleSave(p); renderCharacters(p); }
+  _openSupportFor('chars');
+  _flashBtn(btn,added);
+  return added;
+}
+
+export function extractScenesFromScript(btn){
+  const p=getProject(currentId); if(!p) return;
+  const sm=getScriptment(p);
+  const items=parseScreenplay((sm&&sm.text)||'');
+  if(!p.story)p.story={};
+  if(!p.story.acts)p.story.acts={setup:[],confrontation:[],resolution:[]};
+  const existing=new Set();
+  ['setup','confrontation','resolution'].forEach(a=>(p.story.acts[a]||[]).forEach(s=>existing.add((s||'').trim().toUpperCase())));
+  let added=0;
+  for(const it of items){
+    if(it.type!=='scene') continue;
+    const head=(it.text||'').trim();
+    if(!head) continue;
+    const key=head.toUpperCase();
+    if(existing.has(key)) continue;
+    p.story.acts.setup.push(head);
+    existing.add(key);
+    added++;
+  }
+  if(added){ scheduleSave(p); renderActBoard(p); }
+  _openSupportFor('struttura');
+  _flashBtn(btn,added);
+  return added;
 }
