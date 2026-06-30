@@ -695,19 +695,48 @@ export function extractScenesFromScript(btn){
   if(!p.story.acts)p.story.acts={setup:[],confrontation:[],resolution:[]};
   const existing=new Set();
   ['setup','confrontation','resolution'].forEach(a=>(p.story.acts[a]||[]).forEach(s=>existing.add((s||'').trim().toUpperCase())));
-  let added=0;
+
+  // scorri in ordine: i marcatori d'atto impostano l'atto corrente
+  const order=['setup','confrontation','resolution'];
+  let markerCount=0, curAct=null, anyMarker=false;
+  const sceneList=[]; // {head, act|null}
   for(const it of items){
-    if(it.type!=='scene') continue;
-    const head=(it.text||'').trim();
-    if(!head) continue;
-    const key=head.toUpperCase();
-    if(existing.has(key)) continue;
-    p.story.acts.setup.push(head);
-    existing.add(key);
-    added++;
+    if(it.type==='act'){
+      anyMarker=true;
+      curAct = it.act || order[Math.min(markerCount,2)];
+      markerCount++;
+      continue;
+    }
+    if(it.type==='scene'){
+      const head=(it.text||'').trim();
+      if(head) sceneList.push({head, act:curAct});
+    }
   }
-  if(added){ scheduleSave(p); renderActBoard(p); }
+
+  const newScenes=sceneList.filter(s=>!existing.has(s.head.toUpperCase()));
+  if(!newScenes.length){ _openSupportFor('struttura'); _flashBtn(btn,0); return 0; }
+
+  if(anyMarker){
+    newScenes.forEach(s=>{
+      const act=s.act || 'setup';
+      p.story.acts[act].push(s.head);
+      existing.add(s.head.toUpperCase());
+    });
+  } else {
+    const n=newScenes.length;
+    newScenes.forEach((s,i)=>{
+      let act;
+      if(n<=2){ act='setup'; }
+      else {
+        const frac=(i+0.5)/n;
+        act = frac<0.25 ? 'setup' : (frac<0.75 ? 'confrontation' : 'resolution');
+      }
+      p.story.acts[act].push(s.head);
+      existing.add(s.head.toUpperCase());
+    });
+  }
+  scheduleSave(p); renderActBoard(p);
   _openSupportFor('struttura');
-  _flashBtn(btn,added);
-  return added;
+  _flashBtn(btn,newScenes.length);
+  return newScenes.length;
 }

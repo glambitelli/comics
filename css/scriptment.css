@@ -324,3 +324,18 @@ body.is-touch .scriptment-foot-shortcut{display:none}
 .fmt-btn-cancel{background:var(--sand);color:var(--ink2);border:1px solid var(--sand2)}
 .fmt-btn-apply{background:#2a2018;color:#f0c068}
 .fmt-btn-apply:active,.fmt-btn-cancel:active{transform:scale(.98)}
+
+/* Marcatore d'atto (# Atto II) — editor e lettura */
+.scriptment-page .sp-act,
+.sp-act{
+  text-align:center;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:.14em;
+  color:#a07e14;
+  margin:1.1em auto .7em;
+  padding-bottom:.35em;
+  border-bottom:1.5px solid #e6d49a;
+  max-width:62%;
+  font-size:.92em;
+}

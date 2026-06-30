@@ -48,6 +48,13 @@ function editorGetText(el){
         pushLine();
         continue;
       }
+      // marcatore d'atto: ricostruisci "# label"
+      if(cls && cls.includes && cls.includes('sp-act')){
+        if(buf !== '') pushLine();
+        buf = '# ' + child.textContent.trim();
+        pushLine();
+        continue;
+      }
       // riga vuota esplicita
       if(cls && cls.includes && cls.includes('sp-blank')){
         if(buf !== '') pushLine();
@@ -323,6 +330,15 @@ const RE_SCENE = /^(int|est|ext|int\.\/est|int\.\/ext|interno|esterno)\b[.\s]/i;
 // scena con numerazione già presente: "12. INT..." oppure "12  INT...  12"
 const RE_SCENE_NUMBERED = /^\s*\d+[\.\s]+(.*?)(?:\s+\d+\s*)?$/;
 
+// Riconosce l'atto dal testo di un marcatore "# Atto II" → 'setup'|'confrontation'|'resolution'|null
+function actIdFromLabel(label){
+  const s=(label||'').toLowerCase();
+  if(/\biii\b|\b3\b|\btre\b|terz|risoluz|resolution|epilog|finale/.test(s)) return 'resolution';
+  if(/\bii\b|\b2\b|\bdue\b|second|confront|svolg|conflitt|centrale/.test(s)) return 'confrontation';
+  if(/\bi\b|\b1\b|\buno\b|prim|setup|esposiz|impost|inizio/.test(s)) return 'setup';
+  return null;
+}
+
 // Analizza il testo "pulito" e restituisce righe tipizzate per il rendering.
 // type ∈ scene | transition | character | dialogue | action | blank | note
 export function parseScreenplay(text){
@@ -363,7 +379,11 @@ export function parseScreenplay(text){
 
     if(trimmed === ''){ result.push({type:'blank', text:''}); inDialogue = false; continue; }
     if(/^\/\//.test(trimmed)){ result.push({type:'note', text:trimmed}); inDialogue = false; continue; }
-
+    if(/^#/.test(trimmed)){
+      const label = trimmed.replace(/^#+\s*/,'').trim();
+      result.push({type:'act', text: label || 'Atto', act: actIdFromLabel(label)});
+      inDialogue = false; continue;
+    }
     if(RE_TRANSITION.test(trimmed)){
       let t = trimmed.toUpperCase().replace(/\s*:?\s*$/, '');
       result.push({type:'transition', text:t + ':'});
@@ -429,6 +449,7 @@ export function renderScreenplayHTML(text){
         html += `<div class="sp-scene"><span class="sp-scene-h">${esc(n.text)}</span><span class="sp-scene-n">${n.scene}</span></div>`;
         break;
       case 'transition': html += `<div class="sp-transition">${esc(n.text)}</div>`; break;
+      case 'act': html += `<div class="sp-act">${esc(n.text)}</div>`; break;
       case 'character': html += `<div class="sp-character">${esc(n.text)}</div>`; break;
       case 'dialogue': html += `<div class="sp-dialogue">${esc(n.text)}</div>`; break;
       default: html += `<div class="sp-action">${esc(n.text)}</div>`;
@@ -457,6 +478,11 @@ function autoFormatScreenplay(text){
       case 'transition':
         pushBlankBefore();
         out.push(node.text);
+        out.push('');
+        break;
+      case 'act':
+        pushBlankBefore();
+        out.push('# ' + node.text);
         out.push('');
         break;
       case 'character':
