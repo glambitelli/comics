@@ -4,29 +4,24 @@
 
 /* ── Pulsante che apre l'editor (fase Sviluppo) ── */
 .scriptment-open-btn{
-  display:flex;align-items:center;gap:13px;width:100%;
-  background:linear-gradient(135deg,#44321e,#2c1f10);
-  border:none;border-radius:14px;padding:16px 17px;cursor:pointer;
-  margin-bottom:16px;box-shadow:0 3px 12px rgba(70,48,20,.22);
+  display:flex;flex-direction:column;align-items:center;gap:4px;width:100%;
+  background:linear-gradient(135deg,#221a10,#0d0a05);
+  border:1px solid rgba(240,200,90,.18);border-radius:14px;padding:15px 17px;cursor:pointer;
+  margin-bottom:16px;box-shadow:0 3px 14px rgba(0,0,0,.30);
   transition:transform .12s;
   font-family:inherit;
 }
 .scriptment-open-btn:active{transform:scale(.985)}
-.scriptment-btn-ico{
-  width:40px;height:40px;border-radius:11px;
-  background:rgba(240,200,100,.16);
-  display:flex;align-items:center;justify-content:center;flex-shrink:0;
-}
-.scriptment-btn-ico svg{width:22px;height:22px}
-.scriptment-btn-txt{text-align:left;flex:1;min-width:0}
+.scriptment-btn-head{display:flex;align-items:center;justify-content:center;gap:10px}
+.scriptment-btn-glyph{display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.scriptment-btn-glyph svg{width:23px;height:23px;display:block}
 .scriptment-btn-h{
-  display:block;font-family:'Castoro',serif;font-size:14px;color:#f5ecd8;line-height:1.1;
+  font-family:'Castoro',serif;font-size:18px;color:#f0c84e;line-height:1;letter-spacing:.02em;
 }
 .scriptment-btn-p{
-  display:block;font-size:11px;color:rgba(245,236,216,.55);margin-top:3px;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  display:block;font-size:11px;color:rgba(240,200,90,.55);text-align:center;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:90%;
 }
-.scriptment-btn-arrow{color:#f0c068;font-size:20px;flex-shrink:0}
 
 .sub-label-ref{
   font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
