@@ -249,13 +249,12 @@ export function exportScreenplay(){
     *{box-sizing:border-box;margin:0;padding:0}
     body{font-family:'Courier New',Courier,monospace;color:#111;background:#fff;font-size:12pt;line-height:1.5}
     .page{max-width:8.5in;margin:0 auto;padding:1in 1in 1in 1.4in}
-    .scriptment-body{font-family:'Courier New',Courier,monospace;font-size:12pt;line-height:1.6}
+    .scriptment-body{font-family:'Courier New',Courier,monospace;font-size:12pt;line-height:1.6;counter-reset:sp-scene-counter}
     .sp-blank{height:.9em}
     .sp-action{margin:.1em 0}
     .sp-note{margin:.1em 0;color:#777;font-style:italic}
-    .sp-scene{display:flex;justify-content:space-between;align-items:baseline;gap:12px;font-weight:700;text-transform:uppercase;margin:.5em 0 .2em}
-    .sp-scene-h{flex:1;text-align:center}
-    .sp-scene-n{flex:0 0 auto;color:#666}
+    .sp-scene{position:relative;text-align:left;padding-right:2.4em;font-weight:700;text-transform:uppercase;margin:.5em 0 .2em;counter-increment:sp-scene-counter}
+    .sp-scene::after{content:counter(sp-scene-counter);position:absolute;right:0;top:0;color:#666;font-weight:700;text-transform:none}
     .sp-transition{text-align:right;font-weight:700;text-transform:uppercase;margin:.3em 0}
     .sp-character{text-align:center;text-transform:uppercase;font-weight:700;margin:.5em 0 0}
     .sp-dialogue{text-align:center;margin:0 auto;max-width:62%}

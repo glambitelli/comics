@@ -37,17 +37,6 @@ function editorGetText(el){
 
       if(tag === 'BR'){ pushLine(); continue; }
 
-      // scena: ricostruisci "N. HEADING" (ignora il doppio numero del render)
-      if(cls && cls.includes && cls.includes('sp-scene')){
-        if(buf !== '') pushLine();
-        const h = child.querySelector ? child.querySelector('.sp-scene-h') : null;
-        const n = child.querySelector ? child.querySelector('.sp-scene-n') : null;
-        const num = n ? n.textContent.trim() : '';
-        const head = h ? h.textContent.trim() : child.textContent.trim();
-        buf = (num ? num + '. ' : '') + head;
-        pushLine();
-        continue;
-      }
       // marcatore d'atto: ricostruisci "# label"
       if(cls && cls.includes && cls.includes('sp-act')){
         if(buf !== '') pushLine();
@@ -83,19 +72,16 @@ function editorGetText(el){
   while(result.length > 1 && result[result.length-1] === '') result.pop();
   const joined = result.join('\n');
 
-  // CONTROLLO DI COMPLETEZZA: confronta le parole lette con quelle visibili,
-  // escludendo i numeri-scena (.sp-scene-n) che appaiono nel textContent ma
-  // non nel testo logico (evita il loop "1" → fallback → riformatta → "1" ancora).
+  // CONTROLLO DI COMPLETEZZA: confronta le parole lette con quelle visibili
+  // (protegge da eventuali disallineamenti DOM/testo logico).
   const norm = s => (s || '').toLowerCase()
     .replace(/(\d)(\p{L})/gu,'$1 $2').replace(/(\p{L})(\d)/gu,'$1 $2');
   const wordsOf = s => (norm(s).match(/[\p{L}\p{N}]+/gu) || []);
 
-  // Costruisci textContent escludendo i nodi sp-scene-n
   let visibleText = '';
   const collectVisible = (node) => {
     if(node.nodeType === 3){ visibleText += node.textContent; return; }
     if(node.nodeType !== 1) return;
-    if((node.className||'').includes('sp-scene-n')) return; // salta numeri scena
     node.childNodes.forEach(collectVisible);
   };
   collectVisible(el);
@@ -465,7 +451,7 @@ export function renderScreenplayHTML(text){
       case 'blank': html += '<div class="sp-blank"></div>'; break;
       case 'note': html += `<div class="sp-note">${esc(n.text)}</div>`; break;
       case 'scene':
-        html += `<div class="sp-scene"><span class="sp-scene-h">${esc(n.text)}</span><span class="sp-scene-n">${n.scene}</span></div>`;
+        html += `<div class="sp-scene">${esc(n.text)}</div>`;
         break;
       case 'transition': html += `<div class="sp-transition">${esc(n.text)}</div>`; break;
       case 'act': html += `<div class="sp-act">${esc(n.text)}</div>`; break;

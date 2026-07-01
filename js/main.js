@@ -3,7 +3,7 @@ import { projects, setProjects, currentId, getProject } from './state.js';
 import { saveDates } from './velocity.js';
 import { exportPDF, exportStoryboard, exportScreenplay } from './pdf.js';
 import { togglePhase, toggleStep, selectTav, addSfida, addTodo, toggleTodo, clearCompletedTodos, toggleSupport } from './pipeline.js';
-import { addScene, updateScene, deleteScene, autoResize, saveStoryField, updateCharCount, toggleSubsection, addCharacter, deleteCharacter, toggleCharCard, autoResizeAll, toggleScreenplay, addSceneText, deleteSceneText, extractCharsFromScript, extractScenesFromScript } from './story.js';
+import { addScene, updateScene, deleteScene, autoResize, saveStoryField, updateCharCount, toggleSubsection, addCharacter, deleteCharacter, toggleCharCard, autoResizeAll, toggleScreenplay, addSceneText, deleteSceneText, extractAllFromScript } from './story.js';
 import { updatePlanner, applyPlanner, openPlannerModal, closePlannerModal } from './planner.js';
 import { initNotifications, saveReminderSettings, testNotification } from './notifications.js';
 import { openSettings, closeSettings, resetStarsConfirm, closeStarsConfirm, doResetStars, exportBackup, importBackup, resetStreakConfirm, closeStreakConfirm, doResetStreak } from './settings.js';
@@ -213,7 +213,7 @@ window.togglePhase=togglePhase;
 window.toggleStep=toggleStep; window.selectTav=selectTav; window.addSfida=addSfida;
 window.addTodo=addTodo; window.toggleTodo=toggleTodo; window.clearCompletedTodos=clearCompletedTodos;
 window.toggleSupport=toggleSupport;
-window.extractCharsFromScript=extractCharsFromScript; window.extractScenesFromScript=extractScenesFromScript;
+window.extractAllFromScript=extractAllFromScript;
 window.saveDates=saveDates; window.confirmDeleteCurrent=confirmDeleteCurrent; window.closeConfirm=closeConfirm;
 window.exportPDF=exportPDF; window.exportStoryboard=exportStoryboard; window.exportScreenplay=exportScreenplay;
 // Export principale: il PDF classico del progetto

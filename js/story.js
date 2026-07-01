@@ -740,3 +740,12 @@ export function extractScenesFromScript(btn){
   _flashBtn(btn,newScenes.length);
   return newScenes.length;
 }
+
+export function extractAllFromScript(btn){
+  const nChars = extractCharsFromScript(null);
+  const nScenes = extractScenesFromScript(null);
+  const total = (nChars||0) + (nScenes||0);
+  _openSupportFor('chars');
+  _flashBtn(btn, total);
+  return total;
+}

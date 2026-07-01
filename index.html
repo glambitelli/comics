@@ -158,16 +158,18 @@
         <button class="scriptment-open-btn" onclick="openScriptment()">
           <span class="scriptment-btn-head">
             <span class="scriptment-btn-glyph">
-              <svg viewBox="0 0 24 24"><path d="M7 3 L17 3 L13.4 14 L12 17 L10.6 14 Z" fill="#f0c84e"/><circle cx="12" cy="7.4" r="1.4" fill="#0f0b06"/><line x1="12" y1="9.6" x2="12" y2="14" stroke="#0f0b06" stroke-width="1.2" stroke-linecap="round"/></svg>
+              <svg viewBox="0 0 24 24">
+                <path d="M8.6 3.4 A5.6 5.6 0 1 0 8.6 14.6 A4.4 4.4 0 1 1 8.6 3.4 Z" fill="#f0c84e"/>
+                <path d="M18 3.4 L18.7 5.3 L20.6 6 L18.7 6.7 L18 8.6 L17.3 6.7 L15.4 6 L17.3 5.3 Z" fill="#f0c84e" opacity="0.9"/>
+                <path d="M2 19 Q7 14.5 11.5 17.3 T22 15 L22 21 L2 21 Z" fill="#f0c84e" opacity="0.75"/>
+              </svg>
             </span>
             <span class="scriptment-btn-h">Scriptment</span>
           </span>
-          <span class="scriptment-btn-p" id="scriptment-wordcount">butta vernice contro il muro</span>
         </button>
 
         <div class="extract-row">
-          <button class="extract-btn" onclick="extractCharsFromScript(this)">⤓ Estrai personaggi</button>
-          <button class="extract-btn" onclick="extractScenesFromScript(this)">⤓ Estrai scene → 3 atti</button>
+          <button class="extract-btn" onclick="extractAllFromScript(this)">⤓ Estrai personaggi e scene</button>
         </div>
 
         <div class="support-toggle" onclick="toggleSupport(this)">
