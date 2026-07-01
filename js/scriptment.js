@@ -212,20 +212,25 @@ function normalizeCaretBlock(editor){
   }catch(e){/* non bloccare mai la digitazione */}
 }
 
-// Su "a capo": una riga NUOVA e VUOTA non deve ereditare la formattazione del
-// blocco precedente (nome/scena/transizione/dialogo). Tocchiamo SOLO i blocchi
-// vuoti, così un nome con testo non perde mai il suo ruolo (fix v51 preservato).
-function normalizeEmptyCaretBlock(editor){
+// Ripulisce TUTTI i blocchi dell'editor (non solo quello del cursore):
+// un blocco "sp-scene" che il browser ha spezzato/svuotato con Invio, e il
+// cui testo NON è più una vera intestazione (INT./EST...), torna testo
+// normale — così non genera più un numero-scena fantasma. Copre anche i
+// blocchi nome/transizione/dialogo lasciati vuoti dallo split.
+function sanitizeFormattedBlocks(editor){
   try{
-    const sel = window.getSelection();
-    if(!sel || !sel.rangeCount) return;
-    let node = sel.anchorNode;
-    if(!node) return;
-    while(node && node.parentNode && node.parentNode !== editor) node = node.parentNode;
-    if(!node || node.nodeType !== 1 || node.parentNode !== editor) return;
-    const cls = node.className || '';
-    if(/sp-(character|scene|transition|dialogue)/.test(cls) && (node.textContent||'').trim() === ''){
-      node.className = 'sp-action';
+    const kids = editor.children;
+    for(let i=0;i<kids.length;i++){
+      const node = kids[i];
+      const cls = node.className || '';
+      const txt = (node.textContent||'').trim();
+      if(/\bsp-scene\b/.test(cls) && !RE_SCENE.test(txt)){
+        node.className = 'sp-action';
+        continue;
+      }
+      if(/sp-(character|transition|act|dialogue)/.test(cls) && txt === ''){
+        node.className = 'sp-action';
+      }
     }
   }catch(e){/* non bloccare mai la digitazione */}
 }
@@ -241,7 +246,7 @@ export function onScriptmentInput(e){
   const it = e && e.inputType ? e.inputType : '';
   const isNewline = it === 'insertParagraph' || it === 'insertLineBreak';
   if(!isNewline) normalizeCaretBlock(ta);
-  else normalizeEmptyCaretBlock(ta);
+  sanitizeFormattedBlocks(ta);
   sm.text = editorGetText(ta);
   updateWordCount(sm.text);
   flagSaving();
@@ -383,6 +388,9 @@ export function parseScreenplay(text){
     const trimmed = raw.trim();
 
     if(trimmed === ''){ result.push({type:'blank', text:''}); inDialogue = false; continue; }
+    // riga fatta SOLO di un numero: mai contenuto valido, quasi certamente un
+    // residuo del vecchio bug del numero-scena duplicato → la scartiamo.
+    if(/^\d+$/.test(trimmed)) continue;
     if(/^\/\//.test(trimmed)){ result.push({type:'note', text:trimmed}); inDialogue = false; continue; }
     if(/^#/.test(trimmed)){
       const label = trimmed.replace(/^#+\s*/,'').trim();
