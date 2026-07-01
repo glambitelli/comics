@@ -73,6 +73,10 @@
 .phase-body{border-top:1.5px solid var(--sand2);display:none}
 .phase-body.open{display:block}
 .step-item{display:flex;align-items:flex-start;gap:12px;padding:13px 16px;border-bottom:1px solid var(--sand);cursor:pointer;transition:background .1s}
+
+/* Moodboard: punto 0, visibile fuori dal cassetto Supporto */
+.moodboard-zero{background:#fffdf8;border:1px solid #ece2cd;border-radius:12px;margin-bottom:10px;border-bottom:1px solid #ece2cd}
+.mz-tag{display:flex;align-items:center;justify-content:center;flex-shrink:0;width:18px;height:18px;margin-top:1px;border-radius:50%;background:var(--gold);color:#2a2420;font-size:9px;font-weight:800}
 .step-item:last-child{border-bottom:none}
 .step-item:active{background:var(--sand)}
 .step-chk{width:22px;height:22px;border-radius:50%;border:2px solid var(--sand3);flex-shrink:0;display:flex;align-items:center;justify-content:center;margin-top:1px;font-size:12px;color:transparent;transition:all .2s}
@@ -170,8 +174,10 @@
 .support-body{padding:2px 0 0;border-left:2px solid #efe2c8;margin-left:6px;padding-left:8px}
 
 /* Pulsanti estrazione dallo Scriptment */
-.extract-row{margin:-4px 0 14px}
-.extract-btn{display:block;width:100%;background:#fdf0b0;border:1px solid #ecd97a;border-radius:10px;padding:10px 8px;font-family:'Nunito',sans-serif;font-size:12.5px;font-weight:700;color:#8a6a10;cursor:pointer;transition:background .15s,transform .12s,color .15s,border-color .15s;line-height:1.2;text-align:center}
+.extract-row{margin:-2px 0 14px}
+.extract-btn{display:block;width:100%;background:none;border:1px dashed #d8c8a0;border-radius:9px;padding:7px 8px;font-family:'Nunito',sans-serif;font-size:10.5px;font-weight:700;color:#a8925c;cursor:pointer;transition:background .15s,transform .12s,color .15s,border-color .15s;line-height:1.2;text-align:center;letter-spacing:.02em}
+.extract-btn:active{transform:scale(.97);background:#f8f0dc}
+.extract-btn.extract-done{background:#e8f5e8;border-color:#a8d4a8;border-style:solid;color:#2a7a2a}
 .extract-btn:active{transform:scale(.97);background:#fbe89a}
 .extract-btn.extract-done{background:#c8ecc8;border-color:#9fd4a0;color:#2a7a2a}
 
