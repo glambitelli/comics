@@ -1,10 +1,15 @@
 /* PROJECT HEADER */
-.proj-header{background:#f1e7d2;padding:calc(20px + var(--safe-top)) 20px 20px;flex-shrink:0;position:relative;overflow:hidden;border-radius:0 0 24px 24px;border-bottom:2px solid #e6d6b4}
+.proj-header{background:#f1e7d2;padding:calc(22px + var(--safe-top)) 18px 16px;flex-shrink:0;position:relative;overflow:hidden;border-radius:0 0 24px 24px;border-bottom:2px solid #e6d6b4}
 .proj-header::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:var(--gold)}
-.proj-title-row{display:flex;align-items:center;justify-content:center}
-.proj-title-edit{font-size:30px;font-weight:700;color:var(--ink);background:transparent;border:none;outline:none;width:auto;max-width:88%;border-bottom:2px solid transparent;transition:border-color .2s;font-family:'Castoro',serif;letter-spacing:-.01em;text-align:center;padding:0}
+.proj-glyph{position:absolute;right:18px;top:calc(22px + var(--safe-top));width:30px;height:30px}
+.proj-eyebrow{font-family:'Courier Prime',monospace;font-size:10px;color:#9a8458;letter-spacing:.18em;text-transform:uppercase;margin-bottom:6px}
+.proj-title-row{display:flex;align-items:center;justify-content:flex-start;padding-right:44px}
+.proj-title-edit{font-size:38px;font-weight:700;color:var(--ink);background:transparent;border:none;outline:none;width:auto;max-width:100%;border-bottom:2px solid transparent;transition:border-color .2s;font-family:'Courier Prime',monospace;letter-spacing:-.02em;text-align:left;line-height:1;padding:0}
 .proj-title-edit:focus{border-bottom-color:var(--gold)}
-.proj-meta{font-size:12px;color:var(--ink2);display:flex;gap:14px;flex-wrap:wrap;margin-top:8px;font-weight:500;justify-content:center}
+.proj-meta{font-size:11px;color:#5a5048;display:flex;margin-top:14px;font-family:'Courier Prime',monospace}
+.proj-meta>div{padding:0 14px;border-right:1.5px solid #c8b898}
+.proj-meta>div:first-child{padding-left:0}
+.proj-meta>div:last-child{border-right:none}
 .proj-meta span{color:var(--ink);font-weight:700}
 .prog-bar-wrap{background:var(--white);padding:12px 20px;border-bottom:1px solid var(--sand2);display:flex;align-items:center;gap:12px;flex-shrink:0}
 .prog-bar{flex:1;height:6px;background:var(--sand2);border-radius:3px;overflow:hidden}
@@ -188,28 +193,28 @@
 .sfida-item .sfida-text-input{flex:1;min-width:0;width:100%;font-size:14px}
 
 /* To Do — minimale */
-.todo-box{background:var(--white);border:1.5px solid var(--sand2);border-radius:var(--r);padding:12px 13px 13px;box-shadow:var(--shadow)}
-.todo-toolbar{display:flex;justify-content:flex-end;margin-bottom:8px}
-.todo-empty{font-size:13px;color:#b0a488;padding:10px 0;font-style:italic;text-align:center}
-.todo-item{display:flex;align-items:center;gap:11px;padding:10px 12px;background:#fffdf8;border:1px solid #ece2cd;border-radius:11px;margin-bottom:6px}
+.todo-box{background:var(--white);border:1.5px solid var(--sand2);border-radius:var(--r);padding:9px 10px;box-shadow:var(--shadow)}
+.todo-toolbar{display:flex;justify-content:flex-end;margin-bottom:6px}
+.todo-empty{font-size:12.5px;color:#b0a488;padding:6px 0;font-style:italic;text-align:center}
+.todo-item{display:flex;align-items:center;gap:10px;padding:7px 10px;background:#fffdf8;border:1px solid #ece2cd;border-radius:8px;margin-bottom:4px}
 .todo-item:last-of-type{margin-bottom:0}
 .todo-item.done{background:#f8f3e8;border-color:#ede3cf}
-.todo-chk{width:21px;height:21px;flex-shrink:0;border-radius:50%;border:2px solid var(--sand3);background:none;color:transparent;font-size:12px;font-weight:800;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .18s;padding:0}
+.todo-chk{width:19px;height:19px;flex-shrink:0;border-radius:50%;border:2px solid var(--sand3);background:none;color:transparent;font-size:11px;font-weight:800;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .18s;padding:0}
 .todo-chk:active{transform:scale(.9)}
 .todo-item.done .todo-chk{background:var(--gold);border-color:var(--gold);color:#2a2420}
-.todo-text{flex:1;min-width:0;font-size:14.5px;font-weight:600;color:var(--ink);word-break:break-word;transition:color .18s}
+.todo-text{flex:1;min-width:0;font-size:14px;font-weight:600;color:var(--ink);word-break:break-word;transition:color .18s}
 .todo-item.done .todo-text{text-decoration:line-through;color:#b0a488;font-weight:500}
 .todo-rm{background:none;border:none;cursor:pointer;color:#cdbf9f;font-size:17px;line-height:1;padding:0 2px;flex-shrink:0;transition:color .15s,opacity .15s;opacity:.35}
 .todo-item:hover .todo-rm{opacity:1}
 .todo-rm:hover,.todo-rm:active{color:var(--coral);opacity:1}
-.todo-add{display:flex;align-items:center;gap:10px;margin-top:6px;padding:2px}
-.todo-add-btn{flex-shrink:0;width:26px;height:26px;border:none;background:none;color:var(--gold);font-size:27px;font-weight:300;line-height:0;cursor:pointer;padding:0;display:flex;align-items:center;justify-content:center}
+.todo-add{display:flex;align-items:center;gap:9px;margin-top:4px;padding:0 2px}
+.todo-add-btn{flex-shrink:0;width:24px;height:24px;border:none;background:none;color:var(--gold);font-size:25px;font-weight:300;line-height:0;cursor:pointer;padding:0;display:flex;align-items:center;justify-content:center}
 .todo-add-btn:active{transform:scale(.88)}
-.todo-input{flex:1;min-width:0;background:none;border:none;border-bottom:1.5px solid #e6dcc4;border-radius:0;padding:7px 2px;font-family:'Nunito',sans-serif;font-size:14px;color:var(--ink);outline:none;transition:border-color .2s}
+.todo-input{flex:1;min-width:0;background:none;border:none;border-bottom:1.5px solid #e6dcc4;border-radius:0;padding:5px 2px;font-family:'Nunito',sans-serif;font-size:13.5px;color:var(--ink);outline:none;transition:border-color .2s}
 .todo-input::placeholder{color:#b8ac90}
 .todo-input:focus{border-bottom-color:var(--gold)}
-.todo-clear{display:inline-flex;align-items:center;width:auto;text-align:center;margin:0;background:var(--white);border:1px solid var(--sand3);border-radius:20px;color:#a89878;font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;padding:5px 12px}
-.todo-clear:hover,.todo-clear:active{color:var(--coral)}
+.todo-clear{display:inline-flex;align-items:center;gap:5px;width:auto;background:var(--sand);border:1.5px solid var(--sand3);border-radius:8px;color:#8a7a58;font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;padding:5px 11px;transition:all .15s}
+.todo-clear:hover,.todo-clear:active{background:var(--coral-pale);border-color:var(--coral-mid);color:var(--coral)}
 
 /* Su touch la barra-duna gestisce la navigazione: nascondi il back-btn nel progetto */
 body.is-touch .back-btn{display:none}
