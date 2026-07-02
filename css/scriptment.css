@@ -3,18 +3,24 @@
    ════════════════════════════════════════════ */
 
 /* ── Pulsante che apre l'editor (fase Sviluppo) ── */
+/* ── Blocco scrittura unificato: Scriptment + Estrai ── */
+.script-block{
+  border-radius:14px;overflow:hidden;margin-bottom:16px;
+  border:1px solid rgba(240,200,90,.25);
+  box-shadow:0 3px 14px rgba(0,0,0,.18);
+}
 .scriptment-open-btn{
   display:flex;align-items:center;justify-content:center;width:100%;
   background:linear-gradient(135deg,#221a10,#0d0a05);
-  border:1px solid rgba(240,200,90,.18);border-radius:14px;padding:14px 17px;cursor:pointer;
-  margin-bottom:16px;box-shadow:0 3px 14px rgba(0,0,0,.30);
+  border:none;border-radius:0;padding:11px 16px;cursor:pointer;
+  margin-bottom:0;box-shadow:none;
   transition:transform .12s;
   font-family:inherit;
 }
 .scriptment-open-btn:active{transform:scale(.985)}
-.scriptment-btn-head{display:flex;align-items:center;justify-content:center;gap:11px}
+.scriptment-btn-head{display:flex;align-items:center;justify-content:center;gap:10px}
 .scriptment-btn-glyph{display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.scriptment-btn-glyph svg{width:25px;height:25px;display:block}
+.scriptment-btn-glyph svg{width:21px;height:21px;display:block}
 .scriptment-btn-h{
   font-family:'Castoro',serif;font-size:14px;color:#f0c84e;line-height:1;letter-spacing:.02em;
 }
