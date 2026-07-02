@@ -3,7 +3,10 @@ import { saveUserData, scheduleSave, bumpDataRev } from './firebase.js';
 import { drawGem } from './canvas.js';
 
 export function enterEveningMode(){
-  document.getElementById('screen-home').classList.remove('active');
+  // Chiude TUTTE le schermate eventualmente aperte (non solo la home), altrimenti
+  // se si entra in sera da Stats o da un progetto quella resta attiva sotto,
+  // causando la sovrapposizione visiva delle pagine.
+  document.querySelectorAll('.screen.active').forEach(el=>el.classList.remove('active'));
   document.getElementById('screen-evening').classList.add('active');
   document.body.classList.add('evening-mode');
   if(window.__navSync) window.__navSync('evening');

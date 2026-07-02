@@ -188,9 +188,10 @@
 .sfida-item .sfida-text-input{flex:1;min-width:0;width:100%;font-size:14px}
 
 /* To Do — minimale */
-.todo-box{background:none;border:none;padding:0}
+.todo-box{background:var(--white);border:1.5px solid var(--sand2);border-radius:var(--r);padding:12px 13px 13px;box-shadow:var(--shadow)}
+.todo-toolbar{display:flex;justify-content:flex-end;margin-bottom:8px}
 .todo-empty{font-size:13px;color:#b0a488;padding:10px 0;font-style:italic;text-align:center}
-.todo-item{display:flex;align-items:center;gap:12px;padding:11px 13px;background:#fffdf8;border:1px solid #ece2cd;border-radius:11px;margin-bottom:7px}
+.todo-item{display:flex;align-items:center;gap:11px;padding:10px 12px;background:#fffdf8;border:1px solid #ece2cd;border-radius:11px;margin-bottom:6px}
 .todo-item:last-of-type{margin-bottom:0}
 .todo-item.done{background:#f8f3e8;border-color:#ede3cf}
 .todo-chk{width:21px;height:21px;flex-shrink:0;border-radius:50%;border:2px solid var(--sand3);background:none;color:transparent;font-size:12px;font-weight:800;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .18s;padding:0}
@@ -207,7 +208,7 @@
 .todo-input{flex:1;min-width:0;background:none;border:none;border-bottom:1.5px solid #e6dcc4;border-radius:0;padding:7px 2px;font-family:'Nunito',sans-serif;font-size:14px;color:var(--ink);outline:none;transition:border-color .2s}
 .todo-input::placeholder{color:#b8ac90}
 .todo-input:focus{border-bottom-color:var(--gold)}
-.todo-clear{display:block;width:100%;text-align:center;margin-top:12px;background:none;border:none;color:#a89878;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;padding:4px}
+.todo-clear{display:inline-flex;align-items:center;width:auto;text-align:center;margin:0;background:var(--white);border:1px solid var(--sand3);border-radius:20px;color:#a89878;font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;padding:5px 12px}
 .todo-clear:hover,.todo-clear:active{color:var(--coral)}
 
 /* Su touch la barra-duna gestisce la navigazione: nascondi il back-btn nel progetto */

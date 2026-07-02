@@ -12,7 +12,9 @@ export function openProject(id){
   setCurrentId(id);
   const p = getProject(id);
   if(!p) return;
-  document.getElementById('screen-home').classList.remove('active');
+  // Chiude TUTTE le schermate eventualmente aperte (non solo la home), altrimenti
+  // aprendo un progetto da Stats o dalla modalità sera quella resta attiva sotto.
+  document.querySelectorAll('.screen.active').forEach(el=>el.classList.remove('active'));
   document.getElementById('screen-project').classList.add('active');
   if(window.__navSync) window.__navSync('project', id);
   restoreProject(p);

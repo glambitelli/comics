@@ -133,12 +133,12 @@
     <div style="margin-bottom:20px">
       <div class="sec-label">To Do</div>
       <div class="todo-box">
+        <div class="todo-toolbar"><button class="todo-clear" onclick="clearCompletedTodos()">Clear</button></div>
         <div id="todo-list"></div>
         <div class="todo-add">
           <input id="todo-input" type="text" class="todo-input" placeholder="Aggiungi attività…" onkeydown="if(event.key==='Enter'){addTodo();return false}"/>
           <button class="todo-add-btn" onclick="addTodo()" aria-label="Aggiungi">+</button>
         </div>
-        <button class="todo-clear" onclick="clearCompletedTodos()">Clear</button>
       </div>
     </div>
 
