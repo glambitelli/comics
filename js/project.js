@@ -23,15 +23,19 @@ export function openProject(id){
 export function restoreProject(p){
   const color = p.color || '#4ab8d8';
   const {r:cr, g:cg, b:cb} = hexToRgb(color);
-  const pasteR = Math.round(cr*0.15 + 255*0.85);
-  const pasteG = Math.round(cg*0.15 + 255*0.85);
-  const pasteB = Math.round(cb*0.15 + 255*0.85);
-  const pastello = `rgb(${pasteR},${pasteG},${pasteB})`;
+  // Versione "deep" del colore progetto per la percentuale (leggibile su sabbia)
+  const deepR = Math.round(cr*0.62);
+  const deepG = Math.round(cg*0.62);
+  const deepB = Math.round(cb*0.62);
+  const colorDeep = `rgb(${deepR},${deepG},${deepB})`;
 
   const hdr = document.querySelector('.proj-header');
   if(hdr){
-    hdr.style.background = pastello;
-    hdr.style.borderBottomColor = color;
+    // Sfondo sabbia fisso (via CSS): passiamo solo il colore progetto come accento
+    hdr.style.background = '';
+    hdr.style.borderBottomColor = '';
+    hdr.style.setProperty('--proj-color', color);
+    hdr.style.setProperty('--proj-color-deep', colorDeep);
   }
 
   const ptEl = document.getElementById('proj-title');
