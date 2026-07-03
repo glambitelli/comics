@@ -6,12 +6,12 @@
 /* ── Blocco scrittura unificato: Scriptment + Estrai ── */
 .script-block{
   border-radius:14px;overflow:hidden;margin-bottom:16px;
-  border:1px solid #b8945a;
+  border:1px solid #8a6a30;
   box-shadow:0 3px 14px rgba(0,0,0,.18);
 }
 .scriptment-open-btn{
   display:flex;align-items:center;justify-content:center;width:100%;
-  background:linear-gradient(135deg,#2e2410,#191204);
+  background:linear-gradient(135deg,#2c2008,#181004);
   border:none;border-radius:0;padding:11px 16px;cursor:pointer;
   margin-bottom:0;box-shadow:none;
   transition:transform .12s;
@@ -22,7 +22,7 @@
 .scriptment-btn-glyph{display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .scriptment-btn-glyph svg{width:21px;height:21px;display:block}
 .scriptment-btn-h{
-  font-family:'Castoro',serif;font-size:14px;color:#ecd3a0;line-height:1;letter-spacing:.02em;
+  font-family:'Castoro',serif;font-size:14px;color:#e8c468;line-height:1;letter-spacing:.02em;
 }
 
 .sub-label-ref{
