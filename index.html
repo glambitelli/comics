@@ -66,6 +66,7 @@
 <!-- PROJECT -->
 <div class="screen" id="screen-project">
   <div class="proj-header">
+    <svg class="proj-crest" viewBox="0 0 400 26" preserveAspectRatio="none" aria-hidden="true"><path d="M0 26 L0 18 Q120 2 230 12 T400 8 L400 26 Z" fill="#c49a55" opacity=".55"/></svg>
     <div class="proj-eyebrow"><span class="proj-gem" id="proj-gem"></span>Progetto</div>
     <div class="proj-title-row">
       <input class="proj-title-edit" id="proj-title" type="text" value="" placeholder="Titolo progetto"/>
@@ -136,12 +137,12 @@
     <div style="margin-bottom:20px">
       <div class="sec-label">To Do</div>
       <div class="todo-box">
-        <div class="todo-toolbar"><button class="todo-clear" onclick="clearCompletedTodos()">Clear</button></div>
         <div id="todo-list"></div>
         <div class="todo-add">
           <input id="todo-input" type="text" class="todo-input" placeholder="Aggiungi attività…" onkeydown="if(event.key==='Enter'){addTodo();return false}"/>
           <button class="todo-add-btn" onclick="addTodo()" aria-label="Aggiungi">+</button>
         </div>
+        <div class="todo-toolbar"><button class="todo-clear" onclick="clearCompletedTodos()">Clear</button></div>
       </div>
     </div>
 
@@ -165,15 +166,15 @@
             <span class="scriptment-btn-head">
               <span class="scriptment-btn-glyph">
                 <svg viewBox="0 0 24 24">
-                  <path d="M8.6 3.4 A5.6 5.6 0 1 0 8.6 14.6 A4.4 4.4 0 1 1 8.6 3.4 Z" fill="#f0c84e"/>
-                  <path d="M18 3.4 L18.7 5.3 L20.6 6 L18.7 6.7 L18 8.6 L17.3 6.7 L15.4 6 L17.3 5.3 Z" fill="#f0c84e" opacity="0.9"/>
-                  <path d="M2 19 Q7 14.5 11.5 17.3 T22 15 L22 21 L2 21 Z" fill="#f0c84e" opacity="0.75"/>
+                  <path d="M8.6 3.4 A5.6 5.6 0 1 0 8.6 14.6 A4.4 4.4 0 1 1 8.6 3.4 Z" fill="#ecd3a0"/>
+                  <path d="M18 3.4 L18.7 5.3 L20.6 6 L18.7 6.7 L18 8.6 L17.3 6.7 L15.4 6 L17.3 5.3 Z" fill="#ecd3a0" opacity="0.9"/>
+                  <path d="M2 19 Q7 14.5 11.5 17.3 T22 15 L22 21 L2 21 Z" fill="#ecd3a0" opacity="0.75"/>
                 </svg>
               </span>
               <span class="scriptment-btn-h">Scriptment</span>
             </span>
           </button>
-          <button class="extract-btn" onclick="extractAllFromScript(this)">⤓ estrai personaggi e scene</button>
+          <button class="extract-btn" onclick="extractAllFromScript(this)">⤓ Breakdown</button>
         </div>
 
         <div class="support-toggle" onclick="toggleSupport(this)">
