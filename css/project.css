@@ -1,26 +1,26 @@
-/* PROJECT HEADER — PAL B "ora dorata" */
-.proj-header{background:linear-gradient(165deg,#d5bd8c,#b89a64);padding:calc(22px + var(--safe-top)) 18px 22px;flex-shrink:0;position:relative;overflow:hidden;border-radius:0 0 24px 24px;border-bottom:1.5px solid #8c7244}
-.proj-header::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:#2e2614;z-index:1}
-.proj-crest{position:absolute;left:0;right:0;bottom:0;width:100%;height:22px;display:block}
-.proj-title-row{display:flex;align-items:flex-end;justify-content:flex-start;gap:12px;position:relative}
-.proj-title-edit{font-size:38px;font-weight:700;color:#2e2614;background:transparent;border:none;outline:none;width:auto;max-width:100%;min-width:0;border-bottom:2px solid transparent;transition:border-color .2s;font-family:'Courier Prime',monospace;letter-spacing:-.02em;text-align:left;line-height:1;padding:0}
-.proj-title-edit:focus{border-bottom-color:#2e2614}
-.proj-meta{font-size:12px;color:#625336;display:flex;flex-wrap:wrap;row-gap:4px;margin-top:8px;font-family:'Courier Prime',monospace;position:relative}
-.proj-meta>div{padding:0 13px;border-right:1.5px solid #8c7548}
+/* PROJECT HEADER — M2 sabbia chiara, punto oro */
+.proj-header{background:var(--sand);padding:calc(22px + var(--safe-top)) 18px 16px;flex-shrink:0;position:relative;overflow:hidden;border-radius:0 0 24px 24px;border-bottom:2px solid #e8dcc0}
+.proj-header::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--gold);z-index:1}
+.proj-title-row{display:flex;align-items:baseline;justify-content:flex-start;gap:1px;position:relative}
+.proj-title-edit{font-size:38px;font-weight:700;color:var(--ink);background:transparent;border:none;outline:none;width:auto;max-width:calc(100% - 22px);min-width:0;border-bottom:2px solid transparent;transition:border-color .2s;font-family:'Courier Prime',monospace;letter-spacing:-.02em;text-align:left;line-height:1;padding:0}
+.proj-title-edit:focus{border-bottom-color:var(--gold)}
+.proj-dot{font-family:'Courier Prime',monospace;font-weight:700;font-size:38px;line-height:1;color:#e0a810;flex-shrink:0;user-select:none}
+.proj-meta{font-size:12px;color:#6a6050;display:flex;flex-wrap:wrap;row-gap:4px;margin-top:10px;font-family:'Courier Prime',monospace;position:relative}
+.proj-meta>div{padding:0 13px;border-right:1.5px solid #d8cba8}
 .proj-meta>div:first-child{padding-left:0}
 .proj-meta>div:last-child{border-right:none}
-.proj-meta span{color:#2e2614;font-weight:700}
-.prog-bar-wrap{background:#f5eeda;padding:12px 20px;border-bottom:1px solid #d8c9a2;display:flex;align-items:center;gap:12px;flex-shrink:0}
-.prog-bar{flex:1;height:6px;background:#d2c096;border-radius:3px;overflow:hidden}
-.prog-fill{height:100%;background:#2e2614;border-radius:3px;transition:width .4s}
-.prog-lbl{font-size:11px;color:#6e5c38;white-space:nowrap;font-weight:600}
+.proj-meta span{color:var(--ink);font-weight:700}
+.prog-bar-wrap{background:var(--white);padding:12px 20px;border-bottom:1px solid var(--sand2);display:flex;align-items:center;gap:12px;flex-shrink:0}
+.prog-bar{flex:1;height:6px;background:#e0d4b4;border-radius:3px;overflow:hidden}
+.prog-fill{height:100%;background:var(--sky);border-radius:3px;transition:width .4s}
+.prog-lbl{font-size:11px;color:var(--ink2);white-space:nowrap;font-weight:600}
 
 /* PROGRESS */
-.proj-scroll{flex:1;overflow-y:auto;padding:16px 18px calc(20px + var(--safe-bot));background:#e8dcbe}
+.proj-scroll{flex:1;overflow-y:auto;padding:16px 18px calc(20px + var(--safe-bot));background:#efe6d4}
 
 /* SECTION LABEL */
-.sec-label{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#8c7244;margin:0 0 10px;display:flex;align-items:center;gap:8px}
-.sec-label::after{content:'';flex:1;height:1.5px;background:#c2ac7e;border-radius:1px}
+.sec-label{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#9a8458;margin:0 0 10px;display:flex;align-items:center;gap:8px}
+.sec-label::after{content:'';flex:1;height:1.5px;background:#dccca0;border-radius:1px}
 /* Sezione comprimibile con linea divisoria pulita */
 .sec-collapse{-webkit-tap-highlight-color:transparent;transition:color .12s}
 .sec-collapse:hover{color:var(--ink)}
@@ -53,7 +53,7 @@
 .countdown-pill.warn .countdown-num{color:var(--gold)}
 
 /* VELOCITY */
-.velocity-block{background:#f5eeda;border-radius:var(--r);margin-bottom:12px;overflow:hidden;box-shadow:0 2px 10px rgba(110,90,50,.10);border:1.5px solid #d2bf96;padding:16px}
+.velocity-block{background:var(--white);border-radius:var(--r);margin-bottom:12px;overflow:hidden;box-shadow:0 2px 10px rgba(74,184,216,.08);border:1.5px solid var(--sand2);padding:16px}
 .vel-row{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
 .vel-stat{flex:1;min-width:65px;background:var(--sand);border-radius:10px;padding:8px 6px;text-align:center}
 .vel-num{font-size:16px;font-weight:700;font-family:'Nunito',sans-serif;line-height:1;color:var(--ink)}
@@ -66,7 +66,7 @@
 .chart-wrap{overflow-x:auto;padding-bottom:4px}
 
 /* PHASES / PIPELINE */
-.phase-block{background:#f5eeda;border-radius:var(--r);margin-bottom:12px;overflow:hidden;box-shadow:0 2px 10px rgba(110,90,50,.10);border:1.5px solid #d2bf96}
+.phase-block{background:var(--white);border-radius:var(--r);margin-bottom:12px;overflow:hidden;box-shadow:0 2px 10px rgba(74,184,216,.08);border:1.5px solid var(--sand2)}
 .phase-hdr{display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;transition:background .15s}
 .phase-hdr:active{background:var(--sand)}
 .phase-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
@@ -79,7 +79,7 @@
 .step-item{display:flex;align-items:flex-start;gap:12px;padding:13px 16px;border-bottom:1px solid var(--sand);cursor:pointer;transition:background .1s}
 
 /* Moodboard: punto 0, visibile fuori dal cassetto Supporto */
-.moodboard-zero{background:#fbf5e6;border:1px solid #dcd0ae;border-radius:12px;margin-bottom:10px}
+.moodboard-zero{background:#fffdf8;border:1px solid #ece2cd;border-radius:12px;margin-bottom:10px}
 .step-item:last-child{border-bottom:none}
 .step-item:active{background:var(--sand)}
 .step-chk{width:22px;height:22px;border-radius:50%;border:2px solid var(--sand3);flex-shrink:0;display:flex;align-items:center;justify-content:center;margin-top:1px;font-size:12px;color:transparent;transition:all .2s}
@@ -95,7 +95,7 @@
 .support-block .step-item:active{background:none}
 .support-dot{width:22px;height:22px;border-radius:50%;flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;position:relative}
 .support-dot::after{content:'';width:7px;height:7px;border-radius:50%;background:var(--white);opacity:.9}
-.support-chev{font-size:13px;color:var(--ink3);flex-shrink:0;align-self:center;transition:transform .2s;opacity:.55}
+.support-chev{width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:12px;color:#8a7a58;flex-shrink:0;align-self:center;transition:transform .2s;opacity:1;background:var(--white);border:1.5px solid var(--sand3);border-radius:50%;line-height:1}
 
 /* STEP COMPRIMIBILI — riga con spunta separata + freccetta */
 .step-collapse{display:flex;align-items:flex-start;gap:12px;padding:13px 16px;border-bottom:1px solid var(--sand);transition:background .12s}
@@ -177,8 +177,8 @@
 .support-body{padding:2px 0 0;border-left:2px solid #efe2c8;margin-left:6px;padding-left:8px}
 
 /* Pulsanti estrazione dallo Scriptment */
-.extract-btn{display:block;width:100%;background:#f6eed6;border:none;border-top:1px solid rgba(140,114,68,.28);border-radius:0;padding:7px 10px;font-family:'Nunito',sans-serif;font-size:11px;font-weight:700;color:#6e5c38;cursor:pointer;transition:background .15s,color .15s;line-height:1.2;text-align:center;letter-spacing:.04em}
-.extract-btn:active{background:#efe4c4}
+.extract-btn{display:block;width:100%;background:#fdf6e4;border:none;border-top:1px solid rgba(200,170,90,.22);border-radius:0;padding:7px 10px;font-family:'Nunito',sans-serif;font-size:11px;font-weight:700;color:#a8925c;cursor:pointer;transition:background .15s,color .15s;line-height:1.2;text-align:center;letter-spacing:.04em}
+.extract-btn:active{background:#f8ecc8}
 .extract-btn.extract-done{background:#e2f2e2;color:#2a7a2a}
 
 /* Sfide visive: elenco puntato */
@@ -188,10 +188,10 @@
 .sfida-item .sfida-text-input{flex:1;min-width:0;width:100%;font-size:14px}
 
 /* To Do — minimale */
-.todo-box{background:#f5eeda;border:1.5px solid #d2bf96;border-radius:var(--r);padding:9px 10px;box-shadow:0 2px 10px rgba(110,90,50,.10)}
+.todo-box{background:var(--white);border:1.5px solid var(--sand2);border-radius:var(--r);padding:9px 10px;box-shadow:0 2px 10px rgba(74,184,216,.08)}
 .todo-toolbar{display:flex;justify-content:flex-end;margin-top:8px}
 .todo-empty{font-size:12.5px;color:#b0a488;padding:6px 0;font-style:italic;text-align:center}
-.todo-item{display:flex;align-items:center;gap:10px;padding:7px 10px;background:#fbf5e6;border:1px solid #e6dabc;border-radius:8px;margin-bottom:4px}
+.todo-item{display:flex;align-items:center;gap:10px;padding:7px 10px;background:#fffdf8;border:1px solid #ece2cd;border-radius:8px;margin-bottom:4px}
 .todo-item:last-of-type{margin-bottom:0}
 .todo-item.done{background:#f8f3e8;border-color:#ede3cf}
 .todo-chk{width:19px;height:19px;flex-shrink:0;border-radius:50%;border:2px solid var(--sand3);background:none;color:transparent;font-size:11px;font-weight:800;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .18s;padding:0}
@@ -208,7 +208,7 @@
 .todo-input{flex:1;min-width:0;background:none;border:none;border-bottom:1.5px solid #e6dcc4;border-radius:0;padding:5px 2px;font-family:'Nunito',sans-serif;font-size:13.5px;color:var(--ink);outline:none;transition:border-color .2s}
 .todo-input::placeholder{color:#b8ac90}
 .todo-input:focus{border-bottom-color:var(--gold)}
-.todo-clear{display:inline-flex;align-items:center;gap:5px;width:auto;background:#eae0c6;border:1.5px solid #ac9260;border-radius:8px;color:#6e5c38;font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;padding:5px 11px;transition:all .15s}
+.todo-clear{display:inline-flex;align-items:center;gap:5px;width:auto;background:var(--sand);border:1.5px solid var(--sand3);border-radius:8px;color:#8a7a58;font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;padding:5px 11px;transition:all .15s}
 .todo-clear:hover,.todo-clear:active{background:var(--coral-pale);border-color:var(--coral-mid);color:var(--coral)}
 
 /* Su touch la barra-duna gestisce la navigazione: nascondi il back-btn nel progetto */

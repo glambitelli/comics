@@ -694,32 +694,50 @@ export function extractScenesFromScript(btn){
   if(!p.story)p.story={};
   if(!p.story.acts)p.story.acts={setup:[],confrontation:[],resolution:[]};
   const existing=new Set();
-  ['setup','confrontation','resolution'].forEach(a=>(p.story.acts[a]||[]).forEach(s=>existing.add((s||'').trim().toUpperCase())));
+  // dedup sul solo slug (prima riga), così le scene salvate con descrizione non si duplicano
+  ['setup','confrontation','resolution'].forEach(a=>(p.story.acts[a]||[]).forEach(s=>existing.add(((s||'').split('\n')[0]).trim().toUpperCase())));
 
   // scorri in ordine: i marcatori d'atto impostano l'atto corrente
   const order=['setup','confrontation','resolution'];
   let markerCount=0, curAct=null, anyMarker=false;
-  const sceneList=[]; // {head, act|null}
+  const sceneList=[]; // {head, desc, act|null}
+  let curScene=null;
+  const DESC_MAX=300;
   for(const it of items){
     if(it.type==='act'){
-      anyMarker=true;
+      anyMarker=true; curScene=null;
       curAct = it.act || order[Math.min(markerCount,2)];
       markerCount++;
       continue;
     }
     if(it.type==='scene'){
       const head=(it.text||'').trim();
-      if(head) sceneList.push({head, act:curAct});
+      curScene = head ? {head, desc:'', act:curAct} : null;
+      if(curScene) sceneList.push(curScene);
+      continue;
     }
+    // le righe descrittive sotto lo slug diventano il corpo della scena
+    if(it.type==='action' && curScene){
+      const t=(it.text||'').trim();
+      if(t && curScene.desc.length < DESC_MAX){
+        curScene.desc = curScene.desc ? curScene.desc+' '+t : t;
+        if(curScene.desc.length > DESC_MAX) curScene.desc = curScene.desc.slice(0,DESC_MAX).replace(/\s+\S*$/,'')+'…';
+      }
+      continue;
+    }
+    // dialoghi, personaggi, transizioni e note chiudono la raccolta della descrizione
+    if(it.type!=='blank') curScene=null;
   }
 
   const newScenes=sceneList.filter(s=>!existing.has(s.head.toUpperCase()));
   if(!newScenes.length){ _openSupportFor('struttura'); _flashBtn(btn,0); return 0; }
 
+  const sceneText=s=> s.desc ? s.head+'\n'+s.desc : s.head;
+
   if(anyMarker){
     newScenes.forEach(s=>{
       const act=s.act || 'setup';
-      p.story.acts[act].push(s.head);
+      p.story.acts[act].push(sceneText(s));
       existing.add(s.head.toUpperCase());
     });
   } else {
@@ -731,7 +749,7 @@ export function extractScenesFromScript(btn){
         const frac=(i+0.5)/n;
         act = frac<0.25 ? 'setup' : (frac<0.75 ? 'confrontation' : 'resolution');
       }
-      p.story.acts[act].push(s.head);
+      p.story.acts[act].push(sceneText(s));
       existing.add(s.head.toUpperCase());
     });
   }

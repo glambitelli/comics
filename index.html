@@ -66,9 +66,8 @@
 <!-- PROJECT -->
 <div class="screen" id="screen-project">
   <div class="proj-header">
-    <svg class="proj-crest" viewBox="0 0 400 26" preserveAspectRatio="none" aria-hidden="true"><path d="M0 26 L0 18 Q120 2 230 12 T400 8 L400 26 Z" fill="#94794e" opacity=".5"/></svg>
     <div class="proj-title-row">
-      <input class="proj-title-edit" id="proj-title" type="text" value="" placeholder="Titolo progetto"/>
+      <input class="proj-title-edit" id="proj-title" type="text" value="" placeholder="Titolo progetto"/><span class="proj-dot">.</span>
     </div>
     <div class="proj-meta">
       <div><span id="meta-fase">—</span></div>
@@ -165,9 +164,9 @@
             <span class="scriptment-btn-head">
               <span class="scriptment-btn-glyph">
                 <svg viewBox="0 0 24 24">
-                  <path d="M8.6 3.4 A5.6 5.6 0 1 0 8.6 14.6 A4.4 4.4 0 1 1 8.6 3.4 Z" fill="#e0c88e"/>
-                  <path d="M18 3.4 L18.7 5.3 L20.6 6 L18.7 6.7 L18 8.6 L17.3 6.7 L15.4 6 L17.3 5.3 Z" fill="#e0c88e" opacity="0.9"/>
-                  <path d="M2 19 Q7 14.5 11.5 17.3 T22 15 L22 21 L2 21 Z" fill="#e0c88e" opacity="0.75"/>
+                  <path d="M8.6 3.4 A5.6 5.6 0 1 0 8.6 14.6 A4.4 4.4 0 1 1 8.6 3.4 Z" fill="#f0c84e"/>
+                  <path d="M18 3.4 L18.7 5.3 L20.6 6 L18.7 6.7 L18 8.6 L17.3 6.7 L15.4 6 L17.3 5.3 Z" fill="#f0c84e" opacity="0.9"/>
+                  <path d="M2 19 Q7 14.5 11.5 17.3 T22 15 L22 21 L2 21 Z" fill="#f0c84e" opacity="0.75"/>
                 </svg>
               </span>
               <span class="scriptment-btn-h">Scriptment</span>
@@ -190,7 +189,7 @@
             <div class="step-nm">Soggetto <span class="tag wm">mattina</span></div>
             <div class="step-ds">Chi è il protagonista, cosa vuole, cosa glielo impedisce, come finisce.</div>
           </div>
-          <div class="support-chev" onclick="toggleStepBody(this)">▾</div>
+          <div class="support-chev" onclick="toggleStepBody(this)">▸</div>
         </div>
         <div class="step-body" style="padding:10px 16px 12px;display:none" id="soggetto-wrap"></div>
 
@@ -201,7 +200,7 @@
             <div class="step-nm">Personaggi <span class="tag wm">mattina</span></div>
             <div class="step-ds">Schede dei personaggi — nome, descrizione.</div>
           </div>
-          <div class="support-chev" onclick="toggleStepBody(this)">▾</div>
+          <div class="support-chev" onclick="toggleStepBody(this)">▸</div>
         </div>
         <div class="step-body" style="padding:10px 0 4px;display:none" id="chars-wrap">
           <div id="chars-list"></div>
@@ -215,7 +214,7 @@
             <div class="step-nm">Ambientazione <span class="tag wm">mattina</span></div>
             <div class="step-ds">Dove e quando si svolge la storia. Struttura del mondo.</div>
           </div>
-          <div class="support-chev" onclick="toggleStepBody(this)">▾</div>
+          <div class="support-chev" onclick="toggleStepBody(this)">▸</div>
         </div>
         <div class="step-body" style="padding:10px 16px 12px;display:none" id="world-wrap"></div>
 
@@ -227,7 +226,7 @@
             <div class="step-ds">Setup → Plot Point 1 → Confrontation → Plot Point 2 → Resolution.</div>
           </div>
           <button onclick="event.stopPropagation();toggleScreenplay()" id="screenplay-toggle-btn" title="Vista sceneggiatura" style="background:none;border:none;cursor:pointer;color:var(--ink3);font-size:17px;padding:4px 6px;align-self:center;flex-shrink:0">☰</button>
-          <div class="support-chev" onclick="toggleStepBody(this)">▾</div>
+          <div class="support-chev" onclick="toggleStepBody(this)">▸</div>
         </div>
         <div class="step-body" style="padding:10px 16px 14px;display:none" id="struttura-wrap">
           <div class="act-board" id="act-board"></div>

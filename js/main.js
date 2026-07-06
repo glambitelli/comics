@@ -360,7 +360,7 @@ window.toggleStepBody = function(el){
   if(!body || !body.classList.contains('step-body')) return;
   const isOpen = body.style.display !== 'none';
   body.style.display = isOpen ? 'none' : 'block';
-  if(chev) chev.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
+  if(chev) chev.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(90deg)';
   if(!isOpen){
     body.querySelectorAll('textarea').forEach(ta=>{
       ta.style.height='auto';
