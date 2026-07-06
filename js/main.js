@@ -1,7 +1,7 @@
 import { db, COL, syncDot, loadUserData, collection, onSnapshot, cacheProjects, getCachedProjects } from './firebase.js';
 import { projects, setProjects, currentId, getProject } from './state.js';
 import { saveDates } from './velocity.js';
-import { exportPDF, exportStoryboard, exportScreenplay } from './pdf.js';
+import { exportPDF, exportScreenplay } from './pdf.js';
 import { togglePhase, toggleStep, selectTav, addSfida, addTodo, toggleTodo, clearCompletedTodos, toggleSupport } from './pipeline.js';
 import { addScene, updateScene, deleteScene, autoResize, saveStoryField, updateCharCount, toggleSubsection, addCharacter, deleteCharacter, toggleCharCard, autoResizeAll, toggleScreenplay, addSceneText, deleteSceneText, extractAllFromScript } from './story.js';
 import { updatePlanner, applyPlanner, openPlannerModal, closePlannerModal } from './planner.js';
@@ -215,7 +215,7 @@ window.addTodo=addTodo; window.toggleTodo=toggleTodo; window.clearCompletedTodos
 window.toggleSupport=toggleSupport;
 window.extractAllFromScript=extractAllFromScript;
 window.saveDates=saveDates; window.confirmDeleteCurrent=confirmDeleteCurrent; window.closeConfirm=closeConfirm;
-window.exportPDF=exportPDF; window.exportStoryboard=exportStoryboard; window.exportScreenplay=exportScreenplay;
+window.exportPDF=exportPDF; window.exportScreenplay=exportScreenplay;
 // Export principale: il PDF classico del progetto
 window.exportMain=()=>{ exportPDF(); };
 window.addScene=addScene; window.updateScene=updateScene;

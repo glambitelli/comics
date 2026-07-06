@@ -30,12 +30,9 @@ export function applyProjectType(p){
   const isSeq = p && p.type === 'sequence';
   story.style.display = isSeq ? 'none' : 'block';
   seq.style.display = isSeq ? 'block' : 'none';
-  // Etichetta export: Copione per la Sequenza, PDF per la Storia
+  // Etichetta export: Copione per la Sequenza, Report per la Storia
   const exLabel = document.getElementById('export-main-label');
-  if(exLabel) exLabel.textContent = isSeq ? 'Esporta copione' : 'Esporta PDF';
-  // Lo "Storyboard" (basato sulla struttura 3 atti) ha senso solo nella Storia
-  const sbBtn = document.querySelector('button[onclick="exportStoryboard()"]');
-  if(sbBtn) sbBtn.style.display = isSeq ? 'none' : '';
+  if(exLabel) exLabel.textContent = isSeq ? 'Esporta copione' : 'Report';
   if(isSeq){
     renderSeqScenes(p);
     renderSeqSpine(p);
