@@ -397,6 +397,13 @@ export function parseScreenplay(text){
       result.push({type:'act', text: label || 'Atto', act: actIdFromLabel(label)});
       inDialogue = false; continue;
     }
+    // etichetta d'atto scritta senza # (es. "ATTO 2", "ACT II", "SETUP") — la
+    // riconosciamo comunque come marcatore d'atto invece di action/personaggio
+    const RE_ACT_LABEL = /^(ATTO|ACT|SETUP|ESPOSIZIONE|CONFRONTATION|CONFRONTO|SVOLGIMENTO|RESOLUTION|RISOLUZIONE|EPILOGO|FINALE)\b[\sIVX0-9°]*$/i;
+    if(RE_ACT_LABEL.test(trimmed)){
+      result.push({type:'act', text: trimmed, act: actIdFromLabel(trimmed)});
+      inDialogue = false; continue;
+    }
     if(RE_TRANSITION.test(trimmed)){
       let t = trimmed.toUpperCase().replace(/\s*:?\s*$/, '');
       result.push({type:'transition', text:t + ':'});

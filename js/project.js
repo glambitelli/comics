@@ -8,21 +8,6 @@ import { restoreStoryFields, autoResizeAll } from './story.js';
 import { refreshScriptmentButton } from './scriptment.js';
 import { restorePlanner } from './planner.js';
 
-// Misura il testo con canvas (stesso font/letter-spacing del titolo) e imposta
-// la larghezza esatta dell'input, cosi il punto oro dopo di esso resta sempre
-// subito a ridosso dell'ultima lettera, senza il margine impreciso di `size`.
-let _titleMeasureCtx=null;
-function fitTitleWidth(el){
-  if(!_titleMeasureCtx) _titleMeasureCtx=document.createElement('canvas').getContext('2d');
-  const cs=getComputedStyle(el);
-  _titleMeasureCtx.font=`${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
-  const text=el.value || el.placeholder || '';
-  const letterSpacing=parseFloat(cs.letterSpacing)||0;
-  let width=_titleMeasureCtx.measureText(text).width;
-  if(text.length>0) width += letterSpacing*text.length;
-  el.style.width = Math.max(20, Math.ceil(width)+2)+'px';
-}
-
 export function openProject(id){
   setCurrentId(id);
   const p = getProject(id);
@@ -54,9 +39,7 @@ export function restoreProject(p){
   }
 
   const ptEl = document.getElementById('proj-title');
-  ptEl.value = p.title||'';
-  ptEl.removeAttribute('size');
-  fitTitleWidth(ptEl);
+  ptEl.textContent = p.title||'';
   document.getElementById('meta-tav').textContent = p.numTav;
   const mtEl = document.getElementById('microtask');
   mtEl.value = p.microtask||'';
@@ -123,8 +106,6 @@ document.getElementById('confirm-ok').onclick = async () => {
   if(wasCurrentProject){ if(window.goHome) window.goHome(); else goHome(); }
 };
 document.getElementById('confirm-modal').addEventListener('click', e => { if(e.target===e.currentTarget) closeConfirm(); });
-
-document.getElementById('proj-title').addEventListener('input', e => { const p=getProject(currentId); if(!p)return; p.title=e.target.value; fitTitleWidth(e.target); scheduleSave(p); });
 document.getElementById('microtask').addEventListener('input', e => {
   const p=getProject(currentId); if(!p)return;
   p.microtask=e.target.value;

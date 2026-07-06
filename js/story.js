@@ -668,6 +668,7 @@ export function extractCharsFromScript(btn){
   const existing=new Set(p.story.characters.map(c=>(c.name||'').trim().toUpperCase()).filter(Boolean));
   const seen=new Set();
   let added=0;
+  const toTitleCase=s=> s.toLowerCase().replace(/(^|[\s'-])\p{L}/gu, m=>m.toUpperCase());
   for(const it of items){
     if(it.type!=='character') continue;
     const name=(it.text||'').trim();
@@ -676,7 +677,7 @@ export function extractCharsFromScript(btn){
     if(seen.has(key)) continue;
     seen.add(key);
     if(!existing.has(key)){
-      p.story.characters.push({name, desc:''});
+      p.story.characters.push({name: toTitleCase(name), desc:''});
       existing.add(key);
       added++;
     }
@@ -693,19 +694,30 @@ export function extractScenesFromScript(btn){
   const items=parseScreenplay((sm&&sm.text)||'');
   if(!p.story)p.story={};
   if(!p.story.acts)p.story.acts={setup:[],confrontation:[],resolution:[]};
-  const existing=new Set();
-  // dedup sul solo slug (prima riga), così le scene salvate con descrizione non si duplicano
-  ['setup','confrontation','resolution'].forEach(a=>(p.story.acts[a]||[]).forEach(s=>existing.add(((s||'').split('\n')[0]).trim().toUpperCase())));
+
+  // mappa slug (prima riga, maiuscolo) → {act, idx} delle scene già in struttura,
+  // cosi possiamo AGGIORNARE una scena esistente invece di ignorarla quando lo
+  // scriptment cresce e si ri-clicca Breakdown.
+  const existingMap=new Map();
+  ['setup','confrontation','resolution'].forEach(a=>(p.story.acts[a]||[]).forEach((s,idx)=>{
+    const head=((s||'').split('\n')[0]||'').trim().toUpperCase();
+    if(head) existingMap.set(head, {act:a, idx});
+  }));
 
   // scorri in ordine: i marcatori d'atto impostano l'atto corrente
   const order=['setup','confrontation','resolution'];
   let markerCount=0, curAct=null, anyMarker=false;
   const sceneList=[]; // {head, desc, act|null}
-  let curScene=null;
-  const DESC_MAX=300;
+  let curScene=null, pendingSpeaker=null;
+  const DESC_MAX=400;
+  const appendDesc=(s, t)=>{
+    if(!t || s.desc.length>=DESC_MAX) return;
+    s.desc = s.desc ? s.desc+' '+t : t;
+    if(s.desc.length > DESC_MAX) s.desc = s.desc.slice(0,DESC_MAX).replace(/\s+\S*$/,'')+'…';
+  };
   for(const it of items){
     if(it.type==='act'){
-      anyMarker=true; curScene=null;
+      anyMarker=true; curScene=null; pendingSpeaker=null;
       curAct = it.act || order[Math.min(markerCount,2)];
       markerCount++;
       continue;
@@ -713,36 +725,51 @@ export function extractScenesFromScript(btn){
     if(it.type==='scene'){
       const head=(it.text||'').trim();
       curScene = head ? {head, desc:'', act:curAct} : null;
+      pendingSpeaker=null;
       if(curScene) sceneList.push(curScene);
       continue;
     }
-    // le righe descrittive sotto lo slug diventano il corpo della scena
-    if(it.type==='action' && curScene){
-      const t=(it.text||'').trim();
-      if(t && curScene.desc.length < DESC_MAX){
-        curScene.desc = curScene.desc ? curScene.desc+' '+t : t;
-        if(curScene.desc.length > DESC_MAX) curScene.desc = curScene.desc.slice(0,DESC_MAX).replace(/\s+\S*$/,'')+'…';
-      }
-      continue;
+    if(!curScene) continue;
+    const t=(it.text||'').trim();
+    if(it.type==='action'){ appendDesc(curScene, t); pendingSpeaker=null; }
+    else if(it.type==='character'){ pendingSpeaker=t; }
+    else if(it.type==='dialogue'){
+      appendDesc(curScene, pendingSpeaker ? `${pendingSpeaker}: «${t}»` : t);
+      pendingSpeaker=null;
     }
-    // dialoghi, personaggi, transizioni e note chiudono la raccolta della descrizione
-    if(it.type!=='blank') curScene=null;
+    // transizioni e note: non fanno parte della descrizione, ma non chiudono la scena
   }
-
-  const newScenes=sceneList.filter(s=>!existing.has(s.head.toUpperCase()));
-  if(!newScenes.length){ _openSupportFor('struttura'); _flashBtn(btn,0); return 0; }
 
   const sceneText=s=> s.desc ? s.head+'\n'+s.desc : s.head;
 
+  // separa: scene mai viste (da aggiungere) da scene già presenti (da aggiornare sul posto)
+  const brandNew=[];
+  let updated=0;
+  sceneList.forEach(s=>{
+    const key=s.head.toUpperCase();
+    const hit=existingMap.get(key);
+    if(hit){
+      const newText=sceneText(s);
+      if(p.story.acts[hit.act][hit.idx] !== newText){
+        p.story.acts[hit.act][hit.idx]=newText;
+        updated++;
+      }
+    } else {
+      brandNew.push(s);
+      existingMap.set(key, {act:null, idx:-1}); // evita doppioni se il testo ripete lo stesso slug due volte
+    }
+  });
+
+  if(!brandNew.length && !updated){ _openSupportFor('struttura'); _flashBtn(btn,0); return 0; }
+
   if(anyMarker){
-    newScenes.forEach(s=>{
+    brandNew.forEach(s=>{
       const act=s.act || 'setup';
       p.story.acts[act].push(sceneText(s));
-      existing.add(s.head.toUpperCase());
     });
   } else {
-    const n=newScenes.length;
-    newScenes.forEach((s,i)=>{
+    const n=brandNew.length;
+    brandNew.forEach((s,i)=>{
       let act;
       if(n<=2){ act='setup'; }
       else {
@@ -750,13 +777,13 @@ export function extractScenesFromScript(btn){
         act = frac<0.25 ? 'setup' : (frac<0.75 ? 'confrontation' : 'resolution');
       }
       p.story.acts[act].push(sceneText(s));
-      existing.add(s.head.toUpperCase());
     });
   }
   scheduleSave(p); renderActBoard(p);
   _openSupportFor('struttura');
-  _flashBtn(btn,newScenes.length);
-  return newScenes.length;
+  const total=brandNew.length+updated;
+  _flashBtn(btn,total);
+  return total;
 }
 
 export function extractAllFromScript(btn){
