@@ -19,8 +19,6 @@
 }
 .scriptment-open-btn:active{transform:scale(.985)}
 .scriptment-btn-head{display:flex;align-items:center;justify-content:center;gap:10px}
-.scriptment-btn-glyph{display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.scriptment-btn-glyph svg{width:21px;height:21px;display:block}
 .scriptment-btn-h{
   font-family:'Castoro',serif;font-size:14px;color:#f0c84e;line-height:1;letter-spacing:.02em;
 }

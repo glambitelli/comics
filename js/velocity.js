@@ -65,9 +65,9 @@ export function renderPhaseCalendar(p){
   const dayReal=Math.max(1,totalDays-daySvil-dayPrep);
 
   const phases=[
-    {label:'Sviluppo', days:daySvil, bg:'#f6ecd2', accent:'#d8c090', text:'#9a8458'},
-    {label:'Pre-prod.', days:dayPrep, bg:'#f0dfae', accent:'#c8a048', text:'#8a6a30'},
-    {label:'Realizz.', days:dayReal, bg:'#e0a810', accent:'#8a6a30', text:'#fdf6e4'},
+    {label:'Sviluppo', days:daySvil, bg:'#f5f1e6', accent:'#c8b888', text:'#9a9484'},
+    {label:'Pre-prod.', days:dayPrep, bg:'#efe9d8', accent:'#b8a468', text:'#8a8468'},
+    {label:'Realizz.', days:dayReal, bg:'#e8dfc4', accent:'#a08c48', text:'#6a6248'},
   ];
 
   const dpr=window.devicePixelRatio||1;
@@ -96,9 +96,9 @@ export function renderPhaseCalendar(p){
     else ctx.rect(x,barY,bw,5);
     ctx.fill();
     ctx.fillStyle=ph.text;
-    ctx.font="bold 11px 'Courier Prime', monospace"; ctx.textAlign='center';
+    ctx.font='bold 11px sans-serif'; ctx.textAlign='center';
     if(bw>50) ctx.fillText(ph.label,x+bw/2,barY+barH-8);
-    ctx.fillStyle='#9a8458'; ctx.font="9px 'Courier Prime', monospace";
+    ctx.fillStyle='#9a8458'; ctx.font='9px sans-serif';
     if(bw>35) ctx.fillText(ph.days+'gg',x+bw/2,barY+barH+14);
     if(i<phases.length-1){ctx.fillStyle='#fff';ctx.fillRect(x+bw-1,barY,2,barH);}
     x+=bw;
@@ -111,7 +111,7 @@ export function renderPhaseCalendar(p){
     ctx.strokeStyle='#e84848'; ctx.lineWidth=2; ctx.setLineDash([3,2]);
     ctx.beginPath(); ctx.moveTo(tx,barY-4); ctx.lineTo(tx,barY+barH+4); ctx.stroke();
     ctx.setLineDash([]);
-    ctx.fillStyle='#e84848'; ctx.font="bold 11px 'Courier Prime', monospace"; ctx.textAlign='center';
+    ctx.fillStyle='#e84848'; ctx.font='bold 11px sans-serif'; ctx.textAlign='center';
     ctx.fillText('oggi',Math.min(Math.max(tx,16),W-16),barY-6);
   }
 
