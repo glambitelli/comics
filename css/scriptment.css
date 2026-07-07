@@ -5,7 +5,7 @@
 /* ── Pulsante che apre l'editor (fase Sviluppo) ── */
 /* ── Blocco scrittura unificato: Scriptment + Estrai ── */
 .script-block{
-  border-radius:14px;overflow:hidden;margin-bottom:16px;
+  border-radius:14px;overflow:hidden;margin:0 10px 16px;
   border:1px solid rgba(240,200,90,.30);
   box-shadow:0 3px 14px rgba(0,0,0,.18);
 }

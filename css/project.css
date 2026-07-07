@@ -167,13 +167,13 @@
 .sfida-rm:hover,.sfida-rm:active{color:var(--coral)}
 
 /* Supporto: sotto-categoria a tendina */
-.support-toggle{display:flex;align-items:center;gap:10px;padding:13px 14px;margin:2px 0 10px;background:#f3ead5;border:1px solid #e6d8ba;border-radius:12px;cursor:pointer;user-select:none;transition:background .15s}
+.support-toggle{display:flex;align-items:center;gap:10px;padding:13px 14px;margin:2px 10px 10px;background:#f3ead5;border:1px solid #e6d8ba;border-radius:12px;cursor:pointer;user-select:none;transition:background .15s}
 .support-toggle:active{background:#eee0c6}
 .support-toggle-ico{font-size:12px;color:#9a8458;transition:transform .22s;display:inline-block;flex-shrink:0}
 .support-toggle:not(.open) .support-toggle-ico{transform:rotate(-90deg)}
 .support-toggle-h{font-size:14px;font-weight:700;color:var(--ink)}
 .support-toggle-sub{font-size:10px;color:#b0a080;margin-left:auto;letter-spacing:.03em;white-space:nowrap}
-.support-body{padding:2px 0 0;border-left:2px solid #efe2c8;margin-left:6px;padding-left:8px}
+.support-body{padding:2px 0 0;border-left:2px solid #efe2c8;margin-left:16px;margin-right:10px;padding-left:8px}
 
 /* Pulsanti estrazione dallo Scriptment */
 .extract-btn{display:block;width:100%;background:#fdf6e4;border:none;border-top:1px solid rgba(200,170,90,.22);border-radius:0;padding:7px 10px;font-family:'Nunito',sans-serif;font-size:11px;font-weight:700;color:#a8925c;cursor:pointer;transition:background .15s,color .15s;line-height:1.2;text-align:center;letter-spacing:.04em}
@@ -182,6 +182,7 @@
 
 /* Sfide visive: elenco puntato */
 .sfida-item{display:flex;align-items:center;gap:8px;padding:6px 2px;border-bottom:1px solid var(--sand2)}
+.sfide-box{background:var(--white);border:1.5px solid var(--sand2);border-radius:var(--r);padding:10px 12px;box-shadow:0 2px 10px rgba(74,184,216,.08)}
 .sfida-item:last-child{border-bottom:none}
 .sfida-bullet{color:#e0a818;font-size:17px;line-height:1;flex-shrink:0;width:12px;text-align:center}
 .sfida-item .sfida-text-input{flex:1;min-width:0;width:100%;font-size:14px}
