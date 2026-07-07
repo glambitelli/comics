@@ -2,8 +2,8 @@
 .proj-header{background:var(--sand);padding:calc(22px + var(--safe-top)) 18px 16px;flex-shrink:0;position:relative;overflow:hidden;border-radius:0 0 24px 24px;border-bottom:2px solid #e8dcc0}
 .proj-header::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--gold);z-index:1}
 .proj-title-row{display:flex;align-items:baseline;justify-content:flex-start;gap:1px;position:relative}
-.proj-title-edit{font-size:38px;font-weight:700;color:var(--ink);width:auto;max-width:calc(100% - 22px);font-family:'Courier Prime',monospace;letter-spacing:-.02em;text-align:left;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.proj-dot{font-family:'Courier Prime',monospace;font-weight:700;font-size:38px;line-height:1;color:#e0a810;flex-shrink:0;user-select:none}
+.proj-title-edit{font-size:38px;font-weight:700;color:var(--ink);width:auto;max-width:calc(100% - 22px);font-family:'Castoro',serif;letter-spacing:-.01em;text-align:left;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.proj-dot{font-family:'Castoro',serif;font-weight:700;font-size:38px;line-height:1;color:#e0a810;flex-shrink:0;user-select:none}
 .proj-meta{font-size:12px;color:#6a6050;display:flex;flex-wrap:wrap;row-gap:4px;margin-top:10px;font-family:'Courier Prime',monospace;position:relative}
 .proj-meta>div{padding:0 13px;border-right:1.5px solid #d8cba8}
 .proj-meta>div:first-child{padding-left:0}
@@ -30,7 +30,7 @@
 .sec-content{overflow:hidden}
 
 /* MICROTASK */
-.microtask-box{background:linear-gradient(135deg,var(--sky-deep) 0%,var(--sky) 100%);border-radius:var(--r);padding:16px 18px;margin-bottom:20px;box-shadow:var(--shadow-lg)}
+.microtask-box{background:linear-gradient(135deg,#38809f 0%,#5dacc4 100%);border-radius:var(--r);padding:16px 18px;margin-bottom:20px;box-shadow:var(--shadow-lg)}
 .mt-label{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);margin-bottom:8px}
 .mt-input{background:transparent;border:none;color:#fff;font-family:'Nunito',sans-serif;font-size:16px;font-weight:500;width:100%;outline:none;border-bottom:1.5px solid rgba(255,255,255,.15);padding-bottom:8px;line-height:1.4;min-height:24px}
 .mt-input::placeholder{color:rgba(255,255,255,.3)}
