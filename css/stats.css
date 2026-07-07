@@ -25,8 +25,8 @@
 .trophy-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
 .trophy-medal{display:flex;flex-direction:column;align-items:center;gap:5px;padding:10px 4px;border-radius:12px;background:var(--sand);border:1.5px solid var(--sand2);opacity:.5;transition:all .2s;cursor:default}
 .trophy-medal.earned{opacity:1;background:linear-gradient(135deg,#fffdf8,#fdf0d8);border-color:var(--gold);box-shadow:0 2px 8px rgba(240,192,32,.18)}
-.trophy-medal-icon{font-size:26px;line-height:1;filter:grayscale(1);opacity:.6}
-.trophy-medal.earned .trophy-medal-icon{filter:none;opacity:1}
+.trophy-medal-icon{width:26px;height:26px;line-height:1;color:#b8ac94}
+.trophy-medal.earned .trophy-medal-icon{color:#c8930f}
 .trophy-medal-name{font-size:9px;font-weight:700;color:var(--ink3);text-align:center;line-height:1.2}
 .trophy-medal.earned .trophy-medal-name{color:var(--ink)}
 .trophy-medal.secret{border-style:dashed}
@@ -40,8 +40,10 @@
 .proj-badge-title{font-size:13px;font-weight:700;color:var(--ink);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .proj-badge-count{font-size:11px;font-weight:700;color:var(--ink3)}
 .proj-badge-icons{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
-.proj-badge{display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 2px;border-radius:10px;background:var(--sand);font-size:18px;opacity:.4;filter:grayscale(.6);border:1.5px solid var(--sand2)}
-.proj-badge.earned{opacity:1;filter:none;background:linear-gradient(135deg,#fffdf8,#fdf0d8);border-color:var(--gold)}
+.proj-badge{display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 2px;border-radius:10px;background:var(--sand);opacity:.55;border:1.5px solid var(--sand2)}
+.proj-badge-glyph{width:18px;height:18px;display:block;color:#b8ac94}
+.proj-badge.earned{opacity:1;background:linear-gradient(135deg,#fffdf8,#fdf0d8);border-color:var(--gold)}
+.proj-badge.earned .proj-badge-glyph{color:#c8930f}
 .proj-badge-lbl{font-size:8px;font-weight:700;color:var(--ink3);text-align:center;line-height:1.1}
 .proj-badge.earned .proj-badge-lbl{color:var(--ink)}
 
