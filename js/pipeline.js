@@ -1,4 +1,4 @@
-import { getProject, currentId } from './state.js';
+import { getProject, currentId, haptic } from './state.js';
 import { scheduleSave } from './firebase.js';
 import { updateProgress } from './progress.js';
 import { renderVelocity, renderVelocityHistory, recordTavola, removeTavola } from './velocity.js';
@@ -16,6 +16,7 @@ export function toggleStep(el){
   const nm=el.querySelector('.step-nm');
   const isDone=chk.classList.contains('done');
   chk.classList.toggle('done',!isDone); nm.classList.toggle('done',!isDone);
+  haptic(!isDone?'done':'tap');
   const key=nm.textContent.trim().slice(0,30);
   if(!p.steps) p.steps={};
   p.steps[key]=!isDone;
@@ -30,7 +31,10 @@ export function renderTavole(p){
     const stage=p.tavole&&p.tavole[i]!=null?p.tavole[i]:0;
     const btn=document.createElement('div');
     btn.className='tav-btn'+(p.selectedTav===i?' sel':'')+(stage>=4?' done-t':'');
-    btn.innerHTML=`<div class="tav-n">${i}</div><div class="tav-s">${TAV_LABELS[stage]}</div>`;
+    // filo d'oro alla base: cresce con lo stadio (20% per stadio, pieno a Finita)
+    const w = stage>=4 ? 100 : stage*20;
+    const dot = stage>=4 ? '<span class="tav-dot">.</span>' : '';
+    btn.innerHTML=`<div class="tav-n">${i}${dot}</div><div class="tav-s">${TAV_LABELS[stage]}</div><div class="tav-fill" style="width:${w}%"></div>`;
     btn.onclick=()=>selectTav(i); grid.appendChild(btn);
   }
   renderTavDetail(p);
@@ -58,6 +62,7 @@ export function renderTavDetail(p){
       const prevStage = p.tavole[p.selectedTav] || 0;
       const newStage = i;
       p.tavole[p.selectedTav]=i;
+      haptic(newStage>=4?'done':'tap');
       if(newStage >= 4 && prevStage < 4) recordTavola(p, p.selectedTav);
       if(newStage < 4 && prevStage >= 4) removeTavola(p, p.selectedTav);
       scheduleSave(p); renderTavole(p); updateProgress(p); renderVelocity(p); renderVelocityHistory(p);
@@ -142,6 +147,7 @@ export function addTodo(){
 }
 
 export function toggleTodo(i){
+  haptic('tap');
   const p=getProject(currentId); if(!p||!p.todos||!p.todos[i]) return;
   p.todos[i].done=!p.todos[i].done;
   scheduleSave(p); renderTodos(p);

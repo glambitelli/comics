@@ -1,4 +1,4 @@
-import { getProject, currentId, setCurrentId, setDeleteId, deleteId } from './state.js';
+import { getProject, currentId, setCurrentId, setDeleteId, deleteId , haptic } from './state.js';
 import { db, COL, scheduleSave, deleteDoc, doc } from './firebase.js';
 import { hexToRgb } from './canvas.js';
 import { updateProgress } from './progress.js';
@@ -82,6 +82,7 @@ export function closeConfirm(){
 }
 
 export function confirmMicrotask(){
+  haptic('done');
   const p = getProject(currentId); if(!p) return;
   const val = document.getElementById('microtask').value.trim();
   if(!val) return;
@@ -89,10 +90,11 @@ export function confirmMicrotask(){
   scheduleSave(p);
   const btn = document.getElementById('microtask-confirm-btn');
   if(btn){
-    btn.style.background = '#48a848';
+    btn.style.background = 'var(--gold)';
+    btn.style.color = '#2a2420';
     btn.style.opacity = '1';
     btn.textContent = '✓';
-    setTimeout(()=>{ btn.style.background = 'var(--coral)'; }, 1200);
+    setTimeout(()=>{ btn.style.background = '#fdf6e4'; btn.style.color = '#a8925c'; }, 1200);
   }
 }
 

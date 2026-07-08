@@ -1,4 +1,4 @@
-import { projects, getProject } from './state.js';
+import { projects, getProject, haptic } from './state.js';
 import { saveUserData, scheduleSave, bumpDataRev } from './firebase.js';
 import { drawGem } from './canvas.js';
 
@@ -351,6 +351,7 @@ export function completeEveningTask(id, card){
 
   const stars = parseInt(localStorage.getItem('inkflow_stars')||'0') + 1;
   localStorage.setItem('inkflow_stars', stars);
+  haptic('reward');
 
   const monthKey = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
   const monthly = JSON.parse(localStorage.getItem('inkflow_monthly_stars')||'{}');

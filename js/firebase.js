@@ -1,18 +1,30 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, collection, doc, onSnapshot, setDoc, deleteDoc, serverTimestamp }
+import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager,
+         collection, doc, onSnapshot, setDoc, deleteDoc, serverTimestamp }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAF5S6pdwlMZ_Lezghu171EpwR2oWW6wbc",
   authDomain: "inkflow-95f2f.firebaseapp.com",
-  projectId: "inkflow-95f2f",
   storageBucket: "inkflow-95f2f.firebasestorage.app",
+  projectId: "inkflow-95f2f",
   messagingSenderId: "323774526281",
   appId: "1:323774526281:web:a9365b3136435d69e66098"
 };
 
 const firebaseApp = initializeApp(firebaseConfig);
-export const db = getFirestore(firebaseApp);
+// Persistenza offline: i dati vivono in IndexedDB, l'app funziona senza rete
+// e sincronizza da sola al ritorno della connessione. Multi-tab safe.
+let _db;
+try{
+  _db = initializeFirestore(firebaseApp, {
+    localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
+  });
+}catch(e){
+  // Fallback (browser senza IndexedDB o init già avvenuta): cache in memoria
+  _db = getFirestore(firebaseApp);
+}
+export const db = _db;
 export const COL = 'projects';
 const USER_DOC = 'inkflow_user_data';
 

@@ -18,3 +18,14 @@ export function getProject(id){ return projects.find(p => p.id === id); }
 export function setProjects(arr){ projects = arr; }
 export function setCurrentId(id){ currentId = id; }
 export function setDeleteId(id){ deleteId = id; }
+
+// ── FEEDBACK APTICO — vibrazione breve sui gesti chiave (mobile) ──
+// tap: conferma leggera · done: completamento step/tavola · reward: stella serale
+export function haptic(kind='tap'){
+  if(!('vibrate' in navigator)) return;
+  try{
+    if(kind==='reward') navigator.vibrate([14,70,20]);
+    else if(kind==='done') navigator.vibrate(18);
+    else navigator.vibrate(9);
+  }catch(e){}
+}

@@ -652,11 +652,11 @@ function _openSupportFor(which){
 }
 function _flashBtn(btn,n){
   if(!btn) return;
-  if(!btn.dataset.orig) btn.dataset.orig=btn.textContent;
-  btn.textContent = n>0 ? ('✓ '+n+(n===1?' aggiunto':' aggiunti')) : 'già aggiornato';
+  if(!btn.dataset.orig) btn.dataset.orig=btn.innerHTML;
+  btn.innerHTML = '<span style="font-size:11px;letter-spacing:.04em">'+(n>0 ? ('✓ '+n+(n===1?' aggiunto':' aggiunti')) : 'già aggiornato')+'</span>';
   btn.classList.add('extract-done');
   clearTimeout(btn._t);
-  btn._t=setTimeout(()=>{ btn.textContent=btn.dataset.orig; btn.classList.remove('extract-done'); },1700);
+  btn._t=setTimeout(()=>{ btn.innerHTML=btn.dataset.orig; btn.classList.remove('extract-done'); },1700);
 }
 
 export function extractCharsFromScript(btn){
