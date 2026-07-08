@@ -21,12 +21,6 @@
 .sec-label{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#9a8458;margin:0 0 10px;display:flex;align-items:center;gap:8px}
 .sec-label::after{content:'';flex:1;height:1.5px;background:#dccca0;border-radius:1px}
 /* Sezione comprimibile con linea divisoria pulita */
-.sec-collapse{-webkit-tap-highlight-color:transparent;transition:color .12s}
-.sec-collapse:hover{color:var(--ink)}
-.sec-collapse:hover .sec-line{background:var(--sand2)}
-.sec-collapse.open{color:var(--ink)}
-.sec-collapse::after{display:none}
-.sec-collapse .sec-line{flex:1;height:1.5px;background:var(--sand3);border-radius:1px;transition:background .12s}
 .sec-content{overflow:hidden}
 
 /* MICROTASK */
@@ -91,11 +85,6 @@
 .step-ds{font-size:12px;color:var(--ink2);line-height:1.55;font-weight:400}
 
 /* BLOCCHI DI SUPPORTO (Taccuino, Scene) — allineati agli step ma non spuntabili */
-.support-block{border-bottom:1px solid var(--sand)}
-.support-block .step-item{border-bottom:none}
-.support-block .step-item:active{background:none}
-.support-dot{width:22px;height:22px;border-radius:50%;flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;position:relative}
-.support-dot::after{content:'';width:7px;height:7px;border-radius:50%;background:var(--white);opacity:.9}
 .support-chev{width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:12px;color:#8a7a58;flex-shrink:0;align-self:center;transition:transform .2s;opacity:1;background:var(--white);border:1.5px solid var(--sand3);border-radius:50%;line-height:1}
 
 /* STEP COMPRIMIBILI — riga con spunta separata + freccetta */
@@ -107,15 +96,10 @@
 .step-collapse:active{background:var(--sand2)}
 .step-body{border-bottom:1px solid var(--sand)}
 /* Blocchi di supporto (Taccuino, Scene) — stesso highlight */
-.support-block .step-item{transition:background .12s}
-.support-block .step-item:hover{background:var(--sand)}
-.support-block .step-item:hover .support-chev{opacity:.9}
-.support-block .step-item:active{background:var(--sand2)}
 .tag{font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;margin-left:5px;vertical-align:middle}
 .wm{background:var(--gold-pale);color:#8a6800}
 .ws{background:var(--sky-pale);color:var(--sky-deep)}
 .we{background:var(--green-pale);color:#2a6a2a}
-.phase-tip{margin:4px 16px 14px;background:var(--gold-pale);border-left:3px solid var(--gold);padding:9px 12px;border-radius:0 8px 8px 0;font-size:12px;color:var(--ink2);line-height:1.55;font-weight:500}
 
 /* VELOCITY HISTORY */
 .velocity-history-block{background:var(--white);border-radius:var(--r);padding:16px;box-shadow:var(--shadow);border:1.5px solid var(--sand2)}
@@ -144,12 +128,8 @@
 .tav-pill.done-p{background:#fdf6e4;color:#8a6a30;border-color:#e0a810}
 
 /* SFIDE */
-.sfida-row{display:flex;align-items:center;gap:10px;background:var(--white);border:1.5px solid var(--sand2);border-radius:var(--r-sm);padding:11px 14px;margin-bottom:8px;box-shadow:var(--shadow)}
 .sfida-text{flex:1;font-size:13px;font-weight:500;color:var(--ink)}
 .sfida-text.done{color:var(--ink3);text-decoration:line-through}
-.sfida-ref{font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;cursor:pointer;border:1.5px solid;transition:all .15s}
-.sfida-ref.yes{background:var(--ocean-pale);color:var(--ocean-deep);border-color:var(--ocean)}
-.sfida-ref.no{background:var(--sand);color:var(--ink3);border-color:var(--sand3)}
 .sfida-rm{font-size:14px;color:var(--ink3);background:none;border:none;cursor:pointer;padding:2px 4px}
 
 /* NOTE */
@@ -167,7 +147,6 @@
 .ghost-delete .ghost-glyph{font-size:14px}
 
 /* SFIDE VISIVE — pill compatte a vista */
-.sfida-pill{display:inline-flex;align-items:center;gap:4px;background:var(--sand);border:1px solid var(--sand2);border-radius:16px;padding:5px 8px 5px 12px}
 .sfida-text-input{background:none;border:none;outline:none;font-family:'Nunito',sans-serif;font-size:13px;font-weight:600;color:var(--ink);min-width:30px;padding:0}
 .sfida-text-input::placeholder{color:var(--ink3)}
 .sfida-rm{background:none;border:none;cursor:pointer;color:var(--ink3);font-size:15px;line-height:1;padding:0 2px;flex-shrink:0;transition:color .15s}

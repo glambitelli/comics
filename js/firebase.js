@@ -1,4 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { loadJSON } from './state.js';
 import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager,
          collection, doc, onSnapshot, setDoc, deleteDoc, serverTimestamp }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
@@ -36,7 +37,7 @@ export function cacheProjects(projs){
   try{ localStorage.setItem('inkflow_projects_cache', JSON.stringify(projs)); }catch(e){}
 }
 export function getCachedProjects(){
-  try{ return JSON.parse(localStorage.getItem('inkflow_projects_cache')||'[]'); }catch(e){ return []; }
+  try{ return loadJSON('inkflow_projects_cache', []); }catch(e){ return []; }
 }
 
 export function syncDot(state){
@@ -77,8 +78,8 @@ export function scheduleSave(p){
 export async function saveUserData(){
   try{
     const stars = parseInt(localStorage.getItem('inkflow_stars')||'0');
-    const history = JSON.parse(localStorage.getItem('inkflow_task_history')||'[]');
-    const monthly = JSON.parse(localStorage.getItem('inkflow_monthly_stars')||'{}');
+    const history = loadJSON('inkflow_task_history', []);
+    const monthly = loadJSON('inkflow_monthly_stars', {});
     const streak = parseInt(localStorage.getItem('inkflow_streak')||'0');
     const streakLast = localStorage.getItem('inkflow_streak_last')||'';
     const localRev = parseInt(localStorage.getItem('inkflow_data_rev')||'0');

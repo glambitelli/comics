@@ -1,4 +1,4 @@
-import { projects } from './state.js';
+import { projects , loadJSON } from './state.js';
 import { getStreak } from './evening.js';
 
 // ── GLIFI MINIMALI (SVG, currentColor) — sostituiscono le emoji dei trofei ──
@@ -91,7 +91,7 @@ export function getTodayTip(){
 function getActivityData(){
   // Combina storico task + tavole finite per giorno
   const data = {};
-  const history = JSON.parse(localStorage.getItem('inkflow_task_history')||'[]');
+  const history = loadJSON('inkflow_task_history', []);
   // Lo storico ha solo data "g/m" senza anno — usa anno corrente come approssimazione
   const year = new Date().getFullYear();
   history.forEach(h=>{
@@ -127,7 +127,7 @@ function getAllTrophies(){
   const hasChar=projects.some(p=>p.story&&p.story.characters&&p.story.characters.length>0);
   const hasStruttura=projects.some(p=>{const a=p.story&&p.story.acts;return a&&(a.setup||[]).length&&(a.confrontation||[]).length&&(a.resolution||[]).length;});
   const has3Char=projects.some(p=>p.story&&p.story.characters&&p.story.characters.length>=3);
-  const secrets=JSON.parse(localStorage.getItem('inkflow_secrets')||'{}');
+  const secrets=loadJSON('inkflow_secrets', {});
 
   return [
     // ── INIZIO ──
@@ -267,7 +267,7 @@ function renderWeekdayChart(){
   if(!cont) return;
   const DAYS=['Lun','Mar','Mer','Gio','Ven','Sab','Dom'];
   const counts=[0,0,0,0,0,0,0];
-  const history=JSON.parse(localStorage.getItem('inkflow_task_history')||'[]');
+  const history=loadJSON('inkflow_task_history', []);
   const nowY=new Date().getFullYear();
   history.forEach(h=>{
     let d;
@@ -301,7 +301,7 @@ function renderMonthlyStars(){
 
   // Deriva i conteggi mensili DALLO STORICO REALE delle task completate.
   // Così non può mai desincronizzarsi dal numero di stelle.
-  const history = JSON.parse(localStorage.getItem('inkflow_task_history')||'[]');
+  const history = loadJSON('inkflow_task_history', []);
   const counts = {};
   const nowY = new Date().getFullYear();
   history.forEach(h=>{

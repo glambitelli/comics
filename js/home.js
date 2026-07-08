@@ -1,4 +1,4 @@
-import { projects, getProject, setCurrentId, PHASE_NAMES, PROJECT_PALETTE } from './state.js';
+import { projects, getProject, setCurrentId, PHASE_NAMES, PROJECT_PALETTE , loadJSON } from './state.js';
 import { saveProject, scheduleSave } from './firebase.js';
 import { drawGem } from './canvas.js';
 import { calcPct, getPhaseIndex } from './progress.js';
@@ -235,7 +235,7 @@ export function attachCardDrag(){
 }
 
 export function applyProjectOrder(){
-  const order = JSON.parse(localStorage.getItem('inkflow_order')||'[]');
+  const order = loadJSON('inkflow_order', []);
   if(order.length === 0) return;
   projects.sort((a,b)=>{
     const ai = order.indexOf(a.id);

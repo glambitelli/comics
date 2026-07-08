@@ -1,5 +1,5 @@
 import { db, COL, syncDot, loadUserData, collection, onSnapshot, cacheProjects, getCachedProjects } from './firebase.js';
-import { projects, setProjects, currentId, getProject, haptic } from './state.js';
+import { projects, setProjects, currentId, getProject, haptic , loadJSON } from './state.js';
 import { saveDates } from './velocity.js';
 import { exportPDF, exportScreenplay } from './pdf.js';
 import { togglePhase, toggleStep, selectTav, addSfida, addTodo, toggleTodo, clearCompletedTodos, toggleSupport } from './pipeline.js';
@@ -173,7 +173,7 @@ onSnapshot(collection(db, COL), snapshot => {
   cacheProjects(projects);
   applyProjectOrder();
   projects.sort((a,b)=>{
-    const order = JSON.parse(localStorage.getItem('inkflow_order')||'[]');
+    const order = loadJSON('inkflow_order', []);
     if(order.length>0) return 0;
     return (a.createdAt||0) > (b.createdAt||0) ? 1 : -1;
   });

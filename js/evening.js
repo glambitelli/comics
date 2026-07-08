@@ -1,4 +1,4 @@
-import { projects, getProject, haptic } from './state.js';
+import { projects, getProject, haptic , loadJSON } from './state.js';
 import { saveUserData, scheduleSave, bumpDataRev } from './firebase.js';
 import { drawGem } from './canvas.js';
 
@@ -245,7 +245,7 @@ export function renderEveningList(){
   // Disegna la luna inline
   renderMoonInline();
 
-  const history = JSON.parse(localStorage.getItem('inkflow_task_history')||'[]');
+  const history = loadJSON('inkflow_task_history', []);
   const active = projects.filter(p => p.microtask && p.microtask.trim());
 
   if(active.length === 0 && history.length === 0){
@@ -322,7 +322,7 @@ export function renderEveningList(){
 export function completeEveningTask(id, card){
   const p = getProject(id); if(!p) return;
 
-  const history = JSON.parse(localStorage.getItem('inkflow_task_history')||'[]');
+  const history = loadJSON('inkflow_task_history', []);
   const now = new Date();
   history.push({
     project: p.title,
@@ -334,7 +334,7 @@ export function completeEveningTask(id, card){
   localStorage.setItem('inkflow_task_history', JSON.stringify(history));
 
   // ── Tracking trofei segreti ──
-  const secrets = JSON.parse(localStorage.getItem('inkflow_secrets')||'{}');
+  const secrets = loadJSON('inkflow_secrets', {});
   const hour = now.getHours();
   const day = now.getDay(); // 0=domenica, 6=sabato
   if(hour>=0 && hour<5) secrets.nottambulo = true;       // task tra mezzanotte e le 5
@@ -354,7 +354,7 @@ export function completeEveningTask(id, card){
   haptic('reward');
 
   const monthKey = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
-  const monthly = JSON.parse(localStorage.getItem('inkflow_monthly_stars')||'{}');
+  const monthly = loadJSON('inkflow_monthly_stars', {});
   monthly[monthKey] = (monthly[monthKey]||0) + 1;
   localStorage.setItem('inkflow_monthly_stars', JSON.stringify(monthly));
 

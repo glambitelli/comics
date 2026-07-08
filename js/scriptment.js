@@ -337,8 +337,6 @@ const cap = s => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
 const RE_SPEAKER = /^(voce fuori campo|voce narrante|voce|v\.?o\.?|o\.?s\.?|off|f\.?c\.?)\s*:/i;
 const RE_TRANSITION = /^(cut to|smash cut|match cut|hard cut|jump cut|dissolve to|cross dissolve|fade in|fade out|fade to black|fade to white|fade to|wipe to|iris in|iris out|stacca su|stacca|dissolvenza|titoli di coda|fine)\s*:?\s*$/i;
 const RE_SCENE = /^(int|est|ext|int\.\/est|int\.\/ext|interno|esterno)\b[.\s]/i;
-// scena con numerazione già presente: "12. INT..." oppure "12  INT...  12"
-const RE_SCENE_NUMBERED = /^\s*\d+[\.\s]+(.*?)(?:\s+\d+\s*)?$/;
 
 // Riconosce l'atto dal testo di un marcatore "# Atto II" → 'setup'|'confrontation'|'resolution'|null
 function actIdFromLabel(label){
@@ -412,8 +410,15 @@ export function parseScreenplay(text){
 
     // scena (anche se già numerata)
     let heading = trimmed;
-    const sn = trimmed.match(RE_SCENE_NUMBERED);
-    if(sn && RE_SCENE.test(sn[1])) heading = sn[1].trim();
+    const snm = trimmed.match(/^\s*(\d+)[.\s]+(.*)$/);
+    if(snm && RE_SCENE.test(snm[2])){
+      let h = snm[2].trim();
+      // rimuovi il numero in coda SOLO se è lo stesso di quello in testa
+      // (residuo del vecchio bug di duplicazione), mai numeri legittimi
+      // che fanno parte del titolo (es. "INT. AUTOSTRADA 66")
+      h = h.replace(new RegExp('\\s+'+snm[1]+'\\s*$'), '');
+      heading = h;
+    }
     if(RE_SCENE.test(heading)){
       sceneNum++;
       result.push({type:'scene', text:heading.toUpperCase(), scene:sceneNum});

@@ -29,3 +29,15 @@ export function haptic(kind='tap'){
     else navigator.vibrate(9);
   }catch(e){}
 }
+
+// ── LETTURA SICURA DA LOCALSTORAGE — un dato corrotto non deve rompere una schermata ──
+export function loadJSON(key, fallback){
+  try{
+    const raw = localStorage.getItem(key);
+    if(raw === null || raw === undefined) return fallback;
+    const val = JSON.parse(raw);
+    return val === null ? fallback : val;
+  }catch(e){
+    return fallback;
+  }
+}
