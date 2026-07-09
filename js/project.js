@@ -93,11 +93,11 @@ export function confirmMicrotask(){
   scheduleSave(p);
   const btn = document.getElementById('microtask-confirm-btn');
   if(btn){
-    btn.style.background = '#1a1409';
-    btn.style.color = '#f0c84e';
+    btn.style.background = '#000';
+    btn.style.color = '#fdf6e4';
     btn.style.opacity = '1';
     btn.textContent = '✓';
-    setTimeout(()=>{ btn.style.background = '#2c2214'; btn.style.color = '#f0c84e'; btn.style.opacity = '0.5'; }, 1200);
+    setTimeout(()=>{ btn.style.background = '#1a1409'; btn.style.color = '#fdf6e4'; btn.style.opacity = '0.55'; }, 1200);
   }
 }
 
