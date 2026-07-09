@@ -41,3 +41,20 @@ export function loadJSON(key, fallback){
     return fallback;
   }
 }
+
+// ── TOAST "ANNULLA" — rete di sicurezza per le eliminazioni ──
+let _undoTimer=null;
+export function showUndoToast(label, undoFn){
+  let t=document.getElementById('undo-toast');
+  if(!t){
+    t=document.createElement('div');
+    t.id='undo-toast';
+    t.innerHTML='<span id="undo-toast-lbl"></span><button id="undo-toast-btn">Annulla</button>';
+    document.body.appendChild(t);
+  }
+  t.querySelector('#undo-toast-lbl').textContent=label;
+  t.querySelector('#undo-toast-btn').onclick=()=>{ clearTimeout(_undoTimer); t.classList.remove('show'); try{undoFn();}catch(e){} };
+  t.classList.add('show');
+  clearTimeout(_undoTimer);
+  _undoTimer=setTimeout(()=>t.classList.remove('show'), 5000);
+}

@@ -352,6 +352,43 @@ window.toggleStepCheck = function(chkEl){
   const row = chkEl.closest('.step-collapse');
   if(row) toggleStep(row);
 };
+// ── MEMORIA SEZIONI SUPPORTO — per progetto, sopravvive tra le visite ──
+function _supportKey(){ return 'inkflow_support_open:' + (currentId||''); }
+function _supportRows(){ return Array.from(document.querySelectorAll('#support-body .step-collapse')); }
+function persistSupportState(){
+  if(!currentId) return;
+  const mainOpen = (()=>{ const b=document.getElementById('support-body'); return !!(b && b.style.display!=='none' && b.style.display!==''); })();
+  const rows = _supportRows().map((row,idx)=>{
+    const body=row.nextElementSibling;
+    return (body && body.classList.contains('step-body') && body.style.display!=='none' && body.style.display!=='') ? idx : -1;
+  }).filter(i=>i>=0);
+  try{ localStorage.setItem(_supportKey(), JSON.stringify({main:mainOpen, rows})); }catch(e){}
+}
+window.persistSupportState = persistSupportState;
+window.applySupportState = function(){
+  if(!currentId) return;
+  let st=null;
+  try{ st=JSON.parse(localStorage.getItem(_supportKey())||'null'); }catch(e){}
+  if(!st) return;
+  if(st.main){
+    const body=document.getElementById('support-body');
+    const tog=document.querySelector('.support-toggle');
+    if(body && (body.style.display==='none'||!body.style.display) && tog && window.toggleSupport) window.toggleSupport(tog);
+  }
+  _supportRows().forEach((row,idx)=>{
+    const body=row.nextElementSibling;
+    if(!body || !body.classList.contains('step-body')) return;
+    const shouldOpen = st.rows && st.rows.includes(idx);
+    const isOpen = body.style.display!=='none' && body.style.display!=='';
+    if(shouldOpen && !isOpen){
+      const chev=row.querySelector('.support-chev');
+      body.style.display='block';
+      if(chev) chev.style.transform='rotate(90deg)';
+      body.querySelectorAll('textarea').forEach(ta=>{ ta.style.height='auto'; ta.style.height=ta.scrollHeight+'px'; });
+    }
+  });
+};
+
 // Corpo: espande/comprime il contenuto sotto lo step
 window.toggleStepBody = function(el){
   const row = el.closest('.step-collapse');
@@ -368,4 +405,5 @@ window.toggleStepBody = function(el){
       ta.style.height=ta.scrollHeight+'px';
     });
   }
+  persistSupportState();
 };

@@ -1,4 +1,4 @@
-import { getProject, currentId } from './state.js';
+import { getProject, currentId , showUndoToast } from './state.js';
 import { scheduleSave } from './firebase.js';
 import { parseScreenplay } from './scriptment.js';
 import { getScriptment } from './home.js';
@@ -231,8 +231,14 @@ export function updateScene(actId,idx,value){
 
 export function deleteScene(actId,idx){
   const p=getProject(currentId);if(!p||!p.story||!p.story.acts)return;
+  const removed=p.story.acts[actId][idx];
   p.story.acts[actId].splice(idx,1);
   scheduleSave(p);renderActBoard(p);
+  showUndoToast('Scena eliminata', ()=>{
+    const p2=getProject(currentId); if(!p2||!p2.story||!p2.story.acts) return;
+    p2.story.acts[actId].splice(Math.min(idx,p2.story.acts[actId].length),0,removed);
+    scheduleSave(p2); renderActBoard(p2);
+  });
 }
 
 function attachDrag(p){
@@ -435,9 +441,17 @@ export function addCharacter(){
 
 export function deleteCharacter(i){
   const p=getProject(currentId);if(!p||!p.story||!p.story.characters)return;
+  const removed=p.story.characters[i];
   p.story.characters.splice(i,1);
   scheduleSave(p);
   renderCharacters(p);
+  showUndoToast('Personaggio eliminato', ()=>{
+    const p2=getProject(currentId); if(!p2) return;
+    if(!p2.story) p2.story={};
+    if(!p2.story.characters) p2.story.characters=[];
+    p2.story.characters.splice(Math.min(i,p2.story.characters.length),0,removed);
+    scheduleSave(p2); renderCharacters(p2);
+  });
 }
 
 // ── VISTA SCENEGGIATURA — script lineare leggibile ──
@@ -585,9 +599,15 @@ export function addSceneText(){
 
 export function deleteSceneText(i){
   const p=getProject(currentId); if(!p||!p.story||!p.story.scenes) return;
+  const removed=p.story.scenes[i];
   p.story.scenes.splice(i,1);
   scheduleSave(p);
   renderScenes(p);
+  showUndoToast('Scena eliminata', ()=>{
+    const p2=getProject(currentId); if(!p2||!p2.story||!p2.story.scenes) return;
+    p2.story.scenes.splice(Math.min(i,p2.story.scenes.length),0,removed);
+    scheduleSave(p2); renderScenes(p2);
+  });
 }
 
 function promoteSceneToBoard(i){

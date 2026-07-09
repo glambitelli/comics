@@ -121,3 +121,8 @@ body.is-touch .proj-scroll,
 body.is-touch .evening-scroll,
 body.is-touch .read-scroll,
 body.is-touch .stats-scroll{padding-bottom:calc(110px + var(--safe-bot)) !important}
+
+/* ── UNDO TOAST ── */
+#undo-toast{position:fixed;left:50%;transform:translateX(-50%) translateY(20px);bottom:calc(84px + var(--safe-bottom,0px));background:var(--ink);color:#f5f0e8;border-radius:12px;padding:10px 10px 10px 16px;display:flex;align-items:center;gap:14px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:600;box-shadow:0 6px 24px rgba(0,0,0,.28);opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;z-index:9000;max-width:90vw}
+#undo-toast.show{opacity:1;pointer-events:auto;transform:translateX(-50%) translateY(0)}
+#undo-toast button{background:none;border:none;color:#f0c84e;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer;padding:4px 8px;letter-spacing:.02em}

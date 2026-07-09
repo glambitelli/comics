@@ -1,4 +1,4 @@
-import { getProject, currentId, haptic } from './state.js';
+import { getProject, currentId, haptic, showUndoToast } from './state.js';
 import { scheduleSave } from './firebase.js';
 import { updateProgress } from './progress.js';
 import { renderVelocity, renderVelocityHistory, recordTavola, removeTavola } from './velocity.js';
@@ -89,14 +89,24 @@ export function renderSfide(p){
       p.sfide[i].text=this.value;
       scheduleSave(p);
     });
+    input.addEventListener('keydown',function(e){
+      if(e.key==='Enter'){ e.preventDefault(); addSfida(); }
+    });
 
     const rm=document.createElement('button');
     rm.className='sfida-rm';
     rm.textContent='×';
     rm.onclick=()=>{
       const p=getProject(currentId);if(!p||!p.sfide)return;
+      const removed=p.sfide[i];
       p.sfide.splice(i,1);
       scheduleSave(p);renderSfide(p);
+      showUndoToast('Sfida eliminata', ()=>{
+        const p2=getProject(currentId); if(!p2) return;
+        if(!p2.sfide) p2.sfide=[];
+        p2.sfide.splice(Math.min(i,p2.sfide.length),0,removed);
+        scheduleSave(p2); renderSfide(p2);
+      });
     };
 
     item.appendChild(bullet);
@@ -155,8 +165,16 @@ export function toggleTodo(i){
 
 export function clearCompletedTodos(){
   const p=getProject(currentId); if(!p||!p.todos) return;
+  const removed=p.todos.map((t,idx)=>({t,idx})).filter(x=>x.t.done);
+  if(!removed.length) return;
   p.todos=p.todos.filter(t=>!t.done);
   scheduleSave(p); renderTodos(p);
+  showUndoToast(removed.length===1?'1 attività eliminata':removed.length+' attività eliminate', ()=>{
+    const p2=getProject(currentId); if(!p2) return;
+    if(!p2.todos) p2.todos=[];
+    removed.forEach(x=>p2.todos.splice(Math.min(x.idx,p2.todos.length),0,x.t));
+    scheduleSave(p2); renderTodos(p2);
+  });
 }
 
 export function addSfida(){
@@ -175,6 +193,8 @@ export function toggleSupport(el){
   const open = body.style.display==='none' || !body.style.display;
   body.style.display = open ? 'block' : 'none';
   el.classList.toggle('open', open);
+  if(window.persistSupportState) window.persistSupportState();
+  try{ const p=getProject(currentId); if(p) localStorage.setItem('inkflow_support_main_'+p.id, open?'1':'0'); }catch(e){}
   if(open){
     body.querySelectorAll('textarea').forEach(ta=>{
       if(ta.offsetParent!==null){ ta.style.height='auto'; ta.style.height=ta.scrollHeight+'px'; }

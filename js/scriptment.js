@@ -114,9 +114,13 @@ function editorSetPlain(el, text){
 
 
 // ── Apertura / chiusura ──
+let _projScrollMemo = 0;
+
 export function openScriptment(){
   const p = getProject(currentId); if(!p) return;
   const sm = getScriptment(p);
+  const ps = document.querySelector('.proj-scroll');
+  if(ps) _projScrollMemo = ps.scrollTop;
 
   const overlay = document.getElementById('scriptment-overlay');
   const ta = document.getElementById('scriptment-text');
@@ -147,12 +151,23 @@ export function openScriptment(){
     }
   }, 250);
 
-  // Shortcut ⌘⇧F / Ctrl+Shift+F per formattare
+  // Shortcut ⌘⇧F formatta · ⌘S salva subito · Esc chiude
   if(!overlay._fmtShortcut){
     overlay._fmtShortcut = (e)=>{
+      if(!overlay.classList.contains('open')) return;
       if((e.metaKey||e.ctrlKey) && e.shiftKey && e.key.toLowerCase()==='f'){
         e.preventDefault();
         formatScriptment();
+        return;
+      }
+      if((e.metaKey||e.ctrlKey) && !e.shiftKey && e.key.toLowerCase()==='s'){
+        e.preventDefault();
+        saveScriptmentNow();
+        return;
+      }
+      if(e.key === 'Escape'){
+        e.preventDefault();
+        closeScriptment();
       }
     };
     document.addEventListener('keydown', overlay._fmtShortcut);
@@ -163,6 +178,11 @@ export function closeScriptment(){
   const overlay = document.getElementById('scriptment-overlay');
   if(overlay) overlay.classList.remove('open');
   document.body.classList.remove('scriptment-open');
+  // ripristina lo scroll della pagina progetto dov'era prima di aprire l'editor
+  requestAnimationFrame(()=>{
+    const ps = document.querySelector('.proj-scroll');
+    if(ps) ps.scrollTop = _projScrollMemo;
+  });
   // reset vista lettura inline
   const editorWrap = document.getElementById('scriptment-editor-wrap');
   const readWrap   = document.getElementById('scriptment-read-wrap');
@@ -595,6 +615,20 @@ function updateWordCount(text){
   const foot = document.getElementById('scriptment-foot-count');
   if(foot) foot.textContent = n === 1 ? '1 parola' : `${n} parole`;
 }
+// Salvataggio immediato via ⌘S/Ctrl+S: aggiorna il testo e mostra subito la conferma
+function saveScriptmentNow(){
+  const p = getProject(currentId); if(!p) return;
+  const sm = getScriptment(p);
+  const ta = document.getElementById('scriptment-text');
+  if(ta) sm.text = editorGetText(ta);
+  scheduleSave(p);
+  const el = document.getElementById('scriptment-foot-saved');
+  if(el){
+    el.textContent = 'salvato ✓';
+    clearTimeout(_savedTimer);
+  }
+}
+
 function flagSaving(){
   const el = document.getElementById('scriptment-foot-saved');
   if(!el) return;
