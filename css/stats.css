@@ -50,3 +50,17 @@
 @media (max-width:600px){
   .stats-numbers{grid-template-columns:repeat(2,1fr)}
 }
+
+/* ── BACHECA PIXEL — mobile nero, ripiani, sprite crispEdges ── */
+.bacheca{background:#000;border:3px solid #3a2c16;border-radius:14px;padding:14px 10px 10px;image-rendering:pixelated}
+.bacheca-title{text-align:center;font-size:12px;font-weight:800;letter-spacing:.18em;color:#e8c468;text-transform:uppercase;margin-bottom:12px}
+.bacheca-shelf-label{font-size:9px;font-weight:700;letter-spacing:.12em;color:#a8845c;text-transform:uppercase;margin:0 6px 4px}
+.bacheca-row{display:flex;flex-wrap:wrap;justify-content:space-around;align-items:flex-end;gap:6px 2px;padding:4px 2px 2px}
+.bacheca-shelf{height:5px;background:linear-gradient(180deg,#6a5230,#3a2c16);border-radius:2px;margin:3px 2px 13px;box-shadow:0 4px 8px rgba(232,196,104,.10)}
+.px-trophy{display:flex;flex-direction:column;align-items:center;gap:3px;min-width:52px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.px-trophy-svg{width:36px;height:42px;display:block}
+.px-trophy-name{font-size:8px;font-weight:700;color:#5a4c38;text-align:center;line-height:1.15;max-width:62px}
+.px-trophy.earned .px-trophy-name{color:#c8a868}
+.px-trophy:active .px-trophy-svg{transform:scale(1.12)}
+.px-trophy-svg{transition:transform .12s}
+.bacheca-caption{text-align:center;font-size:9.5px;color:#8a7248;margin-top:6px;min-height:14px;padding:0 8px;line-height:1.4}

@@ -120,24 +120,4 @@ document.getElementById('microtask').addEventListener('input', e => {
 });
 document.getElementById('notes').addEventListener('input', e => { const p=getProject(currentId); if(!p)return; p.notes=e.target.value; scheduleSave(p); });
 
-// ── RINOMINA PROGETTO — tieni premuto (mobile) o doppio clic (desktop) sul titolo ──
-(function(){
-  const titleEl = document.getElementById('proj-title');
-  if(!titleEl) return;
-  function openRename(){
-    const p = getProject(currentId); if(!p) return;
-    const nv = window.prompt('Rinomina progetto', p.title||'');
-    if(nv === null) return;              // annullato
-    const clean = nv.trim();
-    if(!clean || clean === p.title) return;
-    p.title = clean;
-    titleEl.textContent = clean;
-    document.title = clean + ' — Inkflow';
-    scheduleSave(p);
-  }
-  titleEl.addEventListener('dblclick', openRename);
-  let holdT=null;
-  titleEl.addEventListener('touchstart', ()=>{ holdT=setTimeout(openRename, 600); }, {passive:true});
-  ['touchend','touchmove','touchcancel'].forEach(ev=>
-    titleEl.addEventListener(ev, ()=>clearTimeout(holdT), {passive:true}));
-})();
+// (La rinomina del progetto vive nel menu ⋮ della card in home — js/home.js renameProject)

@@ -3,7 +3,7 @@ import { saveProject, scheduleSave } from './firebase.js';
 import { drawGem } from './canvas.js';
 import { calcPct, getPhaseIndex } from './progress.js';
 import { calcDaysLeft } from './velocity.js';
-import { exportPDF } from './pdf.js';
+import { exportPDF, exportScreenplay } from './pdf.js';
 import { openProject, confirmDeleteCurrent } from './project.js';
 
 function newProjectObj(title, numTav){
@@ -115,16 +115,28 @@ export function openCardMenu(id, btn){
   const menu = document.createElement('div');
   menu.style.cssText=`position:fixed;background:var(--white);border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,.18);border:1.5px solid var(--sand2);z-index:300;min-width:160px;overflow:hidden`;
 
+  // glifi minimali (SVG currentColor) al posto delle emoji
+  const G = {
+    matita:'<path d="M3 17.2 L13.4 6.8 a1.6 1.6 0 0 1 2.3 0 l1.5 1.5 a1.6 1.6 0 0 1 0 2.3 L6.8 21 H3 Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>',
+    report:'<rect x="5" y="3" width="14" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8.5 8 H15.5 M8.5 12 H15.5 M8.5 16 H13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>',
+    scriptment:'<path d="M12 3.5 L16.5 11.5 L12 15 L7.5 11.5 Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M12 15 V20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>',
+    json:'<path d="M12 4 V15 M7.5 10.5 L12 15.5 L16.5 10.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 19.5 H19" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>',
+    elimina:'<path d="M6 7 L18 7 M10 7 V5 h4 v2 M8 7 L8.8 19 h6.4 L16 7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>',
+  };
+  const ic = k => `<svg viewBox="0 0 24 24" style="width:15px;height:15px;flex-shrink:0;display:block">${G[k]}</svg>`;
+
   const items = [
-    {label:'📄 Esporta PDF',  action:()=>{ closeCardMenu(); setCurrentId(id); exportPDF(); }},
-    {label:'💾 Esporta JSON', action:()=>{ closeCardMenu(); exportProjectJSON(id); }},
-    {label:'🗑 Elimina',      action:()=>{ closeCardMenu(); confirmDeleteProject(id); }, danger:true},
+    {icon:'matita',     label:'Rinomina',     action:()=>{ closeCardMenu(); renameProject(id); }},
+    {icon:'report',     label:'Report',       action:()=>{ closeCardMenu(); setCurrentId(id); exportPDF(); }},
+    {icon:'scriptment', label:'Scriptment',   action:()=>{ closeCardMenu(); setCurrentId(id); exportScreenplay(); }},
+    {icon:'json',       label:'Esporta JSON', action:()=>{ closeCardMenu(); exportProjectJSON(id); }},
+    {icon:'elimina',    label:'Elimina',      action:()=>{ closeCardMenu(); confirmDeleteProject(id); }, danger:true},
   ];
 
   items.forEach(item => {
     const b = document.createElement('button');
-    b.textContent = item.label;
-    b.style.cssText=`display:block;width:100%;padding:12px 16px;text-align:left;background:none;border:none;font-family:'Nunito',sans-serif;font-size:13px;font-weight:600;cursor:pointer;color:${item.danger?'var(--coral)':'var(--ink)'}`;
+    b.innerHTML = ic(item.icon) + '<span>' + item.label + '</span>';
+    b.style.cssText=`display:flex;align-items:center;gap:10px;width:100%;padding:11px 16px;text-align:left;background:none;border:none;font-family:'Nunito',sans-serif;font-size:13px;font-weight:600;cursor:pointer;color:${item.danger?'var(--coral)':'var(--ink)'}`;
     b.onmouseenter = () => b.style.background='var(--sand)';
     b.onmouseleave = () => b.style.background='none';
     b.onclick = item.action;
@@ -145,6 +157,17 @@ export function openCardMenu(id, btn){
 
 export function closeCardMenu(){
   if(_activeMenu){ _activeMenu.remove(); _activeMenu=null; }
+}
+
+export function renameProject(id){
+  const p = getProject(id); if(!p) return;
+  const nv = window.prompt('Rinomina progetto', p.title||'');
+  if(nv === null) return;
+  const clean = nv.trim();
+  if(!clean || clean === p.title) return;
+  p.title = clean;
+  scheduleSave(p);
+  renderHome();
 }
 
 export function exportProjectJSON(id){

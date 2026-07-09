@@ -345,40 +345,134 @@ function renderMonthlyStars(){
   cont.innerHTML = html;
 }
 
+
+// ── BACHECA PIXEL — sprite 12×12 disegnati a mano, uno per trofeo ──
+// Ogni sprite: griglia di 12 stringhe da 12 caratteri. '.'=trasparente,
+// le lettere mappano sui colori della palette dello sprite.
+const PX = {
+germoglio:{p:{T:'#8a6230',V:'#4a9a4a',v:'#5aba5a',c:'#6aca6a'},g:[
+'............','............','..vv....vv..','.vVVv..vVVc.','..vV.T.Vc...','....vT.v....','.....TT.....','.....T......','.....T......','.....T......','............','............']},
+penna:{p:{G:'#e0a810',g:'#b8860f',W:'#f5ecd2',K:'#3a3128'},g:[
+'............','.....W......','....WWW.....','....WGW.....','...WGGGW....','...WGGGW....','..WGGKGGW...','..WGGKGGW...','...GGKGG....','....GKG.....','.....K......','............']},
+volto:{p:{S:'#e8b878',s:'#d8a05c',K:'#3a3128',H:'#5a4224'},g:[
+'............','....HHHH....','...HSSSSH...','...SSSSSS...','...SKSSKS...','...SSSSSS...','....SssS....','.....SS.....','....K..K....','...KKKKKK...','..KKKKKKKK..','............']},
+gruppo:{p:{A:'#e8b878',B:'#c88848',C:'#a8683c'},g:[
+'............','............','....BB......','.AA.BB.CC...','.AA.BBBCC...','.AAABBBCCC..','.AAABBBCCC..','AAAABBBCCCC.','AAAABBBCCCC.','............','............','............']},
+bussola:{p:{G:'#c8a048',W:'#f5ecd2',R:'#e05838',K:'#3a3128'},g:[
+'............','....GGGG....','..GG....GG..','.G..WWWW..G.','.G.WWRWWW.G.','G..WWRWW...G','G..WWKWW...G','.G.WWKWWW.G.','.G..WWWW..G.','..GG....GG..','....GGGG....','............']},
+orma:{p:{S:'#c8a05c',s:'#a8804c'},g:[
+'............','...ss..s....','..sSSs.sS...','..SSSS......','...SS...s...','............','....SSSS....','...SSSSSS...','...SSSSSS...','...sSSSSs...','....ssss....','............']},
+duna:{p:{S:'#e0b868',s:'#c89848',d:'#a87c34'},g:[
+'............','............','............','............','......SS....','....SSSSSs..','...SSSSSSSs.','..SSSSssssd.','.SSSssssddd.','SSssssdddddd','ssdddddddddd','............']},
+tenda:{p:{T:'#c8763c',t:'#a85c2c',K:'#5a3a1c'},g:[
+'............','.....TT.....','....TTTT....','....TTtT....','...TTTttT...','...TTTttT...','..TTTT.ttT..','..TTT..ttT..','.TTTT...ttT.','.TTT....ttT.','KKKKKKKKKKKK','............']},
+monolite:{p:{M:'#6a5a48',m:'#4a3e30',d:'#8a7a64'},g:[
+'............','....dMMm....','....dMMm....','....dMMm....','....dMMm....','....dMMm....','....dMMm....','....dMMm....','....dMMm....','....dMMm....','...mmmmmm...','............']},
+citta:{p:{A:'#8a7a64',B:'#6a5a48',C:'#4a3e30',L:'#f0d878'},g:[
+'............','.....BB.....','.....BB.....','.AA..BB.....','.AA..BL..CC.','.AL..BB..CC.','.AA..BB..CL.','.AA..BL..CC.','.AA..BB..CC.','.AL..BB..CL.','.AA..BB..CC.','............']},
+orizzonte:{p:{G:'#f0c848',g:'#e0a810',L:'#8a7248'},g:[
+'............','............','............','.....GG.....','...GGGGGG...','..GGGGGGGG..','..GGGGGGgg..','.GGGGGGgggg.','LLLLLLLLLLLL','LLLLLLLLLLLL','............','............']},
+crescente:{p:{M:'#f0d878',m:'#c8a848'},g:[
+'............','.....MMM....','...MMm......','..MMm.......','..MM........','.MMm........','.MMm........','..MM........','..MMm.......','...MMm......','.....MMM....','............']},
+stella:{p:{G:'#f0c848',g:'#c8a020'},g:[
+'............','.....GG.....','.....GG.....','....GGGG....','.GGGGGGGGGG.','..GGGGGGGG..','...GGGGGG...','...GGggGG...','..GGg..gGG..','..Gg....gG..','............','............']},
+costellazione:{p:{G:'#f0c848',W:'#f5ecd2'},g:[
+'............','..G.........','.GGG......W.','..G......WWW','..........W.','.....G......','....GGG.....','.....G......','.W..........','WWW.......G.','.W.......GGG','..........G.']},
+lampada:{p:{F:'#f8d048',f:'#e07838',B:'#8a6230'},g:[
+'............','.....ff.....','....fFFf....','....FFFF....','...fFFFFf...','...FFFFFF...','....FFFF....','.....FF.....','............','....BBBB....','...BBBBBB...','............']},
+notturno:{p:{M:'#f0d878',m:'#c8a848',S:'#f5ecd2'},g:[
+'............','...MMM......','..MMm.....S.','.MMm........','.MM.........','.MM....S....','.MMm........','..MM........','...MMM..S...','............','.S..........','............']},
+lunapiena:{p:{M:'#f0e8c8',m:'#d8c898',c:'#b8a878'},g:[
+'............','....mMMm....','..mMMMMMMm..','..MMMcMMMM..','.MMMMMMMMMM.','.MMcMMMMcMM.','.MMMMMMMMMM.','.MMMMMcMMMM.','..MMMMMMMM..','..mMMMMMMm..','....mMMm....','............']},
+scintilla:{p:{G:'#f8d048',g:'#e0a810'},g:[
+'............','............','.....G......','.....G......','....GGG.....','..GGGgGGG...','....GGG.....','.....G......','.....G......','............','............','............']},
+fiamma:{p:{R:'#e05838',O:'#f0a838',Y:'#f8d048'},g:[
+'............','.....R......','.....RR.....','....RRR.....','...RRRRR....','...RRORR....','..RROOORR...','..ROOYOOR...','..ROYYYOR...','...OYYYO....','....OOO.....','............']},
+focolare:{p:{K:'#6a5a48',R:'#e05838',Y:'#f8d048'},g:[
+'............','...KKKKKK...','..K......K..','.K...R....K.','.K...RR...K.','K...RRRR...K','K...RYRR...K','K..RYYYR...K','.K..RYR...K.','.K........K.','..K......K..','...KKKKKK...']},
+sole:{p:{G:'#f0c020',g:'#e09810'},g:[
+'.....gg.....','.g...GG...g.','..g..GG..g..','...gGGGGg...','..GGGGGGGG..','gGGGGGGGGGGg','gGGGGGGGGGGg','..GGGGGGGG..','...gGGGGg...','..g..GG..g..','.g...GG...g.','.....gg.....']},
+miraggio:{p:{A:'#5ab8d8',a:'#8ad0e8'},g:[
+'............','............','..AAa..aAA..','.A...AA...A.','............','....aAAa....','..AA....AA..','............','..aAA..AAa..','.A...AA...A.','............','............']},
+goccia:{p:{B:'#5ab8d8',b:'#3a98b8',W:'#a8e0f0'},g:[
+'............','.....BB.....','.....BB.....','....BBBB....','....BBBB....','...BBBBBB...','..BWBBBBBB..','..BWBBBBBB..','..BBBBBBBB..','...BBBBBb...','....BBbb....','............']},
+palma:{p:{T:'#8a6230',V:'#4a9a4a',v:'#3a8a3a'},g:[
+'............','..vv.VV.vv..','.vVVvVVvVVv.','vv..VVVV..vv','.....TT.....','.....TT.....','....TT......','....TT......','...TT.......','...TT.......','..TT........','............']},
+arco:{p:{S:'#c8a05c',s:'#a8804c'},g:[
+'............','....SSSS....','...SS..SS...','..SS....SS..','..Ss....sS..','..Ss....sS..','..Ss....sS..','..Ss....sS..','..Ss....sS..','..Ss....sS..','..Ss....sS..','............']},
+codice:{p:{P:'#e8d8b0',p:'#c8b088',K:'#5a4a34'},g:[
+'............','..pPPPPPPp..','..PPPPPPPP..','..PKKKKKPP..','..PPPPPPPP..','..PKKKKKPP..','..PPPPPPPP..','..PKKKKPPP..','..PPPPPPPP..','..PKKKKKPP..','..pPPPPPPp..','............']},
+gufo:{p:{B:'#8a6a44',b:'#6a4e30',W:'#f5ecd2',K:'#2a1e12',Y:'#f0c020'},g:[
+'............','..b......b..','..bb....bb..','..bBBBBBBb..','..BBBBBBBB..','..BWWBBWWB..','..BWKBBKWB..','..BBBYYBBB..','..BBBBBBBB..','...BBBBBB...','....B..B....','............']},
+alba:{p:{G:'#f0c848',g:'#e08838',L:'#8a7248'},g:[
+'.....gg.....','............','..g......g..','............','.....GG.....','...GGGGGG...','..GGGGGGGG..','.GGGGGGGGgg.','LLLLLLLLLLLL','LLLLLLLLLLLL','............','............']},
+colomba:{p:{W:'#f5ecd2',w:'#d8ccb0'},g:[
+'............','............','..WW........','.WWWW...WW..','..WWWW.WWWW.','...WWWWWWW..','....WWWWW...','.....WWW....','............','............','............','............']},
+bandiera:{p:{P:'#8a6230',R:'#e05838',r:'#c84828'},g:[
+'............','..P.........','..PRRRRRR...','..PRRRRRRR..','..PRRRRRr...','..PRRRRr....','..PRRRr.....','..P.........','..P.........','..P.........','..P.........','............']},
+};
+
+// Sprite → SVG. earned=true: colori pieni + piedistallo oro. earned=false: sagoma scura.
+function pixelSprite(key, earned){
+  const sp = PX[key] || PX.duna;
+  let rects='';
+  sp.g.forEach((row,y)=>{
+    for(let x=0;x<12;x++){
+      const ch=row[x];
+      if(ch==='.'||ch===' ') continue;
+      const col = earned ? (sp.p[ch]||'#f0c848') : '#3a3226';
+      rects+=`<rect x="${x}" y="${y}" width="1" height="1" fill="${col}"/>`;
+    }
+  });
+  if(earned){
+    rects+='<rect x="3" y="12" width="6" height="1" fill="#e0a810"/><rect x="4" y="13" width="4" height="1" fill="#8a6a10"/>';
+  }
+  return `<svg viewBox="0 0 12 14" shape-rendering="crispEdges" class="px-trophy-svg">${rects}</svg>`;
+}
+
 function renderTrophyCase(){
   const cont=document.getElementById('stats-achievements');
   if(!cont)return;
   const trophies=getAllTrophies();
   const earned=trophies.filter(t=>t.done).length;
 
-  // Raggruppa per categoria
   const cats={};
   trophies.forEach(t=>{ (cats[t.cat]=cats[t.cat]||[]).push(t); });
 
-  let html=`<div class="trophy-progress"><span>${earned} di ${trophies.length} trofei</span><div class="trophy-progress-bar"><div class="trophy-progress-fill" style="width:${Math.round(earned/trophies.length*100)}%"></div></div></div>`;
+  let html='<div class="bacheca">';
+  html+='<div class="bacheca-title">✦ Bacheca ✦</div>';
 
   Object.keys(cats).forEach(cat=>{
-    // Per i segreti: mostra quanti sbloccati su totali nel titolo
+    let lbl=cat;
     if(cat==='Segreti'){
       const got=cats[cat].filter(t=>t.done).length;
-      html+=`<div class="trophy-cat">${cat} <span style="font-weight:400;text-transform:none;letter-spacing:0;opacity:.6">· ${got}/${cats[cat].length} scoperti</span></div><div class="trophy-grid">`;
-    } else {
-      html+=`<div class="trophy-cat">${cat}</div><div class="trophy-grid">`;
+      lbl=`${cat} · ${got}/${cats[cat].length}`;
     }
+    html+=`<div class="bacheca-shelf-label">${lbl}</div>`;
+    html+='<div class="bacheca-row">';
     cats[cat].forEach(t=>{
       const isSecret = t.secret && !t.done;
-      const icon = glyphSvg(t.done ? t.icon : (isSecret ? 'domanda' : 'lucchetto'));
-      const name = isSecret ? '???' : t.name;
-      const tip = isSecret ? 'Trofeo segreto — scoprilo lavorando' : t.desc;
-      html+=`<div class="trophy-medal${t.done?' earned':''}${isSecret?' secret':''}" title="${tip}">
-        <div class="trophy-medal-icon">${icon}</div>
-        <div class="trophy-medal-name">${name}</div>
+      const name = t.done ? t.name : (isSecret ? 'segreto' : '???');
+      const tip = isSecret ? 'Trofeo segreto — scoprilo lavorando' : (t.done ? t.name+' — '+t.desc : t.desc);
+      html+=`<div class="px-trophy${t.done?' earned':''}" data-tip="${tip.replace(/"/g,'&quot;')}" title="${tip.replace(/"/g,'&quot;')}">
+        ${pixelSprite(t.icon, !!t.done)}
+        <span class="px-trophy-name">${name}</span>
       </div>`;
     });
-    html+=`</div>`;
+    html+='</div><div class="bacheca-shelf"></div>';
   });
 
+  html+=`<div class="bacheca-caption" id="bacheca-caption">${earned} / ${trophies.length} conquistati</div>`;
+  html+='</div>';
   cont.innerHTML=html;
+
+  // Tap su un trofeo → nome+descrizione sulla targhetta in basso
+  cont.querySelectorAll('.px-trophy').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      const cap=document.getElementById('bacheca-caption');
+      if(cap){ cap.textContent = el.dataset.tip; clearTimeout(cap._t); cap._t=setTimeout(()=>{ cap.textContent = earned+' / '+trophies.length+' conquistati'; }, 4000); }
+    });
+  });
 }
 
 function renderProjectBadges(){
