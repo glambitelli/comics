@@ -24,6 +24,7 @@
 <link rel="stylesheet" href="css/stats.css">
 <link rel="stylesheet" href="css/sequence.css">
 <link rel="stylesheet" href="css/scriptment.css">
+<link rel="stylesheet" href="css/refs.css">
 </head>
 <body>
 
@@ -41,7 +42,12 @@
     <div class="home-title" onclick="goHomeFromLogo()" style="cursor:pointer" role="button" tabindex="0" aria-label="Torna alla home">Inkflow <span style="font-size:.6em;color:#f0c020;vertical-align:.14em;font-weight:400">✦</span></div>
     <div class="home-sub-row">
       <div class="home-sub">pipeline · tracker · storyboard <span class="sync-dot" id="sync-dot"></span><span style="margin-left:6px;opacity:.4;font-size:8px;letter-spacing:.06em">v1.0.0</span></div>
-      <button onclick="toggleSearch()" class="header-search-btn" style="background:none;border:none;font-size:15px;cursor:pointer;color:var(--ink3);padding:0;line-height:1;opacity:.55">🔍</button>
+      <div style="display:flex;align-items:center;gap:14px">
+        <button onclick="openRefsScreen()" class="header-search-btn" style="background:none;border:none;font-size:15px;cursor:pointer;color:var(--ink3);padding:0;line-height:1;opacity:.55" aria-label="Riferimenti" title="Riferimenti">
+          <svg viewBox="0 0 24 24" style="width:17px;height:17px;display:block"><rect x="3" y="4" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="8" cy="9.5" r="1.6" fill="currentColor"/><path d="M4 16 L9 11 L13 15 L16 12 L20 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <button onclick="toggleSearch()" class="header-search-btn" style="background:none;border:none;font-size:15px;cursor:pointer;color:var(--ink3);padding:0;line-height:1;opacity:.55">🔍</button>
+      </div>
     </div>
   </div>
   <div class="home-scroll" id="home-scroll">
@@ -64,6 +70,45 @@
 </div>
 
 <!-- PROJECT -->
+<!-- RIFERIMENTI -->
+<div class="screen" id="screen-refs">
+  <div class="refs-header">
+    <button onclick="closeRefsScreen()" class="refs-back" aria-label="Torna">←</button>
+    <div class="refs-title">Riferimenti</div>
+    <button onclick="document.getElementById('refs-file-input').click()" class="refs-add-btn" aria-label="Aggiungi">+</button>
+    <input type="file" id="refs-file-input" accept="image/*" multiple style="display:none"/>
+  </div>
+  <div id="refs-filter-bar" class="refs-filter-bar"></div>
+  <div class="refs-scroll">
+    <div class="refs-drop-hint">
+      <svg viewBox="0 0 24 24" style="width:15px;height:15px;flex-shrink:0"><path d="M12 4 V15 M7.5 10.5 L12 15.5 L16.5 10.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 19.5 H19" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      <span>Trascina qui un'immagine, incolla con <strong>⌘V</strong>, o condividila dal telefono</span>
+    </div>
+    <div id="refs-grid" class="refs-grid"></div>
+    <div id="refs-empty" class="refs-empty-state">
+      <svg viewBox="0 0 24 24" style="width:34px;height:34px;opacity:.3"><rect x="3" y="4" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="8" cy="9.5" r="1.4" fill="currentColor"/><path d="M4 16 L9 11 L13 15 L16 12 L20 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <div>Ancora nessuna immagine</div>
+      <div class="refs-empty-sub">Trascinane una qui, incollala, o usa "Condividi" dal telefono</div>
+    </div>
+  </div>
+</div>
+
+<!-- LIGHTBOX RIFERIMENTI -->
+<div id="refs-lightbox" class="refs-lightbox">
+  <div class="refs-lightbox-top">
+    <select id="refs-lightbox-project" class="refs-lightbox-select" onchange="onRefLightboxProjectChange(this)">
+      <option value="">Nessun progetto</option>
+    </select>
+    <button onclick="deleteCurrentRefImage()" class="refs-lightbox-del" aria-label="Elimina">
+      <svg viewBox="0 0 24 24" style="width:17px;height:17px"><path d="M6 7 L18 7 M10 7 V5 h4 v2 M8 7 L8.8 19 h6.4 L16 7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <button onclick="closeRefLightbox()" class="refs-lightbox-close" aria-label="Chiudi">✕</button>
+  </div>
+  <div class="refs-lightbox-body">
+    <img id="refs-lightbox-img" src="" alt=""/>
+  </div>
+</div>
+
 <div class="screen" id="screen-project">
   <div class="proj-header">
     <div class="proj-title-row">
@@ -172,8 +217,7 @@
 
         <div class="support-toggle" onclick="toggleSupport(this)">
           <span class="support-toggle-ico">▾</span>
-          <span class="support-toggle-h">Supporto</span>
-          <span class="support-toggle-sub">personaggi · soggetto · struttura</span>
+          <span class="support-toggle-h">Materiali</span>
         </div>
         <div class="support-body" id="support-body" style="display:none">
 

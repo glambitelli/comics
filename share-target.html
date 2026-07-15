@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Inkflow — Salvataggio…</title>
+<link rel="manifest" href="manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Castoro&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#fefcf8;color:#2a2420;font-family:'Nunito',sans-serif;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;padding:20px}
+  body::before{content:'';position:fixed;top:0;left:0;right:0;height:5px;background:linear-gradient(90deg,#e84848,#f0c020,#48a848,#4ab8d8)}
+  .title{font-family:'Castoro',serif;font-size:32px}
+  .sub{font-size:13px;color:#9a9088}
+  .spin{width:26px;height:26px;border:3px solid #e8e0d0;border-top-color:#e0a810;border-radius:50%;animation:spin .8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+  <div class="title">Inkflow <span style="color:#f0c020">✦</span></div>
+  <div class="spin"></div>
+  <div class="sub" id="status">Salvataggio nei riferimenti…</div>
+
+<script type="module">
+import { db, collection, doc, setDoc, serverTimestamp } from './js/firebase.js';
+import { compressImageFile } from './js/imgcompress.js';
+
+const statusEl = document.getElementById('status');
+
+function genId(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,8); }
+
+async function run(){
+  if(!('caches' in window)){ location.replace('./index.html'); return; }
+  const cache = await caches.open('inkflow-share-inbox');
+  const keys = await cache.keys();
+  const shared = keys.filter(k => k.url.includes('__shared-image-'));
+  if(!shared.length){
+    location.replace('./index.html?refs=1');
+    return;
+  }
+  let ok = 0;
+  for(const key of shared){
+    try{
+      const resp = await cache.match(key);
+      const blob = await resp.blob();
+      if(!blob || !blob.type || !blob.type.startsWith('image/')) continue;
+      const id = genId();
+      const { dataUrl, w, h } = await compressImageFile(blob);
+      await setDoc(doc(db, 'refs', id), {
+        url: dataUrl, source:'share', projectId:null, addedAt: serverTimestamp(), w, h
+      });
+      ok++;
+    }catch(e){ console.error('share-target upload error', e); }
+    await cache.delete(key);
+  }
+  statusEl.textContent = ok
+    ? (ok===1 ? '1 immagine salvata ✓' : ok+' immagini salvate ✓')
+    : 'Non sono riuscito a salvare l\'immagine';
+  setTimeout(()=>{ location.replace('./index.html?refs=1'); }, 700);
+}
+run();
+</script>
+</body>
+</html>

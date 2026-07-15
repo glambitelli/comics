@@ -11,6 +11,9 @@ import { renderHome, openNewModal, closeModal, createProject, openCardMenu, expo
 import { openProject, restoreProject, goHome, confirmDeleteCurrent, closeConfirm, confirmMicrotask } from './project.js';
 import { enterEveningMode as enterEveningImpl, exitEveningMode as exitEveningImpl } from './evening.js';
 import { openScriptment, closeScriptment, onScriptmentInput, setScriptmentFont, stepScriptmentSize, formatScriptment, openScriptmentRead, toggleScriptmentRead, refreshScriptmentButton, closeFormatPreview, applyFormatPreview } from './scriptment.js';
+import { startRefsListener, renderRefsGrid, initRefsCapture, setRefsFilter, openRefLightbox, closeRefLightbox, onRefLightboxProjectChange, deleteCurrentRefImage } from './refs.js';
+window.setRefsFilter=setRefsFilter; window.openRefLightbox=openRefLightbox; window.closeRefLightbox=closeRefLightbox;
+window.onRefLightboxProjectChange=onRefLightboxProjectChange; window.deleteCurrentRefImage=deleteCurrentRefImage;
 window.openScriptment=openScriptment; window.closeScriptment=closeScriptment;
 window.setScriptmentFont=setScriptmentFont; window.stepScriptmentSize=stepScriptmentSize;
 window.formatScriptment=formatScriptment; window.openScriptmentRead=openScriptmentRead;
@@ -55,7 +58,7 @@ import { renderStats, getTodayTip } from './stats.js';
 
 // ── Navigazione centralizzata: chiude tutte le schermate prima di aprirne una ──
 function hideAllScreens(){
-  ['screen-home','screen-project','screen-stats','screen-evening','screen-read'].forEach(id=>{
+  ['screen-home','screen-project','screen-stats','screen-evening','screen-read','screen-refs'].forEach(id=>{
     const el = document.getElementById(id);
     if(el) el.classList.remove('active');
   });
@@ -74,6 +77,23 @@ function openStats(){
   if(window.__navSync) window.__navSync('stats');
   renderStats();
 }
+
+function openRefsScreen(){
+  hideAllScreens();
+  const scr = document.getElementById('screen-refs');
+  scr.classList.add('active');
+  if(window.__navSync) window.__navSync('refs');
+  initRefsCapture();
+  startRefsListener();
+  renderRefsGrid();
+}
+function closeRefsScreen(){
+  document.getElementById('screen-refs').classList.remove('active');
+  document.getElementById('screen-home').classList.add('active');
+  if(window._resumeSand) window._resumeSand();
+}
+window.openRefsScreen = openRefsScreen;
+window.closeRefsScreen = closeRefsScreen;
 function closeStats(){
   document.getElementById('screen-stats').classList.remove('active');
   document.getElementById('screen-home').classList.add('active');
@@ -150,6 +170,18 @@ function hideLoading(){
 }
 
 hideLoading();
+
+// Se torniamo dalla condivisione Android (share-target.html → index.html?refs=1),
+// apri direttamente la schermata Riferimenti invece della home.
+(function openRefsIfShared(){
+  try{
+    const params = new URLSearchParams(location.search);
+    if(params.get('refs') === '1'){
+      history.replaceState({}, '', location.pathname);
+      setTimeout(()=>{ if(window.openRefsScreen) window.openRefsScreen(); }, 60);
+    }
+  }catch(e){}
+})();
 
 // ── AVVIO ISTANTANEO — mostra subito i progetti dalla cache locale ──
 (function showCachedImmediately(){
@@ -255,6 +287,7 @@ function showScreen(view, id){
   try{
     if(view === 'project' && id && getProject(id)){ openProject(id); }
     else if(view === 'stats'){ openStats(); }
+    else if(view === 'refs'){ openRefsScreen(); }
     else if(view === 'evening'){ enterEveningImpl(); }
     else { // home (o stato sconosciuto)
       if(document.body.classList.contains('evening-mode')) exitEveningImpl();

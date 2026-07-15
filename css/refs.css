@@ -1,0 +1,38 @@
+/* ── RIFERIMENTI — libreria immagini fuori dai progetti ── */
+.refs-header{display:flex;align-items:center;gap:10px;padding:calc(16px + var(--safe-top)) 16px 12px;background:var(--sand);border-bottom:2px solid #e8dcc0;flex-shrink:0}
+.refs-back{background:none;border:none;font-size:20px;color:var(--ink2);cursor:pointer;padding:2px 4px;line-height:1}
+.refs-title{flex:1;font-family:'Castoro',serif;font-size:22px;color:var(--ink);letter-spacing:-.01em}
+.refs-add-btn{width:34px;height:34px;border-radius:50%;background:#1a1409;border:none;color:#fdf6e4;font-size:19px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center}
+
+.refs-filter-bar{display:none;gap:7px;padding:10px 14px;overflow-x:auto;background:var(--sand);border-bottom:1px solid #e8dcc0;flex-shrink:0;-webkit-overflow-scrolling:touch}
+.refs-filter-bar::-webkit-scrollbar{display:none}
+.refs-filter-chip{flex-shrink:0;background:var(--white);border:1.5px solid var(--sand2);border-radius:20px;padding:6px 14px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:700;color:var(--ink2);cursor:pointer;white-space:nowrap}
+.refs-filter-chip.active{background:#1a1409;border-color:#1a1409;color:#f0c84e}
+
+.refs-scroll{flex:1;overflow-y:auto;background:#efe6d4;padding:14px 14px calc(20px + var(--safe-bot))}
+.refs-drop-hint{display:flex;align-items:center;gap:9px;background:#fdf6e4;border:1.5px dashed #d8c090;border-radius:12px;padding:10px 14px;font-size:12px;color:#a8925c;margin-bottom:14px;line-height:1.4}
+.refs-drop-hint strong{color:#8a6a30}
+
+.refs-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.refs-thumb{aspect-ratio:1/1;border-radius:10px;overflow:hidden;background:var(--sand2);cursor:pointer;position:relative}
+.refs-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+
+.refs-empty-state{display:none;flex-direction:column;align-items:center;gap:8px;text-align:center;padding:60px 20px;color:var(--ink3)}
+.refs-empty-state>div:nth-child(2){font-size:14px;font-weight:700;color:var(--ink2)}
+.refs-empty-sub{font-size:12px;color:var(--ink3)}
+
+/* stato drag-over: bordo oro su tutta la schermata */
+#screen-refs.drag-over{outline:3px dashed #e0a810;outline-offset:-3px}
+#screen-refs.drag-over .refs-scroll{background:#f5ecd2}
+
+/* ── LIGHTBOX ── */
+.refs-lightbox{position:fixed;inset:0;background:rgba(10,8,4,.94);z-index:9500;display:none;flex-direction:column;opacity:0;transition:opacity .18s}
+.refs-lightbox.open{display:flex;opacity:1}
+.refs-lightbox-top{display:flex;align-items:center;gap:10px;padding:calc(14px + var(--safe-top)) 14px 12px;flex-shrink:0}
+.refs-lightbox-select{flex:1;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);border-radius:9px;padding:8px 10px;color:#f0e8d4;font-family:'Nunito',sans-serif;font-size:13px;font-weight:600;outline:none}
+.refs-lightbox-select option{color:#2a2420}
+.refs-lightbox-del,.refs-lightbox-close{background:none;border:none;color:#f0e8d4;cursor:pointer;padding:6px;line-height:1;flex-shrink:0}
+.refs-lightbox-del{color:#e88868}
+.refs-lightbox-close{font-size:17px}
+.refs-lightbox-body{flex:1;display:flex;align-items:center;justify-content:center;padding:0 12px calc(16px + var(--safe-bot));overflow:hidden}
+.refs-lightbox-body img{max-width:100%;max-height:100%;object-fit:contain;border-radius:6px}

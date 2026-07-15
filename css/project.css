@@ -25,7 +25,7 @@
 .sec-content{overflow:hidden}
 
 /* MICROTASK */
-.microtask-box{background:#d4a838;border-radius:var(--r);padding:16px 18px;margin-bottom:20px;box-shadow:0 6px 20px rgba(196,150,40,.20)}
+.microtask-box{background:#e2b62c;border-radius:var(--r);padding:16px 18px;margin-bottom:20px;box-shadow:0 6px 20px rgba(210,160,40,.20)}
 .mt-label{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#6a5218;margin-bottom:8px}
 .mt-input{background:transparent;border:none;color:#2a2412;font-family:'Nunito',sans-serif;font-size:16px;font-weight:600;width:100%;outline:none;border-bottom:1.5px solid rgba(42,36,18,.15);padding-bottom:8px;line-height:1.4;min-height:24px}
 .mt-input::placeholder{color:rgba(42,36,18,.35)}
