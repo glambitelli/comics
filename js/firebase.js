@@ -30,7 +30,7 @@ export const COL = 'projects';
 const USER_DOC = 'inkflow_user_data';
 
 // Re-export Firestore primitives per evitare importazioni CDN duplicate
-export { collection, doc, onSnapshot, deleteDoc, setDoc };
+export { collection, doc, onSnapshot, deleteDoc, setDoc, serverTimestamp };
 
 // ── CACHE LOCALE PROGETTI — per avvio istantaneo ──
 export function cacheProjects(projs){
