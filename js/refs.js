@@ -42,10 +42,14 @@ export async function addRefImage(file, source='file'){
 // Carica più file in sequenza (drop multiplo, share con più immagini)
 export async function addRefImages(fileList, source='file'){
   const files = Array.from(fileList).filter(f=>f.type && f.type.startsWith('image/'));
+  if(!files.length) return 0;
   let ok=0;
   for(const f of files){
     const id = await addRefImage(f, source);
     if(id) ok++;
+  }
+  if(ok===0){
+    alert('Non sono riuscito a salvare l\'immagine. Controlla la connessione e riprova — se il problema persiste potrebbero servire le regole di Firestore per la collezione "refs".');
   }
   return ok;
 }
@@ -164,9 +168,15 @@ export function deleteCurrentRefImage(){
 
 // ── ACQUISIZIONE RAPIDA: drag&drop + incolla ──
 export function initRefsCapture(){
-  const dropZone = document.getElementById('refs-screen');
+  const dropZone = document.getElementById('screen-refs');
   if(!dropZone || dropZone._refsCaptureInit) return;
   dropZone._refsCaptureInit = true;
+
+  ['dragover','drop'].forEach(ev=>document.addEventListener(ev, e=>{
+    // Rete di sicurezza: se la schermata Riferimenti è aperta, un trascinamento
+    // che sfiora appena fuori dalla zona non deve mai far aprire l'immagine nel browser.
+    if(dropZone.classList.contains('active')) e.preventDefault();
+  }));
 
   ['dragover','dragenter'].forEach(ev=>dropZone.addEventListener(ev, e=>{
     e.preventDefault();
