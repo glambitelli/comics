@@ -173,7 +173,7 @@ export function initRefsCapture(){
   dropZone._refsCaptureInit = true;
 
   ['dragover','drop'].forEach(ev=>document.addEventListener(ev, e=>{
-    // Rete di sicurezza: se la schermata Riferimenti è aperta, un trascinamento
+    // Rete di sicurezza: se la schermata References è aperta, un trascinamento
     // che sfiora appena fuori dalla zona non deve mai far aprire l'immagine nel browser.
     if(dropZone.classList.contains('active')) e.preventDefault();
   }));
@@ -194,7 +194,7 @@ export function initRefsCapture(){
   });
 
   document.addEventListener('paste', async e=>{
-    if(!dropZone.classList.contains('active')) return; // solo se la schermata Riferimenti è aperta
+    if(!dropZone.classList.contains('active')) return; // solo se la schermata References è aperta
     const items = e.clipboardData && e.clipboardData.items;
     if(!items) return;
     const files=[];

@@ -42,12 +42,7 @@
     <div class="home-title" onclick="goHomeFromLogo()" style="cursor:pointer" role="button" tabindex="0" aria-label="Torna alla home">Inkflow <span style="font-size:.6em;color:#f0c020;vertical-align:.14em;font-weight:400">✦</span></div>
     <div class="home-sub-row">
       <div class="home-sub">pipeline · tracker · storyboard <span class="sync-dot" id="sync-dot"></span><span style="margin-left:6px;opacity:.4;font-size:8px;letter-spacing:.06em">v1.0.0</span></div>
-      <div style="display:flex;align-items:center;gap:14px">
-        <button onclick="openRefsScreen()" class="header-search-btn" style="background:none;border:none;font-size:15px;cursor:pointer;color:var(--ink3);padding:0;line-height:1;opacity:.55" aria-label="Riferimenti" title="Riferimenti">
-          <svg viewBox="0 0 24 24" style="width:17px;height:17px;display:block"><rect x="3" y="4" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="8" cy="9.5" r="1.6" fill="currentColor"/><path d="M4 16 L9 11 L13 15 L16 12 L20 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </button>
-        <button onclick="toggleSearch()" class="header-search-btn" style="background:none;border:none;font-size:15px;cursor:pointer;color:var(--ink3);padding:0;line-height:1;opacity:.55">🔍</button>
-      </div>
+      <button onclick="toggleSearch()" class="header-search-btn" style="background:none;border:none;font-size:15px;cursor:pointer;color:var(--ink3);padding:0;line-height:1;opacity:.55">🔍</button>
     </div>
   </div>
   <div class="home-scroll" id="home-scroll">
@@ -64,17 +59,21 @@
     <div style="height:1px;background:var(--sand2);margin:14px 4px 18px"></div>
     <button class="home-new-add" onclick="openNewModal()" aria-label="Nuovo progetto">+</button>
   </div>
-  <button id="btn-evening" onclick="enterEveningMode()" style="position:fixed;bottom:calc(24px + var(--safe-bot));left:24px;width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#1a1410,#2a2018);border:none;box-shadow:0 4px 16px rgba(0,0,0,.22);font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:50">🌙</button>
-  <button id="btn-stats" onclick="openStats()" style="position:fixed;bottom:calc(24px + var(--safe-bot));left:50%;transform:translateX(-50%);width:48px;height:48px;border-radius:50%;background:var(--white);border:1.5px solid var(--sand3);box-shadow:0 4px 16px rgba(0,0,0,.12);cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:50;color:var(--ink2)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="20" x2="6" y2="13"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="18" y1="20" x2="18" y2="9"/></svg></button>
-  <button id="btn-settings" onclick="openSettings()" style="position:fixed;bottom:calc(24px + var(--safe-bot));right:24px;width:48px;height:48px;border-radius:50%;background:var(--white);border:1.5px solid var(--sand3);box-shadow:0 4px 16px rgba(0,0,0,.12);cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:50;color:var(--ink2)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
+  <div class="home-fab-row">
+    <button id="btn-evening" onclick="enterEveningMode()" class="home-fab home-fab-dark" aria-label="Modalità sera">🌙</button>
+    <button id="btn-refs" onclick="openRefsScreen()" class="home-fab" aria-label="References" title="References">
+      <svg width="20" height="20" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="8" cy="9.5" r="1.6" fill="currentColor"/><path d="M4 16 L9 11 L13 15 L16 12 L20 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <button id="btn-stats" onclick="openStats()" class="home-fab" aria-label="Statistiche"><span style="font-size:22px;font-weight:700;line-height:1">≣</span></button>
+    <button id="btn-settings" onclick="openSettings()" class="home-fab" aria-label="Impostazioni"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
+  </div>
 </div>
 
 <!-- PROJECT -->
 <!-- RIFERIMENTI -->
 <div class="screen" id="screen-refs">
   <div class="refs-header">
-    <button onclick="closeRefsScreen()" class="refs-back" aria-label="Torna">←</button>
-    <div class="refs-title">Riferimenti</div>
+    <div class="refs-title">References</div>
     <button onclick="document.getElementById('refs-file-input').click()" class="refs-add-btn" aria-label="Aggiungi">+</button>
     <input type="file" id="refs-file-input" accept="image/*" multiple style="display:none"/>
   </div>
@@ -606,6 +605,9 @@
   </svg>
   <div class="dune-nav-items">
     <button class="dune-btn dune-btn-light" onclick="duneSearch()" aria-label="Cerca"><span class="dune-g-search">⚲</span></button>
+    <button class="dune-btn dune-btn-light" onclick="openRefsScreen()" aria-label="References">
+      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><rect x="3" y="4" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="8" cy="9.5" r="1.6" fill="currentColor"/><path d="M4 16 L9 11 L13 15 L16 12 L20 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
     <button class="dune-btn dune-btn-moon" onclick="toggleEvening()" aria-label="Modalità sera" id="dune-moon-btn">
       <svg class="dune-moon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2a10 10 0 1 0 7.5 16.6A8 8 0 0 1 13 2Z" fill="#f0c068"/></svg>
       <span class="dune-sun-glyph">✷</span>

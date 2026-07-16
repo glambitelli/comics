@@ -71,3 +71,12 @@ body.is-touch .new-fab{bottom:calc(104px + var(--safe-bot))}
 .type-choice-txt{display:flex;flex-direction:column;gap:3px}
 .type-choice-h{font-family:'Castoro',serif;font-size:17px;color:var(--ink)}
 .type-choice-p{font-size:11.5px;color:var(--ink3);line-height:1.4}
+
+/* ── RIGA PULSANTI HOME — sera · references · stats · impostazioni ── */
+.home-fab-row{position:fixed;bottom:calc(24px + var(--safe-bot));left:0;right:0;display:flex;align-items:center;justify-content:center;gap:16px;z-index:50;pointer-events:none}
+.home-fab{pointer-events:auto;width:48px;height:48px;border-radius:50%;background:var(--white);border:1.5px solid var(--sand3);box-shadow:0 4px 16px rgba(0,0,0,.12);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--ink2);font-size:22px;padding:0}
+.home-fab-dark{background:linear-gradient(135deg,#1a1410,#2a2018);border:none;box-shadow:0 4px 16px rgba(0,0,0,.22);color:#fff}
+@media (max-width:380px){
+  .home-fab-row{gap:10px}
+  .home-fab{width:44px;height:44px}
+}
