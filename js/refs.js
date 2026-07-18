@@ -37,6 +37,7 @@ export async function addRefImage(file, source='file'){
       url: dataUrl, source,
       projectId: null,
       folderId: null,
+      tag: null,
       addedAt: serverTimestamp(),
       w, h,
     };
@@ -71,6 +72,12 @@ export function assignRefToProject(id, projectId){
 }
 export function assignRefToFolder(id, folderId){
   setDoc(doc(db, REFS_COL, id), {folderId: folderId||null}, {merge:true});
+}
+export function assignRefTag(id, tag){
+  const clean = (tag||'').trim().slice(0, 24) || null;
+  setDoc(doc(db, REFS_COL, id), {tag: clean}, {merge:true});
+  const item = _refs.find(r=>r.id===id);
+  if(item) item.tag = clean; // aggiorna la cache locale così la griglia si ridisegna subito
 }
 
 // ── CARTELLE ──
@@ -186,8 +193,27 @@ export function promptDeleteFolder(id){
   openFolderBrowser();
 }
 
+// ── SPAZIO OCCUPATO ──
+// Le immagini vivono come data-URI dentro i documenti Firestore: la lunghezza
+// del campo `url` corrisponde 1:1 ai byte realmente salvati. Il piano gratuito
+// Spark concede 1GiB di storage Firestore totale (progetti + reference).
+const FIRESTORE_FREE_BYTES = 1024*1024*1024;
+
+function updateStorageIndicator(){
+  const label = document.getElementById('refs-storage-label');
+  const fill = document.getElementById('refs-storage-fill');
+  if(!label || !fill) return;
+  const used = _refs.reduce((sum,r)=> sum + (r.url ? r.url.length : 0), 0);
+  const mb = used / (1024*1024);
+  const pct = Math.min(100, (used / FIRESTORE_FREE_BYTES) * 100);
+  label.textContent = (mb < 0.1 ? '<0.1' : mb.toFixed(1)) + ' MB su 1 GB';
+  fill.style.width = Math.max(pct, used>0 ? 0.6 : 0) + '%';
+  fill.classList.toggle('warn', pct > 80);
+}
+
 // ── RENDER: DISPATCHER ──
 export function renderRefsScreen(){
+  updateStorageIndicator();
   const browserEl = document.getElementById('refs-folder-browser');
   const galleryEl = document.getElementById('refs-gallery-view');
   const crumb = document.getElementById('refs-breadcrumb');
@@ -274,6 +300,15 @@ export function refsFolderMenu(id){
 }
 
 // ── RENDER: GALLERIA (vista "Tutte" o cartella singola) ──
+function currentGridList(){
+  if(_view === 'folder'){
+    return _activeFolderId
+      ? _refs.filter(r=>r.folderId===_activeFolderId)
+      : _refs.filter(r=>!r.folderId);
+  }
+  return _activeProjectFilter ? _refs.filter(r=>r.projectId===_activeProjectFilter) : _refs;
+}
+
 export function renderRefsGrid(){
   const grid = document.getElementById('refs-grid');
   const empty = document.getElementById('refs-empty');
@@ -293,14 +328,7 @@ export function renderRefsGrid(){
     }
   }
 
-  let list;
-  if(_view === 'folder'){
-    list = _activeFolderId
-      ? _refs.filter(r=>r.folderId===_activeFolderId)
-      : _refs.filter(r=>!r.folderId); // "Senza cartella"
-  } else {
-    list = _activeProjectFilter ? _refs.filter(r=>r.projectId===_activeProjectFilter) : _refs;
-  }
+  const list = currentGridList();
 
   if(!list.length){
     grid.innerHTML='';
@@ -312,21 +340,43 @@ export function renderRefsGrid(){
   grid.innerHTML = list.map(r=>`
     <div class="refs-thumb" data-id="${r.id}" onclick="window.openRefLightbox('${r.id}')">
       <img src="${r.url}" loading="lazy" alt=""/>
+      ${r.tag ? `<span class="refs-tag-badge">${esc(r.tag)}</span>` : ''}
     </div>
   `).join('');
 }
 
 // ── LIGHTBOX ──
+let _lightboxList = [];
+let _lightboxIndex = -1;
+
 export function openRefLightbox(id){
   const item = _refs.find(r=>r.id===id);
   if(!item) return;
+  _lightboxList = currentGridList();
+  _lightboxIndex = _lightboxList.findIndex(r=>r.id===id);
+  renderLightboxAt(_lightboxIndex);
+}
+
+function renderLightboxAt(index){
+  if(index < 0 || index >= _lightboxList.length) return;
+  _lightboxIndex = index;
+  const item = _lightboxList[index];
+  const id = item.id;
   const ov = document.getElementById('refs-lightbox');
   const img = document.getElementById('refs-lightbox-img');
   const projSel = document.getElementById('refs-lightbox-project');
   const folderSel = document.getElementById('refs-lightbox-folder');
+  const counter = document.getElementById('refs-lightbox-counter');
+  const tagInput = document.getElementById('refs-lightbox-tag');
+  const prevBtn = document.getElementById('refs-lightbox-prev');
+  const nextBtn = document.getElementById('refs-lightbox-next');
   if(!ov || !img) return;
   img.src = item.url;
   ov.dataset.id = id;
+  if(counter) counter.textContent = (index+1)+' / '+_lightboxList.length;
+  if(tagInput) tagInput.value = item.tag || '';
+  if(prevBtn) prevBtn.style.visibility = index>0 ? 'visible' : 'hidden';
+  if(nextBtn) nextBtn.style.visibility = index<_lightboxList.length-1 ? 'visible' : 'hidden';
   if(projSel){
     projSel.innerHTML = '<option value="">Nessun progetto</option>' +
       projects.map(p=>`<option value="${p.id}"${p.id===item.projectId?' selected':''}>${esc(p.title)}</option>`).join('');
@@ -352,11 +402,55 @@ export function closeRefLightbox(){
   if(ov) ov.classList.remove('open');
 }
 
+export function nextRefImage(){ renderLightboxAt(_lightboxIndex+1); }
+export function prevRefImage(){ renderLightboxAt(_lightboxIndex-1); }
+
+// Tastiera (desktop): ← → per scorrere, Esc per chiudere
+document.addEventListener('keydown', e=>{
+  const ov = document.getElementById('refs-lightbox');
+  if(!ov || !ov.classList.contains('open')) return;
+  if(e.key === 'ArrowRight') nextRefImage();
+  else if(e.key === 'ArrowLeft') prevRefImage();
+  else if(e.key === 'Escape') closeRefLightbox();
+});
+
+// Swipe (mobile): trascinamento orizzontale sull'immagine per scorrere
+(function initLightboxSwipe(){
+  let sx=0, sy=0, dragging=false;
+  document.addEventListener('DOMContentLoaded', bind);
+  if(document.readyState !== 'loading') bind();
+  function bind(){
+    const body = document.getElementById('refs-lightbox-body');
+    if(!body || body._swipeInit) return;
+    body._swipeInit = true;
+    body.addEventListener('touchstart', e=>{
+      if(e.touches.length!==1) return;
+      sx=e.touches[0].clientX; sy=e.touches[0].clientY; dragging=true;
+    }, {passive:true});
+    body.addEventListener('touchend', e=>{
+      if(!dragging) return;
+      dragging=false;
+      const dx = (e.changedTouches[0].clientX)-sx;
+      const dy = (e.changedTouches[0].clientY)-sy;
+      if(Math.abs(dx) > 55 && Math.abs(dx) > Math.abs(dy)*1.4){
+        if(dx < 0) nextRefImage(); else prevRefImage();
+      }
+    }, {passive:true});
+  }
+})();
+
 export function onRefLightboxProjectChange(sel){
   const ov = document.getElementById('refs-lightbox');
   const id = ov && ov.dataset.id;
   if(!id) return;
   assignRefToProject(id, sel.value || null);
+}
+
+export function onRefLightboxTagChange(input){
+  const ov = document.getElementById('refs-lightbox');
+  const id = ov && ov.dataset.id;
+  if(!id) return;
+  assignRefTag(id, input.value);
 }
 
 export async function onRefLightboxFolderChange(sel){
@@ -387,7 +481,7 @@ export function deleteCurrentRefImage(){
     if(!item) return;
     setDoc(doc(db, REFS_COL, id), {
       url: item.url, source: item.source||'file', projectId: item.projectId||null,
-      folderId: item.folderId||null,
+      folderId: item.folderId||null, tag: item.tag||null,
       addedAt: serverTimestamp(), w: item.w||null, h: item.h||null,
     });
   });

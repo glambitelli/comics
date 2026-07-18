@@ -77,6 +77,10 @@
     <button onclick="document.getElementById('refs-file-input').click()" class="refs-add-btn" aria-label="Aggiungi">+</button>
     <input type="file" id="refs-file-input" accept="image/*" multiple style="display:none"/>
   </div>
+  <div id="refs-storage-bar" class="refs-storage-bar">
+    <div class="refs-storage-row"><span id="refs-storage-label">— MB su 1 GB</span></div>
+    <div class="refs-storage-track"><div id="refs-storage-fill" class="refs-storage-fill" style="width:0%"></div></div>
+  </div>
   <div id="refs-breadcrumb" class="refs-breadcrumb" onclick="openFolderBrowser()" style="display:none">
     <span class="refs-breadcrumb-back">‹</span>
     <span id="refs-breadcrumb-name">Cartelle</span>
@@ -109,14 +113,22 @@
       <select id="refs-lightbox-project" class="refs-lightbox-select" onchange="onRefLightboxProjectChange(this)">
         <option value="">Nessun progetto</option>
       </select>
+      <input id="refs-lightbox-tag" class="refs-lightbox-tag-input" type="text" maxlength="24" placeholder="Tag (es. mani, pose)…" onchange="onRefLightboxTagChange(this)"/>
     </div>
     <button onclick="deleteCurrentRefImage()" class="refs-lightbox-del" aria-label="Elimina">
       <svg viewBox="0 0 24 24" style="width:17px;height:17px"><path d="M6 7 L18 7 M10 7 V5 h4 v2 M8 7 L8.8 19 h6.4 L16 7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </button>
     <button onclick="closeRefLightbox()" class="refs-lightbox-close" aria-label="Chiudi">✕</button>
   </div>
-  <div class="refs-lightbox-body">
+  <div id="refs-lightbox-counter" class="refs-lightbox-counter"></div>
+  <div class="refs-lightbox-body" id="refs-lightbox-body">
+    <button onclick="prevRefImage()" id="refs-lightbox-prev" class="refs-lightbox-nav refs-lightbox-nav-prev" aria-label="Precedente">
+      <svg viewBox="0 0 24 24" width="22" height="22"><path d="M15 5 L8 12 L15 19" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
     <img id="refs-lightbox-img" src="" alt=""/>
+    <button onclick="nextRefImage()" id="refs-lightbox-next" class="refs-lightbox-nav refs-lightbox-nav-next" aria-label="Successiva">
+      <svg viewBox="0 0 24 24" width="22" height="22"><path d="M9 5 L16 12 L9 19" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
   </div>
 </div>
 

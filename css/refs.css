@@ -39,6 +39,7 @@
 
 .refs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(78px,1fr));gap:4px}
 .refs-thumb{aspect-ratio:1/1;border-radius:7px;overflow:hidden;background:var(--sand2);cursor:pointer;position:relative;transition:transform .1s}
+.refs-tag-badge{position:absolute;left:0;right:0;bottom:0;padding:3px 6px 4px;font-family:'Nunito',sans-serif;font-size:9px;font-weight:700;color:#f0d888;letter-spacing:.02em;background:linear-gradient(0deg,rgba(20,16,8,.72),rgba(20,16,8,0));text-transform:lowercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .refs-thumb:active{transform:scale(.94)}
 .refs-thumb img{width:100%;height:100%;object-fit:cover;display:block}
 
@@ -56,9 +57,26 @@
 .refs-lightbox-top{display:flex;align-items:flex-start;gap:10px;padding:calc(14px + var(--safe-top)) 14px 12px;flex-shrink:0}
 .refs-lightbox-selects{flex:1;display:flex;flex-direction:column;gap:6px;min-width:0}
 .refs-lightbox-select{width:100%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);border-radius:9px;padding:8px 10px;color:#f0e8d4;font-family:'Nunito',sans-serif;font-size:13px;font-weight:600;outline:none}
+.refs-lightbox-tag-input{width:100%;background:rgba(240,200,90,.10);border:1px solid rgba(240,200,90,.28);border-radius:9px;padding:8px 10px;color:#f0d888;font-family:'Nunito',sans-serif;font-size:13px;font-weight:600;outline:none;box-sizing:border-box}
+.refs-lightbox-tag-input::placeholder{color:rgba(240,216,136,.4)}
 .refs-lightbox-select option,.refs-lightbox-select optgroup{color:#2a2420}
 .refs-lightbox-del,.refs-lightbox-close{background:none;border:none;color:#f0e8d4;cursor:pointer;padding:6px;line-height:1;flex-shrink:0}
 .refs-lightbox-del{color:#e88868}
 .refs-lightbox-close{font-size:17px}
-.refs-lightbox-body{flex:1;display:flex;align-items:center;justify-content:center;padding:0 12px calc(16px + var(--safe-bot));overflow:hidden}
+.refs-lightbox-body{flex:1;display:flex;align-items:center;justify-content:center;padding:0 12px calc(16px + var(--safe-bot));overflow:hidden;position:relative}
+.refs-lightbox-counter{text-align:center;font-size:11px;font-weight:700;color:rgba(240,232,212,.5);letter-spacing:.04em;margin-bottom:2px;flex-shrink:0}
+.refs-lightbox-nav{position:absolute;top:50%;transform:translateY(-50%);background:rgba(0,0,0,.35);border:none;border-radius:50%;width:42px;height:42px;color:#f0e8d4;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:2}
+.refs-lightbox-nav-prev{left:4px}
+.refs-lightbox-nav-next{right:4px}
+.refs-lightbox-nav:active{background:rgba(0,0,0,.55)}
+@media (hover:none){ .refs-lightbox-nav{background:rgba(0,0,0,.28)} }
+body.is-touch .refs-lightbox-nav{display:none}
 .refs-lightbox-body img{max-width:100%;max-height:100%;object-fit:contain;border-radius:6px}
+
+/* ── SPAZIO OCCUPATO — piano gratuito Firestore (1GB) ── */
+.refs-storage-bar{background:var(--sand);padding:8px 16px 10px;border-bottom:1px solid #e8dcc0;flex-shrink:0}
+.refs-storage-row{display:flex;justify-content:flex-end;margin-bottom:5px}
+.refs-storage-row span{font-size:10px;font-weight:700;color:#a8925c;letter-spacing:.03em}
+.refs-storage-track{height:4px;background:#e8dcc0;border-radius:2px;overflow:hidden}
+.refs-storage-fill{height:100%;background:linear-gradient(90deg,#e0a810,#f0c020);border-radius:2px;transition:width .3s}
+.refs-storage-fill.warn{background:linear-gradient(90deg,#c85838,#e07838)}

@@ -11,9 +11,11 @@ import { renderHome, openNewModal, closeModal, createProject, openCardMenu, expo
 import { openProject, restoreProject, goHome, confirmDeleteCurrent, closeConfirm, confirmMicrotask } from './project.js';
 import { enterEveningMode as enterEveningImpl, exitEveningMode as exitEveningImpl } from './evening.js';
 import { openScriptment, closeScriptment, onScriptmentInput, setScriptmentFont, stepScriptmentSize, formatScriptment, openScriptmentRead, toggleScriptmentRead, refreshScriptmentButton, closeFormatPreview, applyFormatPreview } from './scriptment.js';
-import { startRefsListener, renderRefsScreen, initRefsCapture, setRefsFilter, openRefLightbox, closeRefLightbox, onRefLightboxProjectChange, onRefLightboxFolderChange, deleteCurrentRefImage, openFolderBrowser, openAllGrid, openFolder, promptNewFolder, promptRenameFolder, promptDeleteFolder, refsFolderMenu } from './refs.js';
+import { startRefsListener, renderRefsScreen, initRefsCapture, setRefsFilter, openRefLightbox, closeRefLightbox, nextRefImage, prevRefImage, onRefLightboxProjectChange, onRefLightboxFolderChange, onRefLightboxTagChange, deleteCurrentRefImage, openFolderBrowser, openAllGrid, openFolder, promptNewFolder, promptRenameFolder, promptDeleteFolder, refsFolderMenu } from './refs.js';
 window.setRefsFilter=setRefsFilter; window.openRefLightbox=openRefLightbox; window.closeRefLightbox=closeRefLightbox;
+window.nextRefImage=nextRefImage; window.prevRefImage=prevRefImage;
 window.onRefLightboxProjectChange=onRefLightboxProjectChange; window.onRefLightboxFolderChange=onRefLightboxFolderChange;
+window.onRefLightboxTagChange=onRefLightboxTagChange;
 window.deleteCurrentRefImage=deleteCurrentRefImage;
 window.openFolderBrowser=openFolderBrowser; window.openAllGrid=openAllGrid; window.openFolder=openFolder;
 window.promptNewFolder=promptNewFolder; window.promptRenameFolder=promptRenameFolder; window.promptDeleteFolder=promptDeleteFolder;
