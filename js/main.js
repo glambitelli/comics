@@ -11,9 +11,13 @@ import { renderHome, openNewModal, closeModal, createProject, openCardMenu, expo
 import { openProject, restoreProject, goHome, confirmDeleteCurrent, closeConfirm, confirmMicrotask } from './project.js';
 import { enterEveningMode as enterEveningImpl, exitEveningMode as exitEveningImpl } from './evening.js';
 import { openScriptment, closeScriptment, onScriptmentInput, setScriptmentFont, stepScriptmentSize, formatScriptment, openScriptmentRead, toggleScriptmentRead, refreshScriptmentButton, closeFormatPreview, applyFormatPreview } from './scriptment.js';
-import { startRefsListener, renderRefsGrid, initRefsCapture, setRefsFilter, openRefLightbox, closeRefLightbox, onRefLightboxProjectChange, deleteCurrentRefImage } from './refs.js';
+import { startRefsListener, renderRefsScreen, initRefsCapture, setRefsFilter, openRefLightbox, closeRefLightbox, onRefLightboxProjectChange, onRefLightboxFolderChange, deleteCurrentRefImage, openFolderBrowser, openAllGrid, openFolder, promptNewFolder, promptRenameFolder, promptDeleteFolder, refsFolderMenu } from './refs.js';
 window.setRefsFilter=setRefsFilter; window.openRefLightbox=openRefLightbox; window.closeRefLightbox=closeRefLightbox;
-window.onRefLightboxProjectChange=onRefLightboxProjectChange; window.deleteCurrentRefImage=deleteCurrentRefImage;
+window.onRefLightboxProjectChange=onRefLightboxProjectChange; window.onRefLightboxFolderChange=onRefLightboxFolderChange;
+window.deleteCurrentRefImage=deleteCurrentRefImage;
+window.openFolderBrowser=openFolderBrowser; window.openAllGrid=openAllGrid; window.openFolder=openFolder;
+window.promptNewFolder=promptNewFolder; window.promptRenameFolder=promptRenameFolder; window.promptDeleteFolder=promptDeleteFolder;
+window.refsFolderMenu=refsFolderMenu;
 window.openScriptment=openScriptment; window.closeScriptment=closeScriptment;
 window.setScriptmentFont=setScriptmentFont; window.stepScriptmentSize=stepScriptmentSize;
 window.formatScriptment=formatScriptment; window.openScriptmentRead=openScriptmentRead;
@@ -85,7 +89,7 @@ function openRefsScreen(){
   if(window.__navSync) window.__navSync('refs');
   initRefsCapture();
   startRefsListener();
-  renderRefsGrid();
+  openFolderBrowser();
 }
 function closeRefsScreen(){
   document.getElementById('screen-refs').classList.remove('active');

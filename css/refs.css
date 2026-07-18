@@ -1,7 +1,12 @@
 /* ── RIFERIMENTI — libreria immagini fuori dai progetti ── */
-.refs-header{display:flex;align-items:center;gap:10px;padding:calc(16px + var(--safe-top)) 16px 12px;background:var(--sand);border-bottom:2px solid #e8dcc0;flex-shrink:0}
-.refs-title{flex:1;font-family:'Castoro',serif;font-size:22px;color:var(--ink);letter-spacing:-.01em}
-.refs-add-btn{width:34px;height:34px;border-radius:50%;background:#1a1409;border:none;color:#fdf6e4;font-size:19px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.refs-header{background:linear-gradient(135deg,#fdf6ec,#f7eede);padding:calc(20px + var(--safe-top)) 24px 20px;flex-shrink:0;position:relative;overflow:hidden;border-radius:0 0 24px 24px;border-bottom:3px solid var(--gold);display:flex;align-items:center;gap:10px}
+.refs-header::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,var(--coral),var(--gold),var(--green),var(--sky))}
+.refs-title{flex:1;font-family:'Castoro',serif;font-size:34px;font-weight:700;color:var(--ink);line-height:1;margin-bottom:2px}
+.refs-add-btn{width:34px;height:34px;border-radius:50%;background:#1a1409;border:none;color:#fdf6e4;font-size:19px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+
+.refs-breadcrumb{display:none;align-items:center;gap:8px;padding:10px 16px;background:var(--sand);border-bottom:1px solid #e8dcc0;flex-shrink:0;cursor:pointer}
+.refs-breadcrumb-back{font-size:18px;font-weight:700;color:#8a7248;line-height:1}
+.refs-breadcrumb #refs-breadcrumb-name{font-size:13px;font-weight:700;color:var(--ink2)}
 
 .refs-filter-bar{display:none;gap:7px;padding:10px 14px;overflow-x:auto;background:var(--sand);border-bottom:1px solid #e8dcc0;flex-shrink:0;-webkit-overflow-scrolling:touch}
 .refs-filter-bar::-webkit-scrollbar{display:none}
@@ -9,6 +14,26 @@
 .refs-filter-chip.active{background:#1a1409;border-color:#1a1409;color:#f0c84e}
 
 .refs-scroll{flex:1;overflow-y:auto;background:#efe6d4;padding:14px 14px calc(20px + var(--safe-bot))}
+
+/* ── SFOGLIA CARTELLE ── */
+.refs-quicklink{display:flex;align-items:center;gap:10px;background:var(--white);border:1.5px solid var(--sand2);border-radius:12px;padding:12px 14px;margin-bottom:8px;cursor:pointer;box-shadow:0 2px 8px rgba(74,184,216,.06)}
+.refs-quicklink-ico{width:20px;height:20px;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#8a7248;font-size:16px}
+.refs-quicklink-lbl{flex:1;font-size:14px;font-weight:700;color:var(--ink)}
+.refs-quicklink-count{font-size:12px;font-weight:700;color:var(--ink3);background:var(--sand);border-radius:10px;padding:2px 9px}
+
+.refs-cat-row{display:flex;align-items:center;gap:8px;margin:18px 2px 8px}
+.refs-cat-name{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#9a8458}
+.refs-cat-add{margin-left:auto;width:22px;height:22px;border-radius:50%;background:var(--white);border:1.5px solid var(--sand3);color:#8a7248;font-size:14px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+
+.refs-folder-row{display:flex;align-items:center;gap:10px;background:var(--white);border:1.5px solid var(--sand2);border-radius:11px;padding:10px 12px;margin-bottom:6px;cursor:pointer}
+.refs-folder-ico{width:20px;height:20px;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#d8b060}
+.refs-folder-name{flex:1;font-size:13.5px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.refs-folder-count{font-size:11.5px;font-weight:700;color:var(--ink3)}
+.refs-folder-menu{background:none;border:none;color:var(--ink3);font-size:15px;line-height:1;padding:2px 4px;cursor:pointer;flex-shrink:0}
+
+.refs-folders-empty{font-size:12.5px;color:var(--ink3);line-height:1.6;padding:10px 4px 4px}
+.refs-new-cat-btn{display:block;width:100%;margin-top:14px;background:none;border:1.5px dashed #d8c090;border-radius:11px;padding:11px;font-family:'Nunito',sans-serif;font-size:12.5px;font-weight:700;color:#a8925c;cursor:pointer}
+
 .refs-drop-hint{display:flex;align-items:center;gap:9px;background:#fdf6e4;border:1.5px dashed #d8c090;border-radius:12px;padding:10px 14px;font-size:12px;color:#a8925c;margin-bottom:14px;line-height:1.4}
 .refs-drop-hint strong{color:#8a6a30}
 
@@ -28,9 +53,10 @@
 /* ── LIGHTBOX ── */
 .refs-lightbox{position:fixed;inset:0;background:rgba(10,8,4,.94);z-index:9500;display:none;flex-direction:column;opacity:0;transition:opacity .18s}
 .refs-lightbox.open{display:flex;opacity:1}
-.refs-lightbox-top{display:flex;align-items:center;gap:10px;padding:calc(14px + var(--safe-top)) 14px 12px;flex-shrink:0}
-.refs-lightbox-select{flex:1;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);border-radius:9px;padding:8px 10px;color:#f0e8d4;font-family:'Nunito',sans-serif;font-size:13px;font-weight:600;outline:none}
-.refs-lightbox-select option{color:#2a2420}
+.refs-lightbox-top{display:flex;align-items:flex-start;gap:10px;padding:calc(14px + var(--safe-top)) 14px 12px;flex-shrink:0}
+.refs-lightbox-selects{flex:1;display:flex;flex-direction:column;gap:6px;min-width:0}
+.refs-lightbox-select{width:100%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);border-radius:9px;padding:8px 10px;color:#f0e8d4;font-family:'Nunito',sans-serif;font-size:13px;font-weight:600;outline:none}
+.refs-lightbox-select option,.refs-lightbox-select optgroup{color:#2a2420}
 .refs-lightbox-del,.refs-lightbox-close{background:none;border:none;color:#f0e8d4;cursor:pointer;padding:6px;line-height:1;flex-shrink:0}
 .refs-lightbox-del{color:#e88868}
 .refs-lightbox-close{font-size:17px}
