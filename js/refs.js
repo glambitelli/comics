@@ -1,10 +1,12 @@
 // ── LIBRERIA REFERENCES — immagini reference fuori dai progetti ──
-// Firestore: metadati + immagine compressa come data-URI (niente Storage/Blaze).
+// Le immagini vivono su Cloudinary (25GB gratis, nessuna carta), Firestore
+// tiene solo i metadati (url, cartella, tag, progetto collegato).
 // Organizzazione a cartelle per categoria (es. "Artists" → "Hiroyuki Okiura",
 // "Study (Temporary)" → "Hands"), oltre al tag progetto già esistente.
 import { db, collection, doc, onSnapshot, setDoc, deleteDoc, serverTimestamp } from './firebase.js';
 import { projects, haptic, showUndoToast } from './state.js';
-import { compressImageFile } from './imgcompress.js';
+import { compressImageFile, dataUrlToBlob } from './imgcompress.js';
+import { uploadToCloudinary, tryDestroyCloudinaryImage } from './cloudinary.js';
 
 const REFS_COL = 'refs';
 const FOLDERS_COL = 'refFolders';
@@ -16,6 +18,7 @@ let _foldersUnsub = null;
 let _activeProjectFilter = null; // usato solo nella vista "Tutte"
 let _view = 'folders';           // 'folders' | 'all' | 'folder'
 let _activeFolderId = null;
+let _deleteTokens = new Map();   // id → {token, expiresAt} — solo in memoria, mai in Firestore
 
 function genId(){
   return Date.now().toString(36) + Math.random().toString(36).slice(2,8);
@@ -32,14 +35,16 @@ export async function addRefImage(file, source='file'){
   }
   const id = genId();
   try{
-    const { dataUrl, w, h } = await compressImageFile(file);
+    const { blob, w, h } = await compressImageFile(file);
+    const { url, deleteToken, deleteTokenExpiresAt } = await uploadToCloudinary(blob, id+'.jpg');
+    if(deleteToken) _deleteTokens.set(id, {token: deleteToken, expiresAt: deleteTokenExpiresAt});
     const data = {
-      url: dataUrl, source,
+      url, source,
       projectId: null,
       folderId: null,
       tag: null,
       addedAt: serverTimestamp(),
-      w, h,
+      w, h, bytes: blob.size,
     };
     await setDoc(doc(db, REFS_COL, id), data);
     return id;
@@ -58,12 +63,17 @@ export async function addRefImages(fileList, source='file'){
     if(id) ok++;
   }
   if(ok===0){
-    alert('Non sono riuscito a salvare l\'immagine. Controlla la connessione e riprova — se il problema persiste potrebbero servire le regole di Firestore per la collezione "refs".');
+    alert('Non sono riuscito a salvare l\'immagine. Controlla la connessione e riprova.');
   }
   return ok;
 }
 
 export async function deleteRefImage(id){
+  const tok = _deleteTokens.get(id);
+  if(tok && tok.token && Date.now() < tok.expiresAt){
+    tryDestroyCloudinaryImage(tok.token); // best effort, non blocca la cancellazione
+  }
+  _deleteTokens.delete(id);
   await deleteDoc(doc(db, REFS_COL, id));
 }
 
@@ -129,6 +139,7 @@ export function startRefsListener(){
           return tb-ta;
         });
       renderRefsScreen();
+      migrateLegacyBase64Refs();
     }, err=>console.warn('refs listener error:', err));
   }
   if(!_foldersUnsub){
@@ -136,6 +147,28 @@ export function startRefsListener(){
       _folders = snap.docs.map(d=>({id:d.id, ...d.data()}));
       renderRefsScreen();
     }, err=>console.warn('refFolders listener error:', err));
+  }
+}
+
+// ── MIGRAZIONE UNA TANTUM: vecchie immagini base64 (Firestore) → Cloudinary ──
+// Silenziosa, in background, una alla volta per non sovraccaricare nulla.
+// Una volta ricaricato l'url su Cloudinary, il documento Firestore torna
+// leggero (solo testo), liberando spazio nel piano gratuito da 1GB.
+let _migrating = false;
+async function migrateLegacyBase64Refs(){
+  if(_migrating) return;
+  const legacy = _refs.filter(r=> typeof r.url === 'string' && r.url.startsWith('data:'));
+  if(!legacy.length) return;
+  _migrating = true;
+  try{
+    const item = legacy[0];
+    const blob = dataUrlToBlob(item.url);
+    const { url } = await uploadToCloudinary(blob, item.id+'.jpg');
+    await setDoc(doc(db, REFS_COL, item.id), {url, bytes: blob.size}, {merge:true});
+  }catch(e){
+    console.warn('migrazione reference fallita, riprovo al prossimo giro:', e);
+  }finally{
+    _migrating = false;
   }
 }
 
@@ -194,20 +227,22 @@ export function promptDeleteFolder(id){
 }
 
 // ── SPAZIO OCCUPATO ──
-// Le immagini vivono come data-URI dentro i documenti Firestore: la lunghezza
-// del campo `url` corrisponde 1:1 ai byte realmente salvati. Il piano gratuito
-// Spark concede 1GiB di storage Firestore totale (progetti + reference).
-const FIRESTORE_FREE_BYTES = 1024*1024*1024;
+// Le immagini vivono su Cloudinary (25GB gratis); non c'è modo di interrogare
+// l'uso reale dell'account senza esporre credenziali admin lato client, quindi
+// teniamo il conto noi: ogni immagine salva la propria dimensione (`bytes`) al
+// momento del caricamento, e sommiamo. È una stima molto fedele (è la stessa
+// dimensione che è stata davvero inviata), non un valore letto in tempo reale.
+const CLOUDINARY_FREE_BYTES = 25 * 1024 * 1024 * 1024;
 
 function updateStorageIndicator(){
   const label = document.getElementById('refs-storage-label');
   const fill = document.getElementById('refs-storage-fill');
   if(!label || !fill) return;
-  const used = _refs.reduce((sum,r)=> sum + (r.url ? r.url.length : 0), 0);
+  const used = _refs.reduce((sum,r)=> sum + (typeof r.bytes==='number' ? r.bytes : 0), 0);
   const mb = used / (1024*1024);
-  const pct = Math.min(100, (used / FIRESTORE_FREE_BYTES) * 100);
-  label.textContent = (mb < 0.1 ? '<0.1' : mb.toFixed(1)) + ' MB su 1 GB';
-  fill.style.width = Math.max(pct, used>0 ? 0.6 : 0) + '%';
+  const pct = Math.min(100, (used / CLOUDINARY_FREE_BYTES) * 100);
+  label.textContent = '~' + (mb < 0.1 ? '<0.1' : mb.toFixed(1)) + ' MB su 25 GB';
+  fill.style.width = Math.max(pct, used>0 ? 0.3 : 0) + '%';
   fill.classList.toggle('warn', pct > 80);
 }
 
@@ -476,8 +511,19 @@ export function deleteCurrentRefImage(){
   const item = _refs.find(r=>r.id===id);
   closeRefLightbox();
   haptic('done');
-  deleteRefImage(id);
+
+  // Il file su Cloudinary viene distrutto solo DOPO la finestra dei 5" di
+  // "Annulla": se l'utente ripensa, deleteDoc/Firestore non è ancora avvenuto
+  // per davvero lato Cloudinary e il ripristino resta valido al 100%.
+  deleteDoc(doc(db, REFS_COL, id));
+  const destroyTimer = setTimeout(()=>{
+    const tok = _deleteTokens.get(id);
+    if(tok && tok.token && Date.now() < tok.expiresAt) tryDestroyCloudinaryImage(tok.token);
+    _deleteTokens.delete(id);
+  }, 5600);
+
   showUndoToast('Immagine eliminata', ()=>{
+    clearTimeout(destroyTimer);
     if(!item) return;
     setDoc(doc(db, REFS_COL, id), {
       url: item.url, source: item.source||'file', projectId: item.projectId||null,

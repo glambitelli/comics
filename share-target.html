@@ -24,8 +24,9 @@
   <div class="sub" id="status">Salvataggio in References…</div>
 
 <script type="module">
-import { db, collection, doc, setDoc, serverTimestamp } from './js/firebase.js';
+import { db, doc, setDoc, serverTimestamp } from './js/firebase.js';
 import { compressImageFile } from './js/imgcompress.js';
+import { uploadToCloudinary } from './js/cloudinary.js';
 
 const statusEl = document.getElementById('status');
 
@@ -44,12 +45,14 @@ async function run(){
   for(const key of shared){
     try{
       const resp = await cache.match(key);
-      const blob = await resp.blob();
-      if(!blob || !blob.type || !blob.type.startsWith('image/')) continue;
+      const blob0 = await resp.blob();
+      if(!blob0 || !blob0.type || !blob0.type.startsWith('image/')) continue;
       const id = genId();
-      const { dataUrl, w, h } = await compressImageFile(blob);
+      const { blob, w, h } = await compressImageFile(blob0);
+      const { url } = await uploadToCloudinary(blob, id+'.jpg');
       await setDoc(doc(db, 'refs', id), {
-        url: dataUrl, source:'share', projectId:null, addedAt: serverTimestamp(), w, h
+        url, source:'share', projectId:null, folderId:null, tag:null,
+        addedAt: serverTimestamp(), w, h, bytes: blob.size
       });
       ok++;
     }catch(e){ console.error('share-target upload error', e); }
