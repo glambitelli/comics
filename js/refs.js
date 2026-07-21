@@ -19,6 +19,7 @@ let _activeProjectFilter = null; // usato solo nella vista "Tutte"
 let _view = 'folders';           // 'folders' | 'all' | 'folder'
 let _activeFolderId = null;
 let _deleteTokens = new Map();   // id → {token, expiresAt} — solo in memoria, mai in Firestore
+let _lastUploadError = '';
 
 function genId(){
   return Date.now().toString(36) + Math.random().toString(36).slice(2,8);
@@ -50,6 +51,7 @@ export async function addRefImage(file, source='file'){
     return id;
   }catch(e){
     console.error('addRefImage errore:', e);
+    _lastUploadError = (e && e.message) ? e.message : String(e);
     return null;
   }
 }
@@ -63,7 +65,7 @@ export async function addRefImages(fileList, source='file'){
     if(id) ok++;
   }
   if(ok===0){
-    alert('Non sono riuscito a salvare l\'immagine. Controlla la connessione e riprova.');
+    alert('Non sono riuscito a salvare l\'immagine.\n\nDettaglio: ' + (_lastUploadError || 'errore sconosciuto') + '\n\nSe il dettaglio parla di "unsigned uploads" o "preset", controlla su Cloudinary che il preset sia impostato su Unsigned.');
   }
   return ok;
 }

@@ -19,7 +19,9 @@ export async function uploadToCloudinary(blob, filename='ref.jpg'){
   const res = await fetch(UPLOAD_URL, {method:'POST', body: fd});
   if(!res.ok){
     const txt = await res.text().catch(()=> '');
-    throw new Error('Cloudinary upload fallito: '+res.status+' '+txt);
+    let msg = txt;
+    try{ const j = JSON.parse(txt); if(j && j.error && j.error.message) msg = j.error.message; }catch(e){}
+    throw new Error('Cloudinary ('+res.status+'): '+msg);
   }
   const data = await res.json();
   return {
