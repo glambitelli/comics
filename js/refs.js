@@ -7,6 +7,7 @@ import { db, collection, doc, onSnapshot, setDoc, deleteDoc, serverTimestamp } f
 import { projects, haptic, showUndoToast } from './state.js';
 import { compressImageFile, dataUrlToBlob } from './imgcompress.js';
 import { uploadToCloudinary } from './cloudinary.js';
+import { promptModal, confirmModal, actionMenu } from './dialogs.js';
 
 const REFS_COL = 'refs';
 const FOLDERS_COL = 'refFolders';
@@ -190,33 +191,34 @@ export function setRefsFilter(projectId){
 export async function promptNewFolder(category){
   let cat = category;
   if(!cat){
-    cat = window.prompt('Nome della categoria (es. Artists, Study)');
-    if(cat === null) return;
+    cat = await promptModal('Nome della categoria', '', 'es. Artists, Study');
+    if(!cat) return;
     cat = cat.trim();
     if(!cat) return;
   }
-  const name = window.prompt('Nome della cartella'+(cat?` in "${cat}"`:''));
-  if(name === null) return;
+  const name = await promptModal('Nome della cartella'+(cat?` in "${cat}"`:''), '', 'es. Otomo, Hands');
+  if(!name) return;
   const id = await createFolder(cat, name);
   if(id){ haptic('done'); openFolder(id); }
 }
 
-export function promptRenameFolder(id){
+export async function promptRenameFolder(id){
   const f = _folders.find(x=>x.id===id);
   if(!f) return;
-  const nv = window.prompt('Rinomina cartella', f.name||'');
-  if(nv === null) return;
+  const nv = await promptModal('Rinomina cartella', f.name||'');
+  if(!nv) return;
   renameFolder(id, nv);
 }
 
-export function promptDeleteFolder(id){
+export async function promptDeleteFolder(id){
   const f = _folders.find(x=>x.id===id);
   if(!f) return;
   const n = countInFolder(id);
   const msg = n>0
     ? `Eliminare la cartella "${f.name}"? Le ${n} immagini al suo interno non verranno cancellate, torneranno solo senza cartella.`
     : `Eliminare la cartella "${f.name}"?`;
-  if(!confirm(msg)) return;
+  const ok = await confirmModal(msg, {title:'Elimina cartella', confirmLabel:'Elimina'});
+  if(!ok) return;
   deleteFolder(id);
   openFolderBrowser();
 }
@@ -310,23 +312,27 @@ function renderFolderBrowser(){
         <span class="refs-folder-ico">${FOLDER_ICON}</span>
         <span class="refs-folder-name">${esc(f.name)}</span>
         <span class="refs-folder-count">${countInFolder(f.id)}</span>
-        <button class="refs-folder-menu" onclick="event.stopPropagation();window.refsFolderMenu('${f.id}')" aria-label="Altro">⋯</button>
+        <button class="refs-folder-menu" onclick="event.stopPropagation();window.refsFolderMenu('${f.id}',this)" aria-label="Altro">⋯</button>
       </div>`;
     });
   });
 
   html += `<button class="refs-new-cat-btn" onclick="window.promptNewFolder()">+ Nuova categoria</button>`;
+  html += `<button class="refs-inline-add" onclick="document.getElementById('refs-file-input').click()" aria-label="Aggiungi immagine">
+    <span class="refs-inline-add-circle">+</span>
+    <span class="refs-inline-add-lbl">Aggiungi immagine</span>
+  </button>`;
 
   el.innerHTML = html;
 }
 
-export function refsFolderMenu(id){
+export function refsFolderMenu(id, btnEl){
   const f = _folders.find(x=>x.id===id);
   if(!f) return;
-  const choice = window.prompt('Scrivi "rinomina" o "elimina" per '+f.name, 'rinomina');
-  if(choice === null) return;
-  if(choice.trim().toLowerCase().startsWith('elim')) promptDeleteFolder(id);
-  else if(choice.trim().toLowerCase().startsWith('rinom')) promptRenameFolder(id);
+  actionMenu(btnEl, [
+    {label:'Rinomina', onSelect:()=>promptRenameFolder(id)},
+    {label:'Elimina', danger:true, onSelect:()=>promptDeleteFolder(id)},
+  ]);
 }
 
 // ── RENDER: GALLERIA (vista "Tutte" o cartella singola) ──
@@ -402,13 +408,14 @@ function renderLightboxAt(index){
   const nextBtn = document.getElementById('refs-lightbox-next');
   if(!ov || !img) return;
   img.src = item.url;
+  resetImageZoom();
   ov.dataset.id = id;
   if(counter) counter.textContent = (index+1)+' / '+_lightboxList.length;
   if(tagInput) tagInput.value = item.tag || '';
   if(prevBtn) prevBtn.style.visibility = index>0 ? 'visible' : 'hidden';
   if(nextBtn) nextBtn.style.visibility = index<_lightboxList.length-1 ? 'visible' : 'hidden';
   if(projSel){
-    projSel.innerHTML = '<option value="">Nessun progetto</option>' +
+    projSel.innerHTML = '<option value="">+ Collega a un progetto</option>' +
       projects.map(p=>`<option value="${p.id}"${p.id===item.projectId?' selected':''}>${esc(p.title)}</option>`).join('');
   }
   if(folderSel){
@@ -430,6 +437,7 @@ function renderLightboxAt(index){
 export function closeRefLightbox(){
   const ov = document.getElementById('refs-lightbox');
   if(ov) ov.classList.remove('open');
+  resetImageZoom();
 }
 
 export function nextRefImage(){ renderLightboxAt(_lightboxIndex+1); }
@@ -444,28 +452,142 @@ document.addEventListener('keydown', e=>{
   else if(e.key === 'Escape') closeRefLightbox();
 });
 
-// Swipe (mobile): trascinamento orizzontale sull'immagine per scorrere
-(function initLightboxSwipe(){
-  let sx=0, sy=0, dragging=false;
+// ── ZOOM/PAN/SWIPE — tocca due volte o pizzica per ingrandire, come una vera
+// galleria: a 1x lo swipe orizzontale cambia immagine, da zoomato trascini
+// per spostarti dentro la foto invece di cambiarla. ──
+let _zoomScale = 1, _zoomX = 0, _zoomY = 0;
+const ZOOM_IN = 2.6, ZOOM_MAX = 4;
+
+export function resetImageZoom(){
+  _zoomScale = 1; _zoomX = 0; _zoomY = 0;
+  const img = document.getElementById('refs-lightbox-img');
+  if(img){ img.style.transition = 'none'; applyZoomTransform(img); }
+}
+
+function clampPan(scale, x, y){
+  const img = document.getElementById('refs-lightbox-img');
+  if(!img) return {x, y};
+  const r = img.getBoundingClientRect();
+  const baseW = r.width / scale, baseH = r.height / scale;
+  const maxX = Math.max(0, (baseW*scale - baseW)/2);
+  const maxY = Math.max(0, (baseH*scale - baseH)/2);
+  return { x: Math.min(maxX, Math.max(-maxX, x)), y: Math.min(maxY, Math.max(-maxY, y)) };
+}
+
+function applyZoomTransform(img){
+  img.style.transform = `translate(${_zoomX}px, ${_zoomY}px) scale(${_zoomScale})`;
+}
+
+(function initLightboxGestures(){
   document.addEventListener('DOMContentLoaded', bind);
   if(document.readyState !== 'loading') bind();
+
   function bind(){
     const body = document.getElementById('refs-lightbox-body');
-    if(!body || body._swipeInit) return;
-    body._swipeInit = true;
+    const img = document.getElementById('refs-lightbox-img');
+    if(!body || !img || body._gestureInit) return;
+    body._gestureInit = true;
+
+    let touches = [];
+    let startDist = 0, startScale = 1;
+    let panStartX = 0, panStartY = 0, panOrigX = 0, panOrigY = 0;
+    let swipeStartX = 0, swipeStartY = 0;
+    let isPinching = false, isPanning = false;
+    let lastTapTime = 0, lastTapX = 0, lastTapY = 0;
+
+    function dist(t0, t1){ return Math.hypot(t1.clientX-t0.clientX, t1.clientY-t0.clientY); }
+
     body.addEventListener('touchstart', e=>{
-      if(e.touches.length!==1) return;
-      sx=e.touches[0].clientX; sy=e.touches[0].clientY; dragging=true;
-    }, {passive:true});
-    body.addEventListener('touchend', e=>{
-      if(!dragging) return;
-      dragging=false;
-      const dx = (e.changedTouches[0].clientX)-sx;
-      const dy = (e.changedTouches[0].clientY)-sy;
-      if(Math.abs(dx) > 55 && Math.abs(dx) > Math.abs(dy)*1.4){
-        if(dx < 0) nextRefImage(); else prevRefImage();
+      touches = Array.from(e.touches);
+      img.style.transition = 'none';
+      if(touches.length === 2){
+        isPinching = true; isPanning = false;
+        startDist = dist(touches[0], touches[1]);
+        startScale = _zoomScale;
+      } else if(touches.length === 1){
+        isPinching = false;
+        swipeStartX = touches[0].clientX; swipeStartY = touches[0].clientY;
+        if(_zoomScale > 1.02){
+          isPanning = true;
+          panStartX = touches[0].clientX; panStartY = touches[0].clientY;
+          panOrigX = _zoomX; panOrigY = _zoomY;
+        } else {
+          isPanning = false;
+        }
       }
     }, {passive:true});
+
+    body.addEventListener('touchmove', e=>{
+      touches = Array.from(e.touches);
+      if(isPinching && touches.length === 2){
+        const nd = dist(touches[0], touches[1]);
+        _zoomScale = Math.min(ZOOM_MAX, Math.max(1, startScale * (nd/startDist)));
+        const c = clampPan(_zoomScale, _zoomX, _zoomY);
+        _zoomX = c.x; _zoomY = c.y;
+        applyZoomTransform(img);
+      } else if(isPanning && touches.length === 1){
+        const dx = touches[0].clientX - panStartX;
+        const dy = touches[0].clientY - panStartY;
+        const c = clampPan(_zoomScale, panOrigX+dx, panOrigY+dy);
+        _zoomX = c.x; _zoomY = c.y;
+        applyZoomTransform(img);
+      }
+    }, {passive:true});
+
+    body.addEventListener('touchend', e=>{
+      if(isPinching){
+        isPinching = false;
+        if(_zoomScale < 1.05){ resetImageZoom(); img.style.transition = 'transform .18s'; }
+        return;
+      }
+      if(isPanning){ isPanning = false; return; }
+      // swipe per cambiare immagine (solo a 1x) o doppio tap per zoomare
+      const t = e.changedTouches[0];
+      const dx = t.clientX - swipeStartX, dy = t.clientY - swipeStartY;
+      const moved = Math.hypot(dx, dy);
+      if(_zoomScale <= 1.02 && moved > 55 && Math.abs(dx) > Math.abs(dy)*1.4){
+        if(dx < 0) nextRefImage(); else prevRefImage();
+        return;
+      }
+      if(moved < 12){
+        const now = Date.now();
+        const closeTap = Math.hypot(t.clientX-lastTapX, t.clientY-lastTapY) < 40;
+        if(now - lastTapTime < 320 && closeTap){
+          // doppio tap: alterna 1x ↔ zoom centrato sul punto toccato
+          img.style.transition = 'transform .22s';
+          if(_zoomScale > 1.02){
+            resetImageZoom();
+          } else {
+            const r = img.getBoundingClientRect();
+            const relX = (t.clientX - (r.left+r.width/2));
+            const relY = (t.clientY - (r.top+r.height/2));
+            _zoomScale = ZOOM_IN;
+            const c = clampPan(_zoomScale, -relX*(ZOOM_IN-1), -relY*(ZOOM_IN-1));
+            _zoomX = c.x; _zoomY = c.y;
+            applyZoomTransform(img);
+          }
+          lastTapTime = 0;
+        } else {
+          lastTapTime = now; lastTapX = t.clientX; lastTapY = t.clientY;
+        }
+      }
+    }, {passive:true});
+
+    // Desktop: doppio clic per zoomare/dezoomare
+    img.addEventListener('dblclick', e=>{
+      img.style.transition = 'transform .22s';
+      if(_zoomScale > 1.02){
+        resetImageZoom();
+      } else {
+        const r = img.getBoundingClientRect();
+        const relX = (e.clientX - (r.left+r.width/2));
+        const relY = (e.clientY - (r.top+r.height/2));
+        _zoomScale = ZOOM_IN;
+        const c = clampPan(_zoomScale, -relX*(ZOOM_IN-1), -relY*(ZOOM_IN-1));
+        _zoomX = c.x; _zoomY = c.y;
+        applyZoomTransform(img);
+      }
+    });
   }
 })();
 
@@ -488,10 +610,10 @@ export async function onRefLightboxFolderChange(sel){
   const id = ov && ov.dataset.id;
   if(!id) return;
   if(sel.value === '__new__'){
-    const cat = window.prompt('Nome della categoria (es. Artists, Study)');
-    if(cat === null || !cat.trim()){ openRefLightbox(id); return; }
-    const name = window.prompt('Nome della cartella in "'+cat.trim()+'"');
-    if(name === null || !name.trim()){ openRefLightbox(id); return; }
+    const cat = await promptModal('Nome della categoria', '', 'es. Artists, Study');
+    if(!cat || !cat.trim()){ openRefLightbox(id); return; }
+    const name = await promptModal('Nome della cartella in "'+cat.trim()+'"', '', 'es. Otomo, Hands');
+    if(!name || !name.trim()){ openRefLightbox(id); return; }
     const newId = await createFolder(cat.trim(), name.trim());
     if(newId) assignRefToFolder(id, newId);
     return;

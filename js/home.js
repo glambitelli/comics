@@ -5,6 +5,7 @@ import { calcPct, getPhaseIndex } from './progress.js';
 import { calcDaysLeft } from './velocity.js';
 import { exportPDF, exportScreenplay } from './pdf.js';
 import { openProject, confirmDeleteCurrent } from './project.js';
+import { promptModal } from './dialogs.js';
 
 function newProjectObj(title, numTav){
   const idx = projects.length % PROJECT_PALETTE.length;
@@ -159,10 +160,10 @@ export function closeCardMenu(){
   if(_activeMenu){ _activeMenu.remove(); _activeMenu=null; }
 }
 
-export function renameProject(id){
+export async function renameProject(id){
   const p = getProject(id); if(!p) return;
-  const nv = window.prompt('Rinomina progetto', p.title||'');
-  if(nv === null) return;
+  const nv = await promptModal('Rinomina progetto', p.title||'');
+  if(!nv) return;
   const clean = nv.trim();
   if(!clean || clean === p.title) return;
   p.title = clean;

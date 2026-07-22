@@ -27,3 +27,11 @@
 .planner-unit{font-size:11px;color:var(--ink3);font-weight:500}
 .planner-apply-btn{width:100%;padding:11px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--coral),var(--gold));color:#fff;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 3px 12px rgba(200,82,26,.25)}
 .planner-apply-btn:active{transform:scale(.98)}
+
+/* ── MENU CONTESTUALE (rinomina/elimina) — sostituisce prompt di testo tipo "scrivi..." ── */
+.ink-action-menu{position:absolute;z-index:9600;background:var(--white);border:1.5px solid var(--sand2);border-radius:12px;box-shadow:0 8px 28px rgba(0,0,0,.18);overflow:hidden;min-width:150px;animation:ink-menu-in .12s ease}
+@keyframes ink-menu-in{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+.ink-action-menu button{display:block;width:100%;text-align:left;padding:11px 14px;background:none;border:none;border-bottom:1px solid var(--sand2);font-family:'Nunito',sans-serif;font-size:13px;font-weight:600;color:var(--ink);cursor:pointer}
+.ink-action-menu button:last-child{border-bottom:none}
+.ink-action-menu button.danger{color:var(--coral)}
+.ink-action-menu button:active{background:var(--sand)}
