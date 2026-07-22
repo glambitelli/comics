@@ -320,7 +320,6 @@ function renderFolderBrowser(){
   html += `<button class="refs-new-cat-btn" onclick="window.promptNewFolder()">+ Nuova categoria</button>`;
   html += `<button class="refs-inline-add" onclick="document.getElementById('refs-file-input').click()" aria-label="Aggiungi immagine">
     <span class="refs-inline-add-circle">+</span>
-    <span class="refs-inline-add-lbl">Aggiungi immagine</span>
   </button>`;
 
   el.innerHTML = html;

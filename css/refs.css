@@ -5,7 +5,6 @@
 .refs-inline-add{display:flex;flex-direction:column;align-items:center;gap:6px;width:100%;background:none;border:none;padding:18px 0 10px;cursor:pointer}
 .refs-inline-add-circle{width:48px;height:48px;border-radius:50%;background:#fffdf8;color:#d4a818;border:1.5px solid #ecd97a;font-size:26px;font-weight:300;line-height:0;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(208,168,48,.18);transition:transform .12s,background .15s}
 .refs-inline-add:active .refs-inline-add-circle{transform:scale(.9);background:#fdf3da}
-.refs-inline-add-lbl{font-size:11px;font-weight:700;color:#a8925c}
 
 .refs-breadcrumb{display:none;align-items:center;gap:8px;padding:10px 16px;background:var(--sand);border-bottom:1px solid #e8dcc0;flex-shrink:0;cursor:pointer}
 .refs-breadcrumb-back{font-size:18px;font-weight:700;color:#8a7248;line-height:1}

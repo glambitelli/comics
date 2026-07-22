@@ -103,11 +103,12 @@ body.evening-mode .dune-moon-svg{display:none}
 .dune-sun-glyph{display:none;font-size:28px;line-height:1;color:#f0c040}
 body.evening-mode .dune-sun-glyph{display:block}
 
-/* Nascondi pulsanti flottanti e cerca header su touch */
+/* Nascondi pulsanti flottanti desktop su touch (restano nella dune-nav) */
 body.is-touch #btn-evening,
 body.is-touch #btn-refs,
 body.is-touch #btn-stats,
-body.is-touch #btn-settings,
+body.is-touch #btn-settings{display:none !important}
+/* La lente resta invece visibile su touch: sopra la lista progetti, come da browser */
 body.is-touch .header-search-btn{display:inline-block !important}
 /* Nascondi anche il pulsante "esci dalla sera" flottante su touch (luce-fantasma) */
 body.is-touch #evening-exit,
