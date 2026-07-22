@@ -14,7 +14,7 @@ export async function uploadToCloudinary(blob, filename='ref.jpg'){
   const fd = new FormData();
   fd.append('file', blob, filename);
   fd.append('upload_preset', UPLOAD_PRESET);
-  fd.append('folder', 'inkflow-refs');
+  fd.append('asset_folder', 'inkflow-refs');
   fd.append('return_delete_token', 'true');
   const res = await fetch(UPLOAD_URL, {method:'POST', body: fd});
   if(!res.ok){
