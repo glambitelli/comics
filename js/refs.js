@@ -280,7 +280,6 @@ const FOLDER_ICON = `<svg viewBox="0 0 24 24" width="20" height="20"><path d="M3
 function renderFolderBrowser(){
   const el = document.getElementById('refs-folder-browser');
   if(!el) return;
-  const uncategorized = _refs.filter(r=>!r.folderId).length;
   const cats = foldersByCategory();
 
   let html = `
@@ -289,14 +288,6 @@ function renderFolderBrowser(){
       <span class="refs-quicklink-lbl">Tutte le immagini</span>
       <span class="refs-quicklink-count">${_refs.length}</span>
     </div>`;
-  if(uncategorized>0){
-    html += `
-    <div class="refs-quicklink" onclick="window.openFolder(null)">
-      <span class="refs-quicklink-ico">${FOLDER_ICON}</span>
-      <span class="refs-quicklink-lbl">Senza cartella</span>
-      <span class="refs-quicklink-count">${uncategorized}</span>
-    </div>`;
-  }
 
   if(cats.size === 0){
     html += `<div class="refs-folders-empty">Ancora nessuna cartella. Crea la prima categoria (es. "Artists" o "Study") per iniziare a organizzare le tue reference.</div>`;
