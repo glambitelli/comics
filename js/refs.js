@@ -6,7 +6,7 @@
 import { db, collection, doc, onSnapshot, setDoc, deleteDoc, serverTimestamp } from './firebase.js';
 import { projects, haptic, showUndoToast } from './state.js';
 import { compressImageFile, dataUrlToBlob } from './imgcompress.js';
-import { uploadToCloudinary, tryDestroyCloudinaryImage } from './cloudinary.js';
+import { uploadToCloudinary } from './cloudinary.js';
 
 const REFS_COL = 'refs';
 const FOLDERS_COL = 'refFolders';
@@ -18,7 +18,6 @@ let _foldersUnsub = null;
 let _activeProjectFilter = null; // usato solo nella vista "Tutte"
 let _view = 'folders';           // 'folders' | 'all' | 'folder'
 let _activeFolderId = null;
-let _deleteTokens = new Map();   // id → {token, expiresAt} — solo in memoria, mai in Firestore
 let _lastUploadError = '';
 
 function genId(){
@@ -37,8 +36,7 @@ export async function addRefImage(file, source='file'){
   const id = genId();
   try{
     const { blob, w, h } = await compressImageFile(file);
-    const { url, deleteToken, deleteTokenExpiresAt } = await uploadToCloudinary(blob, id+'.jpg');
-    if(deleteToken) _deleteTokens.set(id, {token: deleteToken, expiresAt: deleteTokenExpiresAt});
+    const { url } = await uploadToCloudinary(blob, id+'.jpg');
     const data = {
       url, source,
       projectId: null,
@@ -71,11 +69,6 @@ export async function addRefImages(fileList, source='file'){
 }
 
 export async function deleteRefImage(id){
-  const tok = _deleteTokens.get(id);
-  if(tok && tok.token && Date.now() < tok.expiresAt){
-    tryDestroyCloudinaryImage(tok.token); // best effort, non blocca la cancellazione
-  }
-  _deleteTokens.delete(id);
   await deleteDoc(doc(db, REFS_COL, id));
 }
 
@@ -514,22 +507,15 @@ export function deleteCurrentRefImage(){
   closeRefLightbox();
   haptic('done');
 
-  // Il file su Cloudinary viene distrutto solo DOPO la finestra dei 5" di
-  // "Annulla": se l'utente ripensa, deleteDoc/Firestore non è ancora avvenuto
-  // per davvero lato Cloudinary e il ripristino resta valido al 100%.
+  // Rimuove solo il riferimento su Firestore (unica fonte di verità per
+  // Inkflow); il file resta su Cloudinary come orfano — irrilevante con 25GB.
   deleteDoc(doc(db, REFS_COL, id));
-  const destroyTimer = setTimeout(()=>{
-    const tok = _deleteTokens.get(id);
-    if(tok && tok.token && Date.now() < tok.expiresAt) tryDestroyCloudinaryImage(tok.token);
-    _deleteTokens.delete(id);
-  }, 5600);
 
   showUndoToast('Immagine eliminata', ()=>{
-    clearTimeout(destroyTimer);
     if(!item) return;
     setDoc(doc(db, REFS_COL, id), {
       url: item.url, source: item.source||'file', projectId: item.projectId||null,
-      folderId: item.folderId||null, tag: item.tag||null,
+      folderId: item.folderId||null, tag: item.tag||null, bytes: item.bytes||null,
       addedAt: serverTimestamp(), w: item.w||null, h: item.h||null,
     });
   });
