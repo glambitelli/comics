@@ -54,8 +54,8 @@ body.is-touch .dune-nav.dune-hidden{transform:translateY(calc(100% + 4px))}
   box-shadow:0 6px 22px rgba(90,70,40,.18);
 }
 .dune-color{
-  background:rgba(230,150,50,.60);
-  border:1px solid rgba(164,104,24,.42);
+  background:rgba(226,182,44,.62);
+  border:1px solid rgba(170,128,20,.42);
   transition:background .4s ease,border-color .4s ease;
 }
 .dune-grain{pointer-events:none}
@@ -88,8 +88,6 @@ body.is-touch .dune-nav.dune-hidden{transform:translateY(calc(100% + 4px))}
 .dune-btn-home{width:50px;height:50px;margin-top:0}
 
 /* Glifi bilanciati otticamente (dimensioni diverse per pareggiare la resa) */
-.dune-g-search{font-size:29px;line-height:1}
-.dune-g-stats{font-size:25px;font-weight:700;line-height:1}
 .dune-g-gear{font-size:29px;line-height:1}
 .dune-moon-svg{width:30px;height:30px;display:block}
 .dune-home-svg{width:30px;height:30px;display:block}
@@ -110,7 +108,7 @@ body.is-touch #btn-evening,
 body.is-touch #btn-refs,
 body.is-touch #btn-stats,
 body.is-touch #btn-settings,
-body.is-touch .header-search-btn{display:none !important}
+body.is-touch .header-search-btn{display:inline-block !important}
 /* Nascondi anche il pulsante "esci dalla sera" flottante su touch (luce-fantasma) */
 body.is-touch #evening-exit,
 body.is-touch .evening-exit-btn,

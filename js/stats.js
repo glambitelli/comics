@@ -55,21 +55,24 @@ export function glyphSvg(name){
 
 // ── CITAZIONI & TIPS VERIFICATI ──
 // Fonti: Moebius "Breve manual para historietistas" (1996); Miyazaki "Starting Point";
-// James Cameron (MasterClass, intervista Charlie Rose, Variety); Quentin Tarantino (interviste Creative Screenwriting, Far Out)
+// James Cameron (MasterClass, intervista Charlie Rose, Variety); Quentin Tarantino (interviste Creative Screenwriting, Far Out);
+// Katsuhiro Otomo (Exploring Akira, Anime News Network, Paul Gravett, ScreenRant); Satoshi Kon (Midnight Eye, Animation Obsessive, All the Anime);
+// Daisuke Igarashi (du9, Wikipedia, CartoonWiki, Anime News Network); John Carpenter (AZQuotes, BrainyQuote, Mental Floss);
+// Sergio Leone (American Film 1984 via Scraps from the Loft, AZQuotes, Bookey)
 const TIPS = [
-  { text:"Quando disegni, devi prima liberarti dei sentimenti profondi come odio, felicità, ambizione. Questi funzionano come un blocco alla creatività.", author:"Moebius" },
-  { text:"È importantissimo educare la mano. Falle raggiungere un alto livello di obbedienza, così potrà esprimere pienamente le tue idee.", author:"Moebius" },
+  { text:"Prima di disegnare, liberati dei sentimenti profondi — odio, felicità, ambizione: bloccano la creatività.", author:"Moebius" },
+  { text:"È fondamentale educare la mano: addestrala finché non obbedisce senza sforzo, così potrà esprimere pienamente le tue idee.", author:"Moebius" },
   { text:"Attenzione a cercare troppa perfezione o troppa velocità: sono pericolose tanto quanto i loro opposti.", author:"Moebius" },
-  { text:"La conoscenza della prospettiva è di suprema importanza. Le sue leggi sono un modo per guidare e ipnotizzare i tuoi lettori.", author:"Moebius" },
+  { text:"Conoscere la prospettiva è fondamentale: le sue regole servono a guidare — e a ipnotizzare — chi legge.", author:"Moebius" },
   { text:"In un vestito ci sono mille pieghe; devi sceglierne solo due o tre. Assicurati di scegliere quelle giuste.", author:"Moebius" },
-  { text:"Viaggia ed esponiti a ogni tipo di arte, musica, cultura e architettura. Nutri la mente; nutri l'anima.", author:"Moebius" },
+  { text:"Viaggia, immergiti in ogni forma d'arte, musica, cultura e architettura: nutri la mente, nutri l'anima.", author:"Moebius" },
   { text:"La cosa più importante quando crei è sapere cosa vuoi dire. Devi avere un tema.", author:"Hayao Miyazaki" },
   { text:"Molti realizzano opere con un altissimo livello tecnico, ma con un'idea molto sfocata di cosa vogliono davvero dire.", author:"Hayao Miyazaki" },
-  { text:"Se non passi del tempo a osservare le persone reali, non puoi disegnarle: non le hai mai viste davvero.", author:"Hayao Miyazaki" },
+  { text:"Se non osservi le persone reali, non puoi disegnarle davvero: non le hai mai guardate per bene.", author:"Hayao Miyazaki" },
   { text:"Traggo ispirazione dalla mia vita di tutti i giorni.", author:"Hayao Miyazaki" },
   // ── James Cameron ──
   { text:"Devi trovare una chiave per il cuore del pubblico: temi universali, espressi in modi nuovi e sorprendenti.", author:"James Cameron" },
-  { text:"Comincio sempre dal finale: mi chiedo se il punto in cui tutto arriva saprà emozionarmi.", author:"James Cameron" },
+  { text:"Parto sempre dal finale: mi chiedo se il punto d'arrivo saprà davvero emozionarmi.", author:"James Cameron" },
   { text:"Ci deve essere conflitto: i personaggi si rivelano attraverso il conflitto, il tradimento e la perdita.", author:"James Cameron" },
   { text:"Molti non realizzano i loro sogni perché ci pensano troppo, o sono troppo cauti per fare il salto.", author:"James Cameron" },
   // ── Quentin Tarantino ──
@@ -78,6 +81,36 @@ const TIPS = [
   { text:"L'obiettivo è far prendere fuoco alla conversazione tra i personaggi.", author:"Quentin Tarantino" },
   { text:"Prometti al pubblico, fin dalle prime battute, che sta per succedere qualcosa di interessante.", author:"Quentin Tarantino" },
   { text:"Ogni parola conta: a volte ciò che non viene detto è potente quanto ciò che si dice.", author:"Quentin Tarantino" },
+  // ── Katsuhiro Otomo ──
+  { text:"Il mio stile è nato osservando le persone vere intorno a me: cerco sempre di disegnare la verità, senza scivolare nella maniera.", author:"Katsuhiro Otomo" },
+  { text:"Sono gli emarginati, quelli che non trovano posto da nessuna parte, i personaggi più interessanti da disegnare.", author:"Katsuhiro Otomo" },
+  { text:"Il lavoro del fumettista è solitario: un fumetto, a differenza di un film, non lo puoi disegnare in tanti.", author:"Katsuhiro Otomo" },
+  { text:"Certe imperfezioni le lascio apposta: è quasi un rito, ci metto dentro un incantesimo.", author:"Katsuhiro Otomo" },
+  { text:"I posti più affollati e disordinati sono quelli che amo di più: sono onesti, perché non hanno nulla di artificiale.", author:"Katsuhiro Otomo" },
+  // ── Satoshi Kon ──
+  { text:"Nelle mie sceneggiature so sempre distinguere realtà e illusione: è il pubblico, poi, a doverle confondere.", author:"Satoshi Kon" },
+  { text:"Non parto mai con un obiettivo preciso: voglio superare la mia stessa immaginazione e sorprendere prima di tutto me stesso.", author:"Satoshi Kon" },
+  { text:"Le immagini finali sono sempre quelle che avevo visualizzato fin dall'inizio: vengo dalla pittura, penso già per disegni.", author:"Satoshi Kon" },
+  { text:"Uno storyboard si costruisce tavola per tavola, ossessivamente: è un incubo, ma è l'unico modo che conosco per fare un film.", author:"Satoshi Kon" },
+  { text:"Mi interessa il punto esatto in cui la realtà scivola nell'illusione, senza che lo spettatore se ne accorga.", author:"Satoshi Kon" },
+  // ── Daisuke Igarashi ──
+  { text:"Disegno tutto da solo, senza assistenti: prima la matita, poi il pennino, poi i dettagli — ogni fase ha il suo strumento.", author:"Daisuke Igarashi" },
+  { text:"Ho iniziato a disegnare per un bosco di alberi secolari: volevo semplicemente restituire la loro bellezza.", author:"Daisuke Igarashi" },
+  { text:"Il movimento del mare, i suoi suoni, ogni sua parte ti risucchia dentro: è quello che cerco di mettere in ogni tavola.", author:"Daisuke Igarashi" },
+  { text:"Una singola immagine non basta mai a dire quello che voglio: sono i cambiamenti, il prima e il dopo, che contano davvero.", author:"Daisuke Igarashi" },
+  { text:"Ho attraversato il Giappone disegnando ogni paesaggio che incontravo: è così che si allena davvero l'occhio.", author:"Daisuke Igarashi" },
+  // ── John Carpenter ──
+  { text:"Un film è fatto di pezzi di pellicola incollati insieme secondo un ritmo preciso, come una composizione musicale.", author:"John Carpenter" },
+  { text:"Per rendere spaventoso Michael Myers l'ho fatto camminare come un uomo, non come un mostro: il quotidiano fa più paura dell'eccezionale.", author:"John Carpenter" },
+  { text:"L'orrore è una lingua universale: tutto ciò che spaventa me, spaventa anche te. Per questo funziona sempre.", author:"John Carpenter" },
+  { text:"Le regole del cinema restano le stesse da sempre: campo lungo, primo piano, struttura. Cambia solo la tecnologia intorno.", author:"John Carpenter" },
+  { text:"I mostri nei miei film siamo sempre noi, con un cappello diverso: la parte di noi che vuole distruggere.", author:"John Carpenter" },
+  // ── Sergio Leone ──
+  { text:"Non sono un regista d'azione: sono un regista di gesti e silenzi, un oratore che parla per immagini.", author:"Sergio Leone" },
+  { text:"Se dopo dieci minuti lo spettatore ha già capito tutto, ho fallito: cerco sempre la sorpresa, in ogni scena.", author:"Sergio Leone" },
+  { text:"Ci sono i registi, e ci sono gli autori. Ho sempre pensato di essere più un autore che un regista.", author:"Sergio Leone" },
+  { text:"Un film che parla solo agli intellettuali è come una ciambella senza l'impasto intorno: deve arrivare a tutti, o non è cinema.", author:"Sergio Leone" },
+  { text:"I miei primi piani nascono dal circo di quando ero bambino: le espressioni esagerate dicono più di mille parole.", author:"Sergio Leone" },
 ];
 
 export function getTodayTip(){
