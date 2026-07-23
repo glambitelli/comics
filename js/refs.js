@@ -417,6 +417,11 @@ export function openRefLightbox(id){
   if(!item) return;
   _lightboxList = currentGridList();
   _lightboxIndex = _lightboxList.findIndex(r=>r.id===id);
+  // Registra uno stato nella cronologia: così il tasto Indietro (browser o
+  // gesto Android) chiude l'immagine e torna alla griglia, invece di uscire.
+  try{
+    if(!history.state || history.state.view !== 'lightbox') history.pushState({view:'lightbox'}, '');
+  }catch(e){}
   renderLightboxAt(_lightboxIndex);
 }
 
@@ -442,7 +447,20 @@ function renderLightboxAt(index){
   ov.classList.add('open');
 }
 
+// Chiusura "morbida": passa dalla cronologia, così lo stato del browser resta
+// allineato a quello che vedi (niente voci fantasma nel tasto Indietro).
 export function closeRefLightbox(){
+  const ov = document.getElementById('refs-lightbox');
+  const isOpen = ov && ov.classList.contains('open');
+  if(isOpen && history.state && history.state.view === 'lightbox'){
+    history.back();   // sarà il gestore popstate a chiudere davvero la vista
+    return;
+  }
+  closeLightboxUI();
+}
+
+// Chiusura immediata della sola interfaccia, senza toccare la cronologia.
+export function closeLightboxUI(){
   const ov = document.getElementById('refs-lightbox');
   if(ov) ov.classList.remove('open');
   resetImageZoom();
@@ -484,6 +502,9 @@ function clampPan(scale, x, y){
 
 function applyZoomTransform(img){
   img.style.transform = `translate(${_zoomX}px, ${_zoomY}px) scale(${_zoomScale})`;
+  // il cursore "manina" appare solo quando c'è davvero qualcosa da spostare
+  const body = document.getElementById('refs-lightbox-body');
+  if(body) body.classList.toggle('zoomed', _zoomScale > 1.02);
 }
 
 // Alterna zoom 1x ↔ ZOOM_IN centrando sul punto indicato, con animazione.
@@ -606,6 +627,52 @@ function toggleZoomAt(clientX, clientY){
 
     // Desktop: doppio clic per zoomare/dezoomare
     img.addEventListener('dblclick', e=>{ toggleZoomAt(e.clientX, e.clientY); });
+
+    // Desktop: rotella per zoomare, con lo zoom centrato sul puntatore
+    body.addEventListener('wheel', e=>{
+      const ov = document.getElementById('refs-lightbox');
+      if(!ov || !ov.classList.contains('open')) return;
+      e.preventDefault();
+      const prev = _zoomScale;
+      const factor = e.deltaY < 0 ? 1.16 : 1/1.16;
+      _zoomScale = Math.min(ZOOM_MAX, Math.max(1, prev * factor));
+      img.style.transition = 'none';
+      if(_zoomScale <= 1.02){
+        _zoomScale = 1; _zoomX = 0; _zoomY = 0;
+      } else {
+        // mantiene fermo il punto sotto il puntatore mentre la scala cambia
+        const r = img.getBoundingClientRect();
+        const relX = e.clientX - (r.left + r.width/2);
+        const relY = e.clientY - (r.top + r.height/2);
+        const k = _zoomScale/prev;
+        const c = clampPan(_zoomScale, (_zoomX - relX)*k + relX, (_zoomY - relY)*k + relY);
+        _zoomX = c.x; _zoomY = c.y;
+      }
+      applyZoomTransform(img);
+    }, {passive:false});
+
+    // Desktop: trascinamento con la "manina" quando l'immagine è ingrandita
+    let mDown = false, mStartX = 0, mStartY = 0, mOrigX = 0, mOrigY = 0;
+    img.addEventListener('mousedown', e=>{
+      if(_zoomScale <= 1.02) return;
+      e.preventDefault();
+      mDown = true;
+      mStartX = e.clientX; mStartY = e.clientY;
+      mOrigX = _zoomX; mOrigY = _zoomY;
+      body.classList.add('grabbing');
+      img.style.transition = 'none';
+    });
+    window.addEventListener('mousemove', e=>{
+      if(!mDown) return;
+      const c = clampPan(_zoomScale, mOrigX + (e.clientX-mStartX), mOrigY + (e.clientY-mStartY));
+      _zoomX = c.x; _zoomY = c.y;
+      applyZoomTransform(img);
+    });
+    window.addEventListener('mouseup', ()=>{
+      if(!mDown) return;
+      mDown = false;
+      body.classList.remove('grabbing');
+    });
   }
 })();
 

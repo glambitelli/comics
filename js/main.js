@@ -11,7 +11,7 @@ import { renderHome, openNewModal, closeModal, createProject, openCardMenu, expo
 import { openProject, restoreProject, goHome, confirmDeleteCurrent, closeConfirm, confirmMicrotask } from './project.js';
 import { enterEveningMode as enterEveningImpl, exitEveningMode as exitEveningImpl } from './evening.js';
 import { openScriptment, closeScriptment, onScriptmentInput, setScriptmentFont, stepScriptmentSize, formatScriptment, openScriptmentRead, toggleScriptmentRead, refreshScriptmentButton, closeFormatPreview, applyFormatPreview } from './scriptment.js';
-import { startRefsListener, renderRefsScreen, initRefsCapture, openRefLightbox, closeRefLightbox, nextRefImage, prevRefImage, refsImageMenu, deleteRefImageWithUndo, openFolderBrowser, openAllGrid, openFolder, promptNewFolder, promptNewFolderFlow, promptRenameFolder, promptDeleteFolder, refsFolderMenu } from './refs.js';
+import { startRefsListener, renderRefsScreen, initRefsCapture, openRefLightbox, closeRefLightbox, closeLightboxUI, nextRefImage, prevRefImage, refsImageMenu, deleteRefImageWithUndo, openFolderBrowser, openAllGrid, openFolder, promptNewFolder, promptNewFolderFlow, promptRenameFolder, promptDeleteFolder, refsFolderMenu } from './refs.js';
 window.openRefLightbox=openRefLightbox; window.closeRefLightbox=closeRefLightbox;
 window.nextRefImage=nextRefImage; window.prevRefImage=prevRefImage;
 window.refsImageMenu=refsImageMenu; window.deleteRefImageWithUndo=deleteRefImageWithUndo;
@@ -301,6 +301,10 @@ function showScreen(view, id){
   finally{ _navReplaying = false; }
 }
 window.addEventListener('popstate', e=>{
+  // Se c'è un'immagine aperta a schermo intero, il tasto Indietro chiude quella
+  // e basta: si torna alla griglia da cui era stata aperta.
+  const lb = document.getElementById('refs-lightbox');
+  if(lb && lb.classList.contains('open')){ closeLightboxUI(); return; }
   const st = e.state || { view:'home' };
   showScreen(st.view, st.id);
 });

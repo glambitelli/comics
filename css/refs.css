@@ -1,7 +1,6 @@
 /* ── RIFERIMENTI — libreria immagini fuori dai progetti ── */
-.refs-header{background:linear-gradient(135deg,#fdf6ec,#f7eede);padding:calc(20px + var(--safe-top)) 24px 20px;flex-shrink:0;position:relative;overflow:hidden;border-radius:0 0 24px 24px;border-bottom:3px solid var(--gold);display:flex;align-items:center;gap:10px}
-.refs-header::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,var(--coral),var(--gold),var(--green),var(--sky))}
-.refs-title{flex:1;font-family:'Castoro',serif;font-size:34px;font-weight:700;color:var(--ink);line-height:1;margin-bottom:2px}
+.refs-header{background:var(--white);padding:calc(24px + var(--safe-top)) 24px 10px;position:relative;overflow:hidden;flex-shrink:0;border-radius:0 0 28px 28px;border-bottom:3px solid var(--sky);z-index:1}
+.refs-header::before{content:'';position:absolute;top:0;left:0;right:0;height:5px;background:linear-gradient(90deg,var(--coral),var(--gold),var(--green),var(--sky))}
 .refs-inline-add{display:flex;flex-direction:column;align-items:center;gap:6px;width:100%;background:none;border:none;padding:18px 0 10px;cursor:pointer}
 .refs-inline-add-circle{width:48px;height:48px;border-radius:50%;background:#fffdf8;color:#d4a818;border:1.5px solid #ecd97a;font-size:26px;font-weight:300;line-height:0;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(208,168,48,.18);transition:transform .12s,background .15s}
 .refs-inline-add:active .refs-inline-add-circle{transform:scale(.9);background:#fdf3da}
@@ -82,3 +81,8 @@ body.is-touch .refs-lightbox-nav{display:none}
 .refs-upload-status.loading{background:#f5ecd8;color:#8a7248}
 .refs-upload-status.ok{background:#e2f0d8;color:#4a7a30}
 .refs-upload-status.error{background:#fbe0da;color:#a83c28;text-align:left;line-height:1.4}
+
+/* Cursore "manina" da browser: appare solo con immagine ingrandita */
+.refs-lightbox-body.zoomed{cursor:grab}
+.refs-lightbox-body.zoomed.grabbing{cursor:grabbing}
+.refs-lightbox-body.zoomed img{cursor:inherit}
