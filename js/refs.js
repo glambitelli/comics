@@ -26,6 +26,22 @@ function genId(){
 }
 function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
+// Formatta i metadati di un'immagine: "1920×1080 · 340 KB · 22 lug 2026"
+function formatRefMeta(item){
+  const parts = [];
+  if(item.w && item.h) parts.push(`${item.w}×${item.h}`);
+  if(typeof item.bytes === 'number'){
+    const kb = item.bytes/1024;
+    parts.push(kb < 1024 ? Math.round(kb)+' KB' : (kb/1024).toFixed(1)+' MB');
+  }
+  if(item.addedAt && item.addedAt.toDate){
+    const d = item.addedAt.toDate();
+    const MESI = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
+    parts.push(d.getDate()+' '+MESI[d.getMonth()]+' '+d.getFullYear());
+  }
+  return parts.join(' · ');
+}
+
 // ── SALVATAGGIO IMMAGINE ──
 // Cattura sempre istantanea e senza cartella: si archivia dopo, dal lightbox,
 // così drag&drop/incolla/condivisione restano al primo colpo.
@@ -55,16 +71,33 @@ export async function addRefImage(file, source='file'){
   }
 }
 
+function setUploadStatus(state, text){
+  const el = document.getElementById('refs-upload-status');
+  if(!el) return;
+  if(!state){ el.className = 'refs-upload-status'; el.textContent=''; return; }
+  el.className = 'refs-upload-status show '+state;
+  el.textContent = text;
+  if(state !== 'loading'){
+    clearTimeout(el._t);
+    el._t = setTimeout(()=>{ el.className='refs-upload-status'; el.textContent=''; }, state==='error' ? 9000 : 2600);
+  }
+}
+
 export async function addRefImages(fileList, source='file'){
   const files = Array.from(fileList).filter(f=>f.type && f.type.startsWith('image/'));
   if(!files.length) return 0;
+  setUploadStatus('loading', files.length===1 ? 'Caricamento in corso…' : `Caricamento di ${files.length} immagini…`);
   let ok=0;
   for(const f of files){
     const id = await addRefImage(f, source);
     if(id) ok++;
   }
   if(ok===0){
-    alert('Non sono riuscito a salvare l\'immagine.\n\nDettaglio: ' + (_lastUploadError || 'errore sconosciuto') + '\n\nSe il dettaglio parla di "unsigned uploads" o "preset", controlla su Cloudinary che il preset sia impostato su Unsigned.');
+    setUploadStatus('error', 'Caricamento fallito — '+(_lastUploadError || 'errore sconosciuto'));
+  } else if(ok < files.length){
+    setUploadStatus('error', `${ok} su ${files.length} salvate — le altre hanno dato: ${_lastUploadError||'errore sconosciuto'}`);
+  } else {
+    setUploadStatus('ok', files.length===1 ? 'Immagine salvata ✓' : `${files.length} immagini salvate ✓`);
   }
   return ok;
 }
@@ -402,6 +435,8 @@ function renderLightboxAt(index){
   ov.dataset.id = id;
   if(counter) counter.textContent = (index+1)+' / '+_lightboxList.length;
   if(tagInput) tagInput.value = item.tag || '';
+  const metaEl = document.getElementById('refs-lightbox-meta');
+  if(metaEl) metaEl.textContent = formatRefMeta(item);
   if(prevBtn) prevBtn.style.visibility = index>0 ? 'visible' : 'hidden';
   if(nextBtn) nextBtn.style.visibility = index<_lightboxList.length-1 ? 'visible' : 'hidden';
   if(projSel){

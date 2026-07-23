@@ -76,6 +76,7 @@
     <div class="refs-title">References</div>
     <input type="file" id="refs-file-input" accept="image/*" multiple style="display:none"/>
   </div>
+  <div id="refs-upload-status" class="refs-upload-status"></div>
   <div id="refs-storage-bar" class="refs-storage-bar">
     <div class="refs-storage-row"><span id="refs-storage-label">— MB su 1 GB</span></div>
     <div class="refs-storage-track"><div id="refs-storage-fill" class="refs-storage-fill" style="width:0%"></div></div>
@@ -124,6 +125,7 @@
     </button>
     <button onclick="closeRefLightbox()" class="refs-lightbox-close" aria-label="Chiudi">✕</button>
   </div>
+  <div id="refs-lightbox-meta" class="refs-lightbox-meta"></div>
   <div id="refs-lightbox-counter" class="refs-lightbox-counter"></div>
   <div class="refs-lightbox-body" id="refs-lightbox-body">
     <button onclick="prevRefImage()" id="refs-lightbox-prev" class="refs-lightbox-nav refs-lightbox-nav-prev" aria-label="Precedente">
