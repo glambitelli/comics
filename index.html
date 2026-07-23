@@ -85,7 +85,6 @@
     <span class="refs-breadcrumb-back">‹</span>
     <span id="refs-breadcrumb-name">Cartelle</span>
   </div>
-  <div id="refs-filter-bar" class="refs-filter-bar"></div>
   <div class="refs-scroll">
     <div id="refs-folder-browser" class="refs-folder-browser"></div>
     <div id="refs-gallery-view" style="display:none">
@@ -108,25 +107,11 @@
 
 <!-- LIGHTBOX RIFERIMENTI -->
 <div id="refs-lightbox" class="refs-lightbox">
-  <div class="refs-lightbox-top">
-    <div class="refs-lightbox-selects">
-      <div class="refs-lightbox-row">
-        <select id="refs-lightbox-folder" class="refs-lightbox-select" onchange="onRefLightboxFolderChange(this)">
-          <option value="">Nessuna cartella</option>
-        </select>
-        <input id="refs-lightbox-tag" class="refs-lightbox-tag-input" type="text" maxlength="24" placeholder="Tag (es. mani, pose)…" onchange="onRefLightboxTagChange(this)"/>
-      </div>
-      <select id="refs-lightbox-project" class="refs-lightbox-project-pill" onchange="onRefLightboxProjectChange(this)">
-        <option value="">+ Collega a un progetto</option>
-      </select>
-    </div>
-    <button onclick="deleteCurrentRefImage()" class="refs-lightbox-del" aria-label="Elimina">
-      <svg viewBox="0 0 24 24" style="width:17px;height:17px"><path d="M6 7 L18 7 M10 7 V5 h4 v2 M8 7 L8.8 19 h6.4 L16 7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    </button>
+  <div class="refs-lightbox-top" id="refs-lightbox-chrome-top">
     <button onclick="closeRefLightbox()" class="refs-lightbox-close" aria-label="Chiudi">✕</button>
+    <div id="refs-lightbox-counter" class="refs-lightbox-counter"></div>
+    <button onclick="refsImageMenu(this)" class="refs-lightbox-more" aria-label="Altre azioni">⋯</button>
   </div>
-  <div id="refs-lightbox-meta" class="refs-lightbox-meta"></div>
-  <div id="refs-lightbox-counter" class="refs-lightbox-counter"></div>
   <div class="refs-lightbox-body" id="refs-lightbox-body">
     <button onclick="prevRefImage()" id="refs-lightbox-prev" class="refs-lightbox-nav refs-lightbox-nav-prev" aria-label="Precedente">
       <svg viewBox="0 0 24 24" width="22" height="22"><path d="M15 5 L8 12 L15 19" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -136,6 +121,7 @@
       <svg viewBox="0 0 24 24" width="22" height="22"><path d="M9 5 L16 12 L9 19" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </button>
   </div>
+  <div id="refs-lightbox-meta" class="refs-lightbox-meta"></div>
 </div>
 
 <div class="screen" id="screen-project">

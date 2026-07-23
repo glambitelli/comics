@@ -1,10 +1,10 @@
 // ── LIBRERIA REFERENCES — immagini reference fuori dai progetti ──
 // Le immagini vivono su Cloudinary (25GB gratis, nessuna carta), Firestore
-// tiene solo i metadati (url, cartella, tag, progetto collegato).
+// tiene solo i metadati (url, cartella, dimensioni, data).
 // Organizzazione a cartelle per categoria (es. "Artists" → "Hiroyuki Okiura",
-// "Study (Temporary)" → "Hands"), oltre al tag progetto già esistente.
+// "Study (Temporary)" → "Hands").
 import { db, collection, doc, onSnapshot, setDoc, deleteDoc, serverTimestamp } from './firebase.js';
-import { projects, haptic, showUndoToast } from './state.js';
+import { haptic, showUndoToast } from './state.js';
 import { compressImageFile, dataUrlToBlob } from './imgcompress.js';
 import { uploadToCloudinary } from './cloudinary.js';
 import { promptModal, confirmModal, actionMenu } from './dialogs.js';
@@ -16,7 +16,6 @@ let _refs = [];          // cache locale immagini, dal listener realtime
 let _folders = [];       // cache locale cartelle {id, category, name, createdAt}
 let _refsUnsub = null;
 let _foldersUnsub = null;
-let _activeProjectFilter = null; // usato solo nella vista "Tutte"
 let _view = 'folders';           // 'folders' | 'all' | 'folder'
 let _activeFolderId = null;
 let _lastUploadError = '';
@@ -58,7 +57,6 @@ export async function addRefImage(file, source='file', folderId=null){
       url, source,
       projectId: null,
       folderId: folderId || null,
-      tag: null,
       addedAt: serverTimestamp(),
       w, h, bytes: blob.size,
     };
@@ -113,17 +111,8 @@ export async function deleteRefImage(id){
   await deleteDoc(doc(db, REFS_COL, id));
 }
 
-export function assignRefToProject(id, projectId){
-  setDoc(doc(db, REFS_COL, id), {projectId: projectId||null}, {merge:true});
-}
 export function assignRefToFolder(id, folderId){
   setDoc(doc(db, REFS_COL, id), {folderId: folderId||null}, {merge:true});
-}
-export function assignRefTag(id, tag){
-  const clean = (tag||'').trim().slice(0, 24) || null;
-  setDoc(doc(db, REFS_COL, id), {tag: clean}, {merge:true});
-  const item = _refs.find(r=>r.id===id);
-  if(item) item.tag = clean; // aggiorna la cache locale così la griglia si ridisegna subito
 }
 
 // ── CARTELLE ──
@@ -223,9 +212,15 @@ export function openFolder(id){
   _view = 'folder'; _activeFolderId = id;
   renderRefsScreen();
 }
-export function setRefsFilter(projectId){
-  _activeProjectFilter = projectId;
-  renderRefsScreen();
+
+// Flusso unificato "Nuova cartella": la categoria si sceglie qui dentro (o se
+// ne crea una al volo), perché una categoria vuota non ha senso di esistere.
+export function promptNewFolderFlow(btnEl){
+  const cats = Array.from(foldersByCategory().keys()).sort((a,b)=>a.localeCompare(b));
+  if(!cats.length){ promptNewFolder(); return; }
+  const actions = cats.map(c=>({ label: c, onSelect: ()=>promptNewFolder(c) }));
+  actions.push({ label: '+ Nuova categoria…', onSelect: ()=>promptNewFolder() });
+  actionMenu(btnEl, actions);
 }
 
 export async function promptNewFolder(category){
@@ -348,7 +343,10 @@ function renderFolderBrowser(){
     });
   });
 
-  html += `<div style="text-align:center"><button class="refs-new-cat-btn" onclick="window.promptNewFolder()">+ Nuova categoria</button></div>`;
+  html += `<button class="refs-new-folder-row" onclick="window.promptNewFolderFlow(this)">
+    <span class="refs-new-folder-plus">+</span>
+    <span>Nuova cartella</span>
+  </button>`;
   html += `<button class="refs-inline-add" onclick="document.getElementById('refs-file-input').click()" aria-label="Aggiungi immagine">
     <span class="refs-inline-add-circle">+</span>
   </button>`;
@@ -372,27 +370,13 @@ function currentGridList(){
       ? _refs.filter(r=>r.folderId===_activeFolderId)
       : _refs.filter(r=>!r.folderId);
   }
-  return _activeProjectFilter ? _refs.filter(r=>r.projectId===_activeProjectFilter) : _refs;
+  return _refs;
 }
 
 export function renderRefsGrid(){
   const grid = document.getElementById('refs-grid');
   const empty = document.getElementById('refs-empty');
-  const filterBar = document.getElementById('refs-filter-bar');
   if(!grid) return;
-
-  if(filterBar){
-    if(_view === 'all'){
-      let fb = `<button class="refs-filter-chip${_activeProjectFilter===null?' active':''}" onclick="window.setRefsFilter(null)">Tutte</button>`;
-      projects.forEach(p=>{
-        fb += `<button class="refs-filter-chip${_activeProjectFilter===p.id?' active':''}" onclick="window.setRefsFilter('${p.id}')">${esc(p.title)}</button>`;
-      });
-      filterBar.innerHTML = fb;
-      filterBar.style.display = projects.length ? 'flex' : 'none';
-    } else {
-      filterBar.style.display = 'none';
-    }
-  }
 
   const list = currentGridList();
 
@@ -404,11 +388,24 @@ export function renderRefsGrid(){
   if(empty) empty.style.display='none';
 
   grid.innerHTML = list.map(r=>`
-    <div class="refs-thumb" data-id="${r.id}" onclick="window.openRefLightbox('${r.id}')">
+    <div class="refs-thumb" data-id="${r.id}">
       <img src="${r.url}" loading="lazy" alt=""/>
-      ${r.tag ? `<span class="refs-tag-badge">${esc(r.tag)}</span>` : ''}
     </div>
   `).join('');
+
+  // Tap = apri · tocco prolungato (o tasto destro) = menu sposta/elimina
+  grid.querySelectorAll('.refs-thumb').forEach(el=>{
+    const id = el.dataset.id;
+    let holdTimer = null, held = false;
+    el.addEventListener('click', ()=>{ if(!held) openRefLightbox(id); held=false; });
+    el.addEventListener('contextmenu', e=>{ e.preventDefault(); refsImageMenu(el, id); });
+    el.addEventListener('touchstart', ()=>{
+      held = false;
+      holdTimer = setTimeout(()=>{ held = true; haptic('done'); refsImageMenu(el, id); }, 480);
+    }, {passive:true});
+    ['touchend','touchmove','touchcancel'].forEach(ev=>
+      el.addEventListener(ev, ()=>clearTimeout(holdTimer), {passive:true}));
+  });
 }
 
 // ── LIGHTBOX ──
@@ -427,42 +424,21 @@ function renderLightboxAt(index){
   if(index < 0 || index >= _lightboxList.length) return;
   _lightboxIndex = index;
   const item = _lightboxList[index];
-  const id = item.id;
   const ov = document.getElementById('refs-lightbox');
   const img = document.getElementById('refs-lightbox-img');
-  const projSel = document.getElementById('refs-lightbox-project');
-  const folderSel = document.getElementById('refs-lightbox-folder');
   const counter = document.getElementById('refs-lightbox-counter');
-  const tagInput = document.getElementById('refs-lightbox-tag');
   const prevBtn = document.getElementById('refs-lightbox-prev');
   const nextBtn = document.getElementById('refs-lightbox-next');
   if(!ov || !img) return;
   img.src = item.url;
   resetImageZoom();
-  ov.dataset.id = id;
+  ov.dataset.id = item.id;
+  ov.classList.remove('chrome-hidden');
   if(counter) counter.textContent = (index+1)+' / '+_lightboxList.length;
-  if(tagInput) tagInput.value = item.tag || '';
   const metaEl = document.getElementById('refs-lightbox-meta');
   if(metaEl) metaEl.textContent = formatRefMeta(item);
   if(prevBtn) prevBtn.style.visibility = index>0 ? 'visible' : 'hidden';
   if(nextBtn) nextBtn.style.visibility = index<_lightboxList.length-1 ? 'visible' : 'hidden';
-  if(projSel){
-    projSel.innerHTML = '<option value="">+ Collega a un progetto</option>' +
-      projects.map(p=>`<option value="${p.id}"${p.id===item.projectId?' selected':''}>${esc(p.title)}</option>`).join('');
-  }
-  if(folderSel){
-    const cats = foldersByCategory();
-    let opts = '<option value="">Nessuna cartella</option>';
-    cats.forEach((folders, category)=>{
-      opts += `<optgroup label="${esc(category)}">`;
-      folders.forEach(f=>{
-        opts += `<option value="${f.id}"${f.id===item.folderId?' selected':''}>${esc(f.name)}</option>`;
-      });
-      opts += `</optgroup>`;
-    });
-    opts += '<option value="__new__">+ Nuova cartella…</option>';
-    folderSel.innerHTML = opts;
-  }
   ov.classList.add('open');
 }
 
@@ -510,6 +486,25 @@ function applyZoomTransform(img){
   img.style.transform = `translate(${_zoomX}px, ${_zoomY}px) scale(${_zoomScale})`;
 }
 
+// Alterna zoom 1x ↔ ZOOM_IN centrando sul punto indicato, con animazione.
+function toggleZoomAt(clientX, clientY){
+  const img = document.getElementById('refs-lightbox-img');
+  if(!img) return;
+  img.style.transition = 'transform .22s';
+  if(_zoomScale > 1.02){
+    _zoomScale = 1; _zoomX = 0; _zoomY = 0;
+    applyZoomTransform(img);
+  } else {
+    const r = img.getBoundingClientRect();
+    const relX = clientX - (r.left + r.width/2);
+    const relY = clientY - (r.top + r.height/2);
+    _zoomScale = ZOOM_IN;
+    const c = clampPan(_zoomScale, -relX*(ZOOM_IN-1), -relY*(ZOOM_IN-1));
+    _zoomX = c.x; _zoomY = c.y;
+    applyZoomTransform(img);
+  }
+}
+
 (function initLightboxGestures(){
   document.addEventListener('DOMContentLoaded', bind);
   if(document.readyState !== 'loading') bind();
@@ -525,7 +520,7 @@ function applyZoomTransform(img){
     let panStartX = 0, panStartY = 0, panOrigX = 0, panOrigY = 0;
     let swipeStartX = 0, swipeStartY = 0;
     let isPinching = false, isPanning = false;
-    let lastTapTime = 0, lastTapX = 0, lastTapY = 0;
+    let lastTapTime = 0, lastTapX = 0, lastTapY = 0, singleTapTimer = null;
 
     function dist(t0, t1){ return Math.hypot(t1.clientX-t0.clientX, t1.clientY-t0.clientY); }
 
@@ -572,7 +567,14 @@ function applyZoomTransform(img){
         if(_zoomScale < 1.05){ resetImageZoom(); img.style.transition = 'transform .18s'; }
         return;
       }
-      if(isPanning){ isPanning = false; return; }
+      // Un tocco senza spostamento non è un trascinamento: lasciamo che venga
+      // valutato sotto come possibile doppio tap (anche da immagine ingrandita).
+      if(isPanning){
+        isPanning = false;
+        const tp = e.changedTouches[0];
+        const movedPan = Math.hypot(tp.clientX - panStartX, tp.clientY - panStartY);
+        if(movedPan > 14) return;
+      }
       // swipe per cambiare immagine (solo a 1x) o doppio tap per zoomare
       const t = e.changedTouches[0];
       const dx = t.clientX - swipeStartX, dy = t.clientY - swipeStartY;
@@ -581,95 +583,74 @@ function applyZoomTransform(img){
         if(dx < 0) nextRefImage(); else prevRefImage();
         return;
       }
-      if(moved < 12){
+      if(moved < 20){
         const now = Date.now();
-        const closeTap = Math.hypot(t.clientX-lastTapX, t.clientY-lastTapY) < 40;
-        if(now - lastTapTime < 320 && closeTap){
-          // doppio tap: alterna 1x ↔ zoom centrato sul punto toccato
-          img.style.transition = 'transform .22s';
-          if(_zoomScale > 1.02){
-            resetImageZoom();
-          } else {
-            const r = img.getBoundingClientRect();
-            const relX = (t.clientX - (r.left+r.width/2));
-            const relY = (t.clientY - (r.top+r.height/2));
-            _zoomScale = ZOOM_IN;
-            const c = clampPan(_zoomScale, -relX*(ZOOM_IN-1), -relY*(ZOOM_IN-1));
-            _zoomX = c.x; _zoomY = c.y;
-            applyZoomTransform(img);
-          }
+        const closeTap = Math.hypot(t.clientX-lastTapX, t.clientY-lastTapY) < 50;
+        if(now - lastTapTime < 400 && closeTap){
+          // ── DOPPIO TAP: alterna 1x ↔ zoom centrato sul punto toccato ──
+          clearTimeout(singleTapTimer);
+          toggleZoomAt(t.clientX, t.clientY);
           lastTapTime = 0;
         } else {
           lastTapTime = now; lastTapX = t.clientX; lastTapY = t.clientY;
+          // tap singolo: mostra/nasconde l'interfaccia (solo se non zoomato),
+          // ritardato per non rubare il gesto al doppio tap
+          clearTimeout(singleTapTimer);
+          singleTapTimer = setTimeout(()=>{
+            const ov = document.getElementById('refs-lightbox');
+            if(ov && _zoomScale <= 1.02) ov.classList.toggle('chrome-hidden');
+          }, 340);
         }
       }
     }, {passive:true});
 
     // Desktop: doppio clic per zoomare/dezoomare
-    img.addEventListener('dblclick', e=>{
-      img.style.transition = 'transform .22s';
-      if(_zoomScale > 1.02){
-        resetImageZoom();
-      } else {
-        const r = img.getBoundingClientRect();
-        const relX = (e.clientX - (r.left+r.width/2));
-        const relY = (e.clientY - (r.top+r.height/2));
-        _zoomScale = ZOOM_IN;
-        const c = clampPan(_zoomScale, -relX*(ZOOM_IN-1), -relY*(ZOOM_IN-1));
-        _zoomX = c.x; _zoomY = c.y;
-        applyZoomTransform(img);
-      }
-    });
+    img.addEventListener('dblclick', e=>{ toggleZoomAt(e.clientX, e.clientY); });
   }
 })();
 
-export function onRefLightboxProjectChange(sel){
-  const ov = document.getElementById('refs-lightbox');
-  const id = ov && ov.dataset.id;
+
+
+
+
+// ── MENU AZIONI IMMAGINE — unico punto per spostare/eliminare ──
+// Usato sia dal "⋯" nella vista a schermo intero sia dal tocco prolungato
+// sulla griglia, così le stesse azioni sono raggiungibili da entrambi i posti.
+export function refsImageMenu(anchorEl, imageId){
+  const id = imageId || (document.getElementById('refs-lightbox')||{}).dataset?.id;
   if(!id) return;
-  assignRefToProject(id, sel.value || null);
+  actionMenu(anchorEl, [
+    { label:'Sposta in cartella…', onSelect:()=>promptMoveImage(id, anchorEl) },
+    { label:'Elimina', danger:true, onSelect:()=>deleteRefImageWithUndo(id) },
+  ]);
 }
 
-export function onRefLightboxTagChange(input){
-  const ov = document.getElementById('refs-lightbox');
-  const id = ov && ov.dataset.id;
-  if(!id) return;
-  assignRefTag(id, input.value);
+function promptMoveImage(id, anchorEl){
+  const cats = foldersByCategory();
+  const actions = [];
+  cats.forEach((folders, category)=>{
+    folders.forEach(f=>{
+      actions.push({ label: category+' › '+f.name, onSelect:()=>{ assignRefToFolder(id, f.id); haptic('tap'); } });
+    });
+  });
+  actions.push({ label:'Nessuna cartella', onSelect:()=>{ assignRefToFolder(id, null); haptic('tap'); } });
+  if(!actions.length) return;
+  actionMenu(anchorEl, actions);
 }
 
-export async function onRefLightboxFolderChange(sel){
-  const ov = document.getElementById('refs-lightbox');
-  const id = ov && ov.dataset.id;
-  if(!id) return;
-  if(sel.value === '__new__'){
-    const cat = await promptModal('Nome della categoria', '', 'es. Artists, Study');
-    if(!cat || !cat.trim()){ openRefLightbox(id); return; }
-    const name = await promptModal('Nome della cartella in "'+cat.trim()+'"', '', 'es. Otomo, Hands');
-    if(!name || !name.trim()){ openRefLightbox(id); return; }
-    const newId = await createFolder(cat.trim(), name.trim());
-    if(newId) assignRefToFolder(id, newId);
-    return;
-  }
-  assignRefToFolder(id, sel.value || null);
-}
-
-export function deleteCurrentRefImage(){
-  const ov = document.getElementById('refs-lightbox');
-  const id = ov && ov.dataset.id;
-  if(!id) return;
+export function deleteRefImageWithUndo(id){
   const item = _refs.find(r=>r.id===id);
-  closeRefLightbox();
+  const lb = document.getElementById('refs-lightbox');
+  if(lb && lb.classList.contains('open') && lb.dataset.id === id) closeRefLightbox();
   haptic('done');
-
-  // Rimuove solo il riferimento su Firestore (unica fonte di verità per
+  // Rimuove solo il riferimento su Firestore (unica fonte di verita per
   // Inkflow); il file resta su Cloudinary come orfano — irrilevante con 25GB.
   deleteDoc(doc(db, REFS_COL, id));
-
   showUndoToast('Immagine eliminata', ()=>{
     if(!item) return;
     setDoc(doc(db, REFS_COL, id), {
       url: item.url, source: item.source||'file', projectId: item.projectId||null,
-      folderId: item.folderId||null, tag: item.tag||null, bytes: item.bytes||null,
+      folderId: item.folderId||null, bytes: item.bytes||null,
       addedAt: serverTimestamp(), w: item.w||null, h: item.h||null,
     });
   });
