@@ -45,7 +45,7 @@ function formatRefMeta(item){
 // ── SALVATAGGIO IMMAGINE ──
 // Cattura sempre istantanea e senza cartella: si archivia dopo, dal lightbox,
 // così drag&drop/incolla/condivisione restano al primo colpo.
-export async function addRefImage(file, source='file'){
+export async function addRefImage(file, source='file', folderId=null){
   if(!file || !file.type || !file.type.startsWith('image/')){
     console.warn('addRefImage: file non immagine ignorato', file&&file.type);
     return null;
@@ -57,7 +57,7 @@ export async function addRefImage(file, source='file'){
     const data = {
       url, source,
       projectId: null,
-      folderId: null,
+      folderId: folderId || null,
       tag: null,
       addedAt: serverTimestamp(),
       w, h, bytes: blob.size,
@@ -83,13 +83,20 @@ function setUploadStatus(state, text){
   }
 }
 
-export async function addRefImages(fileList, source='file'){
+// Se stai sfogliando dentro una cartella (es. "Otomo"), le nuove immagini
+// catturate lì vanno dritte in quella cartella invece che in "senza cartella".
+// In "Tutte le immagini" o nell'elenco cartelle, restano non archiviate.
+function currentUploadFolderId(){
+  return _view === 'folder' ? _activeFolderId : null;
+}
+
+export async function addRefImages(fileList, source='file', folderId=currentUploadFolderId()){
   const files = Array.from(fileList).filter(f=>f.type && f.type.startsWith('image/'));
   if(!files.length) return 0;
   setUploadStatus('loading', files.length===1 ? 'Caricamento in corso…' : `Caricamento di ${files.length} immagini…`);
   let ok=0;
   for(const f of files){
-    const id = await addRefImage(f, source);
+    const id = await addRefImage(f, source, folderId);
     if(id) ok++;
   }
   if(ok===0){
@@ -296,7 +303,7 @@ export function renderRefsScreen(){
       crumb.style.display = 'flex';
       const nameEl = document.getElementById('refs-breadcrumb-name');
       if(nameEl){
-        if(_view === 'all') nameEl.textContent = 'Tutte le immagini';
+        if(_view === 'all') nameEl.textContent = 'All';
         else{
           const f = _folders.find(x=>x.id===_activeFolderId);
           nameEl.textContent = f ? f.name : 'Senza cartella';
@@ -318,7 +325,7 @@ function renderFolderBrowser(){
   let html = `
     <div class="refs-quicklink" onclick="window.openAllGrid()">
       <span class="refs-quicklink-ico">▦</span>
-      <span class="refs-quicklink-lbl">Tutte le immagini</span>
+      <span class="refs-quicklink-lbl">All</span>
       <span class="refs-quicklink-count">${_refs.length}</span>
     </div>`;
 
@@ -341,7 +348,7 @@ function renderFolderBrowser(){
     });
   });
 
-  html += `<button class="refs-new-cat-btn" onclick="window.promptNewFolder()">+ Nuova categoria</button>`;
+  html += `<div style="text-align:center"><button class="refs-new-cat-btn" onclick="window.promptNewFolder()">+ Nuova categoria</button></div>`;
   html += `<button class="refs-inline-add" onclick="document.getElementById('refs-file-input').click()" aria-label="Aggiungi immagine">
     <span class="refs-inline-add-circle">+</span>
   </button>`;
