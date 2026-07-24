@@ -25,22 +25,6 @@ function genId(){
 }
 function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
-// Formatta i metadati di un'immagine: "1920×1080 · 340 KB · 22 lug 2026"
-function formatRefMeta(item){
-  const parts = [];
-  if(item.w && item.h) parts.push(`${item.w}×${item.h}`);
-  if(typeof item.bytes === 'number'){
-    const kb = item.bytes/1024;
-    parts.push(kb < 1024 ? Math.round(kb)+' KB' : (kb/1024).toFixed(1)+' MB');
-  }
-  if(item.addedAt && item.addedAt.toDate){
-    const d = item.addedAt.toDate();
-    const MESI = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
-    parts.push(d.getDate()+' '+MESI[d.getMonth()]+' '+d.getFullYear());
-  }
-  return parts.join(' · ');
-}
-
 // ── SALVATAGGIO IMMAGINE ──
 // Cattura sempre istantanea e senza cartella: si archivia dopo, dal lightbox,
 // così drag&drop/incolla/condivisione restano al primo colpo.
@@ -437,8 +421,6 @@ function renderLightboxAt(index){
   ov.dataset.id = item.id;
   ov.classList.remove('chrome-hidden');
   if(counter) counter.textContent = (index+1)+' / '+_lightboxList.length;
-  const metaEl = document.getElementById('refs-lightbox-meta');
-  if(metaEl) metaEl.textContent = formatRefMeta(item);
   if(prevBtn) prevBtn.style.visibility = index>0 ? 'visible' : 'hidden';
   if(nextBtn) nextBtn.style.visibility = index<_lightboxList.length-1 ? 'visible' : 'hidden';
   ov.classList.add('open');

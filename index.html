@@ -108,15 +108,6 @@
 
 <!-- LIGHTBOX RIFERIMENTI -->
 <div id="refs-lightbox" class="refs-lightbox">
-  <div class="refs-lightbox-top" id="refs-lightbox-chrome-top">
-    <button onclick="closeRefLightbox()" class="refs-lightbox-close" aria-label="Chiudi">
-      <svg viewBox="0 0 24 24" width="16" height="16"><path d="M6 6 L18 18 M18 6 L6 18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
-    </button>
-    <div id="refs-lightbox-counter" class="refs-lightbox-counter"></div>
-    <button onclick="refsImageMenu(this)" class="refs-lightbox-more" aria-label="Altre azioni">
-      <svg viewBox="0 0 24 24" width="16" height="16"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>
-    </button>
-  </div>
   <div class="refs-lightbox-body" id="refs-lightbox-body">
     <button onclick="prevRefImage()" id="refs-lightbox-prev" class="refs-lightbox-nav refs-lightbox-nav-prev" aria-label="Precedente">
       <svg viewBox="0 0 24 24" width="22" height="22"><path d="M15 5 L8 12 L15 19" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -126,7 +117,12 @@
       <svg viewBox="0 0 24 24" width="22" height="22"><path d="M9 5 L16 12 L9 19" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </button>
   </div>
-  <div id="refs-lightbox-meta" class="refs-lightbox-meta"></div>
+  <div class="refs-lightbox-bottom" id="refs-lightbox-chrome-bottom">
+    <div id="refs-lightbox-counter" class="refs-lightbox-counter"></div>
+    <button onclick="refsImageMenu(this)" class="refs-lightbox-more" aria-label="Altre azioni">
+      <svg viewBox="0 0 24 24" width="16" height="16"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>
+    </button>
+  </div>
 </div>
 
 <div class="screen" id="screen-project">
@@ -626,12 +622,12 @@
     <filter id="dune-sand-fine"><feTurbulence type="fractalNoise" baseFrequency="1.4" numOctaves="4" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/><feComponentTransfer><feFuncA type="linear" slope="1.1"/></feComponentTransfer></filter>
   </svg>
   <div class="dune-nav-items">
+    <button class="dune-btn dune-btn-light" onclick="openRefsScreen()" aria-label="References">
+      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><rect x="3" y="4" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="8" cy="9.5" r="1.6" fill="currentColor"/><path d="M4 16 L9 11 L13 15 L16 12 L20 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
     <button class="dune-btn dune-btn-moon" onclick="toggleEvening()" aria-label="Modalità sera" id="dune-moon-btn">
       <svg class="dune-moon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2a10 10 0 1 0 7.5 16.6A8 8 0 0 1 13 2Z" fill="#f0c068"/></svg>
       <span class="dune-sun-glyph">✷</span>
-    </button>
-    <button class="dune-btn dune-btn-light" onclick="openRefsScreen()" aria-label="References">
-      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><rect x="3" y="4" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="8" cy="9.5" r="1.6" fill="currentColor"/><path d="M4 16 L9 11 L13 15 L16 12 L20 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </button>
     <button class="dune-btn dune-btn-light dune-btn-home" onclick="goHome()" aria-label="Home">
       <svg class="dune-home-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3L2 11h2.3v9a1 1 0 0 0 1 1H10v-6h4v6h4.7a1 1 0 0 0 1-1v-9H22L12 3Z" fill="currentColor"/></svg>
