@@ -331,7 +331,6 @@ function renderFolderBrowser(){
   cats.forEach((folders, category)=>{
     html += `<div class="refs-cat-row">
       <span class="refs-cat-name">${esc(category)}</span>
-      <button class="refs-cat-add" onclick="window.promptNewFolder('${esc(category).replace(/'/g,"\\'")}')" aria-label="Nuova cartella">+</button>
     </div>`;
     folders.forEach(f=>{
       html += `<div class="refs-folder-row" onclick="window.openFolder('${f.id}')">
@@ -343,12 +342,10 @@ function renderFolderBrowser(){
     });
   });
 
+  // Unica azione di questa vista: qui si organizzano contenitori, non immagini.
   html += `<button class="refs-new-folder-row" onclick="window.promptNewFolderFlow(this)">
-    <span class="refs-new-folder-plus">+</span>
+    <span class="refs-new-folder-ico">${FOLDER_ICON}</span>
     <span>Nuova cartella</span>
-  </button>`;
-  html += `<button class="refs-inline-add" onclick="document.getElementById('refs-file-input').click()" aria-label="Aggiungi immagine">
-    <span class="refs-inline-add-circle">+</span>
   </button>`;
 
   el.innerHTML = html;
