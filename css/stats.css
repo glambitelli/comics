@@ -10,7 +10,7 @@
 /* NUMERI */
 .stats-numbers{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
 .stat-cell{background:var(--white);border-radius:12px;padding:14px 8px;text-align:center;box-shadow:var(--shadow);border:1.5px solid var(--sand2)}
-.stat-big{font-size:24px;font-weight:700;font-family:'Castoro',serif;color:var(--sky-deep);line-height:1}
+.stat-big{font-size:19px;font-weight:700;font-family:'Castoro',serif;color:var(--ink);line-height:1}
 .stat-lbl{font-size:9px;font-weight:600;color:var(--ink3);letter-spacing:.04em;text-transform:uppercase;margin-top:4px}
 
 /* TRAGUARDI A LIVELLI */
