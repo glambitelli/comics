@@ -542,7 +542,9 @@ function toggleZoomAt(clientX, clientY){
 
     function dist(t0, t1){ return Math.hypot(t1.clientX-t0.clientX, t1.clientY-t0.clientY); }
 
+    let lastTouchAt = 0;
     body.addEventListener('touchstart', e=>{
+      lastTouchAt = Date.now();
       touches = Array.from(e.touches);
       img.style.transition = 'none';
       if(touches.length === 2){
@@ -622,8 +624,14 @@ function toggleZoomAt(clientX, clientY){
       }
     }, {passive:true});
 
-    // Desktop: doppio clic per zoomare/dezoomare
-    img.addEventListener('dblclick', e=>{ toggleZoomAt(e.clientX, e.clientY); });
+    // Desktop: doppio clic per zoomare/dezoomare. I browser mobile generano
+    // anche un "dblclick" sintetico dopo un doppio tap reale: se lo lasciassimo
+    // passare, zoomerebbe una seconda volta annullando quello già fatto dal
+    // gestore touch sopra. Lo ignoriamo se c'è stato un tocco nell'ultimo secondo.
+    img.addEventListener('dblclick', e=>{
+      if(Date.now() - lastTouchAt < 1000) return;
+      toggleZoomAt(e.clientX, e.clientY);
+    });
 
     // Desktop: rotella per zoomare, con lo zoom centrato sul puntatore
     body.addEventListener('wheel', e=>{
@@ -652,6 +660,7 @@ function toggleZoomAt(clientX, clientY){
     let mDown = false, mStartX = 0, mStartY = 0, mOrigX = 0, mOrigY = 0;
     img.addEventListener('mousedown', e=>{
       if(_zoomScale <= 1.02) return;
+      if(Date.now() - lastTouchAt < 1000) return;
       e.preventDefault();
       mDown = true;
       mStartX = e.clientX; mStartY = e.clientY;

@@ -109,11 +109,13 @@ export function actionMenu(anchorEl, actions){
   ).join('');
   document.body.appendChild(_actionMenuEl);
   const r = anchorEl.getBoundingClientRect();
-  const mw = 160;
+  const isTouch = document.body.classList.contains('is-touch');
+  const mw = isTouch ? Math.min(280, window.innerWidth - 32) : 160;
   let left = r.right - mw;
   if(left < 8) left = 8;
   if(left + mw > window.innerWidth - 8) left = window.innerWidth - mw - 8;
   _actionMenuEl.style.left = left+'px';
+  _actionMenuEl.style.width = mw+'px';
   _actionMenuEl.style.top = (r.bottom + 6 + window.scrollY)+'px';
   _actionMenuEl.querySelectorAll('button').forEach(btn=>{
     btn.onclick = (e)=>{ e.stopPropagation(); closeActionMenu(); actions[+btn.dataset.i].onSelect(); };

@@ -52,13 +52,12 @@
 /* ── LIGHTBOX ── */
 .refs-lightbox{position:fixed;inset:0;background:rgba(10,8,4,.94);z-index:9500;display:none;flex-direction:column;opacity:0;transition:opacity .18s}
 .refs-lightbox.open{display:flex;opacity:1}
-.refs-lightbox-top{display:flex;align-items:flex-start;gap:10px;padding:calc(14px + var(--safe-top)) 14px 0;flex-shrink:0}
+.refs-lightbox-top{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:calc(14px + var(--safe-top)) 14px 0;flex-shrink:0}
 .refs-lightbox-meta{padding:6px 14px 10px;font-family:'Nunito',sans-serif;font-size:10.5px;font-weight:700;color:rgba(240,232,212,.42);letter-spacing:.02em;flex-shrink:0}
-.refs-lightbox-close,.refs-lightbox-more{background:none;border:none;color:#f0e8d4;cursor:pointer;padding:6px 10px;line-height:1;flex-shrink:0;font-size:17px}
-.refs-lightbox-more{font-size:22px;letter-spacing:.06em}
-.refs-lightbox-close{font-size:17px}
+.refs-lightbox-close,.refs-lightbox-more{background:#fdf6e4;border:1.5px solid rgba(240,200,90,.4);color:#a8843c;cursor:pointer;padding:0;line-height:1;flex-shrink:0;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(0,0,0,.22);transition:transform .1s}
+.refs-lightbox-close:active,.refs-lightbox-more:active{transform:scale(.92);background:#f8ecc8}
 .refs-lightbox-body{flex:1;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;touch-action:none}
-.refs-lightbox-counter{text-align:center;font-size:11px;font-weight:700;color:rgba(240,232,212,.5);letter-spacing:.04em;margin-bottom:2px;flex-shrink:0}
+.refs-lightbox-counter{text-align:center;font-family:'Nunito',sans-serif;font-size:10.5px;font-weight:700;color:#f0c84e;letter-spacing:.08em;background:rgba(240,200,90,.12);border:1px solid rgba(240,200,90,.28);border-radius:20px;padding:7px 14px;line-height:1}
 .refs-lightbox-nav{position:absolute;top:50%;transform:translateY(-50%);background:#fdf6e4;border:1.5px solid rgba(240,200,90,.4);border-radius:50%;width:42px;height:42px;color:#a8843c;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:2;box-shadow:0 3px 12px rgba(0,0,0,.28)}
 .refs-lightbox-nav-prev{left:4px}
 .refs-lightbox-nav-next{right:4px}

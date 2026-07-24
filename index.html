@@ -109,9 +109,13 @@
 <!-- LIGHTBOX RIFERIMENTI -->
 <div id="refs-lightbox" class="refs-lightbox">
   <div class="refs-lightbox-top" id="refs-lightbox-chrome-top">
-    <button onclick="closeRefLightbox()" class="refs-lightbox-close" aria-label="Chiudi">✕</button>
+    <button onclick="closeRefLightbox()" class="refs-lightbox-close" aria-label="Chiudi">
+      <svg viewBox="0 0 24 24" width="16" height="16"><path d="M6 6 L18 18 M18 6 L6 18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+    </button>
     <div id="refs-lightbox-counter" class="refs-lightbox-counter"></div>
-    <button onclick="refsImageMenu(this)" class="refs-lightbox-more" aria-label="Altre azioni">⋯</button>
+    <button onclick="refsImageMenu(this)" class="refs-lightbox-more" aria-label="Altre azioni">
+      <svg viewBox="0 0 24 24" width="16" height="16"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>
+    </button>
   </div>
   <div class="refs-lightbox-body" id="refs-lightbox-body">
     <button onclick="prevRefImage()" id="refs-lightbox-prev" class="refs-lightbox-nav refs-lightbox-nav-prev" aria-label="Precedente">

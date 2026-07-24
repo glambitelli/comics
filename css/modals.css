@@ -35,3 +35,4 @@
 .ink-action-menu button:last-child{border-bottom:none}
 .ink-action-menu button.danger{color:var(--coral)}
 .ink-action-menu button:active{background:var(--sand)}
+body.is-touch .ink-action-menu button{padding:15px 16px;font-size:14.5px}
