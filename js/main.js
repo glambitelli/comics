@@ -18,6 +18,8 @@ window.refsImageMenu=refsImageMenu; window.deleteRefImageWithUndo=deleteRefImage
 window.openFolderBrowser=openFolderBrowser; window.openAllGrid=openAllGrid; window.openFolder=openFolder;
 window.promptNewFolder=promptNewFolder; window.promptNewFolderFlow=promptNewFolderFlow; window.promptRenameFolder=promptRenameFolder; window.promptDeleteFolder=promptDeleteFolder;
 window.refsFolderMenu=refsFolderMenu; window.setFolderTab=setFolderTab;
+import { initAlbums, openAlbumPicker, openAlbumFromFile } from './albums.js';
+window.openAlbumPicker=openAlbumPicker; window.openAlbumFromFile=openAlbumFromFile;
 window.openScriptment=openScriptment; window.closeScriptment=closeScriptment;
 window.setScriptmentFont=setScriptmentFont; window.stepScriptmentSize=stepScriptmentSize;
 window.formatScriptment=formatScriptment; window.openScriptmentRead=openScriptmentRead;
@@ -88,6 +90,7 @@ function openRefsScreen(){
   scr.classList.add('active');
   if(window.__navSync) window.__navSync('refs');
   initRefsCapture();
+  initAlbums();
   startRefsListener();
   openFolderBrowser();
 }
