@@ -18,6 +18,10 @@ let _refsUnsub = null;
 let _foldersUnsub = null;
 let _view = 'folders';           // 'folders' | 'all' | 'folder'
 let _activeFolderId = null;
+// Dentro una cartella vera convivono due assi: gli albi (fumetti da .cbr/.cbz)
+// e i ritagli (immagini sciolte). Nelle viste "All" e "senza cartella" i tab
+// non compaiono: lì si guardano solo immagini.
+let _folderTab = 'ritagli';      // 'albi' | 'ritagli'
 let _lastUploadError = '';
 
 function genId(){
@@ -137,6 +141,13 @@ function countInFolder(folderId){
   return _refs.filter(r=>r.folderId===folderId).length;
 }
 
+// Segnaposto: gli albi arrivano nello step successivo (collezione refAlbums).
+// Tenendo il conteggio dietro a questa funzione, il resto della UI è già
+// pronto e non andrà toccato quando i dati veri esisteranno.
+function countAlbumsInFolder(folderId){
+  return 0;
+}
+
 // ── LISTENER REALTIME ──
 export function startRefsListener(){
   if(!_refsUnsub){
@@ -194,6 +205,17 @@ export function openAllGrid(){
 }
 export function openFolder(id){
   _view = 'folder'; _activeFolderId = id;
+  // Si apre sul tab che ha qualcosa dentro: se la cartella ha albi parte da lì,
+  // altrimenti sui ritagli. Evita di sbattere in faccia una schermata vuota.
+  _folderTab = countAlbumsInFolder(id) > 0 ? 'albi' : 'ritagli';
+  renderRefsScreen();
+}
+
+export function setFolderTab(tab){
+  if(tab !== 'albi' && tab !== 'ritagli') return;
+  if(_folderTab === tab) return;
+  _folderTab = tab;
+  haptic('tap');
   renderRefsScreen();
 }
 
@@ -289,8 +311,42 @@ export function renderRefsScreen(){
         }
       }
     }
+    renderFolderTabs();
     renderRefsGrid();
   }
+}
+
+// I tab hanno senso solo dentro una cartella vera: in "All" e in "senza
+// cartella" restano nascosti e si vedono le immagini come sempre.
+function renderFolderTabs(){
+  const tabs = document.getElementById('refs-tabs');
+  const albumsPane = document.getElementById('refs-albums-pane');
+  const imagesPane = document.getElementById('refs-images-pane');
+  if(!tabs || !albumsPane || !imagesPane) return;
+
+  const inRealFolder = (_view === 'folder' && !!_activeFolderId);
+  tabs.classList.toggle('show', inRealFolder);
+
+  if(!inRealFolder){
+    albumsPane.style.display = 'none';
+    imagesPane.style.display = 'block';
+    return;
+  }
+
+  const nAlbi = countAlbumsInFolder(_activeFolderId);
+  const nRitagli = countInFolder(_activeFolderId);
+  const albiN = document.getElementById('refs-tab-albi-n');
+  const ritagliN = document.getElementById('refs-tab-ritagli-n');
+  if(albiN) albiN.textContent = nAlbi;
+  if(ritagliN) ritagliN.textContent = nRitagli;
+
+  const btnAlbi = document.getElementById('refs-tab-albi');
+  const btnRitagli = document.getElementById('refs-tab-ritagli');
+  if(btnAlbi) btnAlbi.classList.toggle('active', _folderTab === 'albi');
+  if(btnRitagli) btnRitagli.classList.toggle('active', _folderTab === 'ritagli');
+
+  albumsPane.style.display = _folderTab === 'albi' ? 'block' : 'none';
+  imagesPane.style.display = _folderTab === 'albi' ? 'none' : 'block';
 }
 
 // ── RENDER: SFOGLIA CARTELLE ──
