@@ -57,6 +57,41 @@ export async function addRefImage(file, source='file', folderId=null){
   }
 }
 
+// ── SALVATAGGIO DA RITAGLIO (albi) ──
+// Un frammento ritagliato da un albo arriva già come Blob JPEG pronto (il
+// ritaglio + compressione avvengono in albums.js). Qui lo carichiamo su
+// Cloudinary e scriviamo il documento, con la provenienza { opera, pagina }
+// così il frammento sa da dove viene.
+export async function addRefBlob(blob, opts={}){
+  if(!blob) return null;
+  const { folderId=null, source='clip', provenance=null, w=null, h=null } = opts;
+  const id = genId();
+  try{
+    const { url } = await uploadToCloudinary(blob, id+'.jpg');
+    const data = {
+      url, source,
+      projectId: null,
+      folderId: folderId || null,
+      addedAt: serverTimestamp(),
+      w, h, bytes: blob.size,
+    };
+    if(provenance) data.provenance = provenance;
+    await setDoc(doc(db, REFS_COL, id), data);
+    return id;
+  }catch(e){
+    console.error('addRefBlob errore:', e);
+    _lastUploadError = (e && e.message) ? e.message : String(e);
+    return null;
+  }
+}
+
+// Espone la cartella attualmente aperta (autore), così un ritaglio finisce
+// automaticamente tra i Frammenti di quell'autore. Fuori da una cartella vera
+// (viste "All"/"senza cartella") torna null e il frammento resta non archiviato.
+export function getActiveFolderId(){
+  return _view === 'folder' ? _activeFolderId : null;
+}
+
 function setUploadStatus(state, text){
   const el = document.getElementById('refs-upload-status');
   if(!el) return;

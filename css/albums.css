@@ -1,0 +1,73 @@
+/* ── ALBI: bottone di apertura nel tab "Albi" ── */
+.albums-open-btn{
+  display:flex;align-items:center;gap:11px;width:100%;
+  padding:15px 16px;margin:2px 0 14px;
+  background:var(--white);border:1.5px dashed var(--sand3);
+  border-radius:var(--r);color:var(--ink);font-family:'Nunito',sans-serif;
+  font-size:15px;font-weight:600;cursor:pointer;transition:border-color .15s,background .15s;
+}
+.albums-open-btn:hover{border-color:var(--sky);background:var(--sky-pale)}
+.albums-open-btn .albums-open-ico{
+  width:34px;height:34px;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  background:var(--sky-pale);border-radius:9px;color:var(--sky-deep);
+}
+.albums-open-btn .albums-open-sub{display:block;font-size:12px;font-weight:400;color:var(--ink3);margin-top:1px}
+
+/* ── READER a schermo intero ── */
+.album-reader{
+  position:fixed;inset:0;z-index:4000;display:none;
+  flex-direction:column;background:#141210;
+  padding-top:var(--safe-top);padding-bottom:var(--safe-bot);
+}
+.album-reader.open{display:flex}
+body.album-reading{overflow:hidden}
+
+.ar-topbar{
+  display:flex;align-items:center;gap:10px;
+  padding:8px 10px;background:rgba(20,18,16,.92);
+  border-bottom:1px solid rgba(255,255,255,.06);flex-shrink:0;
+}
+.ar-title{
+  flex:1;min-width:0;color:var(--sand);font-family:'Castoro',serif;
+  font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.ar-top-actions{display:flex;gap:4px;flex-shrink:0}
+.ar-btn{
+  width:40px;height:40px;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  background:transparent;border:none;color:var(--sand2);cursor:pointer;border-radius:9px;
+  transition:background .15s,color .15s;
+}
+.ar-btn:hover{background:rgba(255,255,255,.08)}
+.ar-close{font-size:30px;line-height:1;font-family:'Nunito',sans-serif}
+.ar-clip.active{background:var(--gold);color:var(--ink)}
+
+.ar-stage{position:relative;flex:1;min-height:0;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.ar-img{max-width:100%;max-height:100%;object-fit:contain;user-select:none;-webkit-user-drag:none}
+
+.ar-nav{
+  position:absolute;top:0;bottom:0;width:22%;border:none;background:transparent;
+  color:rgba(255,255,255,.0);font-size:40px;cursor:pointer;transition:color .15s,background .15s;
+}
+.ar-prev{left:0}.ar-next{right:0}
+.ar-nav:hover{color:rgba(255,255,255,.5);background:linear-gradient(90deg,rgba(0,0,0,.25),transparent)}
+.ar-next:hover{background:linear-gradient(270deg,rgba(0,0,0,.25),transparent)}
+body.is-touch .ar-nav{display:none} /* su mobile si naviga con swipe/tap */
+
+/* strato di ritaglio */
+.ar-cliplayer{position:absolute;inset:0;cursor:crosshair;touch-action:none}
+.ar-clipbox{
+  position:absolute;border:1.5px solid var(--gold);
+  background:rgba(240,192,32,.14);box-shadow:0 0 0 9999px rgba(0,0,0,.35);
+}
+
+.ar-bottombar{
+  display:flex;align-items:center;justify-content:center;gap:12px;
+  padding:9px 12px;background:rgba(20,18,16,.92);
+  border-top:1px solid rgba(255,255,255,.06);flex-shrink:0;min-height:40px;
+}
+.ar-counter{color:var(--sand2);font-family:'Courier Prime',monospace;font-size:13px;letter-spacing:.5px}
+.ar-clip-hint{color:var(--gold-pale);font-size:12.5px}
+.ar-clip-hint .ar-cancelclip{
+  background:none;border:none;color:var(--gold);text-decoration:underline;
+  cursor:pointer;font-size:12.5px;padding:0;
+}
