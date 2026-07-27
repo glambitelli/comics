@@ -1,16 +1,22 @@
-// ── ALBI — lettore CBZ in-browser + ritaglio → Frammento ──
+// ── ALBI — lettore CBZ/CBR in-browser + ritaglio → Frammento ──
 // Filosofia: l'albo NON viene mai ospitato sul cloud. Lo apri dal disco, lo
 // sfogli qui, e SOLO ciò che ritagli (una tavola, un pannello, una pagina
 // intera) diventa un Frammento su Cloudinary, con la provenienza attaccata
-// (opera + pagina). Zero storage per i volumi, zero banda, zero manutenzione.
+// (opera + pagina). L'unica altra immagine caricata è una copertina piccola
+// per lo scaffale (vedi createAlbumFromCurrent). Zero storage per i volumi.
 //
-// Questo primo drop gestisce i .cbz (ZIP di immagini) con fflate vendorizzato.
-// Il .cbr (RAR) arriverà come step successivo, caricando libarchive.js in modo
-// lazy solo quando serve — l'architettura qui sotto è già pronta ad accoglierlo
-// (basta popolare `_pages` allo stesso modo).
+// I .cbz (ZIP di immagini) si estraggono con fflate, vendorizzato e sempre
+// caricato. I .cbr (RAR) usano libarchive.js (WASM), caricato via import()
+// dinamico SOLO al primo .cbr aperto — chi legge solo .cbz non lo scarica mai.
+// Entrambi i formati popolano _pages nello stesso identico formato
+// [{name,url,blob}], quindi reader/ritaglio/scaffale non sanno da dove viene.
 
 import { unzipSync } from './vendor/fflate.js';
-import { addRefBlob, getActiveFolderId } from './refs.js';
+import {
+  addRefBlob, getActiveFolderId, findExactAlbumMatch, createAlbumDoc,
+  updateAlbumLastPage, updateAlbumSourceName,
+} from './refs.js';
+import { uploadToCloudinary } from './cloudinary.js';
 import { haptic } from './state.js';
 
 // Stato dell'albo attualmente aperto
@@ -20,6 +26,11 @@ let _albumName = '';
 let _albumSig = '';     // firma nome+peso, per ricordare l'ultima pagina letta
 let _reader = null;     // riferimento all'overlay DOM (creato lazy una volta)
 let _clipMode = false;
+let _currentAlbumId = null;  // doc refAlbums collegato alla lettura in corso (null se fuori da una cartella)
+// Impostato da refs.js quando si tocca una copertina dello scaffale: il
+// prossimo file scelto dal picker viene confrontato con QUESTO albo atteso
+// (non con l'intero scaffale) prima di decidere se è una riapertura.
+let _pendingReopen = null;
 
 // ── UTIL ──────────────────────────────────────────────────────────────────
 const IMG_RE = /\.(jpe?g|png|gif|webp|avif|bmp)$/i;
@@ -77,9 +88,49 @@ function clearPages(){
   _pages = [];
 }
 
+// Estrae le pagine di un .cbz (ZIP) con fflate. Ritorna l'array di pagine nel
+// formato comune [{name,url,blob}], già filtrato e ordinato — lo stesso
+// formato che popolerà _pages qualunque sia il contenitore di origine.
+function extractZipPages(buf){
+  const entries = unzipSync(buf);
+  const names = Object.keys(entries).filter(isImageEntry).sort(naturalCompare);
+  return names.map(n=>{
+    const blob = new Blob([entries[n]], { type: mimeFor(n) });
+    return { name: n, url: URL.createObjectURL(blob), blob };
+  });
+}
+
+function clampIdx(i){ return (i < 0 || i >= _pages.length) ? 0 : i; }
+
+// Estrae le pagine di un .cbr (RAR) con libarchive.js (WASM). Caricata solo
+// qui, al primo .cbr aperto: i .cbz non la toccano mai, così il grosso del
+// bundle (~1MB di WASM) non pesa su chi legge solo .cbz. Il lavoro pesante
+// gira già in un web worker dentro la libreria: il main thread resta libero.
+async function extractRarPages(file){
+  const { Archive } = await import('./vendor/libarchive/libarchive.js');
+  Archive.init({ workerUrl: new URL('./vendor/libarchive/worker-bundle.js', import.meta.url) });
+
+  const archive = await Archive.open(file);
+  let n = 0;
+  await archive.extractFiles(()=>{ n++; toast('Estrazione in corso… ' + n + ' file'); });
+  const arr = await archive.getFilesArray(); // [{file:File, path:string}]
+
+  const withNames = arr
+    .map(({file, path})=>({ name: (path||'') + file.name, file }))
+    .filter(e=>isImageEntry(e.name))
+    .sort((a,b)=>naturalCompare(a.name, b.name));
+
+  return withNames.map(({name, file})=>({ name, url: URL.createObjectURL(file), blob: file }));
+}
+
 // ── APERTURA ALBO ───────────────────────────────────────────────────────────
 export async function openAlbumFromFile(file){
   if(!file) return;
+  // Consuma subito il bersaglio in sospeso: qualunque esito di questa apertura
+  // (match, mismatch, o errore) non deve restare "in attesa" per la prossima.
+  const pendingReopen = _pendingReopen;
+  _pendingReopen = null;
+
   const nameLc = file.name.toLowerCase();
   toast('Apro l\'albo…');
   let buf;
@@ -90,40 +141,120 @@ export async function openAlbumFromFile(file){
   const isZip = buf[0] === 0x50 && buf[1] === 0x4B;
   const isRar = buf[0] === 0x52 && buf[1] === 0x61 && buf[2] === 0x72 && buf[3] === 0x21;
 
+  let pages;
   if(isRar || nameLc.endsWith('.cbr')){
-    toast('I .cbr arrivano nel prossimo aggiornamento — per ora usa un .cbz.', true);
-    return;
-  }
-  if(!isZip){
-    toast('Formato non riconosciuto: serve un .cbz.', true);
+    try{ pages = await extractRarPages(file); }
+    catch(e){ console.error('rar', e); toast('Questo .cbr è illeggibile, danneggiato o cifrato.', true); return; }
+  } else if(isZip){
+    try{ pages = extractZipPages(buf); }
+    catch(e){ console.error('unzip', e); toast('Questo .cbz è illeggibile o danneggiato.', true); return; }
+  } else {
+    toast('Formato non riconosciuto: serve un .cbz o .cbr.', true);
     return;
   }
 
-  let entries;
-  try{ entries = unzipSync(buf); }
-  catch(e){ console.error('unzip', e); toast('Questo .cbz è illeggibile o danneggiato.', true); return; }
-
-  const names = Object.keys(entries).filter(isImageEntry).sort(naturalCompare);
-  if(!names.length){ toast('Nessuna pagina trovata dentro l\'albo.', true); return; }
+  if(!pages.length){ toast('Nessuna pagina trovata dentro l\'albo.', true); return; }
 
   clearPages();
-  _pages = names.map(n=>{
-    const blob = new Blob([entries[n]], { type: mimeFor(n) });
-    return { name: n, url: URL.createObjectURL(blob), blob };
-  });
-  _albumName = file.name.replace(/\.(cbz|cbr|zip)$/i, '');
+  _pages = pages;
+  _albumName = file.name.replace(/\.(cbz|cbr|zip|rar)$/i, '');
   _albumSig  = file.name + ':' + file.size;
-  _idx = loadReadingPos(_albumSig);
-  if(_idx < 0 || _idx >= _pages.length) _idx = 0;
+  _currentAlbumId = null;
+
+  const folderId = getActiveFolderId();
+  if(folderId){
+    // Bersaglio noto (si è toccata una copertina dello scaffale): priorità a
+    // nome+peso identici, poi solo peso (rinomina da cloud drive). Altrimenti
+    // ricadiamo sul match esatto contro l'intera cartella, come per l'apertura
+    // "libera" dal bottone principale — evita comunque i doppioni.
+    let matched = null, renamed = false;
+    if(pendingReopen){
+      if(pendingReopen.sourceName === file.name && pendingReopen.sourceSize === file.size){
+        matched = pendingReopen;
+      } else if(pendingReopen.sourceSize === file.size){
+        matched = pendingReopen; renamed = true;
+      }
+    }
+    if(!matched) matched = findExactAlbumMatch(folderId, file.name, file.size);
+
+    if(matched){
+      _currentAlbumId = matched.id;
+      _albumName = matched.title || _albumName;
+      _idx = clampIdx(matched.lastPage || 0);
+      if(renamed) updateAlbumSourceName(matched.id, file.name);
+    } else {
+      _idx = 0; // bersaglio sbagliato o albo mai visto: si parte da capo
+    }
+  } else {
+    _idx = clampIdx(loadReadingPos(_albumSig));
+  }
 
   toast('');
   openReader();
+
+  // Prima apertura riuscita in questa cartella: crea la scheda con copertina.
+  // Non blocca la lettura, che è già partita.
+  if(folderId && !_currentAlbumId){
+    createAlbumFromCurrent(folderId, file).catch(e=>console.warn('creazione scheda albo fallita:', e));
+  }
 }
 
-// Punto d'ingresso dal file input (bottone "Apri un albo").
-export function openAlbumPicker(){
+// Punto d'ingresso dal file input (bottone "Apri un albo" o tap su una
+// copertina dello scaffale). `reopenTarget` — passato da refs.js — è la
+// scheda refAlbums attesa quando si riapre da una copertina; assente per
+// l'apertura libera dal bottone principale.
+export function openAlbumPicker(reopenTarget){
+  _pendingReopen = reopenTarget || null;
   const input = document.getElementById('album-file-input');
   if(input) input.click();
+}
+
+// ── COPERTINA (scaffale) ────────────────────────────────────────────────────
+const COVER_MAX_DIM = 500;
+const COVER_MAX_BYTES = 80000;
+
+// Preferisce una pagina il cui nome suggerisce che sia proprio la copertina
+// (scan spesso la include come "00 - cover.jpg" fuori sequenza numerica);
+// altrimenti la prima pagina del volume.
+function pickCoverPage(){
+  const i = _pages.findIndex(p=>/cover|front/i.test(p.name));
+  return _pages[i >= 0 ? i : 0];
+}
+
+async function makeCoverBlob(pageBlob){
+  const im = await blobToImage(pageBlob);
+  let w = im.naturalWidth, h = im.naturalHeight;
+  if(w >= h){ h = Math.round(h * COVER_MAX_DIM / w); w = COVER_MAX_DIM; }
+  else { w = Math.round(w * COVER_MAX_DIM / h); h = COVER_MAX_DIM; }
+  const canvas = document.createElement('canvas');
+  canvas.width = w; canvas.height = h;
+  canvas.getContext('2d').drawImage(im, 0, 0, w, h);
+  if(im._objurl) URL.revokeObjectURL(im._objurl);
+
+  let quality = 0.82;
+  const encode = ()=> new Promise(res=> canvas.toBlob(res, 'image/jpeg', quality));
+  let blob = await encode();
+  while(blob && blob.size > COVER_MAX_BYTES && quality > 0.4){
+    quality = Math.max(0.4, quality - 0.1);
+    blob = await encode();
+  }
+  return blob;
+}
+
+async function createAlbumFromCurrent(folderId, file){
+  const page = pickCoverPage();
+  if(!page) return;
+  const coverBlob = await makeCoverBlob(page.blob);
+  if(!coverBlob) return;
+  const tag = Date.now().toString(36) + Math.random().toString(36).slice(2,8);
+  const { url } = await uploadToCloudinary(coverBlob, 'cover-'+tag+'.jpg');
+  const albumId = await createAlbumDoc({
+    folderId, title: _albumName, cover: url, pageCount: _pages.length,
+    sourceName: file.name, sourceSize: file.size, lastPage: _idx,
+  });
+  // Se nel frattempo l'utente ha già chiuso e riaperto un altro albo, non
+  // agganciare più i cambi pagina a questa scheda: la sessione corrente vince.
+  if(_albumSig === file.name+':'+file.size) _currentAlbumId = albumId;
 }
 
 // ── READER (overlay a schermo intero) ───────────────────────────────────────
@@ -147,8 +278,12 @@ function buildReaderDOM(){
     <div class="ar-stage">
       <img class="ar-img" alt="">
       <div class="ar-cliplayer" hidden><div class="ar-clipbox" hidden></div></div>
-      <button class="ar-nav ar-prev" aria-label="Precedente" data-act="prev">‹</button>
-      <button class="ar-nav ar-next" aria-label="Successiva" data-act="next">›</button>
+      <button class="ar-nav ar-prev" aria-label="Precedente" data-act="prev">
+        <svg viewBox="0 0 24 24" width="26" height="26"><path d="M14.5 6.5 8.5 12l6 5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <button class="ar-nav ar-next" aria-label="Successiva" data-act="next">
+        <svg viewBox="0 0 24 24" width="26" height="26"><path d="M9.5 6.5 15.5 12l-6 5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
     </div>
     <div class="ar-bottombar">
       <span class="ar-counter"></span>
@@ -206,7 +341,10 @@ function renderPage(){
   const img = _reader.querySelector('.ar-img');
   const page = _pages[_idx];
   img.src = page.url;
-  _reader.querySelector('.ar-counter').textContent = (_idx + 1) + ' / ' + _pages.length;
+  // Zero-padding sul numero corrente: a larghezza fissa il contatore non
+  // "salta" passando da una cifra a due (9 → 10), come in un lettore vero.
+  const pad = String(_pages.length).length;
+  _reader.querySelector('.ar-counter').textContent = String(_idx + 1).padStart(pad, '0') + ' / ' + _pages.length;
   // Prefetch leggero della pagina successiva e precedente (decodifica anticipata).
   [_idx + 1, _idx - 1].forEach(i=>{
     if(i >= 0 && i < _pages.length){ const im = new Image(); im.src = _pages[i].url; }
@@ -220,6 +358,7 @@ function gotoPage(i){
   if(i < 0 || i >= _pages.length) return;
   _idx = i;
   saveReadingPos();
+  if(_currentAlbumId) updateAlbumLastPage(_currentAlbumId, _idx);
   renderPage();
 }
 

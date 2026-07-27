@@ -11,11 +11,14 @@ import { promptModal, confirmModal, actionMenu } from './dialogs.js';
 
 const REFS_COL = 'refs';
 const FOLDERS_COL = 'refFolders';
+const ALBUMS_COL = 'refAlbums';
 
 let _refs = [];          // cache locale immagini, dal listener realtime
 let _folders = [];       // cache locale cartelle {id, category, name, createdAt}
+let _albums = [];        // cache locale scaffale albi {id, folderId, title, cover, pageCount, sourceName, sourceSize, lastPage}
 let _refsUnsub = null;
 let _foldersUnsub = null;
+let _albumsUnsub = null;
 let _view = 'folders';           // 'folders' | 'all' | 'folder'
 let _activeFolderId = null;
 // Dentro una cartella vera convivono due assi: gli albi (fumetti da .cbr/.cbz)
@@ -176,11 +179,107 @@ function countInFolder(folderId){
   return _refs.filter(r=>r.folderId===folderId).length;
 }
 
-// Segnaposto: gli albi arrivano nello step successivo (collezione refAlbums).
-// Tenendo il conteggio dietro a questa funzione, il resto della UI è già
-// pronto e non andrà toccato quando i dati veri esisteranno.
-function countAlbumsInFolder(folderId){
-  return 0;
+function countAlbumsByFolder(folderId){
+  return _albums.filter(a=>a.folderId===folderId).length;
+}
+
+// ── SCAFFALE ALBI (refAlbums) ──
+// Un documento per ogni albo aperto almeno una volta in una cartella: solo
+// metadati + una copertina piccola (l'unica immagine dell'albo che finisce
+// su Cloudinary). Il file vero resta sul dispositivo e va riselezionato ad
+// ogni lettura — qui teniamo solo il necessario per riconoscerlo e ricordare
+// dove si era arrivati.
+export function getAlbumsInFolder(folderId){
+  return _albums.filter(a=>a.folderId===folderId).sort((a,b)=>{
+    const ta=a.addedAt&&a.addedAt.toMillis?a.addedAt.toMillis():0;
+    const tb=b.addedAt&&b.addedAt.toMillis?b.addedAt.toMillis():0;
+    return tb-ta;
+  });
+}
+
+// Match esatto (nome+peso identici) contro l'intera cartella: usato
+// dall'apertura "libera" (bottone principale) per evitare doppioni quando si
+// riapre lo stesso file senza essere passati dallo scaffale.
+export function findExactAlbumMatch(folderId, sourceName, sourceSize){
+  return _albums.find(a=>a.folderId===folderId && a.sourceName===sourceName && a.sourceSize===sourceSize) || null;
+}
+
+export async function createAlbumDoc({folderId, title, cover, pageCount, sourceName, sourceSize, lastPage=0}){
+  const id = genId();
+  await setDoc(doc(db, ALBUMS_COL, id), {
+    folderId, title: title||'Senza titolo', cover: cover||null, pageCount: pageCount||0,
+    sourceName: sourceName||'', sourceSize: sourceSize||0, lastPage,
+    addedAt: serverTimestamp(),
+  });
+  return id;
+}
+
+// Scrittura throttled: i cambi pagina sono frequenti (swipe/frecce), non ha
+// senso un round-trip Firestore ad ogni tocco. Un solo timer per albo aperto.
+const _lastPageTimers = new Map();
+export function updateAlbumLastPage(albumId, page){
+  if(!albumId) return;
+  clearTimeout(_lastPageTimers.get(albumId));
+  _lastPageTimers.set(albumId, setTimeout(()=>{
+    _lastPageTimers.delete(albumId);
+    setDoc(doc(db, ALBUMS_COL, albumId), { lastPage: page }, {merge:true});
+  }, 900));
+}
+
+// Il nome del file può cambiare (cloud drive che rinomina in "nome (1).cbz");
+// se un match "probabile" (solo peso) è confermato riallineamo il nome atteso.
+export function updateAlbumSourceName(albumId, sourceName){
+  if(!albumId) return;
+  setDoc(doc(db, ALBUMS_COL, albumId), { sourceName }, {merge:true});
+}
+
+export function renameAlbum(id, title){
+  title = (title||'').trim();
+  if(!title) return;
+  setDoc(doc(db, ALBUMS_COL, id), { title }, {merge:true});
+}
+
+export async function deleteAlbum(id){
+  await deleteDoc(doc(db, ALBUMS_COL, id));
+}
+
+export function albumShelfMenu(id, anchorEl){
+  const a = _albums.find(x=>x.id===id);
+  if(!a) return;
+  actionMenu(anchorEl, [
+    {label:'Rinomina', onSelect:()=>promptRenameAlbum(id)},
+    {label:'Elimina', danger:true, onSelect:()=>promptDeleteAlbum(id)},
+  ]);
+}
+
+export async function promptRenameAlbum(id){
+  const a = _albums.find(x=>x.id===id);
+  if(!a) return;
+  const nv = await promptModal('Rinomina albo', a.title||'');
+  if(!nv) return;
+  renameAlbum(id, nv);
+}
+
+export async function promptDeleteAlbum(id){
+  const a = _albums.find(x=>x.id===id);
+  if(!a) return;
+  const ok = await confirmModal(
+    `Eliminare "${a.title}" dallo scaffale? Il file resta comunque sul tuo dispositivo, sparisce solo da qui.`,
+    {title:'Elimina albo', confirmLabel:'Elimina'}
+  );
+  if(!ok) return;
+  deleteAlbum(id);
+  renderRefsScreen();
+}
+
+// Tap su una copertina: prepara nel reader il "bersaglio" atteso (nome/peso/
+// ultima pagina) e riapre lo stesso file input usato dal bottone principale.
+// Il matching vero e proprio (nome+peso identici, o solo peso se il nome è
+// cambiato) avviene in albums.js quando l'utente sceglie davvero il file.
+export function reopenAlbum(albumId){
+  const a = _albums.find(x=>x.id===albumId);
+  if(!a) return;
+  if(window.openAlbumPicker) window.openAlbumPicker(a);
 }
 
 // ── LISTENER REALTIME ──
@@ -202,6 +301,12 @@ export function startRefsListener(){
       _folders = snap.docs.map(d=>({id:d.id, ...d.data()}));
       renderRefsScreen();
     }, err=>console.warn('refFolders listener error:', err));
+  }
+  if(!_albumsUnsub){
+    _albumsUnsub = onSnapshot(collection(db, ALBUMS_COL), snap=>{
+      _albums = snap.docs.map(d=>({id:d.id, ...d.data()}));
+      renderRefsScreen();
+    }, err=>console.warn('refAlbums listener error:', err));
   }
 }
 
@@ -242,7 +347,7 @@ export function openFolder(id){
   _view = 'folder'; _activeFolderId = id;
   // Si apre sul tab che ha qualcosa dentro: se la cartella ha albi parte da lì,
   // altrimenti sui ritagli. Evita di sbattere in faccia una schermata vuota.
-  _folderTab = countAlbumsInFolder(id) > 0 ? 'albi' : 'ritagli';
+  _folderTab = countAlbumsByFolder(id) > 0 ? 'albi' : 'ritagli';
   renderRefsScreen();
 }
 
@@ -368,7 +473,7 @@ function renderFolderTabs(){
     return;
   }
 
-  const nAlbi = countAlbumsInFolder(_activeFolderId);
+  const nAlbi = countAlbumsByFolder(_activeFolderId);
   const nRitagli = countInFolder(_activeFolderId);
   const albiN = document.getElementById('refs-tab-albi-n');
   const ritagliN = document.getElementById('refs-tab-ritagli-n');
@@ -382,6 +487,38 @@ function renderFolderTabs(){
 
   albumsPane.style.display = _folderTab === 'albi' ? 'block' : 'none';
   imagesPane.style.display = _folderTab === 'albi' ? 'none' : 'block';
+  if(_folderTab === 'albi') renderAlbumsShelf();
+}
+
+// ── RENDER: SCAFFALE ALBI ──
+function renderAlbumsShelf(){
+  const grid = document.getElementById('refs-albums-grid');
+  const empty = document.querySelector('.refs-albums-empty');
+  if(!grid) return;
+  const list = getAlbumsInFolder(_activeFolderId);
+
+  if(!list.length){
+    grid.innerHTML = '';
+    grid.style.display = 'none';
+    if(empty) empty.style.display = 'flex';
+    return;
+  }
+  if(empty) empty.style.display = 'none';
+  grid.style.display = 'grid';
+  grid.innerHTML = list.map(a=>`
+    <div class="album-card" data-id="${a.id}">
+      <div class="album-cover">
+        <img src="${a.cover||''}" loading="lazy" alt=""/>
+        <button class="album-menu-btn" onclick="event.stopPropagation();window.albumShelfMenu('${a.id}',this)" aria-label="Altro">⋯</button>
+      </div>
+      <div class="album-title">${esc(a.title||'Senza titolo')}</div>
+      <div class="album-pages">${a.pageCount||0} pagine</div>
+    </div>
+  `).join('');
+
+  grid.querySelectorAll('.album-card').forEach(el=>{
+    el.addEventListener('click', ()=> reopenAlbum(el.dataset.id));
+  });
 }
 
 // ── RENDER: SFOGLIA CARTELLE ──
