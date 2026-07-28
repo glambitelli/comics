@@ -322,9 +322,20 @@ export async function openAlbumFromDrive(albumId){
   toast('Scarico da Drive…');
   if(!(await ensureDriveConnected())){ toast('Ricollega Google Drive per aprire questo albo.', true); return; }
   let file;
-  try{ file = await downloadDriveFileAsFile({ id: a.driveFileId, name: a.sourceName || (a.title||'albo') }); }
-  catch(e){ toast('Impossibile scaricare da Drive: '+e.message, true); return; }
+  try{
+    file = await downloadDriveFileAsFile(
+      { id: a.driveFileId, name: a.sourceName || (a.title||'albo') },
+      (loaded, total)=>{
+        const mb = n => (n / 1048576).toFixed(1);
+        toast('Scarico da Drive… ' + mb(loaded) + (total ? ' / ' + mb(total) + ' MB' : ' MB'));
+      }
+    );
+  }catch(e){ toast('Impossibile scaricare da Drive: '+e.message, true); return; }
 
+  // Messaggio distinto per la fase successiva: su un albo pesante l'estrazione
+  // delle pagine può metterci diversi secondi a schermo fermo (è lavoro sincrono
+  // sul thread principale), e senza questo avviso sembra che l'app si sia bloccata.
+  toast('Preparo le pagine…');
   let pages;
   try{ pages = await extractPagesForFile(file); }
   catch(e){ toast(e.message, true); return; }

@@ -208,9 +208,22 @@ export function disconnectDrive(){
   _folderCache.clear();
 }
 
+// Timeout "duro" per le chiamate leggere (elenco file, ricerca cartelle): se
+// non rispondono entro pochi secondi è quasi certamente un problema di rete,
+// meglio un errore chiaro che un banner che resta appeso all'infinito.
+async function fetchWithTimeout(url, opts, timeoutMs){
+  const ctrl = new AbortController();
+  const timer = setTimeout(()=>ctrl.abort(), timeoutMs);
+  try{ return await fetch(url, { ...opts, signal: ctrl.signal }); }
+  catch(e){
+    if(e.name === 'AbortError') throw new Error('Drive non risponde (connessione lenta o caduta).');
+    throw e;
+  }finally{ clearTimeout(timer); }
+}
+
 async function driveFetch(url){
   if(!isDriveConnected()) throw new Error('Drive non collegato.');
-  const res = await fetch(url, { headers: { Authorization: 'Bearer ' + _token.access_token } });
+  const res = await fetchWithTimeout(url, { headers: { Authorization: 'Bearer ' + _token.access_token } }, 20000);
   if(res.status === 401){
     clearToken();
     throw new Error('Sessione Drive scaduta: ricollega.');
@@ -268,12 +281,52 @@ export async function listDriveAlbumsForFolder(folderName){
 // Scarica il contenuto di un file Drive e lo restituisce come File vero, così
 // entra nella stessa identica pipeline di apertura .cbz/.cbr usata per i file
 // locali (albums.js non deve sapere da dove arrivano davvero i byte).
-export async function downloadDriveFileAsFile(fileMeta){
+// `onProgress(loaded, total)` (total 0 se Drive non lo dichiara) permette di
+// mostrare un avanzamento reale invece di un messaggio fermo — un albo può
+// pesare decine di MB e su rete mobile ci mette il suo. Il download è in
+// streaming con un timer di STALLO (si resetta ad ogni blocco ricevuto): una
+// connessione lenta ma viva non viene mai interrotta, solo una che si è
+// davvero bloccata per più di 25s.
+export async function downloadDriveFileAsFile(fileMeta, onProgress){
   if(!isDriveConnected()) throw new Error('Drive non collegato.');
   const url = `https://www.googleapis.com/drive/v3/files/${fileMeta.id}?alt=media`;
-  const res = await fetch(url, { headers: { Authorization: 'Bearer ' + _token.access_token } });
-  if(res.status === 401){ clearToken(); throw new Error('Sessione Drive scaduta: ricollega.'); }
-  if(!res.ok) throw new Error('Download da Drive fallito (' + res.status + ')');
-  const blob = await res.blob();
-  return new File([blob], fileMeta.name, { type: blob.type || 'application/octet-stream' });
+  const ctrl = new AbortController();
+  let stallTimer;
+  const armStall = ()=>{ clearTimeout(stallTimer); stallTimer = setTimeout(()=>ctrl.abort(), 25000); };
+  armStall();
+
+  let res;
+  try{
+    res = await fetch(url, { headers: { Authorization: 'Bearer ' + _token.access_token }, signal: ctrl.signal });
+  }catch(e){
+    clearTimeout(stallTimer);
+    throw e.name === 'AbortError' ? new Error('Download da Drive interrotto: connessione troppo lenta o caduta.') : e;
+  }
+  if(res.status === 401){ clearTimeout(stallTimer); clearToken(); throw new Error('Sessione Drive scaduta: ricollega.'); }
+  if(!res.ok){ clearTimeout(stallTimer); throw new Error('Download da Drive fallito (' + res.status + ')'); }
+
+  const total = parseInt(res.headers.get('Content-Length') || '0', 10) || 0;
+  if(!res.body || !res.body.getReader){
+    // Browser senza streaming body: scarica in blocco, niente progresso intermedio.
+    clearTimeout(stallTimer);
+    const blob = await res.blob();
+    return new File([blob], fileMeta.name, { type: blob.type || 'application/octet-stream' });
+  }
+
+  const reader = res.body.getReader();
+  const chunks = [];
+  let loaded = 0;
+  while(true){
+    let step;
+    try{ step = await reader.read(); }
+    catch(e){ clearTimeout(stallTimer); throw new Error('Download da Drive interrotto: connessione troppo lenta o caduta.'); }
+    if(step.done) break;
+    armStall();
+    chunks.push(step.value);
+    loaded += step.value.length;
+    if(onProgress){ try{ onProgress(loaded, total); }catch(e){} }
+  }
+  clearTimeout(stallTimer);
+  const blob = new Blob(chunks);
+  return new File([blob], fileMeta.name, { type: res.headers.get('Content-Type') || 'application/octet-stream' });
 }
