@@ -11,6 +11,7 @@ import { promptModal, confirmModal, actionMenu } from './dialogs.js';
 import {
   isDriveConfigured, isDriveConnected, connectDrive, disconnectDrive,
   driveAccountEmail, onDriveAuthChange, listDriveAlbumsForFolder,
+  ensureDriveConnected, initDriveAuth,
 } from './drive.js';
 
 const REFS_COL = 'refs';
@@ -307,12 +308,15 @@ export function reopenAlbum(albumId){
 // sottocartella non esiste ancora, semplicemente non succede nulla.
 const _syncingFolders = new Set();
 export async function syncDriveAlbumsForFolder(folderId){
-  if(!isDriveConfigured() || !isDriveConnected()) return;
+  if(!isDriveConfigured()) return;
   if(_syncingFolders.has(folderId)) return;
   const f = _folders.find(x=>x.id===folderId);
   if(!f) return;
   _syncingFolders.add(folderId);
   try{
+    // Se il token è scaduto ma la sessione Google è viva, si ricollega da
+    // solo in silenzio; altrimenti niente sync finché non si tocca "Connetti".
+    if(!(await ensureDriveConnected())) return;
     const files = await listDriveAlbumsForFolder(f.name);
     for(const file of files){
       if(findAlbumByDriveId(folderId, file.id)) continue;
@@ -349,6 +353,9 @@ export function startRefsListener(){
     // Se il token scade o viene revocato a metà sessione, il bottone/badge
     // Drive nello scaffale deve aggiornarsi da solo al prossimo render.
     onDriveAuthChange(()=>renderRefsScreen());
+    // All'avvio prova a ricollegarsi in silenzio, così riaprendo l'app ci si
+    // ritrova già collegati senza dover ritoccare "Connetti" ogni volta.
+    initDriveAuth();
   }
   if(!_refsUnsub){
     _refsUnsub = onSnapshot(collection(db, REFS_COL), snap=>{

@@ -18,10 +18,13 @@
       expires_in: params.get('expires_in') || null,
       error: params.get('error') || null,
     };
-    if(window.opener){
-      window.opener.postMessage(payload, location.origin);
+    // Popup → window.opener; iframe silenzioso → window.parent. Mandiamo a
+    // quello dei due che non è questa stessa finestra.
+    var target = window.opener || (window.parent !== window ? window.parent : null);
+    if(target){
+      target.postMessage(payload, location.origin);
     }
-    window.close();
+    window.close(); // no-op dentro l'iframe: lo rimuove la pagina che l'ha creato
   })();
 </script>
 </body>

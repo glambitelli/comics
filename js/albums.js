@@ -17,7 +17,7 @@ import {
   updateAlbumLastPage, updateAlbumSourceName, getAlbumById, findAlbumByDriveId,
 } from './refs.js';
 import { uploadToCloudinary } from './cloudinary.js';
-import { downloadDriveFileAsFile } from './drive.js';
+import { downloadDriveFileAsFile, ensureDriveConnected } from './drive.js';
 import { haptic } from './state.js';
 
 // Stato dell'albo attualmente aperto
@@ -313,6 +313,7 @@ export async function openAlbumFromDrive(albumId){
   const a = getAlbumById(albumId);
   if(!a || !a.driveFileId) return;
   toast('Scarico da Drive…');
+  if(!(await ensureDriveConnected())){ toast('Ricollega Google Drive per aprire questo albo.', true); return; }
   let file;
   try{ file = await downloadDriveFileAsFile({ id: a.driveFileId, name: a.sourceName || (a.title||'albo') }); }
   catch(e){ toast('Impossibile scaricare da Drive: '+e.message, true); return; }
