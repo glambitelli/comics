@@ -48,11 +48,17 @@
   background:rgba(20,18,16,.55);border:none;color:var(--white);font-size:13px;
   line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;
 }
-.album-drive-badge{
+/* Badge di provenienza (angolo alto-sinistra) + cornice colorata: azzurro
+   Drive = si apre da solo, ambra "smartphone" = file locale da riselezionare. */
+.album-src-badge{
   position:absolute;top:5px;left:5px;width:20px;height:20px;border-radius:50%;
-  background:rgba(20,18,16,.55);color:var(--white);
-  display:flex;align-items:center;justify-content:center;
+  color:var(--white);display:flex;align-items:center;justify-content:center;
+  box-shadow:0 1px 3px rgba(0,0,0,.35);
 }
+.album-src-badge.src-drive{background:var(--sky-deep)}
+.album-src-badge.src-local{background:var(--gold)}
+.album-card.is-drive .album-cover{border-color:var(--sky)}
+.album-card.is-local .album-cover{border-color:var(--gold)}
 .album-title{margin-top:6px;font-size:12.5px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .album-pages{font-size:11px;color:var(--ink3)}
 

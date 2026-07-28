@@ -567,6 +567,10 @@ function renderFolderTabs(){
 }
 
 const DRIVE_ICO = `<svg viewBox="0 0 24 24" width="12" height="12"><path d="M12 5.5 6 16.5h12Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>`;
+// Icona "smartphone" per gli albi che vivono solo sul dispositivo (aperti dal
+// selettore file locale): riaprirli richiede riscegliere il file, e da un
+// altro dispositivo non ci sono. Il badge lo dice a colpo d'occhio.
+const PHONE_ICO = `<svg viewBox="0 0 24 24" width="11" height="11"><rect x="7" y="3" width="10" height="18" rx="2.2" fill="none" stroke="currentColor" stroke-width="1.7"/><line x1="10.5" y1="18" x2="13.5" y2="18" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>`;
 
 // ── RENDER: RIGA STATO GOOGLE DRIVE ──
 function renderDriveRow(){
@@ -599,17 +603,22 @@ function renderAlbumsShelf(){
   }
   if(empty) empty.style.display = 'none';
   grid.style.display = 'grid';
-  grid.innerHTML = list.map(a=>`
-    <div class="album-card" data-id="${a.id}">
+  grid.innerHTML = list.map(a=>{
+    const isDrive = !!a.driveFileId;
+    const badge = isDrive
+      ? `<span class="album-src-badge src-drive" title="Da Google Drive — si apre da solo">${DRIVE_ICO}</span>`
+      : `<span class="album-src-badge src-local" title="Solo su questo dispositivo — va riselezionato">${PHONE_ICO}</span>`;
+    return `
+    <div class="album-card ${isDrive ? 'is-drive' : 'is-local'}" data-id="${a.id}">
       <div class="album-cover">
         <img src="${a.cover||''}" loading="lazy" alt=""/>
-        ${a.driveFileId ? `<span class="album-drive-badge" title="Da Google Drive">${DRIVE_ICO}</span>` : ''}
+        ${badge}
         <button class="album-menu-btn" onclick="event.stopPropagation();window.albumShelfMenu('${a.id}',this)" aria-label="Altro">⋯</button>
       </div>
       <div class="album-title">${esc(a.title||'Senza titolo')}</div>
       <div class="album-pages">${a.pageCount||0} pagine</div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
 
   grid.querySelectorAll('.album-card').forEach(el=>{
     el.addEventListener('click', ()=> reopenAlbum(el.dataset.id));
