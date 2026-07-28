@@ -31,8 +31,8 @@
 // 7. Dentro quella cartella crea una sottocartella per ogni cartella-autore
 //    già presente in Inkflow, con lo STESSO NOME (es. "Otomo"): i file .cbz/
 //    .cbr messi lì dentro appariranno da soli nello scaffale di quell'autore.
-const DRIVE_CLIENT_ID = ''; // ← incolla qui il Client ID (....apps.googleusercontent.com)
-const DRIVE_ROOT_FOLDER_ID = ''; // ← incolla qui l'ID della cartella radice dedicata
+const DRIVE_CLIENT_ID = '58067893949-o05jibjpk2fgjfal4k57tmjikgg7b78c.apps.googleusercontent.com';
+const DRIVE_ROOT_FOLDER_ID = '1CY6IGLbsd_M5pX8APCiOmLxssWCjWtaE';
 
 const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/userinfo.email';
 const TOKEN_KEY = 'inkflow-drive-token';
