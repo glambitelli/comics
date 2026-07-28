@@ -94,6 +94,20 @@ body.album-reading{overflow:hidden}
 .ar-stage{position:relative;flex:1;min-height:0;overflow:hidden;display:flex;align-items:center;justify-content:center}
 .ar-img{max-width:100%;max-height:100%;object-fit:contain;user-select:none;-webkit-user-drag:none}
 
+/* Banner di stato DENTRO il lettore: quello della schermata References resta
+   nascosto dietro l'overlay a schermo intero, quindi qui ce n'è uno tutto suo
+   (conferma ritaglio, errori, "estrazione in corso…") sempre visibile. */
+.ar-toast{
+  position:absolute;top:14px;left:50%;transform:translate(-50%,-8px);
+  max-width:88%;padding:9px 16px;border-radius:20px;
+  font-family:'Nunito',sans-serif;font-size:12.5px;font-weight:700;text-align:center;
+  opacity:0;pointer-events:none;transition:opacity .18s ease,transform .18s ease;
+  z-index:5;box-shadow:0 3px 12px rgba(0,0,0,.3);
+}
+.ar-toast.show{opacity:1;transform:translate(-50%,0)}
+.ar-toast.ok{background:#e2f0d8;color:#4a7a30}
+.ar-toast.error{background:#fbe0da;color:#a83c28}
+
 .ar-nav{
   position:absolute;top:0;bottom:0;width:22%;border:none;background:transparent;
   display:flex;align-items:center;color:rgba(255,255,255,0);cursor:pointer;

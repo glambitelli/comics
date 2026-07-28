@@ -72,13 +72,20 @@ function saveReadingPos(){
 }
 
 function toast(msg, isError){
-  // Riusa l'indicatore di stato già presente nella schermata References.
-  const el = document.getElementById('refs-upload-status');
+  // Il lettore è un overlay a schermo intero SOPRA la schermata References:
+  // l'indicatore di stato di quella schermata (usato quando si ritaglia da
+  // fuori dal lettore, es. da un'altra vista) resterebbe nascosto dietro.
+  // Quando il lettore è aperto usiamo un banner tutto suo, sempre visibile.
+  const inReader = _reader && _reader.classList.contains('open');
+  const el = inReader
+    ? _reader.querySelector('.ar-toast')
+    : document.getElementById('refs-upload-status');
   if(el){
-    el.className = 'refs-upload-status show ' + (isError ? 'error' : 'ok');
+    const base = inReader ? 'ar-toast show' : 'refs-upload-status show';
+    el.className = base + ' ' + (isError ? 'error' : 'ok');
     el.textContent = msg;
     clearTimeout(el._t);
-    el._t = setTimeout(()=>{ el.className='refs-upload-status'; el.textContent=''; }, isError ? 6000 : 2600);
+    el._t = setTimeout(()=>{ el.className = inReader ? 'ar-toast' : 'refs-upload-status'; el.textContent=''; }, isError ? 6000 : 2600);
     return;
   }
   console[isError ? 'warn' : 'log']('[albi]', msg);
@@ -352,6 +359,7 @@ function buildReaderDOM(){
       </div>
     </div>
     <div class="ar-stage">
+      <div class="ar-toast"></div>
       <img class="ar-img" alt="">
       <div class="ar-cliplayer" hidden><div class="ar-clipbox" hidden></div></div>
       <button class="ar-nav ar-prev" aria-label="Precedente" data-act="prev">
