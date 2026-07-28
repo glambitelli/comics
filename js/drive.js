@@ -167,9 +167,13 @@ async function findAuthorSubfolderId(folderName){
   });
   const data = await driveFetch(url);
   const hit = (data.files || []).find(f => f.name.trim().toLowerCase() === key) || (data.files || [])[0] || null;
-  const id = hit ? hit.id : null;
-  _folderCache.set(key, id);
-  return id;
+  // Mettiamo in cache solo un ID trovato davvero: se la sottocartella non
+  // esiste ancora, ricontrolliamo ad ogni sync invece di darla per persa per
+  // tutta la sessione — altrimenti crearla dopo il primo tentativo non
+  // basterebbe, servirebbe ricaricare la pagina per farla ritrovare.
+  if(!hit) return null;
+  _folderCache.set(key, hit.id);
+  return hit.id;
 }
 
 // Elenca i .cbz/.cbr dentro la sottocartella Drive di questa cartella-autore.
