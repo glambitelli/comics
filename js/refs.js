@@ -8,6 +8,10 @@ import { haptic, showUndoToast } from './state.js';
 import { compressImageFile, dataUrlToBlob } from './imgcompress.js';
 import { uploadToCloudinary } from './cloudinary.js';
 import { promptModal, confirmModal, actionMenu } from './dialogs.js';
+import {
+  isDriveConfigured, isDriveConnected, connectDrive, disconnectDrive,
+  driveAccountEmail, onDriveAuthChange, listDriveAlbumsForFolder,
+} from './drive.js';
 
 const REFS_COL = 'refs';
 const FOLDERS_COL = 'refFolders';
@@ -204,14 +208,25 @@ export function findExactAlbumMatch(folderId, sourceName, sourceSize){
   return _albums.find(a=>a.folderId===folderId && a.sourceName===sourceName && a.sourceSize===sourceSize) || null;
 }
 
-export async function createAlbumDoc({folderId, title, cover, pageCount, sourceName, sourceSize, lastPage=0}){
+export async function createAlbumDoc({folderId, title, cover, pageCount, sourceName, sourceSize, lastPage=0, driveFileId=null}){
   const id = genId();
   await setDoc(doc(db, ALBUMS_COL, id), {
     folderId, title: title||'Senza titolo', cover: cover||null, pageCount: pageCount||0,
     sourceName: sourceName||'', sourceSize: sourceSize||0, lastPage,
+    driveFileId: driveFileId||null,
     addedAt: serverTimestamp(),
   });
   return id;
+}
+
+export function getAlbumById(id){
+  return _albums.find(a=>a.id===id) || null;
+}
+
+// Match certo per un file Drive: stesso driveFileId nella stessa cartella.
+// Usato dalla sync in background per non ricreare una scheda già esistente.
+export function findAlbumByDriveId(folderId, driveFileId){
+  return _albums.find(a=>a.folderId===folderId && a.driveFileId===driveFileId) || null;
 }
 
 // Scrittura throttled: i cambi pagina sono frequenti (swipe/frecce), non ha
@@ -279,11 +294,62 @@ export async function promptDeleteAlbum(id){
 export function reopenAlbum(albumId){
   const a = _albums.find(x=>x.id===albumId);
   if(!a) return;
+  // Albo agganciato a Google Drive: si scarica e si apre da solo, mai un
+  // selettore file. Il ripiego locale resta solo per gli albi senza driveFileId.
+  if(a.driveFileId){ if(window.openAlbumFromDrive) window.openAlbumFromDrive(albumId); return; }
   if(window.openAlbumPicker) window.openAlbumPicker(a);
+}
+
+// ── GOOGLE DRIVE — sync automatica dello scaffale di una cartella ──────────
+// Chiamata ogni volta che si apre il tab "Albi" di una cartella: cerca la
+// sottocartella Drive con lo stesso nome e crea le schede per i file nuovi.
+// Silenziosa e "best effort" — se Drive non è configurato/collegato o la
+// sottocartella non esiste ancora, semplicemente non succede nulla.
+const _syncingFolders = new Set();
+export async function syncDriveAlbumsForFolder(folderId){
+  if(!isDriveConfigured() || !isDriveConnected()) return;
+  if(_syncingFolders.has(folderId)) return;
+  const f = _folders.find(x=>x.id===folderId);
+  if(!f) return;
+  _syncingFolders.add(folderId);
+  try{
+    const files = await listDriveAlbumsForFolder(f.name);
+    for(const file of files){
+      if(findAlbumByDriveId(folderId, file.id)) continue;
+      if(window.createAlbumFromDriveFile) await window.createAlbumFromDriveFile(folderId, file);
+    }
+  }catch(e){
+    console.warn('sync Drive fallita:', e.message);
+  }finally{
+    _syncingFolders.delete(folderId);
+  }
+}
+
+let _driveAuthHooked = false;
+export async function connectDriveAndSync(){
+  try{
+    await connectDrive();
+    haptic('done');
+    renderRefsScreen();
+    if(_view === 'folder' && _activeFolderId) syncDriveAlbumsForFolder(_activeFolderId);
+  }catch(e){
+    setUploadStatus('error', e.message || 'Collegamento a Drive fallito.');
+  }
+}
+
+export function disconnectDriveUI(){
+  disconnectDrive();
+  renderRefsScreen();
 }
 
 // ── LISTENER REALTIME ──
 export function startRefsListener(){
+  if(!_driveAuthHooked){
+    _driveAuthHooked = true;
+    // Se il token scade o viene revocato a metà sessione, il bottone/badge
+    // Drive nello scaffale deve aggiornarsi da solo al prossimo render.
+    onDriveAuthChange(()=>renderRefsScreen());
+  }
   if(!_refsUnsub){
     _refsUnsub = onSnapshot(collection(db, REFS_COL), snap=>{
       _refs = snap.docs.map(d=>({id:d.id, ...d.data()}))
@@ -487,11 +553,32 @@ function renderFolderTabs(){
 
   albumsPane.style.display = _folderTab === 'albi' ? 'block' : 'none';
   imagesPane.style.display = _folderTab === 'albi' ? 'none' : 'block';
-  if(_folderTab === 'albi') renderAlbumsShelf();
+  if(_folderTab === 'albi'){
+    renderAlbumsShelf();
+    syncDriveAlbumsForFolder(_activeFolderId);
+  }
+}
+
+const DRIVE_ICO = `<svg viewBox="0 0 24 24" width="12" height="12"><path d="M12 5.5 6 16.5h12Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>`;
+
+// ── RENDER: RIGA STATO GOOGLE DRIVE ──
+function renderDriveRow(){
+  const el = document.getElementById('refs-drive-row');
+  if(!el) return;
+  if(!isDriveConfigured()){ el.style.display = 'none'; return; }
+  el.style.display = 'flex';
+  if(isDriveConnected()){
+    const email = driveAccountEmail();
+    el.innerHTML = `<span class="drive-status-connected">${DRIVE_ICO} Drive collegato${email ? ' · '+esc(email) : ''}</span>
+      <button class="drive-disconnect-btn" onclick="window.disconnectDriveUI()">Scollega</button>`;
+  } else {
+    el.innerHTML = `<button class="drive-connect-btn" onclick="window.connectDriveAndSync()">${DRIVE_ICO} Connetti Google Drive</button>`;
+  }
 }
 
 // ── RENDER: SCAFFALE ALBI ──
 function renderAlbumsShelf(){
+  renderDriveRow();
   const grid = document.getElementById('refs-albums-grid');
   const empty = document.querySelector('.refs-albums-empty');
   if(!grid) return;
@@ -509,6 +596,7 @@ function renderAlbumsShelf(){
     <div class="album-card" data-id="${a.id}">
       <div class="album-cover">
         <img src="${a.cover||''}" loading="lazy" alt=""/>
+        ${a.driveFileId ? `<span class="album-drive-badge" title="Da Google Drive">${DRIVE_ICO}</span>` : ''}
         <button class="album-menu-btn" onclick="event.stopPropagation();window.albumShelfMenu('${a.id}',this)" aria-label="Altro">⋯</button>
       </div>
       <div class="album-title">${esc(a.title||'Senza titolo')}</div>

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>Inkflow — Google Drive</title>
+</head>
+<body>
+<p>Puoi chiudere questa finestra.</p>
+<script>
+  // Google torna qui dopo il consenso, con il token nel FRAMMENTO dell'URL
+  // (#access_token=...), mai nella query string: non finisce quindi nei log
+  // del server. Lo giriamo alla finestra che ha aperto il popup e ci chiudiamo.
+  (function(){
+    var params = new URLSearchParams(location.hash.replace(/^#/, ''));
+    var payload = {
+      source: 'inkflow-drive-oauth',
+      access_token: params.get('access_token') || null,
+      expires_in: params.get('expires_in') || null,
+      error: params.get('error') || null,
+    };
+    if(window.opener){
+      window.opener.postMessage(payload, location.origin);
+    }
+    window.close();
+  })();
+</script>
+</body>
+</html>

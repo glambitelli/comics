@@ -95,12 +95,13 @@
     <div id="refs-folder-browser" class="refs-folder-browser"></div>
     <div id="refs-gallery-view" style="display:none">
      <div id="refs-albums-pane" style="display:none">
+      <div id="refs-drive-row" class="refs-drive-row" style="display:none"></div>
       <button class="albums-open-btn" onclick="window.openAlbumPicker()" type="button">
         <span class="albums-open-ico">
           <svg viewBox="0 0 24 24" width="19" height="19"><path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H11v16H5.5A1.5 1.5 0 0 1 4 18.5Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M20 5.5A1.5 1.5 0 0 0 18.5 4H13v16h5.5a1.5 1.5 0 0 0 1.5-1.5Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
         </span>
         <span>Apri un albo
-          <span class="albums-open-sub">.cbz o .cbr dal tuo dispositivo · resta locale, non viene caricato</span>
+          <span class="albums-open-sub">.cbz o .cbr dal dispositivo · per tutto ciò che non è su Drive</span>
         </span>
       </button>
       <input type="file" id="album-file-input" accept=".cbz,.cbr,application/zip,application/vnd.comicbook+zip,application/vnd.rar,application/x-rar-compressed" style="display:none">

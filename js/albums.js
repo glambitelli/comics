@@ -14,9 +14,10 @@
 import { unzipSync } from './vendor/fflate.js';
 import {
   addRefBlob, getActiveFolderId, findExactAlbumMatch, createAlbumDoc,
-  updateAlbumLastPage, updateAlbumSourceName,
+  updateAlbumLastPage, updateAlbumSourceName, getAlbumById, findAlbumByDriveId,
 } from './refs.js';
 import { uploadToCloudinary } from './cloudinary.js';
+import { downloadDriveFileAsFile } from './drive.js';
 import { haptic } from './state.js';
 
 // Stato dell'albo attualmente aperto
@@ -123,7 +124,31 @@ async function extractRarPages(file){
   return withNames.map(({name, file})=>({ name, url: URL.createObjectURL(file), blob: file }));
 }
 
-// ── APERTURA ALBO ───────────────────────────────────────────────────────────
+// Riconosce il formato dalla firma dei byte (ZIP = "PK\x03\x04", RAR =
+// "Rar!\x1a\x07") ed estrae le pagine. Condivisa tra l'apertura da file
+// locale e quella da Google Drive: a valle nessuna delle due sa più da dove
+// sono arrivati davvero i byte, sono solo pagine [{name,url,blob}].
+async function extractPagesForFile(file){
+  const nameLc = file.name.toLowerCase();
+  let buf;
+  try{ buf = new Uint8Array(await file.arrayBuffer()); }
+  catch(e){ throw new Error('Non riesco a leggere il file.'); }
+
+  const isZip = buf[0] === 0x50 && buf[1] === 0x4B;
+  const isRar = buf[0] === 0x52 && buf[1] === 0x61 && buf[2] === 0x72 && buf[3] === 0x21;
+
+  if(isRar || nameLc.endsWith('.cbr')){
+    try{ return await extractRarPages(file); }
+    catch(e){ console.error('rar', e); throw new Error('Questo .cbr è illeggibile, danneggiato o cifrato.'); }
+  }
+  if(isZip){
+    try{ return extractZipPages(buf); }
+    catch(e){ console.error('unzip', e); throw new Error('Questo .cbz è illeggibile o danneggiato.'); }
+  }
+  throw new Error('Formato non riconosciuto: serve un .cbz o .cbr.');
+}
+
+// ── APERTURA ALBO (file locale) ─────────────────────────────────────────────
 export async function openAlbumFromFile(file){
   if(!file) return;
   // Consuma subito il bersaglio in sospeso: qualunque esito di questa apertura
@@ -131,27 +156,10 @@ export async function openAlbumFromFile(file){
   const pendingReopen = _pendingReopen;
   _pendingReopen = null;
 
-  const nameLc = file.name.toLowerCase();
   toast('Apro l\'albo…');
-  let buf;
-  try{ buf = new Uint8Array(await file.arrayBuffer()); }
-  catch(e){ toast('Non riesco a leggere il file.', true); return; }
-
-  // Firma dei formati: ZIP = "PK\x03\x04", RAR = "Rar!\x1a\x07".
-  const isZip = buf[0] === 0x50 && buf[1] === 0x4B;
-  const isRar = buf[0] === 0x52 && buf[1] === 0x61 && buf[2] === 0x72 && buf[3] === 0x21;
-
   let pages;
-  if(isRar || nameLc.endsWith('.cbr')){
-    try{ pages = await extractRarPages(file); }
-    catch(e){ console.error('rar', e); toast('Questo .cbr è illeggibile, danneggiato o cifrato.', true); return; }
-  } else if(isZip){
-    try{ pages = extractZipPages(buf); }
-    catch(e){ console.error('unzip', e); toast('Questo .cbz è illeggibile o danneggiato.', true); return; }
-  } else {
-    toast('Formato non riconosciuto: serve un .cbz o .cbr.', true);
-    return;
-  }
+  try{ pages = await extractPagesForFile(file); }
+  catch(e){ toast(e.message, true); return; }
 
   if(!pages.length){ toast('Nessuna pagina trovata dentro l\'albo.', true); return; }
 
@@ -216,9 +224,9 @@ const COVER_MAX_BYTES = 80000;
 // Preferisce una pagina il cui nome suggerisce che sia proprio la copertina
 // (scan spesso la include come "00 - cover.jpg" fuori sequenza numerica);
 // altrimenti la prima pagina del volume.
-function pickCoverPage(){
-  const i = _pages.findIndex(p=>/cover|front/i.test(p.name));
-  return _pages[i >= 0 ? i : 0];
+function pickCoverPage(pages){
+  const i = pages.findIndex(p=>/cover|front/i.test(p.name));
+  return pages[i >= 0 ? i : 0];
 }
 
 async function makeCoverBlob(pageBlob){
@@ -242,7 +250,7 @@ async function makeCoverBlob(pageBlob){
 }
 
 async function createAlbumFromCurrent(folderId, file){
-  const page = pickCoverPage();
+  const page = pickCoverPage(_pages);
   if(!page) return;
   const coverBlob = await makeCoverBlob(page.blob);
   if(!coverBlob) return;
@@ -255,6 +263,73 @@ async function createAlbumFromCurrent(folderId, file){
   // Se nel frattempo l'utente ha già chiuso e riaperto un altro albo, non
   // agganciare più i cambi pagina a questa scheda: la sessione corrente vince.
   if(_albumSig === file.name+':'+file.size) _currentAlbumId = albumId;
+}
+
+// ── GOOGLE DRIVE — sync in background + apertura senza picker ──────────────
+// Per ogni file trovato nella sottocartella Drive di una cartella-autore che
+// non ha ancora una scheda: lo scarica una volta, genera copertina e conteggio
+// pagine esattamente come per un file locale, e scrive la scheda con
+// driveFileId agganciato. Da quel momento la copertina appare da sola nello
+// scaffale e riaprirla non passerà mai più dal selettore file. Lavora su un
+// array di pagine tutto suo (mai su _pages/_idx): se l'utente ha un albo
+// aperto mentre la sync gira in background, non deve accorgersene.
+export async function createAlbumFromDriveFile(folderId, driveFile){
+  if(findAlbumByDriveId(folderId, driveFile.id)) return;
+  let file;
+  try{ file = await downloadDriveFileAsFile(driveFile); }
+  catch(e){ console.warn('drive sync: download fallito per', driveFile.name, e.message); return; }
+
+  let pages;
+  try{ pages = await extractPagesForFile(file); }
+  catch(e){ console.warn('drive sync: estrazione fallita per', driveFile.name, e.message); return; }
+  if(!pages.length) return;
+
+  const coverPage = pickCoverPage(pages);
+  let coverBlob = null;
+  if(coverPage){
+    try{ coverBlob = await makeCoverBlob(coverPage.blob); }
+    catch(e){ console.warn('drive sync: copertina fallita per', driveFile.name, e.message); }
+  }
+  pages.forEach(p=>{ try{ URL.revokeObjectURL(p.url); }catch(e){} }); // solo la copertina serve ora, il resto si riscarica all'apertura
+  if(!coverBlob) return;
+
+  let url;
+  try{
+    const tag = Date.now().toString(36) + Math.random().toString(36).slice(2,8);
+    ({ url } = await uploadToCloudinary(coverBlob, 'cover-'+tag+'.jpg'));
+  }catch(e){ console.warn('drive sync: upload copertina fallito per', driveFile.name, e.message); return; }
+
+  await createAlbumDoc({
+    folderId, title: file.name.replace(/\.(cbz|cbr)$/i,''), cover: url, pageCount: pages.length,
+    sourceName: file.name, sourceSize: file.size, lastPage: 0,
+    driveFileId: driveFile.id,
+  });
+}
+
+// Tap su una copertina agganciata a Drive: niente selettore file, si scarica
+// e si apre direttamente. Il match è certo (stesso driveFileId), quindi si
+// collega subito alla scheda esistente riprendendo dall'ultima pagina letta.
+export async function openAlbumFromDrive(albumId){
+  const a = getAlbumById(albumId);
+  if(!a || !a.driveFileId) return;
+  toast('Scarico da Drive…');
+  let file;
+  try{ file = await downloadDriveFileAsFile({ id: a.driveFileId, name: a.sourceName || (a.title||'albo') }); }
+  catch(e){ toast('Impossibile scaricare da Drive: '+e.message, true); return; }
+
+  let pages;
+  try{ pages = await extractPagesForFile(file); }
+  catch(e){ toast(e.message, true); return; }
+  if(!pages.length){ toast('Nessuna pagina trovata dentro l\'albo.', true); return; }
+
+  clearPages();
+  _pages = pages;
+  _albumName = a.title || file.name.replace(/\.(cbz|cbr)$/i,'');
+  _albumSig = file.name + ':' + file.size;
+  _currentAlbumId = a.id;
+  _idx = clampIdx(a.lastPage || 0);
+  toast('');
+  openReader();
 }
 
 // ── READER (overlay a schermo intero) ───────────────────────────────────────
