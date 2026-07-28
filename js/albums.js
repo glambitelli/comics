@@ -512,7 +512,7 @@ function wireClip(ov){
   const end = ()=>{
     if(!drawing) return; drawing = false;
     const bw = parseFloat(box.style.width), bh = parseFloat(box.style.height);
-    if(bw < 12 || bh < 12){ box.hidden = true; return; } // tocco accidentale
+    if(bw < 12 || bh < 12){ box.hidden = true; toast('Trascina un riquadro più grande sulla pagina.', true); return; }
     commitClip(img, {
       left: parseFloat(box.style.left), top: parseFloat(box.style.top), width: bw, height: bh
     });
@@ -535,7 +535,7 @@ async function commitClip(img, sel){
   const cropY = Math.max(0, relY / rect.scale);
   const cropW = Math.min(img.naturalWidth  - cropX, sel.width  / rect.scale);
   const cropH = Math.min(img.naturalHeight - cropY, sel.height / rect.scale);
-  if(cropW < 4 || cropH < 4){ toggleClip(false); return; }
+  if(cropW < 4 || cropH < 4){ toast('Riquadro fuori dalla pagina, riprova.', true); toggleClip(false); return; }
 
   await exportCropAndSave(_pages[_idx].blob, cropX, cropY, cropW, cropH);
   toggleClip(false);
