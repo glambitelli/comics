@@ -71,7 +71,13 @@ function saveReadingPos(){
   try{ if(_albumSig) localStorage.setItem(readingPosKey(_albumSig), String(_idx)); }catch(e){}
 }
 
-function toast(msg, isError){
+// `persistent`: per i messaggi "in corso" (download, estrazione…) — non si
+// nasconde da solo dopo pochi secondi, altrimenti su un'operazione più lenta
+// del solito il banner sparirebbe mentre il lavoro vero continua dietro le
+// quinte, sembrando che l'app si sia bloccata o non abbia fatto nulla. Resta
+// visibile finché non arriva la prossima chiamata (conferma o errore, che
+// invece si nascondono da soli) o toast('') a fine operazione.
+function toast(msg, isError, persistent){
   // Il lettore è un overlay a schermo intero SOPRA la schermata References:
   // l'indicatore di stato di quella schermata (usato quando si ritaglia da
   // fuori dal lettore, es. da un'altra vista) resterebbe nascosto dietro.
@@ -85,7 +91,9 @@ function toast(msg, isError){
     el.className = base + ' ' + (isError ? 'error' : 'ok');
     el.textContent = msg;
     clearTimeout(el._t);
-    el._t = setTimeout(()=>{ el.className = inReader ? 'ar-toast' : 'refs-upload-status'; el.textContent=''; }, isError ? 6000 : 2600);
+    if(!persistent){
+      el._t = setTimeout(()=>{ el.className = inReader ? 'ar-toast' : 'refs-upload-status'; el.textContent=''; }, isError ? 6000 : 2600);
+    }
     return;
   }
   console[isError ? 'warn' : 'log']('[albi]', msg);
@@ -120,7 +128,7 @@ async function extractRarPages(file){
 
   const archive = await Archive.open(file);
   let n = 0;
-  await archive.extractFiles(()=>{ n++; toast('Estrazione in corso… ' + n + ' file'); });
+  await archive.extractFiles(()=>{ n++; toast('Estrazione in corso… ' + n + ' file', false, true); });
   const arr = await archive.getFilesArray(); // [{file:File, path:string}]
 
   const withNames = arr
@@ -163,7 +171,7 @@ export async function openAlbumFromFile(file){
   const pendingReopen = _pendingReopen;
   _pendingReopen = null;
 
-  toast('Apro l\'albo…');
+  toast('Apro l\'albo…', false, true);
   let pages;
   try{ pages = await extractPagesForFile(file); }
   catch(e){ toast(e.message, true); return; }
@@ -319,7 +327,7 @@ export async function createAlbumFromDriveFile(folderId, driveFile){
 export async function openAlbumFromDrive(albumId){
   const a = getAlbumById(albumId);
   if(!a || !a.driveFileId) return;
-  toast('Scarico da Drive…');
+  toast('Scarico da Drive…', false, true);
   if(!(await ensureDriveConnected())){ toast('Ricollega Google Drive per aprire questo albo.', true); return; }
   let file;
   try{
@@ -327,7 +335,7 @@ export async function openAlbumFromDrive(albumId){
       { id: a.driveFileId, name: a.sourceName || (a.title||'albo') },
       (loaded, total)=>{
         const mb = n => (n / 1048576).toFixed(1);
-        toast('Scarico da Drive… ' + mb(loaded) + (total ? ' / ' + mb(total) + ' MB' : ' MB'));
+        toast('Scarico da Drive… ' + mb(loaded) + (total ? ' / ' + mb(total) + ' MB' : ' MB'), false, true);
       }
     );
   }catch(e){ toast('Impossibile scaricare da Drive: '+e.message, true); return; }
@@ -335,7 +343,7 @@ export async function openAlbumFromDrive(albumId){
   // Messaggio distinto per la fase successiva: su un albo pesante l'estrazione
   // delle pagine può metterci diversi secondi a schermo fermo (è lavoro sincrono
   // sul thread principale), e senza questo avviso sembra che l'app si sia bloccata.
-  toast('Preparo le pagine…');
+  toast('Preparo le pagine…', false, true);
   let pages;
   try{ pages = await extractPagesForFile(file); }
   catch(e){ toast(e.message, true); return; }
@@ -585,7 +593,7 @@ const CLIP_MAX_BYTES = 1400000;
 // consegna a refs.js che lo carica su Cloudinary e scrive il Frammento con
 // provenienza { opera, pagina }.
 async function exportCropAndSave(sourceBlob, cx, cy, cw, ch){
-  toast('Ritaglio in corso…');
+  toast('Ritaglio in corso…', false, true);
   let im;
   try{ im = await blobToImage(sourceBlob); }
   catch(e){ toast('Ritaglio fallito.', true); return; }
