@@ -299,16 +299,19 @@ export async function driveRangeFetch(fileId, start, end){
   return buf;
 }
 
-// Scarica il contenuto di un file Drive e lo restituisce come File vero, così
-// entra nella stessa identica pipeline di apertura .cbz/.cbr usata per i file
-// locali (albums.js non deve sapere da dove arrivano davvero i byte).
-// `onProgress(loaded, total)` (total 0 se Drive non lo dichiara) permette di
-// mostrare un avanzamento reale invece di un messaggio fermo — un albo può
-// pesare decine di MB e su rete mobile ci mette il suo. Il download è in
-// streaming con un timer di STALLO (si resetta ad ogni blocco ricevuto): una
-// connessione lenta ma viva non viene mai interrotta, solo una che si è
-// davvero bloccata per più di 25s.
-export async function downloadDriveFileAsFile(fileMeta, onProgress){
+// Scarica un albo da Drive scrivendolo DIRETTAMENTE nella cache su disco,
+// senza mai tenerlo tutto in memoria. È la differenza tra funzionare e far
+// morire la scheda: accumulando i pezzi in un array, poi unendoli in un Blob,
+// poi rileggendoli per aprire lo ZIP, un albo da 500MB ne occupava oltre un
+// giga — ben oltre il budget di una scheda su telefono, che veniva uccisa dal
+// browser ("Uffa!" di Chrome) proprio verso la fine dello scaricamento.
+//
+// Il conteggio per l'avanzamento avviene al volo, mentre i byte transitano
+// verso il disco (TransformStream), quindi non serve una seconda copia.
+// `onProgress(loaded, total)` (total 0 se Drive non lo dichiara). Un timer di
+// STALLO si riarma ad ogni blocco: una connessione lenta ma viva non viene
+// mai interrotta, solo una davvero bloccata per più di 25s.
+async function downloadDriveFileToCache(fileMeta, onProgress){
   if(!isDriveConnected()) throw new Error('Drive non collegato.');
   const url = `https://www.googleapis.com/drive/v3/files/${fileMeta.id}?alt=media`;
   const ctrl = new AbortController();
@@ -327,29 +330,51 @@ export async function downloadDriveFileAsFile(fileMeta, onProgress){
   if(!res.ok){ clearTimeout(stallTimer); throw new Error('Download da Drive fallito (' + res.status + ')'); }
 
   const total = parseInt(res.headers.get('Content-Length') || '0', 10) || 0;
-  if(!res.body || !res.body.getReader){
-    // Browser senza streaming body: scarica in blocco, niente progresso intermedio.
-    clearTimeout(stallTimer);
-    const blob = await res.blob();
-    return new File([blob], fileMeta.name, { type: blob.type || 'application/octet-stream' });
+  const type = res.headers.get('Content-Type') || 'application/octet-stream';
+  const cache = await caches.open(ALBUM_CACHE);
+  const key = albumCacheKey(fileMeta.id);
+
+  let body = res.body;
+  if(body && typeof TransformStream !== 'undefined'){
+    let loaded = 0;
+    const counter = new TransformStream({
+      transform(chunk, controller){
+        loaded += chunk.byteLength;
+        armStall();
+        if(onProgress){ try{ onProgress(loaded, total); }catch(e){} }
+        controller.enqueue(chunk);
+      }
+    });
+    body = body.pipeThrough(counter);
   }
 
-  const reader = res.body.getReader();
-  const chunks = [];
-  let loaded = 0;
-  while(true){
-    let step;
-    try{ step = await reader.read(); }
-    catch(e){ clearTimeout(stallTimer); throw new Error('Download da Drive interrotto: connessione troppo lenta o caduta.'); }
-    if(step.done) break;
-    armStall();
-    chunks.push(step.value);
-    loaded += step.value.length;
-    if(onProgress){ try{ onProgress(loaded, total); }catch(e){} }
+  try{
+    await putWithQuotaRetry(cache, key, new Response(body, { headers: { 'Content-Type': type } }));
+  }catch(e){
+    clearTimeout(stallTimer);
+    try{ await cache.delete(key); }catch(_){}   // non lasciare un albo troncato
+    if(e && (e.name === 'AbortError' || /aborted/i.test(e.message||''))){
+      throw new Error('Download da Drive interrotto: connessione troppo lenta o caduta.');
+    }
+    if(e && e.name === 'QuotaExceededError'){
+      throw new Error('Spazio esaurito: libera memoria sul dispositivo e riprova.');
+    }
+    throw e;
   }
   clearTimeout(stallTimer);
-  const blob = new Blob(chunks);
-  return new File([blob], fileMeta.name, { type: res.headers.get('Content-Type') || 'application/octet-stream' });
+}
+
+// Se lo spazio è finito, libera gli albi più vecchi e riprova una volta sola:
+// con volumi da centinaia di MB la quota del browser si raggiunge in fretta.
+async function putWithQuotaRetry(cache, key, response){
+  try{
+    await cache.put(key, response);
+  }catch(e){
+    if(!e || e.name !== 'QuotaExceededError') throw e;
+    const keys = await cache.keys();
+    for(const k of keys){ if(k.url !== key) await cache.delete(k); }
+    await cache.put(key, response);
+  }
 }
 
 // ── CACHE LOCALE DEGLI ALBI SCARICATI ─────────────────────────────────────
@@ -376,26 +401,25 @@ async function readAlbumCache(driveFileId, name){
   }catch(e){ return null; }
 }
 
-async function writeAlbumCache(driveFileId, file){
+// Tiene solo gli ultimi ALBUM_CACHE_MAX albi: cache.keys() torna in ordine di
+// inserimento, quindi le prime chiavi sono le più vecchie.
+async function trimAlbumCache(){
   try{
     const cache = await caches.open(ALBUM_CACHE);
-    await cache.put(albumCacheKey(driveFileId), new Response(file));
-    // Tieni solo gli ultimi ALBUM_CACHE_MAX: cache.keys() torna in ordine di
-    // inserimento, quindi le prime chiavi sono le più vecchie.
     const keys = await cache.keys();
     if(keys.length > ALBUM_CACHE_MAX){
       for(const k of keys.slice(0, keys.length - ALBUM_CACHE_MAX)) await cache.delete(k);
     }
-  }catch(e){ /* quota piena o Cache API assente: pazienza, si riscaricherà */ }
+  }catch(e){}
 }
 
-// Ottiene il File dell'albo: dalla cache locale se c'è (immediato, niente
-// rete), altrimenti lo scarica da Drive e lo mette in cache per le prossime
-// volte. Ritorna { file, fromCache } così il chiamante può regolare i messaggi.
 export async function getDriveAlbumFile(fileMeta, onProgress){
   const cached = await readAlbumCache(fileMeta.id, fileMeta.name);
   if(cached) return { file: cached, fromCache: true };
-  const file = await downloadDriveFileAsFile(fileMeta, onProgress);
-  writeAlbumCache(fileMeta.id, file); // fire-and-forget: non far aspettare la lettura
+  await downloadDriveFileToCache(fileMeta, onProgress);
+  await trimAlbumCache();
+  // Il File torna dalla cache: è appoggiato al disco, non una copia in memoria.
+  const file = await readAlbumCache(fileMeta.id, fileMeta.name);
+  if(!file) throw new Error('Albo scaricato ma non rileggibile dalla cache.');
   return { file, fromCache: false };
 }

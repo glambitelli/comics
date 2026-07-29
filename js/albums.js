@@ -31,7 +31,7 @@ import {
 } from './refs.js';
 import { uploadToCloudinary } from './cloudinary.js';
 import { getDriveAlbumFile, ensureDriveConnected } from './drive.js';
-import { openRemoteZipSource } from './zipremote.js';
+import { openRemoteZipSource, openBlobZipSource } from './zipremote.js';
 import { haptic } from './state.js';
 
 // Stato dell'albo attualmente aperto
@@ -217,19 +217,28 @@ async function extractRarPages(file){
 // dove sono arrivati davvero i byte.
 async function extractPagesForFile(file){
   const nameLc = file.name.toLowerCase();
-  let buf;
-  try{ buf = new Uint8Array(await file.arrayBuffer()); }
+  // Bastano i primi byte per riconoscere il formato: leggere l'intero file
+  // solo per guardarne quattro significherebbe portarsi in memoria centinaia
+  // di MB su un volume grosso, ed è proprio ciò che faceva morire la scheda.
+  let head;
+  try{ head = new Uint8Array(await file.slice(0, 8).arrayBuffer()); }
   catch(e){ throw new Error('Non riesco a leggere il file.'); }
 
-  const isZip = buf[0] === 0x50 && buf[1] === 0x4B;
-  const isRar = buf[0] === 0x52 && buf[1] === 0x61 && buf[2] === 0x72 && buf[3] === 0x21;
+  const isZip = head[0] === 0x50 && head[1] === 0x4B;
+  const isRar = head[0] === 0x52 && head[1] === 0x61 && head[2] === 0x72 && head[3] === 0x21;
 
   if(isRar || nameLc.endsWith('.cbr')){
     try{ return await extractRarPages(file); }
     catch(e){ console.error('rar', e); throw new Error('Questo .cbr è illeggibile, danneggiato o cifrato.'); }
   }
   if(isZip){
-    try{ return zipSource(buf); }
+    // Prima strada: leggere indice e tavole a pezzi dal Blob, senza mai
+    // caricare l'albo in memoria. Se lo ZIP è fuori standard (zip64, indice
+    // incoerente) si ripiega sulla lettura classica, che però il file lo
+    // materializza tutto: accettabile solo perché è il caso raro.
+    try{ return await openBlobZipSource(file, isImageEntry, naturalCompare); }
+    catch(e){ console.warn('lettura ZIP a intervalli fallita, ripiego sul file intero:', e.message); }
+    try{ return zipSource(new Uint8Array(await file.arrayBuffer())); }
     catch(e){ console.error('unzip', e); throw new Error('Questo .cbz è illeggibile o danneggiato.'); }
   }
   throw new Error('Formato non riconosciuto: serve un .cbz o .cbr.');
