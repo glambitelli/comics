@@ -330,3 +330,51 @@ export async function downloadDriveFileAsFile(fileMeta, onProgress){
   const blob = new Blob(chunks);
   return new File([blob], fileMeta.name, { type: res.headers.get('Content-Type') || 'application/octet-stream' });
 }
+
+// ── CACHE LOCALE DEGLI ALBI SCARICATI ─────────────────────────────────────
+// Un albo pesa decine di MB: riscaricarlo ad ogni apertura — o scaricarlo una
+// volta per la copertina e di nuovo per leggerlo — è inaccettabile su 4G.
+// Teniamo quindi i file scaricati nella Cache API del browser, indicizzati per
+// id Drive: la PRIMA apertura scarica, tutte le successive sono immediate (e
+// funzionano anche offline). È solo una cache locale, evictabile dal browser e
+// svuotabile a mano: nessun file finisce sul cloud, coerente con la filosofia
+// "zero storage per i volumi" (che riguarda Cloudinary). Il nome della cache
+// deve restare identico ad ALBUM_CACHE in sw.js, che la preserva tra i deploy.
+const ALBUM_CACHE = 'inkflow-drive-albums';
+const ALBUM_CACHE_MAX = 4; // quanti albi tenere (i più recenti); il resto si riscarica al bisogno
+
+function albumCacheKey(id){ return 'https://inkflow.local/album/' + id; }
+
+async function readAlbumCache(driveFileId, name){
+  try{
+    const cache = await caches.open(ALBUM_CACHE);
+    const hit = await cache.match(albumCacheKey(driveFileId));
+    if(!hit) return null;
+    const blob = await hit.blob();
+    return new File([blob], name, { type: blob.type || 'application/octet-stream' });
+  }catch(e){ return null; }
+}
+
+async function writeAlbumCache(driveFileId, file){
+  try{
+    const cache = await caches.open(ALBUM_CACHE);
+    await cache.put(albumCacheKey(driveFileId), new Response(file));
+    // Tieni solo gli ultimi ALBUM_CACHE_MAX: cache.keys() torna in ordine di
+    // inserimento, quindi le prime chiavi sono le più vecchie.
+    const keys = await cache.keys();
+    if(keys.length > ALBUM_CACHE_MAX){
+      for(const k of keys.slice(0, keys.length - ALBUM_CACHE_MAX)) await cache.delete(k);
+    }
+  }catch(e){ /* quota piena o Cache API assente: pazienza, si riscaricherà */ }
+}
+
+// Ottiene il File dell'albo: dalla cache locale se c'è (immediato, niente
+// rete), altrimenti lo scarica da Drive e lo mette in cache per le prossime
+// volte. Ritorna { file, fromCache } così il chiamante può regolare i messaggi.
+export async function getDriveAlbumFile(fileMeta, onProgress){
+  const cached = await readAlbumCache(fileMeta.id, fileMeta.name);
+  if(cached) return { file: cached, fromCache: true };
+  const file = await downloadDriveFileAsFile(fileMeta, onProgress);
+  writeAlbumCache(fileMeta.id, file); // fire-and-forget: non far aspettare la lettura
+  return { file, fromCache: false };
+}

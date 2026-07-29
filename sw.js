@@ -1,6 +1,10 @@
 // Service Worker — cache file statici locali, Firebase sempre da rete
-const CACHE = 'inkflow-static-v95';
+const CACHE = 'inkflow-static-v96';
 const SHARE_CACHE = 'inkflow-share-inbox';
+// Cache dei file .cbz/.cbr scaricati da Drive: gestita da js/drive.js, va
+// PRESERVATA tra i deploy (altrimenti a ogni aggiornamento riscaricheresti
+// decine di MB su 4G). Deve restare identica alla costante in drive.js.
+const ALBUM_CACHE = 'inkflow-drive-albums';
 
 self.addEventListener('install', e => {
   self.skipWaiting();
@@ -9,7 +13,7 @@ self.addEventListener('install', e => {
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys().then(keys => Promise.all(
-      keys.filter(k => k !== CACHE && k !== SHARE_CACHE).map(k => caches.delete(k))
+      keys.filter(k => k !== CACHE && k !== SHARE_CACHE && k !== ALBUM_CACHE).map(k => caches.delete(k))
     )).then(() => self.clients.claim())
   );
 });

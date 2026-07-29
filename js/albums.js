@@ -17,7 +17,7 @@ import {
   updateAlbumLastPage, updateAlbumSourceName, getAlbumById, findAlbumByDriveId,
 } from './refs.js';
 import { uploadToCloudinary } from './cloudinary.js';
-import { downloadDriveFileAsFile, ensureDriveConnected } from './drive.js';
+import { getDriveAlbumFile, ensureDriveConnected } from './drive.js';
 import { haptic } from './state.js';
 
 // Stato dell'albo attualmente aperto
@@ -291,7 +291,10 @@ async function createAlbumFromCurrent(folderId, file){
 export async function createAlbumFromDriveFile(folderId, driveFile){
   if(findAlbumByDriveId(folderId, driveFile.id)) return;
   let file;
-  try{ file = await downloadDriveFileAsFile(driveFile); }
+  // Il file scaricato ora per la copertina viene messo in cache: quando poi
+  // l'utente tocca la copertina per leggerlo, l'apertura è immediata e non
+  // ripaga il download. (Prima si scaricava due volte, un disastro su 4G.)
+  try{ ({ file } = await getDriveAlbumFile(driveFile)); }
   catch(e){ console.warn('drive sync: download fallito per', driveFile.name, e.message); return; }
 
   let pages;
@@ -327,17 +330,24 @@ export async function createAlbumFromDriveFile(folderId, driveFile){
 export async function openAlbumFromDrive(albumId){
   const a = getAlbumById(albumId);
   if(!a || !a.driveFileId) return;
-  toast('Scarico da Drive…', false, true);
+  toast('Apro l\'albo…', false, true);
   if(!(await ensureDriveConnected())){ toast('Ricollega Google Drive per aprire questo albo.', true); return; }
   let file;
   try{
-    file = await downloadDriveFileAsFile(
+    // Throttle del progresso: aggiornare il banner ad ogni blocco ricevuto
+    // (migliaia su un file grande) è lavoro inutile sul thread principale.
+    let lastPaint = 0;
+    const r = await getDriveAlbumFile(
       { id: a.driveFileId, name: a.sourceName || (a.title||'albo') },
       (loaded, total)=>{
+        const now = Date.now();
+        if(now - lastPaint < 250 && (!total || loaded < total)) return;
+        lastPaint = now;
         const mb = n => (n / 1048576).toFixed(1);
         toast('Scarico da Drive… ' + mb(loaded) + (total ? ' / ' + mb(total) + ' MB' : ' MB'), false, true);
       }
     );
+    file = r.file;
   }catch(e){ toast('Impossibile scaricare da Drive: '+e.message, true); return; }
 
   // Messaggio distinto per la fase successiva: su un albo pesante l'estrazione
