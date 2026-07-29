@@ -38,6 +38,7 @@ import { haptic } from './state.js';
 let _pages = [];        // [{ name, url (objectURL|null), blob (Blob|null) }]
 let _source = null;     // sorgente pagine dell'albo aperto (vedi zipSource)
 let _prefetchT = null;  // timer del prefetch pagine vicine
+let _zoom = 1, _zx = 0, _zy = 0;  // stato zoom/pan della tavola a schermo
 let _idx = 0;
 let _albumName = '';
 let _albumSig = '';     // firma nome+peso, per ricordare l'ultima pagina letta
@@ -470,7 +471,9 @@ function buildReaderDOM(){
   ov.className = 'album-reader';
   ov.innerHTML = `
     <div class="ar-topbar">
-      <button class="ar-btn ar-close" aria-label="Chiudi" data-act="close">‹</button>
+      <button class="ar-btn ar-close" aria-label="Chiudi" data-act="close">
+        <svg viewBox="0 0 24 24" width="19" height="19"><path d="M14.5 6.5 8.5 12l6 5.5" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
       <span class="ar-title"></span>
       <div class="ar-top-actions">
         <button class="ar-btn ar-clip" aria-label="Ritaglia" data-act="clip">
@@ -486,10 +489,10 @@ function buildReaderDOM(){
       <img class="ar-img" alt="">
       <div class="ar-cliplayer" hidden><div class="ar-clipbox" hidden></div></div>
       <button class="ar-nav ar-prev" aria-label="Precedente" data-act="prev">
-        <svg viewBox="0 0 24 24" width="26" height="26"><path d="M14.5 6.5 8.5 12l6 5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <svg viewBox="0 0 24 24" width="22" height="22"><path d="M15 5 L8 12 L15 19" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
       <button class="ar-nav ar-next" aria-label="Successiva" data-act="next">
-        <svg viewBox="0 0 24 24" width="26" height="26"><path d="M9.5 6.5 15.5 12l-6 5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <svg viewBox="0 0 24 24" width="22" height="22"><path d="M9 5 L16 12 L9 19" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
     </div>
     <div class="ar-bottombar">
@@ -519,7 +522,7 @@ function buildReaderDOM(){
     else if(e.key === 'Escape'){ if(_clipMode) toggleClip(false); else closeReader(); }
   });
 
-  wireSwipe(ov);
+  wireGestures(ov);
   wireClip(ov);
   _reader = ov;
   return ov;
@@ -551,6 +554,7 @@ function closeReader(){
 async function renderPage(){
   if(!_reader || !_pages.length) return;
   const idx = _idx;
+  resetZoom(); // ogni tavola si apre a dimensione naturale
   const pad = String(_pages.length).length;
   _reader.querySelector('.ar-counter').textContent = String(idx + 1).padStart(pad, '0') + ' / ' + _pages.length;
   _reader.querySelector('.ar-prev').style.visibility = idx > 0 ? 'visible' : 'hidden';
@@ -586,22 +590,185 @@ function gotoPage(i){
   renderPage();
 }
 
-// ── SWIPE (mobile) ──────────────────────────────────────────────────────────
-function wireSwipe(ov){
+// ── ZOOM, PAN E SWIPE ───────────────────────────────────────────────────────
+// Stessi gesti della galleria reference, così il lettore si comporta come il
+// resto dell'app: rotella/pizzico per ingrandire, trascinamento (manina su
+// desktop) per spostarsi dentro la tavola, doppio tap/clic per alternare.
+// A dimensione naturale lo swipe orizzontale cambia pagina; da ingranditi
+// quello stesso gesto serve a spostarsi, quindi il cambio pagina si disattiva.
+// In modalità ritaglio lo zoom è azzerato e inerte: il crop calcola le
+// coordinate sull'immagine non trasformata, quindi si ritaglia a pagina intera.
+const ZOOM_IN = 2.6, ZOOM_MAX = 4;
+
+function readerImg(){ return _reader && _reader.querySelector('.ar-img'); }
+
+function applyZoom(){
+  const img = readerImg();
+  if(!img) return;
+  img.style.transform = `translate(${_zx}px, ${_zy}px) scale(${_zoom})`;
+  const stage = _reader.querySelector('.ar-stage');
+  if(stage) stage.classList.toggle('zoomed', _zoom > 1.02);
+}
+
+function resetZoom(animate){
+  const img = readerImg();
+  _zoom = 1; _zx = 0; _zy = 0;
+  if(img) img.style.transition = animate ? 'transform .2s' : 'none';
+  applyZoom();
+}
+
+// Limita lo spostamento ai bordi della tavola: non si "perde" mai l'immagine
+// fuori dallo schermo trascinando troppo.
+function clampPan(scale, x, y){
+  const img = readerImg();
+  if(!img) return { x, y };
+  const r = img.getBoundingClientRect();
+  const baseW = r.width / scale, baseH = r.height / scale;
+  const maxX = Math.max(0, (baseW * scale - baseW) / 2);
+  const maxY = Math.max(0, (baseH * scale - baseH) / 2);
+  return { x: Math.min(maxX, Math.max(-maxX, x)), y: Math.min(maxY, Math.max(-maxY, y)) };
+}
+
+// Alterna 1x ↔ ZOOM_IN centrando sul punto toccato/cliccato.
+function zoomAt(clientX, clientY){
+  const img = readerImg();
+  if(!img) return;
+  img.style.transition = 'transform .22s';
+  if(_zoom > 1.02){ resetZoom(true); return; }
+  const r = img.getBoundingClientRect();
+  const relX = clientX - (r.left + r.width / 2);
+  const relY = clientY - (r.top + r.height / 2);
+  _zoom = ZOOM_IN;
+  const c = clampPan(_zoom, -relX * (ZOOM_IN - 1), -relY * (ZOOM_IN - 1));
+  _zx = c.x; _zy = c.y;
+  applyZoom();
+}
+
+function wireGestures(ov){
   const stage = ov.querySelector('.ar-stage');
-  let x0 = 0, y0 = 0, active = false;
+  const img = ov.querySelector('.ar-img');
+  let x0 = 0, y0 = 0, swiping = false;
+  let pinching = false, startDist = 0, startScale = 1;
+  let panning = false, panX = 0, panY = 0, origX = 0, origY = 0;
+  let lastTap = 0, lastTapX = 0, lastTapY = 0, tapTimer = null, lastTouchAt = 0;
+
+  const dist = (a, b) => Math.hypot(b.clientX - a.clientX, b.clientY - a.clientY);
+
   stage.addEventListener('touchstart', e=>{
     if(_clipMode) return;
-    active = true; x0 = e.touches[0].clientX; y0 = e.touches[0].clientY;
-  }, { passive: true });
-  stage.addEventListener('touchend', e=>{
-    if(!active || _clipMode) return; active = false;
-    const t = e.changedTouches[0];
-    const dx = t.clientX - x0, dy = t.clientY - y0;
-    if(Math.abs(dx) > 55 && Math.abs(dx) > Math.abs(dy) * 1.3){
-      if(dx < 0) gotoPage(_idx + 1); else gotoPage(_idx - 1);
+    lastTouchAt = Date.now();
+    img.style.transition = 'none';
+    const t = e.touches;
+    if(t.length === 2){
+      pinching = true; panning = false; swiping = false;
+      startDist = dist(t[0], t[1]); startScale = _zoom;
+    } else if(t.length === 1){
+      pinching = false;
+      x0 = t[0].clientX; y0 = t[0].clientY;
+      if(_zoom > 1.02){ panning = true; swiping = false; panX = x0; panY = y0; origX = _zx; origY = _zy; }
+      else { panning = false; swiping = true; }
     }
   }, { passive: true });
+
+  stage.addEventListener('touchmove', e=>{
+    if(_clipMode) return;
+    const t = e.touches;
+    if(pinching && t.length === 2){
+      const nd = dist(t[0], t[1]);
+      _zoom = Math.min(ZOOM_MAX, Math.max(1, startScale * (nd / startDist)));
+      const c = clampPan(_zoom, _zx, _zy); _zx = c.x; _zy = c.y;
+      applyZoom();
+    } else if(panning && t.length === 1){
+      const c = clampPan(_zoom, origX + (t[0].clientX - panX), origY + (t[0].clientY - panY));
+      _zx = c.x; _zy = c.y;
+      applyZoom();
+    }
+  }, { passive: true });
+
+  stage.addEventListener('touchend', e=>{
+    if(_clipMode) return;
+    if(pinching){
+      pinching = false;
+      if(_zoom < 1.05) resetZoom(true);
+      return;
+    }
+    const t = e.changedTouches[0];
+    if(panning){
+      panning = false;
+      // trascinamento vero: non è un tap, non valutarlo come doppio tocco
+      if(Math.hypot(t.clientX - panX, t.clientY - panY) > 14) return;
+    }
+    const dx = t.clientX - x0, dy = t.clientY - y0;
+    const moved = Math.hypot(dx, dy);
+    if(swiping && _zoom <= 1.02 && moved > 55 && Math.abs(dx) > Math.abs(dy) * 1.3){
+      swiping = false;
+      if(dx < 0) gotoPage(_idx + 1); else gotoPage(_idx - 1);
+      return;
+    }
+    swiping = false;
+    if(moved < 20){
+      const now = Date.now();
+      const closeTap = Math.hypot(t.clientX - lastTapX, t.clientY - lastTapY) < 50;
+      if(now - lastTap < 400 && closeTap){
+        clearTimeout(tapTimer);
+        zoomAt(t.clientX, t.clientY);
+        lastTap = 0;
+      } else {
+        lastTap = now; lastTapX = t.clientX; lastTapY = t.clientY;
+      }
+    }
+  }, { passive: true });
+
+  // Desktop: rotella per ingrandire, con lo zoom centrato sul puntatore.
+  stage.addEventListener('wheel', e=>{
+    if(_clipMode || !ov.classList.contains('open')) return;
+    e.preventDefault();
+    const prev = _zoom;
+    const factor = e.deltaY < 0 ? 1.16 : 1 / 1.16;
+    _zoom = Math.min(ZOOM_MAX, Math.max(1, prev * factor));
+    img.style.transition = 'none';
+    if(_zoom <= 1.02){
+      _zoom = 1; _zx = 0; _zy = 0;
+    } else {
+      // tiene fermo il punto sotto il puntatore mentre la scala cambia
+      const r = img.getBoundingClientRect();
+      const relX = e.clientX - (r.left + r.width / 2);
+      const relY = e.clientY - (r.top + r.height / 2);
+      const k = _zoom / prev;
+      const c = clampPan(_zoom, (_zx - relX) * k + relX, (_zy - relY) * k + relY);
+      _zx = c.x; _zy = c.y;
+    }
+    applyZoom();
+  }, { passive: false });
+
+  // I browser mobile emettono un dblclick sintetico dopo un doppio tap reale:
+  // se lo lasciassimo passare zoomerebbe due volte annullandosi.
+  img.addEventListener('dblclick', e=>{
+    if(_clipMode || Date.now() - lastTouchAt < 1000) return;
+    zoomAt(e.clientX, e.clientY);
+  });
+
+  // Desktop: trascinamento con la manina quando la tavola è ingrandita.
+  let mDown = false, mx = 0, my = 0, mox = 0, moy = 0;
+  img.addEventListener('mousedown', e=>{
+    if(_clipMode || _zoom <= 1.02) return;
+    if(Date.now() - lastTouchAt < 1000) return;
+    e.preventDefault();
+    mDown = true; mx = e.clientX; my = e.clientY; mox = _zx; moy = _zy;
+    stage.classList.add('grabbing');
+    img.style.transition = 'none';
+  });
+  window.addEventListener('mousemove', e=>{
+    if(!mDown) return;
+    const c = clampPan(_zoom, mox + (e.clientX - mx), moy + (e.clientY - my));
+    _zx = c.x; _zy = c.y;
+    applyZoom();
+  });
+  window.addEventListener('mouseup', ()=>{
+    if(!mDown) return;
+    mDown = false;
+    stage.classList.remove('grabbing');
+  });
 }
 
 // ── RITAGLIO ────────────────────────────────────────────────────────────────
@@ -610,6 +777,10 @@ function wireSwipe(ov){
 function toggleClip(force){
   const next = (typeof force === 'boolean') ? force : !_clipMode;
   _clipMode = next;
+  // Il crop mappa i pixel schermo → pixel reali sull'immagine NON trasformata:
+  // si ritaglia quindi sempre a pagina intera, con lo zoom azzerato (i gesti
+  // di zoom restano inerti finché si è in ritaglio).
+  if(_clipMode) resetZoom();
   const layer = _reader.querySelector('.ar-cliplayer');
   const hint = _reader.querySelector('.ar-clip-hint');
   const box = _reader.querySelector('.ar-clipbox');
