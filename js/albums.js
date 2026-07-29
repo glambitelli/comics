@@ -8,8 +8,11 @@
 // I .cbz (ZIP di immagini) si estraggono con fflate, vendorizzato e sempre
 // caricato. I .cbr (RAR) usano libarchive.js (WASM), caricato via import()
 // dinamico SOLO al primo .cbr aperto — chi legge solo .cbz non lo scarica mai.
-// Entrambi i formati popolano _pages nello stesso identico formato
-// [{name,url,blob}], quindi reader/ritaglio/scaffale non sanno da dove viene.
+// Entrambi i formati producono una "sorgente pagine" con la stessa interfaccia
+// (vedi zipSource), quindi reader/ritaglio/scaffale non sanno da dove viene.
+// Il .cbz è letto in modo PIGRO: si conosce subito l'elenco delle tavole, ma
+// ognuna si decomprime solo quando la si guarda davvero — aprire un volume
+// non costa più il tempo e la memoria di scompattarlo tutto.
 
 import { unzipSync } from './vendor/fflate.js';
 import {
@@ -21,7 +24,9 @@ import { getDriveAlbumFile, ensureDriveConnected } from './drive.js';
 import { haptic } from './state.js';
 
 // Stato dell'albo attualmente aperto
-let _pages = [];        // [{ name, url (objectURL), blob }]
+let _pages = [];        // [{ name, url (objectURL|null), blob (Blob|null) }]
+let _source = null;     // sorgente pagine dell'albo aperto (vedi zipSource)
+let _prefetchT = null;  // timer del prefetch pagine vicine
 let _idx = 0;
 let _albumName = '';
 let _albumSig = '';     // firma nome+peso, per ricordare l'ultima pagina letta
@@ -100,20 +105,66 @@ function toast(msg, isError, persistent){
 }
 
 function clearPages(){
-  _pages.forEach(p=>{ try{ URL.revokeObjectURL(p.url); }catch(e){} });
+  _pages.forEach(p=>{ try{ if(p.url) URL.revokeObjectURL(p.url); }catch(e){} });
   _pages = [];
+  _source = null;
 }
 
-// Estrae le pagine di un .cbz (ZIP) con fflate. Ritorna l'array di pagine nel
-// formato comune [{name,url,blob}], già filtrato e ordinato — lo stesso
-// formato che popolerà _pages qualunque sia il contenitore di origine.
-function extractZipPages(buf){
-  const entries = unzipSync(buf);
-  const names = Object.keys(entries).filter(isImageEntry).sort(naturalCompare);
-  return names.map(n=>{
-    const blob = new Blob([entries[n]], { type: mimeFor(n) });
-    return { name: n, url: URL.createObjectURL(blob), blob };
-  });
+// ── SORGENTE PAGINE ────────────────────────────────────────────────────────
+// Astrae da dove arrivano i byte di ogni tavola: { pages, getData(name) }.
+// Con getData definita la sorgente è PIGRA (.cbz): i nomi si conoscono tutti
+// subito, ma ogni tavola viene decompressa solo quando la si guarda davvero.
+// Con getData null le pagine sono già tutte in memoria (.cbr: la libreria
+// estrae in blocco). Il resto del lettore non vede la differenza.
+
+// Materializza (se serve) il Blob di una pagina.
+function pageBlob(src, page){
+  if(!page) return null;
+  if(page.blob) return page.blob;
+  if(!src || !src.getData) return null;
+  const data = src.getData(page.name);
+  if(!data) return null;
+  page.blob = new Blob([data], { type: mimeFor(page.name) });
+  return page.blob;
+}
+function pageUrl(src, page){
+  if(page && page.url) return page.url;
+  const blob = pageBlob(src, page);
+  if(!blob) return '';
+  page.url = URL.createObjectURL(blob);
+  return page.url;
+}
+
+// Tiene materializzate solo le pagine vicine a quella corrente: oltre quella
+// distanza il Blob viene liberato (si ricrea in un lampo al bisogno). Evita
+// che sfogliando un volume intero la memoria cresca fino all'albo completo.
+// Solo per sorgenti pigre: con il .cbr quei Blob sono l'unica copia esistente.
+const PAGE_WINDOW = 3;
+function trimPages(){
+  if(!_source || !_source.getData) return;
+  for(let i = 0; i < _pages.length; i++){
+    const p = _pages[i];
+    if(p.url && Math.abs(i - _idx) > PAGE_WINDOW){
+      try{ URL.revokeObjectURL(p.url); }catch(e){}
+      p.url = null; p.blob = null;
+    }
+  }
+}
+
+// Sorgente .cbz. L'elenco delle tavole si ottiene camminando SOLO la directory
+// dello ZIP: il filtro di fflate scarta ogni voce, quindi legge le intestazioni
+// senza decomprimere niente. Poi si estrae una tavola per volta.
+// Prima si decomprimeva l'albo INTERO per mostrarne una pagina: su un volume
+// da 50MB erano tre passate da 50MB (unzip + Blob + objectURL per ~190 file)
+// sul thread principale, cioè secondi di blocco e centinaia di MB occupati.
+function zipSource(buf){
+  const names = [];
+  unzipSync(buf, { filter: f => { if(isImageEntry(f.name)) names.push(f.name); return false; } });
+  names.sort(naturalCompare);
+  return {
+    pages: names.map(n=>({ name: n, url: null, blob: null })),
+    getData(name){ return unzipSync(buf, { filter: f => f.name === name })[name]; },
+  };
 }
 
 function clampIdx(i){ return (i < 0 || i >= _pages.length) ? 0 : i; }
@@ -136,13 +187,18 @@ async function extractRarPages(file){
     .filter(e=>isImageEntry(e.name))
     .sort((a,b)=>naturalCompare(a.name, b.name));
 
-  return withNames.map(({name, file})=>({ name, url: URL.createObjectURL(file), blob: file }));
+  // getData null: il .cbr è già stato estratto tutto dalla libreria, queste
+  // sono le uniche copie in memoria e non vanno liberate sfogliando.
+  return {
+    pages: withNames.map(({name, file})=>({ name, url: URL.createObjectURL(file), blob: file })),
+    getData: null,
+  };
 }
 
 // Riconosce il formato dalla firma dei byte (ZIP = "PK\x03\x04", RAR =
-// "Rar!\x1a\x07") ed estrae le pagine. Condivisa tra l'apertura da file
-// locale e quella da Google Drive: a valle nessuna delle due sa più da dove
-// sono arrivati davvero i byte, sono solo pagine [{name,url,blob}].
+// "Rar!\x1a\x07") e ne ricava la sorgente pagine. Condivisa tra l'apertura da
+// file locale e quella da Google Drive: a valle nessuna delle due sa più da
+// dove sono arrivati davvero i byte.
 async function extractPagesForFile(file){
   const nameLc = file.name.toLowerCase();
   let buf;
@@ -157,7 +213,7 @@ async function extractPagesForFile(file){
     catch(e){ console.error('rar', e); throw new Error('Questo .cbr è illeggibile, danneggiato o cifrato.'); }
   }
   if(isZip){
-    try{ return extractZipPages(buf); }
+    try{ return zipSource(buf); }
     catch(e){ console.error('unzip', e); throw new Error('Questo .cbz è illeggibile o danneggiato.'); }
   }
   throw new Error('Formato non riconosciuto: serve un .cbz o .cbr.');
@@ -172,14 +228,15 @@ export async function openAlbumFromFile(file){
   _pendingReopen = null;
 
   toast('Apro l\'albo…', false, true);
-  let pages;
-  try{ pages = await extractPagesForFile(file); }
+  let src;
+  try{ src = await extractPagesForFile(file); }
   catch(e){ toast(e.message, true); return; }
 
-  if(!pages.length){ toast('Nessuna pagina trovata dentro l\'albo.', true); return; }
+  if(!src.pages.length){ toast('Nessuna pagina trovata dentro l\'albo.', true); return; }
 
   clearPages();
-  _pages = pages;
+  _source = src;
+  _pages = src.pages;
   _albumName = file.name.replace(/\.(cbz|cbr|zip|rar)$/i, '');
   _albumSig  = file.name + ':' + file.size;
   _currentAlbumId = null;
@@ -267,7 +324,7 @@ async function makeCoverBlob(pageBlob){
 async function createAlbumFromCurrent(folderId, file){
   const page = pickCoverPage(_pages);
   if(!page) return;
-  const coverBlob = await makeCoverBlob(page.blob);
+  const coverBlob = await makeCoverBlob(pageBlob(_source, page));
   if(!coverBlob) return;
   const tag = Date.now().toString(36) + Math.random().toString(36).slice(2,8);
   const { url } = await uploadToCloudinary(coverBlob, 'cover-'+tag+'.jpg');
@@ -297,18 +354,22 @@ export async function createAlbumFromDriveFile(folderId, driveFile){
   try{ ({ file } = await getDriveAlbumFile(driveFile)); }
   catch(e){ console.warn('drive sync: download fallito per', driveFile.name, e.message); return; }
 
-  let pages;
-  try{ pages = await extractPagesForFile(file); }
+  let src;
+  try{ src = await extractPagesForFile(file); }
   catch(e){ console.warn('drive sync: estrazione fallita per', driveFile.name, e.message); return; }
+  const pages = src.pages;
   if(!pages.length) return;
 
+  // Con la sorgente pigra qui si decomprime UNA sola tavola (la copertina)
+  // invece dell'albo intero: la sync di una cartella con molti volumi non
+  // scompatta più centinaia di MB per generare delle miniature.
   const coverPage = pickCoverPage(pages);
   let coverBlob = null;
   if(coverPage){
-    try{ coverBlob = await makeCoverBlob(coverPage.blob); }
+    try{ coverBlob = await makeCoverBlob(pageBlob(src, coverPage)); }
     catch(e){ console.warn('drive sync: copertina fallita per', driveFile.name, e.message); }
   }
-  pages.forEach(p=>{ try{ URL.revokeObjectURL(p.url); }catch(e){} }); // solo la copertina serve ora, il resto si riscarica all'apertura
+  pages.forEach(p=>{ try{ if(p.url) URL.revokeObjectURL(p.url); }catch(e){} });
   if(!coverBlob) return;
 
   let url;
@@ -354,13 +415,14 @@ export async function openAlbumFromDrive(albumId){
   // delle pagine può metterci diversi secondi a schermo fermo (è lavoro sincrono
   // sul thread principale), e senza questo avviso sembra che l'app si sia bloccata.
   toast('Preparo le pagine…', false, true);
-  let pages;
-  try{ pages = await extractPagesForFile(file); }
+  let src;
+  try{ src = await extractPagesForFile(file); }
   catch(e){ toast(e.message, true); return; }
-  if(!pages.length){ toast('Nessuna pagina trovata dentro l\'albo.', true); return; }
+  if(!src.pages.length){ toast('Nessuna pagina trovata dentro l\'albo.', true); return; }
 
   clearPages();
-  _pages = pages;
+  _source = src;
+  _pages = src.pages;
   _albumName = a.title || file.name.replace(/\.(cbz|cbr)$/i,'');
   _albumSig = file.name + ':' + file.size;
   _currentAlbumId = a.id;
@@ -452,16 +514,22 @@ function closeReader(){
 function renderPage(){
   if(!_reader || !_pages.length) return;
   const img = _reader.querySelector('.ar-img');
-  const page = _pages[_idx];
-  img.src = page.url;
+  img.src = pageUrl(_source, _pages[_idx]);
   // Zero-padding sul numero corrente: a larghezza fissa il contatore non
   // "salta" passando da una cifra a due (9 → 10), come in un lettore vero.
   const pad = String(_pages.length).length;
   _reader.querySelector('.ar-counter').textContent = String(_idx + 1).padStart(pad, '0') + ' / ' + _pages.length;
-  // Prefetch leggero della pagina successiva e precedente (decodifica anticipata).
-  [_idx + 1, _idx - 1].forEach(i=>{
-    if(i >= 0 && i < _pages.length){ const im = new Image(); im.src = _pages[i].url; }
-  });
+  // Prefetch dei vicini RINVIATO a thread libero: con la sorgente pigra ognuno
+  // costa una decompressione, e farlo qui ritarderebbe la comparsa della pagina
+  // che si sta guardando adesso. Sfogliando veloce il timer si azzera e si
+  // prefetcha solo dove ci si ferma davvero.
+  clearTimeout(_prefetchT);
+  _prefetchT = setTimeout(()=>{
+    [_idx + 1, _idx - 1].forEach(i=>{
+      if(i >= 0 && i < _pages.length){ const im = new Image(); im.src = pageUrl(_source, _pages[i]); }
+    });
+    trimPages();
+  }, 90);
   _reader.querySelector('.ar-prev').style.visibility = _idx > 0 ? 'visible' : 'hidden';
   _reader.querySelector('.ar-next').style.visibility = _idx < _pages.length - 1 ? 'visible' : 'hidden';
 }
@@ -574,15 +642,16 @@ async function commitClip(img, sel){
   const cropH = Math.min(img.naturalHeight - cropY, sel.height / rect.scale);
   if(cropW < 4 || cropH < 4){ toast('Riquadro fuori dalla pagina, riprova.', true); toggleClip(false); return; }
 
-  await exportCropAndSave(_pages[_idx].blob, cropX, cropY, cropW, cropH);
+  await exportCropAndSave(pageBlob(_source, _pages[_idx]), cropX, cropY, cropW, cropH);
   toggleClip(false);
 }
 
 // Salva l'intera pagina corrente come Frammento.
 async function saveWholePage(){
-  const page = _pages[_idx];
-  const im = await blobToImage(page.blob);
-  await exportCropAndSave(page.blob, 0, 0, im.naturalWidth, im.naturalHeight);
+  const blob = pageBlob(_source, _pages[_idx]);
+  if(!blob) return;
+  const im = await blobToImage(blob);
+  await exportCropAndSave(blob, 0, 0, im.naturalWidth, im.naturalHeight);
 }
 
 function blobToImage(blob){
