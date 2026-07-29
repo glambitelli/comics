@@ -472,15 +472,12 @@ function buildReaderDOM(){
   ov.innerHTML = `
     <div class="ar-topbar">
       <button class="ar-btn ar-close" aria-label="Chiudi" data-act="close">
-        <svg viewBox="0 0 24 24" width="19" height="19"><path d="M14.5 6.5 8.5 12l6 5.5" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <svg viewBox="0 0 24 24" width="17" height="17"><path d="M6.5 6.5 17.5 17.5 M17.5 6.5 6.5 17.5" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"/></svg>
       </button>
       <span class="ar-title"></span>
       <div class="ar-top-actions">
         <button class="ar-btn ar-clip" aria-label="Ritaglia" data-act="clip">
           <svg viewBox="0 0 24 24" width="20" height="20"><circle cx="6.5" cy="6.5" r="2.4" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="6.5" cy="17.5" r="2.4" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8.6 8.2 20 18 M8.6 15.8 20 6" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg>
-        </button>
-        <button class="ar-btn ar-savepage" aria-label="Salva pagina" data-act="savepage">
-          <svg viewBox="0 0 24 24" width="20" height="20"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 19.5h14" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
         </button>
       </div>
     </div>
@@ -510,7 +507,6 @@ function buildReaderDOM(){
     else if(act === 'next') gotoPage(_idx + 1);
     else if(act === 'clip') toggleClip();
     else if(act === 'cancelclip') toggleClip(false);
-    else if(act === 'savepage') saveWholePage();
   });
 
   // Tap sul centro dell'immagine (fuori clip) = avanti; bordo sinistro = indietro.
@@ -533,10 +529,29 @@ function openReader(){
   ov.querySelector('.ar-title').textContent = _albumName;
   ov.classList.add('open');
   document.body.classList.add('album-reading');
+  // Registra uno stato nella cronologia (come fa il visualizzatore reference):
+  // così il tasto Indietro del browser — o il gesto Indietro di Android —
+  // chiude il lettore e riporta alle References, invece di uscire da Inkflow.
+  try{
+    if(!history.state || history.state.view !== 'albumreader') history.pushState({view:'albumreader'}, '');
+  }catch(e){}
   renderPage();
 }
 
+// Chiusura "morbida" (tasto X, Esc): passa dalla cronologia, così lo stato del
+// browser resta allineato a quello che si vede e non restano voci fantasma.
 function closeReader(){
+  const isOpen = _reader && _reader.classList.contains('open');
+  if(isOpen && history.state && history.state.view === 'albumreader'){
+    history.back();   // sarà il gestore popstate a chiudere davvero la vista
+    return;
+  }
+  closeReaderUI();
+}
+
+// Chiusura immediata della sola interfaccia, senza toccare la cronologia.
+// Esportata perché la chiama anche il gestore del tasto Indietro in main.js.
+export function closeReaderUI(){
   if(!_reader) return;
   saveReadingPos();
   if(_clipMode) toggleClip(false);
@@ -858,14 +873,6 @@ async function commitClip(img, sel){
 
   await exportCropAndSave(await pageBlob(_source, _pages[_idx]), cropX, cropY, cropW, cropH);
   toggleClip(false);
-}
-
-// Salva l'intera pagina corrente come Frammento.
-async function saveWholePage(){
-  const blob = await pageBlob(_source, _pages[_idx]);
-  if(!blob) return;
-  const im = await blobToImage(blob);
-  await exportCropAndSave(blob, 0, 0, im.naturalWidth, im.naturalHeight);
 }
 
 function blobToImage(blob){

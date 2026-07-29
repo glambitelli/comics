@@ -19,7 +19,7 @@ window.openFolderBrowser=openFolderBrowser; window.openAllGrid=openAllGrid; wind
 window.promptNewFolder=promptNewFolder; window.promptNewFolderFlow=promptNewFolderFlow; window.promptRenameFolder=promptRenameFolder; window.promptDeleteFolder=promptDeleteFolder;
 window.refsFolderMenu=refsFolderMenu; window.setFolderTab=setFolderTab; window.albumShelfMenu=albumShelfMenu;
 window.connectDriveAndSync=connectDriveAndSync; window.disconnectDriveUI=disconnectDriveUI;
-import { initAlbums, openAlbumPicker, openAlbumFromFile, openAlbumFromDrive, createAlbumFromDriveFile } from './albums.js';
+import { initAlbums, openAlbumPicker, openAlbumFromFile, openAlbumFromDrive, createAlbumFromDriveFile, closeReaderUI } from './albums.js';
 window.openAlbumPicker=openAlbumPicker; window.openAlbumFromFile=openAlbumFromFile;
 window.openAlbumFromDrive=openAlbumFromDrive; window.createAlbumFromDriveFile=createAlbumFromDriveFile;
 window.openScriptment=openScriptment; window.closeScriptment=closeScriptment;
@@ -306,8 +306,12 @@ function showScreen(view, id){
   finally{ _navReplaying = false; }
 }
 window.addEventListener('popstate', e=>{
-  // Se c'è un'immagine aperta a schermo intero, il tasto Indietro chiude quella
-  // e basta: si torna alla griglia da cui era stata aperta.
+  // Se c'è un albo aperto a schermo intero, il tasto Indietro chiude il lettore
+  // e riporta alle References, invece di uscire dall'app.
+  const ar = document.getElementById('album-reader');
+  if(ar && ar.classList.contains('open')){ closeReaderUI(); return; }
+  // Stessa logica per un'immagine aperta a schermo intero: si torna alla
+  // griglia da cui era stata aperta.
   const lb = document.getElementById('refs-lightbox');
   if(lb && lb.classList.contains('open')){ closeLightboxUI(); return; }
   const st = e.state || { view:'home' };
