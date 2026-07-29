@@ -808,15 +808,26 @@ function toggleClip(force){
   if(_clipMode) haptic('tap');
 }
 
-// Rettangolo dell'immagine effettivamente renderizzata dentro l'<img> (object-fit
-// contain lascia bande vuote): serve per mappare i pixel schermo → pixel reali.
-function renderedImageRect(img){
-  const cw = img.clientWidth, ch = img.clientHeight;
+// Rettangolo dell'immagine effettivamente renderizzata, in coordinate relative
+// a `layer` (il livello di ritaglio, che copre tutto lo stage). Serve la
+// posizione VERA a schermo di entrambi — non solo le dimensioni — perché la
+// tavola è centrata nello stage (flexbox) e quasi mai ne ha le stesse
+// proporzioni: c'è quindi uno scarto tra l'angolo dello stage e quello reale
+// dell'immagine, oltre alle eventuali bande vuote di object-fit:contain. Con
+// getBoundingClientRect (posizione reale) invece di clientWidth (solo
+// dimensione) entrambi gli scarti vengono presi in conto.
+function renderedImageRect(img, layer){
+  const ir = img.getBoundingClientRect();
+  const lr = layer.getBoundingClientRect();
   const nw = img.naturalWidth, nh = img.naturalHeight;
-  if(!nw || !nh) return { x:0, y:0, w:cw, h:ch, scale:1 };
-  const scale = Math.min(cw / nw, ch / nh);
+  if(!nw || !nh) return { x: ir.left - lr.left, y: ir.top - lr.top, w: ir.width, h: ir.height, scale: 1 };
+  const scale = Math.min(ir.width / nw, ir.height / nh);
   const w = nw * scale, h = nh * scale;
-  return { x: (cw - w) / 2, y: (ch - h) / 2, w, h, scale };
+  return {
+    x: (ir.left - lr.left) + (ir.width - w) / 2,
+    y: (ir.top - lr.top) + (ir.height - h) / 2,
+    w, h, scale,
+  };
 }
 
 function wireClip(ov){
@@ -849,7 +860,7 @@ function wireClip(ov){
     if(bw < 12 || bh < 12){ box.hidden = true; toast('Trascina un riquadro più grande sulla pagina.', true); return; }
     commitClip(img, {
       left: parseFloat(box.style.left), top: parseFloat(box.style.top), width: bw, height: bh
-    });
+    }, layer);
   };
 
   layer.addEventListener('mousedown', e=>{ e.preventDefault(); start(e.clientX, e.clientY); });
@@ -861,8 +872,8 @@ function wireClip(ov){
 }
 
 // Ritaglia il rettangolo selezionato dalla pagina a piena risoluzione.
-async function commitClip(img, sel){
-  const rect = renderedImageRect(img);
+async function commitClip(img, sel, layer){
+  const rect = renderedImageRect(img, layer);
   // Coordinate del riquadro relative all'immagine renderizzata (tolte le bande).
   const relX = sel.left - rect.x, relY = sel.top - rect.y;
   const cropX = Math.max(0, relX / rect.scale);
