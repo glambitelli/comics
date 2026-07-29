@@ -278,6 +278,27 @@ export async function listDriveAlbumsForFolder(folderName){
   }
 }
 
+// Legge un INTERVALLO di byte di un file Drive (HTTP Range), autenticato allo
+// stesso modo delle altre chiamate. Usata da zipremote.js per leggere solo
+// l'indice di uno ZIP e le singole tavole, senza mai scaricare il file
+// intero. Se il server ignora il Range e risponde 200 con tutto il file
+// (capita raramente), tagliamo noi la parte che serve.
+export async function driveRangeFetch(fileId, start, end){
+  if(!isDriveConnected()) throw new Error('Drive non collegato.');
+  const url = `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`;
+  const res = await fetchWithTimeout(url, {
+    headers: { Authorization: 'Bearer ' + _token.access_token, Range: `bytes=${start}-${end}` }
+  }, 20000);
+  if(res.status === 401){ clearToken(); throw new Error('Sessione Drive scaduta: ricollega.'); }
+  if(res.status !== 206 && res.status !== 200){
+    throw new Error('Drive API (' + res.status + ') durante una lettura parziale.');
+  }
+  const buf = new Uint8Array(await res.arrayBuffer());
+  const wanted = end - start + 1;
+  if(res.status === 200 && buf.length > wanted) return buf.subarray(start, start + wanted);
+  return buf;
+}
+
 // Scarica il contenuto di un file Drive e lo restituisce come File vero, così
 // entra nella stessa identica pipeline di apertura .cbz/.cbr usata per i file
 // locali (albums.js non deve sapere da dove arrivano davvero i byte).

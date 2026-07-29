@@ -12,7 +12,11 @@
 // (vedi zipSource), quindi reader/ritaglio/scaffale non sanno da dove viene.
 // Il .cbz è letto in modo PIGRO: si conosce subito l'elenco delle tavole, ma
 // ognuna si decomprime solo quando la si guarda davvero — aprire un volume
-// non costa più il tempo e la memoria di scompattarlo tutto.
+// non costa più il tempo e la memoria di scompattarlo tutto. Per un .cbz su
+// Google Drive va oltre: legge l'indice e le tavole via HTTP Range
+// (zipremote.js) SENZA MAI scaricare il file intero — decine di MB diventano
+// poche decine/centinaia di KB per aprire e sfogliare. Il .cbr resta invece
+// legato al download completo (RAR non si presta allo stesso trucco).
 
 import { unzipSync } from './vendor/fflate.js';
 import {
@@ -21,6 +25,7 @@ import {
 } from './refs.js';
 import { uploadToCloudinary } from './cloudinary.js';
 import { getDriveAlbumFile, ensureDriveConnected } from './drive.js';
+import { openRemoteZipSource } from './zipremote.js';
 import { haptic } from './state.js';
 
 // Stato dell'albo attualmente aperto
@@ -117,19 +122,22 @@ function clearPages(){
 // Con getData null le pagine sono già tutte in memoria (.cbr: la libreria
 // estrae in blocco). Il resto del lettore non vede la differenza.
 
-// Materializza (se serve) il Blob di una pagina.
-function pageBlob(src, page){
+// Materializza (se serve) il Blob di una pagina. Asincrona: la sorgente
+// remota (Drive via Range HTTP) fa una vera richiesta di rete per tavola; la
+// sorgente locale (getData sincrona) risolve comunque all'istante, un
+// `await` su un valore non-Promise non costa nulla.
+async function pageBlob(src, page){
   if(!page) return null;
   if(page.blob) return page.blob;
   if(!src || !src.getData) return null;
-  const data = src.getData(page.name);
+  const data = await src.getData(page.name);
   if(!data) return null;
   page.blob = new Blob([data], { type: mimeFor(page.name) });
   return page.blob;
 }
-function pageUrl(src, page){
+async function pageUrl(src, page){
   if(page && page.url) return page.url;
-  const blob = pageBlob(src, page);
+  const blob = await pageBlob(src, page);
   if(!blob) return '';
   page.url = URL.createObjectURL(blob);
   return page.url;
@@ -324,7 +332,7 @@ async function makeCoverBlob(pageBlob){
 async function createAlbumFromCurrent(folderId, file){
   const page = pickCoverPage(_pages);
   if(!page) return;
-  const coverBlob = await makeCoverBlob(pageBlob(_source, page));
+  const coverBlob = await makeCoverBlob(await pageBlob(_source, page));
   if(!coverBlob) return;
   const tag = Date.now().toString(36) + Math.random().toString(36).slice(2,8);
   const { url } = await uploadToCloudinary(coverBlob, 'cover-'+tag+'.jpg');
@@ -338,35 +346,49 @@ async function createAlbumFromCurrent(folderId, file){
 }
 
 // ── GOOGLE DRIVE — sync in background + apertura senza picker ──────────────
+// Ricava la sorgente pagine di un file Drive. Per i .cbz prova PRIMA la
+// lettura remota a intervalli (Range HTTP, vedi zipremote.js): legge solo
+// l'indice e le tavole che servono davvero, senza mai scaricare il file
+// intero — la vera vittoria su 4G, sia per la copertina (una tavola) sia per
+// la lettura (poche tavole alla volta). Se non va (rete che non supporta
+// Range in modo utile, ZIP non standard) o è un .cbr, ripiega sul download
+// completo di sempre — che resta comunque in cache locale per le prossime volte.
+async function openDriveAlbumSource(driveFile, onProgress){
+  const name = driveFile.name || '';
+  const size = Number(driveFile.size) || 0;
+  if(/\.cbz$/i.test(name) && size > 0){
+    try{
+      const src = await openRemoteZipSource(driveFile.id, size, isImageEntry, naturalCompare);
+      if(src.pages.length) return { file: { name, size }, src };
+    }catch(e){ console.warn('lettura remota ZIP fallita, scarico il file intero:', e.message); }
+  }
+  const { file } = await getDriveAlbumFile(driveFile, onProgress);
+  const src = await extractPagesForFile(file);
+  return { file, src };
+}
+
 // Per ogni file trovato nella sottocartella Drive di una cartella-autore che
-// non ha ancora una scheda: lo scarica una volta, genera copertina e conteggio
-// pagine esattamente come per un file locale, e scrive la scheda con
-// driveFileId agganciato. Da quel momento la copertina appare da sola nello
-// scaffale e riaprirla non passerà mai più dal selettore file. Lavora su un
-// array di pagine tutto suo (mai su _pages/_idx): se l'utente ha un albo
-// aperto mentre la sync gira in background, non deve accorgersene.
+// non ha ancora una scheda: genera copertina e conteggio pagine esattamente
+// come per un file locale, e scrive la scheda con driveFileId agganciato. Da
+// quel momento la copertina appare da sola nello scaffale e riaprirla non
+// passerà mai più dal selettore file. Lavora su un array di pagine tutto suo
+// (mai su _pages/_idx): se l'utente ha un albo aperto mentre la sync gira in
+// background, non deve accorgersene.
 export async function createAlbumFromDriveFile(folderId, driveFile){
   if(findAlbumByDriveId(folderId, driveFile.id)) return;
-  let file;
-  // Il file scaricato ora per la copertina viene messo in cache: quando poi
-  // l'utente tocca la copertina per leggerlo, l'apertura è immediata e non
-  // ripaga il download. (Prima si scaricava due volte, un disastro su 4G.)
-  try{ ({ file } = await getDriveAlbumFile(driveFile)); }
-  catch(e){ console.warn('drive sync: download fallito per', driveFile.name, e.message); return; }
-
-  let src;
-  try{ src = await extractPagesForFile(file); }
-  catch(e){ console.warn('drive sync: estrazione fallita per', driveFile.name, e.message); return; }
+  let file, src;
+  try{ ({ file, src } = await openDriveAlbumSource(driveFile)); }
+  catch(e){ console.warn('drive sync: apertura fallita per', driveFile.name, e.message); return; }
   const pages = src.pages;
   if(!pages.length) return;
 
-  // Con la sorgente pigra qui si decomprime UNA sola tavola (la copertina)
+  // Con la sorgente remota/pigra qui si legge UNA sola tavola (la copertina)
   // invece dell'albo intero: la sync di una cartella con molti volumi non
-  // scompatta più centinaia di MB per generare delle miniature.
+  // scarica più decine o centinaia di MB solo per generare le miniature.
   const coverPage = pickCoverPage(pages);
   let coverBlob = null;
   if(coverPage){
-    try{ coverBlob = await makeCoverBlob(pageBlob(src, coverPage)); }
+    try{ coverBlob = await makeCoverBlob(await pageBlob(src, coverPage)); }
     catch(e){ console.warn('drive sync: copertina fallita per', driveFile.name, e.message); }
   }
   pages.forEach(p=>{ try{ if(p.url) URL.revokeObjectURL(p.url); }catch(e){} });
@@ -393,13 +415,17 @@ export async function openAlbumFromDrive(albumId){
   if(!a || !a.driveFileId) return;
   toast('Apro l\'albo…', false, true);
   if(!(await ensureDriveConnected())){ toast('Ricollega Google Drive per aprire questo albo.', true); return; }
-  let file;
+  let file, src;
   try{
     // Throttle del progresso: aggiornare il banner ad ogni blocco ricevuto
     // (migliaia su un file grande) è lavoro inutile sul thread principale.
+    // Con un .cbz normalmente non si vede nemmeno: la lettura remota a
+    // intervalli apre la prima tavola dopo poche decine di KB, non dopo
+    // aver scaricato tutto — questo progresso resta solo per il ripiego
+    // (download completo, .cbr o ZIP non leggibile a intervalli).
     let lastPaint = 0;
-    const r = await getDriveAlbumFile(
-      { id: a.driveFileId, name: a.sourceName || (a.title||'albo') },
+    ({ file, src } = await openDriveAlbumSource(
+      { id: a.driveFileId, name: a.sourceName || (a.title||'albo'), size: a.sourceSize || 0 },
       (loaded, total)=>{
         const now = Date.now();
         if(now - lastPaint < 250 && (!total || loaded < total)) return;
@@ -407,17 +433,8 @@ export async function openAlbumFromDrive(albumId){
         const mb = n => (n / 1048576).toFixed(1);
         toast('Scarico da Drive… ' + mb(loaded) + (total ? ' / ' + mb(total) + ' MB' : ' MB'), false, true);
       }
-    );
-    file = r.file;
-  }catch(e){ toast('Impossibile scaricare da Drive: '+e.message, true); return; }
-
-  // Messaggio distinto per la fase successiva: su un albo pesante l'estrazione
-  // delle pagine può metterci diversi secondi a schermo fermo (è lavoro sincrono
-  // sul thread principale), e senza questo avviso sembra che l'app si sia bloccata.
-  toast('Preparo le pagine…', false, true);
-  let src;
-  try{ src = await extractPagesForFile(file); }
-  catch(e){ toast(e.message, true); return; }
+    ));
+  }catch(e){ toast('Impossibile aprire da Drive: '+e.message, true); return; }
   if(!src.pages.length){ toast('Nessuna pagina trovata dentro l\'albo.', true); return; }
 
   clearPages();
@@ -511,27 +528,38 @@ function closeReader(){
   // stesso file dal picker le ricrea comunque. Le liberiamo alla prossima apertura.
 }
 
-function renderPage(){
+// Asincrona: con la sorgente remota (Drive via Range) mostrare una pagina è
+// una vera richiesta di rete. Contatore e frecce si aggiornano SUBITO (non
+// dipendono dal byte della tavola); l'immagine arriva quando arriva. Se nel
+// frattempo si è già cambiata pagina (swipe veloce), il risultato in ritardo
+// viene scartato invece di rimpiazzare quella giusta con quella sbagliata.
+async function renderPage(){
   if(!_reader || !_pages.length) return;
-  const img = _reader.querySelector('.ar-img');
-  img.src = pageUrl(_source, _pages[_idx]);
-  // Zero-padding sul numero corrente: a larghezza fissa il contatore non
-  // "salta" passando da una cifra a due (9 → 10), come in un lettore vero.
+  const idx = _idx;
   const pad = String(_pages.length).length;
-  _reader.querySelector('.ar-counter').textContent = String(_idx + 1).padStart(pad, '0') + ' / ' + _pages.length;
-  // Prefetch dei vicini RINVIATO a thread libero: con la sorgente pigra ognuno
-  // costa una decompressione, e farlo qui ritarderebbe la comparsa della pagina
-  // che si sta guardando adesso. Sfogliando veloce il timer si azzera e si
-  // prefetcha solo dove ci si ferma davvero.
+  _reader.querySelector('.ar-counter').textContent = String(idx + 1).padStart(pad, '0') + ' / ' + _pages.length;
+  _reader.querySelector('.ar-prev').style.visibility = idx > 0 ? 'visible' : 'hidden';
+  _reader.querySelector('.ar-next').style.visibility = idx < _pages.length - 1 ? 'visible' : 'hidden';
+
+  const url = await pageUrl(_source, _pages[idx]);
+  if(idx !== _idx || !_reader) return; // pagina cambiata nel frattempo: scarta
+  _reader.querySelector('.ar-img').src = url;
+
+  // Prefetch dei vicini RINVIATO a thread/rete libera: con la sorgente pigra
+  // ognuno costa una decompressione (o una richiesta Drive), e farlo subito
+  // ritarderebbe la comparsa della pagina che si sta guardando adesso.
+  // Sfogliando veloce il timer si azzera e si prefetcha solo dove ci si ferma.
   clearTimeout(_prefetchT);
-  _prefetchT = setTimeout(()=>{
-    [_idx + 1, _idx - 1].forEach(i=>{
-      if(i >= 0 && i < _pages.length){ const im = new Image(); im.src = pageUrl(_source, _pages[i]); }
-    });
+  _prefetchT = setTimeout(async ()=>{
+    for(const i of [idx + 1, idx - 1]){
+      if(i < 0 || i >= _pages.length) continue;
+      const u = await pageUrl(_source, _pages[i]);
+      // Solo se è ancora un vicino della pagina corrente: se nel frattempo
+      // si è saltato altrove, questo prefetch non serve più a nulla.
+      if(Math.abs(i - _idx) <= 1){ const im = new Image(); im.src = u; }
+    }
     trimPages();
   }, 90);
-  _reader.querySelector('.ar-prev').style.visibility = _idx > 0 ? 'visible' : 'hidden';
-  _reader.querySelector('.ar-next').style.visibility = _idx < _pages.length - 1 ? 'visible' : 'hidden';
 }
 
 function gotoPage(i){
@@ -642,13 +670,13 @@ async function commitClip(img, sel){
   const cropH = Math.min(img.naturalHeight - cropY, sel.height / rect.scale);
   if(cropW < 4 || cropH < 4){ toast('Riquadro fuori dalla pagina, riprova.', true); toggleClip(false); return; }
 
-  await exportCropAndSave(pageBlob(_source, _pages[_idx]), cropX, cropY, cropW, cropH);
+  await exportCropAndSave(await pageBlob(_source, _pages[_idx]), cropX, cropY, cropW, cropH);
   toggleClip(false);
 }
 
 // Salva l'intera pagina corrente come Frammento.
 async function saveWholePage(){
-  const blob = pageBlob(_source, _pages[_idx]);
+  const blob = await pageBlob(_source, _pages[_idx]);
   if(!blob) return;
   const im = await blobToImage(blob);
   await exportCropAndSave(blob, 0, 0, im.naturalWidth, im.naturalHeight);
