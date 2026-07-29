@@ -12,11 +12,17 @@
 // (vedi zipSource), quindi reader/ritaglio/scaffale non sanno da dove viene.
 // Il .cbz è letto in modo PIGRO: si conosce subito l'elenco delle tavole, ma
 // ognuna si decomprime solo quando la si guarda davvero — aprire un volume
-// non costa più il tempo e la memoria di scompattarlo tutto. Per un .cbz su
-// Google Drive va oltre: legge l'indice e le tavole via HTTP Range
-// (zipremote.js) SENZA MAI scaricare il file intero — decine di MB diventano
-// poche decine/centinaia di KB per aprire e sfogliare. Il .cbr resta invece
-// legato al download completo (RAR non si presta allo stesso trucco).
+// non costa più il tempo e la memoria di scompattarlo tutto.
+//
+// Da Google Drive valgono due strategie diverse, perché i due casi hanno
+// esigenze opposte:
+//  · COPERTINE (sync dello scaffale): serve una tavola sola, quindi si legge
+//    l'albo a intervalli via HTTP Range (zipremote.js) senza scaricarlo —
+//    popolare una cartella con molti volumi costa KB invece di centinaia di MB.
+//  · LETTURA: si scarica il file intero una volta e si tiene in cache locale.
+//    Sembrava meglio leggere anche qui a intervalli, ma così ogni cambio
+//    pagina pagava la latenza di rete: su 4G molto peggio di un'attesa sola
+//    all'inizio seguita da uno sfogliare del tutto immediato.
 
 import { unzipSync } from './vendor/fflate.js';
 import {
@@ -346,14 +352,16 @@ async function createAlbumFromCurrent(folderId, file){
 }
 
 // ── GOOGLE DRIVE — sync in background + apertura senza picker ──────────────
-// Ricava la sorgente pagine di un file Drive. Per i .cbz prova PRIMA la
-// lettura remota a intervalli (Range HTTP, vedi zipremote.js): legge solo
-// l'indice e le tavole che servono davvero, senza mai scaricare il file
-// intero — la vera vittoria su 4G, sia per la copertina (una tavola) sia per
-// la lettura (poche tavole alla volta). Se non va (rete che non supporta
-// Range in modo utile, ZIP non standard) o è un .cbr, ripiega sul download
-// completo di sempre — che resta comunque in cache locale per le prossime volte.
-async function openDriveAlbumSource(driveFile, onProgress){
+// Sorgente usata SOLO per generare la copertina in fase di sync: qui serve
+// una tavola sola, quindi la lettura remota a intervalli (Range HTTP, vedi
+// zipremote.js) è perfetta — popolare lo scaffale costa poche decine di KB
+// per albo invece di scaricarli tutti interi.
+//
+// Per LEGGERE invece si scarica il file intero (vedi openAlbumFromDrive): a
+// lettura avviata ogni cambio pagina dev'essere immediato, e una richiesta di
+// rete per tavola su 4G è molto peggio di un unico download iniziale seguito
+// da tutto istantaneo dalla cache locale.
+async function openDriveCoverSource(driveFile){
   const name = driveFile.name || '';
   const size = Number(driveFile.size) || 0;
   if(/\.cbz$/i.test(name) && size > 0){
@@ -362,7 +370,7 @@ async function openDriveAlbumSource(driveFile, onProgress){
       if(src.pages.length) return { file: { name, size }, src };
     }catch(e){ console.warn('lettura remota ZIP fallita, scarico il file intero:', e.message); }
   }
-  const { file } = await getDriveAlbumFile(driveFile, onProgress);
+  const { file } = await getDriveAlbumFile(driveFile);
   const src = await extractPagesForFile(file);
   return { file, src };
 }
@@ -377,7 +385,7 @@ async function openDriveAlbumSource(driveFile, onProgress){
 export async function createAlbumFromDriveFile(folderId, driveFile){
   if(findAlbumByDriveId(folderId, driveFile.id)) return;
   let file, src;
-  try{ ({ file, src } = await openDriveAlbumSource(driveFile)); }
+  try{ ({ file, src } = await openDriveCoverSource(driveFile)); }
   catch(e){ console.warn('drive sync: apertura fallita per', driveFile.name, e.message); return; }
   const pages = src.pages;
   if(!pages.length) return;
@@ -415,17 +423,18 @@ export async function openAlbumFromDrive(albumId){
   if(!a || !a.driveFileId) return;
   toast('Apro l\'albo…', false, true);
   if(!(await ensureDriveConnected())){ toast('Ricollega Google Drive per aprire questo albo.', true); return; }
-  let file, src;
+  // Per LEGGERE si prende il file intero: dalla cache locale se c'è (istantaneo,
+  // zero rete), altrimenti un unico download che poi resta in cache. Leggere a
+  // richieste di rete separate, una per tavola, sembrava furbo ma su 4G ogni
+  // cambio pagina pagava la latenza: molto peggio di un'attesa sola all'inizio
+  // e poi tutto immediato.
+  let file;
   try{
     // Throttle del progresso: aggiornare il banner ad ogni blocco ricevuto
     // (migliaia su un file grande) è lavoro inutile sul thread principale.
-    // Con un .cbz normalmente non si vede nemmeno: la lettura remota a
-    // intervalli apre la prima tavola dopo poche decine di KB, non dopo
-    // aver scaricato tutto — questo progresso resta solo per il ripiego
-    // (download completo, .cbr o ZIP non leggibile a intervalli).
     let lastPaint = 0;
-    ({ file, src } = await openDriveAlbumSource(
-      { id: a.driveFileId, name: a.sourceName || (a.title||'albo'), size: a.sourceSize || 0 },
+    const r = await getDriveAlbumFile(
+      { id: a.driveFileId, name: a.sourceName || (a.title||'albo') },
       (loaded, total)=>{
         const now = Date.now();
         if(now - lastPaint < 250 && (!total || loaded < total)) return;
@@ -433,8 +442,14 @@ export async function openAlbumFromDrive(albumId){
         const mb = n => (n / 1048576).toFixed(1);
         toast('Scarico da Drive… ' + mb(loaded) + (total ? ' / ' + mb(total) + ' MB' : ' MB'), false, true);
       }
-    ));
-  }catch(e){ toast('Impossibile aprire da Drive: '+e.message, true); return; }
+    );
+    file = r.file;
+  }catch(e){ toast('Impossibile scaricare da Drive: '+e.message, true); return; }
+
+  toast('Preparo le pagine…', false, true);
+  let src;
+  try{ src = await extractPagesForFile(file); }
+  catch(e){ toast(e.message, true); return; }
   if(!src.pages.length){ toast('Nessuna pagina trovata dentro l\'albo.', true); return; }
 
   clearPages();
