@@ -509,6 +509,12 @@ export function renderRefsScreen(){
     browserEl.style.display = 'block';
     galleryEl.style.display = 'none';
     if(crumb) crumb.style.display = 'none';
+    // I tab appartengono alla cartella aperta: uscendo vanno nascosti qui,
+    // perché renderFolderTabs() (che se ne occupa) gira solo dentro la
+    // galleria. Senza questo restavano visibili ma orfani dei loro pannelli:
+    // si vedevano "Albi/Ritagli" nell'elenco cartelle, e non cliccabili.
+    const tabs = document.getElementById('refs-tabs');
+    if(tabs) tabs.classList.remove('show');
     renderFolderBrowser();
   } else {
     browserEl.style.display = 'none';

@@ -114,16 +114,23 @@ body.album-reading{overflow:hidden}
 /* Banner di stato DENTRO il lettore: quello della schermata References resta
    nascosto dietro l'overlay a schermo intero, quindi qui ce n'è uno tutto suo
    (conferma ritaglio, errori, "estrazione in corso…") sempre visibile. */
+/* Discreto per costruzione: sta sopra le tavole, quindi resta una targhetta
+   scura e translucida in tinta col chrome del lettore, non una pillola piena
+   che copre il disegno. Il colore lo porta il testo, non il fondo. */
 .ar-toast{
-  position:absolute;top:14px;left:50%;transform:translate(-50%,-8px);
-  max-width:88%;padding:9px 16px;border-radius:20px;
-  font-family:'Nunito',sans-serif;font-size:12.5px;font-weight:700;text-align:center;
+  position:absolute;top:10px;left:50%;transform:translate(-50%,-6px);
+  max-width:82%;padding:6px 14px;border-radius:16px;
+  font-family:'Nunito',sans-serif;font-size:11px;font-weight:700;letter-spacing:.02em;
+  text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  background:rgba(20,18,16,.8);color:var(--sand2);
+  border:1px solid rgba(245,240,232,.15);
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
   opacity:0;pointer-events:none;transition:opacity .18s ease,transform .18s ease;
-  z-index:5;box-shadow:0 3px 12px rgba(0,0,0,.3);
+  z-index:5;box-shadow:0 3px 12px rgba(0,0,0,.35);
 }
 .ar-toast.show{opacity:1;transform:translate(-50%,0)}
-.ar-toast.ok{background:#e2f0d8;color:#4a7a30}
-.ar-toast.error{background:#fbe0da;color:#a83c28}
+.ar-toast.ok{color:#c3e0ac}
+.ar-toast.error{color:#f3b6a8;border-color:rgba(232,72,72,.4)}
 
 /* Frecce: dischi color sabbia con chevron oro, gemelli di quelli della
    galleria reference (.refs-lightbox-nav). Su touch restano nascoste,

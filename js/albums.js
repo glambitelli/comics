@@ -38,6 +38,7 @@ import { haptic } from './state.js';
 let _pages = [];        // [{ name, url (objectURL|null), blob (Blob|null) }]
 let _source = null;     // sorgente pagine dell'albo aperto (vedi zipSource)
 let _prefetchT = null;  // timer del prefetch pagine vicine
+let _openToken = 0;     // identifica l'ultima apertura richiesta (vedi openAlbumFromDrive)
 let _zoom = 1, _zx = 0, _zy = 0;  // stato zoom/pan della tavola a schermo
 let _idx = 0;
 let _albumName = '';
@@ -241,6 +242,9 @@ export async function openAlbumFromFile(file){
   // (match, mismatch, o errore) non deve restare "in attesa" per la prossima.
   const pendingReopen = _pendingReopen;
   _pendingReopen = null;
+  // Anche l'apertura da file locale annulla un eventuale scaricamento da Drive
+  // ancora in corso: vince sempre l'ultimo albo richiesto (vedi _openToken).
+  ++_openToken;
 
   toast('Apro l\'albo…', false, true);
   let src;
@@ -422,8 +426,16 @@ export async function createAlbumFromDriveFile(folderId, driveFile){
 export async function openAlbumFromDrive(albumId){
   const a = getAlbumById(albumId);
   if(!a || !a.driveFileId) return;
+  // Un download può durare minuti: nel frattempo si può tornare indietro e
+  // aprire un altro albo (magari già in cache, quindi immediato). Questo
+  // segnaposto rende l'apertura annullabile: se non è più l'ultima richiesta,
+  // il suo avanzamento smette di scrivere a schermo — prima finiva sopra le
+  // tavole dell'albo che si stava già leggendo — e a fine scaricamento non
+  // scavalca l'albo aperto nel frattempo. Il file resta comunque in cache.
+  const token = ++_openToken;
   toast('Apro l\'albo…', false, true);
   if(!(await ensureDriveConnected())){ toast('Ricollega Google Drive per aprire questo albo.', true); return; }
+  if(token !== _openToken) return;
   // Per LEGGERE si prende il file intero: dalla cache locale se c'è (istantaneo,
   // zero rete), altrimenti un unico download che poi resta in cache. Leggere a
   // richieste di rete separate, una per tavola, sembrava furbo ma su 4G ogni
@@ -437,6 +449,7 @@ export async function openAlbumFromDrive(albumId){
     const r = await getDriveAlbumFile(
       { id: a.driveFileId, name: a.sourceName || (a.title||'albo') },
       (loaded, total)=>{
+        if(token !== _openToken) return; // apertura superata: non disturbare
         const now = Date.now();
         if(now - lastPaint < 250 && (!total || loaded < total)) return;
         lastPaint = now;
@@ -445,12 +458,17 @@ export async function openAlbumFromDrive(albumId){
       }
     );
     file = r.file;
-  }catch(e){ toast('Impossibile scaricare da Drive: '+e.message, true); return; }
+  }catch(e){
+    if(token === _openToken) toast('Impossibile scaricare da Drive: '+e.message, true);
+    return;
+  }
+  if(token !== _openToken) return;
 
   toast('Preparo le pagine…', false, true);
   let src;
   try{ src = await extractPagesForFile(file); }
-  catch(e){ toast(e.message, true); return; }
+  catch(e){ if(token === _openToken) toast(e.message, true); return; }
+  if(token !== _openToken) return;
   if(!src.pages.length){ toast('Nessuna pagina trovata dentro l\'albo.', true); return; }
 
   clearPages();
