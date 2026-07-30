@@ -78,10 +78,9 @@
     <div class="section-sub">references</div>
     <input type="file" id="refs-file-input" accept="image/*" multiple style="display:none"/>
   </div>
-  <!-- Ancora a altezza zero sul bordo inferiore dell'header: l'avatar ci si
-       appoggia (in basso a destra) e il pannello scende da lì, senza offset
-       fragili legati al dispositivo. -->
-  <div class="refs-profile-anchor">
+  <!-- Bollino profilo/Drive, flottante in basso a destra (come il FAB della
+       home); il pannello si apre verso l'alto. -->
+  <div class="refs-profile">
     <button id="refs-profile-btn" class="refs-profile-btn" onclick="window.toggleRefsProfile()" aria-label="Profilo e spazio"></button>
     <div id="refs-profile-panel" class="refs-profile-panel" hidden>
       <div class="rp-head">

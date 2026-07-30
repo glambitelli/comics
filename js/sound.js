@@ -13,8 +13,10 @@
 // Impostazioni). Accesi di default; la preferenza vive in localStorage.
 
 const PREF_KEY = 'inkflow-sfx-enabled';
-const VOLUME = 0.32;               // basso: devono accompagnare, non dominare
-const NAV_MIN_GAP = 60;            // ms: evita raffiche di tick se l'intento 'tap' parte in rapida sequenza
+// Volume per intento: il tick di navigazione resta discreto, conferma e
+// ricompensa un po' più presenti perché sono momenti, non accompagnamento.
+const VOLUME = { tap: 0.55, done: 0.85, reward: 0.95, cancel: 0.7 };
+const NAV_MIN_GAP = 70;            // ms: fonde il tick diffuso con l'eventuale haptic('tap') dello stesso gesto ed evita raffiche
 
 // Un file per ciascun intento di haptic(): 'tap' navigazione, 'done' conferma,
 // 'reward' il momento clou (serata completata). 'cancel' è pronto per un
@@ -76,6 +78,20 @@ function unlockAudio(){
   ['pointerdown','touchstart','keydown'].forEach(ev=>window.addEventListener(ev, once, { passive:true }));
 })();
 
+// Tick di navigazione DIFFUSO: un tocco su un elemento interattivo fa il suono
+// di menu, come nelle UI da console. Prima suonavano solo i ~16 punti che
+// chiamano haptic(), cioè quasi nulla navigando. La soglia NAV_MIN_GAP fonde
+// questo tick con l'eventuale haptic('tap') dello stesso gesto: niente doppio.
+// Escludiamo i campi di testo (un tocco per scrivere non deve ticchettare).
+function isInteractive(el){
+  if(!el || el.nodeType !== 1) return false;
+  if(el.closest('input, textarea, select, [contenteditable="true"]')) return false;
+  return !!el.closest('button, a[href], [role="button"], [onclick], .refs-thumb, .album-card, .refs-folder-row, .step-item');
+}
+document.addEventListener('pointerdown', e=>{
+  if(isInteractive(e.target)) playSfx('tap');
+}, { passive:true });
+
 // Riproduce il suono di un intento, se i suoni sono accesi. Fire-and-forget:
 // non attende nulla, non blocca l'azione che l'ha innescato.
 export function playSfx(intent){
@@ -98,7 +114,7 @@ export function playSfx(intent){
       const src = ctx.createBufferSource();
       src.buffer = buf;
       const gain = ctx.createGain();
-      gain.gain.value = VOLUME;
+      gain.gain.value = VOLUME[key] != null ? VOLUME[key] : 0.6;
       src.connect(gain).connect(ctx.destination);
       src.start(0);
     }catch(e){}

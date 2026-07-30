@@ -586,29 +586,27 @@ const PHONE_ICO = `<svg viewBox="0 0 24 24" width="11" height="11"><rect x="7" y
 // Avatar tondo in alto a destra, alla Google: iniziale dell'account su disco
 // azzurro quando Drive è collegato, sagoma neutra quando no. Toccandolo si
 // apre il pannello con stato Drive e spazio Cloudinary.
-const PERSON_ICO = `<svg viewBox="0 0 24 24" width="18" height="18"><circle cx="12" cy="8.5" r="3.4" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M5.5 19c.6-3.2 3.2-5 6.5-5s5.9 1.8 6.5 5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>`;
+// Glifo a nuvola: evoca lo storage/Drive senza il logo Google. Il pallino
+// verde (via CSS ::after) segnala "collegato" senza bisogno di testo.
+const CLOUD_ICO = `<svg viewBox="0 0 24 24" width="22" height="22"><path d="M7.2 18.5h9.4a3.6 3.6 0 0 0 .35-7.18 5.1 5.1 0 0 0-9.78-1.2A4 4 0 0 0 7.2 18.5Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>`;
 
 function renderProfile(){
   updateStorageIndicator();
 
-  const btn = document.getElementById('refs-profile-btn');
   const connected = isDriveConfigured() && isDriveConnected();
   const email = connected ? driveAccountEmail() : '';
+
+  const btn = document.getElementById('refs-profile-btn');
   if(btn){
     btn.classList.toggle('connected', connected);
-    btn.innerHTML = (connected && email)
-      ? `<span class="rp-initial">${esc(email.trim().charAt(0).toUpperCase() || '?')}</span>`
-      : PERSON_ICO;
+    btn.innerHTML = CLOUD_ICO;
   }
 
-  // Testata del pannello: identità dell'account (o "Non collegato").
+  // Testata del pannello: nuvola + identità dell'account (o "Non collegato").
   const avatar = document.getElementById('rp-avatar');
   const name = document.getElementById('rp-id-name');
   const sub = document.getElementById('rp-id-sub');
-  if(avatar) avatar.innerHTML = (connected && email)
-    ? `<span class="rp-initial">${esc(email.trim().charAt(0).toUpperCase() || '?')}</span>`
-    : PERSON_ICO;
-  if(avatar) avatar.classList.toggle('connected', connected);
+  if(avatar){ avatar.innerHTML = CLOUD_ICO; avatar.classList.toggle('connected', connected); }
   if(name) name.textContent = connected ? (email || 'Account Drive') : 'Nessun account';
   if(sub) sub.textContent = connected ? 'Google Drive collegato' : 'Drive non collegato';
 
