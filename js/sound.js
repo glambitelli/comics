@@ -15,7 +15,7 @@
 const PREF_KEY = 'inkflow-sfx-enabled';
 // Volume per intento: il tick di navigazione resta discreto, conferma e
 // ricompensa un po' più presenti perché sono momenti, non accompagnamento.
-const VOLUME = { tap: 0.55, done: 0.85, reward: 0.95, cancel: 0.7 };
+const VOLUME = { tap: 0.38, done: 0.6, reward: 0.72, cancel: 0.5 };
 const NAV_MIN_GAP = 70;            // ms: fonde il tick diffuso con l'eventuale haptic('tap') dello stesso gesto ed evita raffiche
 
 // Un file per ciascun intento di haptic(): 'tap' navigazione, 'done' conferma,

@@ -139,10 +139,43 @@ body.is-touch .ar-nav{display:none} /* su mobile si naviga con swipe/tap */
 }
 
 .ar-bottombar{
-  display:flex;align-items:center;justify-content:center;gap:14px;
-  padding:10px 14px;background:rgba(20,18,16,.94);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
+  padding:9px 16px 10px;background:rgba(20,18,16,.94);
   border-top:1px solid rgba(255,255,255,.07);flex-shrink:0;min-height:40px;
 }
+.ar-controls{width:100%;display:flex;flex-direction:column;align-items:center;gap:7px}
+.ar-controls[hidden]{display:none}
+.ar-controls-row{display:flex;align-items:center;justify-content:center;gap:14px}
+
+/* Salto a inizio/fine: gemelli discreti dei bottoni in alto, ma senza il
+   disco pieno — qui la barra è già scura e affollata. */
+.ar-jump{
+  width:32px;height:32px;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  background:transparent;border:1px solid rgba(245,240,232,.18);border-radius:50%;
+  color:var(--sand2);cursor:pointer;padding:0;transition:background .15s,color .15s,opacity .15s,transform .1s;
+}
+.ar-jump:hover:not(:disabled){background:rgba(245,240,232,.1);color:var(--sand)}
+.ar-jump:active:not(:disabled){transform:scale(.9)}
+.ar-jump:disabled{opacity:.28;cursor:default}
+
+/* Cursore di scorrimento: raggiungere una tavola precisa in un volume da
+   centinaia di pagine senza sfogliare all'infinito. */
+.ar-seek{
+  -webkit-appearance:none;appearance:none;width:100%;height:16px;
+  background:transparent;cursor:pointer;margin:0;
+}
+.ar-seek::-webkit-slider-runnable-track{height:3px;border-radius:2px;background:rgba(245,240,232,.2)}
+.ar-seek::-moz-range-track{height:3px;border-radius:2px;background:rgba(245,240,232,.2)}
+.ar-seek::-webkit-slider-thumb{
+  -webkit-appearance:none;appearance:none;width:13px;height:13px;border-radius:50%;
+  background:var(--gold);border:none;margin-top:-5px;
+  box-shadow:0 1px 4px rgba(0,0,0,.5);transition:transform .12s;
+}
+.ar-seek::-moz-range-thumb{
+  width:13px;height:13px;border-radius:50%;background:var(--gold);border:none;
+  box-shadow:0 1px 4px rgba(0,0,0,.5);
+}
+.ar-seek:active::-webkit-slider-thumb{transform:scale(1.25)}
 /* Numeri sempre a larghezza fissa (zero-padding lato JS): niente più "salto"
    visivo passando da una a due cifre, come in un vero contapagine da lettore. */
 .ar-counter{

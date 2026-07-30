@@ -526,7 +526,7 @@ function buildReaderDOM(){
     </div>
     <div class="ar-stage">
       <div class="ar-toast"></div>
-      <img class="ar-img" alt="">
+      <img class="ar-img" alt="" decoding="async">
       <div class="ar-cliplayer" hidden><div class="ar-clipbox" hidden></div></div>
       <button class="ar-nav ar-prev" aria-label="Precedente" data-act="prev">
         <svg viewBox="0 0 24 24" width="22" height="22"><path d="M15 5 L8 12 L15 19" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -536,7 +536,18 @@ function buildReaderDOM(){
       </button>
     </div>
     <div class="ar-bottombar">
-      <span class="ar-counter"></span>
+      <div class="ar-controls">
+        <input class="ar-seek" type="range" min="0" value="0" step="1" aria-label="Vai alla pagina">
+        <div class="ar-controls-row">
+          <button class="ar-jump" data-act="first" aria-label="Prima pagina" title="Prima pagina">
+            <svg viewBox="0 0 24 24" width="17" height="17"><path d="M18 5 L10 12 L18 19" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/><path d="M7 5.5v13" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"/></svg>
+          </button>
+          <span class="ar-counter"></span>
+          <button class="ar-jump" data-act="last" aria-label="Ultima pagina" title="Ultima pagina">
+            <svg viewBox="0 0 24 24" width="17" height="17"><path d="M6 5 L14 12 L6 19" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/><path d="M17 5.5v13" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+      </div>
       <div class="ar-clip-hint" hidden>Trascina un riquadro sulla pagina · <button class="ar-cancelclip" data-act="cancelclip">annulla</button></div>
     </div>`;
   document.body.appendChild(ov);
@@ -549,6 +560,8 @@ function buildReaderDOM(){
     else if(act === 'prev') gotoPage(_idx - 1);
     else if(act === 'next') gotoPage(_idx + 1);
     else if(act === 'clip') toggleClip();
+    else if(act === 'first') gotoPage(0);
+    else if(act === 'last') gotoPage(_pages.length - 1);
     else if(act === 'cancelclip') toggleClip(false);
   });
 
@@ -561,6 +574,7 @@ function buildReaderDOM(){
     else if(e.key === 'Escape'){ if(_clipMode) toggleClip(false); else closeReader(); }
   });
 
+  wireSeek(ov);
   wireGestures(ov);
   wireClip(ov);
   _reader = ov;
@@ -609,6 +623,13 @@ export function closeReaderUI(){
 // dipendono dal byte della tavola); l'immagine arriva quando arriva. Se nel
 // frattempo si è già cambiata pagina (swipe veloce), il risultato in ritardo
 // viene scartato invece di rimpiazzare quella giusta con quella sbagliata.
+// Il prefetch gira quando il thread è libero: requestIdleCallback se c'è,
+// altrimenti un timer. Decomprimere una tavola è lavoro sincrono e, fatto nel
+// momento sbagliato, si sente come uno scatto mentre si sfoglia.
+const whenIdle = (fn, timeout=600)=>
+  (window.requestIdleCallback ? requestIdleCallback(fn, { timeout }) : setTimeout(fn, 90));
+const cancelIdle = (h)=>{ if(h==null) return; (window.cancelIdleCallback||clearTimeout)(h); };
+
 async function renderPage(){
   if(!_reader || !_pages.length) return;
   const idx = _idx;
@@ -617,26 +638,38 @@ async function renderPage(){
   _reader.querySelector('.ar-counter').textContent = String(idx + 1).padStart(pad, '0') + ' / ' + _pages.length;
   _reader.querySelector('.ar-prev').style.visibility = idx > 0 ? 'visible' : 'hidden';
   _reader.querySelector('.ar-next').style.visibility = idx < _pages.length - 1 ? 'visible' : 'hidden';
+  // Cursore e salti: aggiornati subito, non dipendono dai byte della tavola.
+  const seek = _reader.querySelector('.ar-seek');
+  if(seek && !seek._dragging){
+    seek.max = String(Math.max(0, _pages.length - 1));
+    seek.value = String(idx);
+  }
+  const first = _reader.querySelector('[data-act="first"]');
+  const last = _reader.querySelector('[data-act="last"]');
+  if(first) first.disabled = idx === 0;
+  if(last) last.disabled = idx >= _pages.length - 1;
 
   const url = await pageUrl(_source, _pages[idx]);
   if(idx !== _idx || !_reader) return; // pagina cambiata nel frattempo: scarta
-  _reader.querySelector('.ar-img').src = url;
+  const img = _reader.querySelector('.ar-img');
+  img.src = url;
+  measureBaseSize();   // dimensioni a riposo, per lo zoom senza ricalcoli
 
-  // Prefetch dei vicini RINVIATO a thread/rete libera: con la sorgente pigra
-  // ognuno costa una decompressione (o una richiesta Drive), e farlo subito
+  // Prefetch dei vicini RINVIATO a thread libero: con la sorgente pigra ognuno
+  // costa una decompressione (o una richiesta Drive), e farlo subito
   // ritarderebbe la comparsa della pagina che si sta guardando adesso.
-  // Sfogliando veloce il timer si azzera e si prefetcha solo dove ci si ferma.
-  clearTimeout(_prefetchT);
-  _prefetchT = setTimeout(async ()=>{
+  // Sfogliando veloce si annulla e si prefetcha solo dove ci si ferma.
+  cancelIdle(_prefetchT);
+  _prefetchT = whenIdle(async ()=>{
     for(const i of [idx + 1, idx - 1]){
       if(i < 0 || i >= _pages.length) continue;
       const u = await pageUrl(_source, _pages[i]);
       // Solo se è ancora un vicino della pagina corrente: se nel frattempo
       // si è saltato altrove, questo prefetch non serve più a nulla.
-      if(Math.abs(i - _idx) <= 1){ const im = new Image(); im.src = u; }
+      if(Math.abs(i - _idx) <= 1){ const im = new Image(); im.decoding = 'async'; im.src = u; }
     }
     trimPages();
-  }, 90);
+  });
 }
 
 function gotoPage(i){
@@ -675,15 +708,29 @@ function resetZoom(animate){
   applyZoom();
 }
 
+// Dimensioni della tavola a riposo (scala 1), misurate una volta per pagina.
+// Prima clampPan chiamava getBoundingClientRect() ad OGNI movimento del dito:
+// una misura forzata del layout per evento, cioè scatti proprio mentre si
+// trascina. Con le dimensioni base in cache il limite si calcola a memoria.
+let _baseW = 0, _baseH = 0;
+function measureBaseSize(){
+  const img = readerImg();
+  if(!img) return;
+  const apply = ()=>{
+    const r = img.getBoundingClientRect();
+    _baseW = r.width / (_zoom || 1);
+    _baseH = r.height / (_zoom || 1);
+  };
+  if(img.complete && img.naturalWidth) apply();
+  else img.addEventListener('load', apply, { once: true });
+}
+
 // Limita lo spostamento ai bordi della tavola: non si "perde" mai l'immagine
 // fuori dallo schermo trascinando troppo.
 function clampPan(scale, x, y){
-  const img = readerImg();
-  if(!img) return { x, y };
-  const r = img.getBoundingClientRect();
-  const baseW = r.width / scale, baseH = r.height / scale;
-  const maxX = Math.max(0, (baseW * scale - baseW) / 2);
-  const maxY = Math.max(0, (baseH * scale - baseH) / 2);
+  if(!_baseW || !_baseH) measureBaseSize();
+  const maxX = Math.max(0, (_baseW * scale - _baseW) / 2);
+  const maxY = Math.max(0, (_baseH * scale - _baseH) / 2);
   return { x: Math.min(maxX, Math.max(-maxX, x)), y: Math.min(maxY, Math.max(-maxY, y)) };
 }
 
@@ -700,6 +747,29 @@ function zoomAt(clientX, clientY){
   const c = clampPan(_zoom, -relX * (ZOOM_IN - 1), -relY * (ZOOM_IN - 1));
   _zx = c.x; _zy = c.y;
   applyZoom();
+}
+
+// Cursore di scorrimento: con volumi da centinaia di tavole, raggiungere un
+// punto preciso a colpi di swipe è sfiancante. Durante il trascinamento si
+// aggiorna solo il contatore (nessuna decompressione a ogni pixel); la pagina
+// si carica al rilascio.
+function wireSeek(ov){
+  const seek = ov.querySelector('.ar-seek');
+  if(!seek) return;
+  const preview = (v)=>{
+    const n = _pages.length;
+    if(!n) return;
+    const pad = String(n).length;
+    ov.querySelector('.ar-counter').textContent = String(v + 1).padStart(pad, '0') + ' / ' + n;
+  };
+  seek.addEventListener('pointerdown', ()=>{ seek._dragging = true; });
+  seek.addEventListener('input', ()=> preview(parseInt(seek.value, 10) || 0));
+  const commit = ()=>{
+    seek._dragging = false;
+    gotoPage(parseInt(seek.value, 10) || 0);
+  };
+  seek.addEventListener('change', commit);
+  seek.addEventListener('pointerup', commit);
 }
 
 function wireGestures(ov){
@@ -846,6 +916,9 @@ function toggleClip(force){
   layer.hidden = !_clipMode;
   hint.hidden = !_clipMode;
   box.hidden = true;
+  // In ritaglio la navigazione non serve: via cursore e salti, resta l'avviso.
+  const controls = _reader.querySelector('.ar-controls');
+  if(controls) controls.hidden = _clipMode;
   _reader.querySelector('.ar-prev').style.display = _clipMode ? 'none' : '';
   _reader.querySelector('.ar-next').style.display = _clipMode ? 'none' : '';
   if(_clipMode) haptic('tap');
@@ -878,10 +951,14 @@ function wireClip(ov){
   const box = ov.querySelector('.ar-clipbox');
   const img = ov.querySelector('.ar-img');
   let sx = 0, sy = 0, drawing = false;
+  // Il rettangolo del livello si misura all'inizio del gesto e si riusa: prima
+  // veniva rimisurato ad ogni movimento (una misura forzata del layout per
+  // evento), e il riquadro seguiva il dito a scatti.
+  let lr = null;
 
   const start = (px, py)=>{
-    const r = layer.getBoundingClientRect();
-    sx = px - r.left; sy = py - r.top;
+    lr = layer.getBoundingClientRect();
+    sx = px - lr.left; sy = py - lr.top;
     drawing = true;
     box.hidden = false;
     box.style.left = sx + 'px'; box.style.top = sy + 'px';
@@ -889,7 +966,7 @@ function wireClip(ov){
   };
   const move = (px, py)=>{
     if(!drawing) return;
-    const r = layer.getBoundingClientRect();
+    const r = lr || (lr = layer.getBoundingClientRect());
     const cx = Math.max(0, Math.min(px - r.left, r.width));
     const cy = Math.max(0, Math.min(py - r.top, r.height));
     box.style.left = Math.min(sx, cx) + 'px';

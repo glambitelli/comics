@@ -656,12 +656,16 @@ function renderAlbumsShelf(){
 
   if(!list.length){
     grid.innerHTML = '';
+    grid.dataset.sig = '';
     grid.style.display = 'none';
     if(empty) empty.style.display = 'flex';
     return;
   }
   if(empty) empty.style.display = 'none';
   grid.style.display = 'grid';
+  const sig = list.map(a=>[a.id,a.cover,a.title,a.pageCount,a.driveFileId].join(':')).join('|');
+  if(grid.dataset.sig === sig) return;
+  grid.dataset.sig = sig;
   grid.innerHTML = list.map(a=>{
     const isDrive = !!a.driveFileId;
     const badge = isDrive
@@ -723,7 +727,10 @@ function renderFolderBrowser(){
     <span>Nuova cartella</span>
   </button>`;
 
-  el.innerHTML = html;
+  // Confronto sul contenuto vero: una firma "furba" (es. la lunghezza) manca
+  // i casi in cui cambia il testo ma non la misura, tipo una cartella
+  // rinominata con un nome della stessa lunghezza.
+  if(el._html !== html){ el._html = html; el.innerHTML = html; }
 }
 
 export function refsFolderMenu(id, btnEl){
@@ -754,14 +761,23 @@ export function renderRefsGrid(){
 
   if(!list.length){
     grid.innerHTML='';
+    grid.dataset.sig = '';
     if(empty) empty.style.display='flex';
     return;
   }
   if(empty) empty.style.display='none';
 
+  // I tre listener Firestore chiamano renderRefsScreen ad OGNI modifica, anche
+  // di un campo che qui non si vede: ricostruire l'HTML rifà da capo tutte le
+  // miniature (nuovi <img>, decodifica, sfarfallio). Se il contenuto mostrato
+  // è identico non tocchiamo niente.
+  const sig = list.map(r=>r.id+':'+r.url).join('|');
+  if(grid.dataset.sig === sig) return;
+  grid.dataset.sig = sig;
+
   grid.innerHTML = list.map(r=>`
     <div class="refs-thumb" data-id="${r.id}">
-      <img src="${r.url}" loading="lazy" alt=""/>
+      <img src="${r.url}" loading="lazy" decoding="async" alt=""/>
     </div>
   `).join('');
 
