@@ -76,28 +76,33 @@
   <div class="refs-header">
     <div class="section-title" onclick="goHomeFromLogo()" style="cursor:pointer" role="button" tabindex="0" aria-label="Torna alla home">Inkflow <span style="font-size:.6em;color:#f0c020;vertical-align:.14em;font-weight:400">✦</span></div>
     <div class="section-sub">references</div>
-    <button id="refs-profile-btn" class="refs-profile-btn" onclick="window.toggleRefsProfile()" aria-label="Profilo e spazio"></button>
     <input type="file" id="refs-file-input" accept="image/*" multiple style="display:none"/>
   </div>
-  <div id="refs-profile-backdrop" class="refs-profile-backdrop" hidden onclick="window.closeRefsProfile()"></div>
-  <div id="refs-profile-panel" class="refs-profile-panel" hidden>
-    <div class="rp-head">
-      <div class="rp-avatar" id="rp-avatar"></div>
-      <div class="rp-id">
-        <div class="rp-id-name" id="rp-id-name">Profilo</div>
-        <div class="rp-id-sub" id="rp-id-sub"></div>
+  <!-- Ancora a altezza zero sul bordo inferiore dell'header: l'avatar ci si
+       appoggia (in basso a destra) e il pannello scende da lì, senza offset
+       fragili legati al dispositivo. -->
+  <div class="refs-profile-anchor">
+    <button id="refs-profile-btn" class="refs-profile-btn" onclick="window.toggleRefsProfile()" aria-label="Profilo e spazio"></button>
+    <div id="refs-profile-panel" class="refs-profile-panel" hidden>
+      <div class="rp-head">
+        <div class="rp-avatar" id="rp-avatar"></div>
+        <div class="rp-id">
+          <div class="rp-id-name" id="rp-id-name">Profilo</div>
+          <div class="rp-id-sub" id="rp-id-sub"></div>
+        </div>
+      </div>
+      <div class="rp-section">
+        <div class="rp-section-label">Google Drive</div>
+        <div id="rp-drive"></div>
+      </div>
+      <div class="rp-section">
+        <div class="rp-section-label">Spazio immagini</div>
+        <div class="rp-storage-line"><span id="rp-storage-label">—</span></div>
+        <div class="rp-storage-track"><div id="rp-storage-fill" class="rp-storage-fill" style="width:0%"></div></div>
       </div>
     </div>
-    <div class="rp-section">
-      <div class="rp-section-label">Google Drive</div>
-      <div id="rp-drive"></div>
-    </div>
-    <div class="rp-section">
-      <div class="rp-section-label">Spazio immagini</div>
-      <div class="rp-storage-line"><span id="rp-storage-label">—</span></div>
-      <div class="rp-storage-track"><div id="rp-storage-fill" class="rp-storage-fill" style="width:0%"></div></div>
-    </div>
   </div>
+  <div id="refs-profile-backdrop" class="refs-profile-backdrop" hidden onclick="window.closeRefsProfile()"></div>
   <div id="refs-upload-status" class="refs-upload-status"></div>
   <div id="refs-breadcrumb" class="refs-breadcrumb" onclick="openFolderBrowser()" style="display:none">
     <span class="refs-breadcrumb-back">‹</span>

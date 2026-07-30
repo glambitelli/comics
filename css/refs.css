@@ -83,20 +83,24 @@ body.is-touch .refs-lightbox-nav{display:none}
 /* ── PROFILO: avatar in alto a destra + pannello (stile "account Google") ──
    Raccoglie stato Drive e spazio Cloudinary, unici per tutta l'app: tolti
    dal flusso di References, che così resta pulito. */
+/* Ancora a altezza zero sul bordo inferiore dell'header: tutto ciò che
+   contiene si posiziona rispetto a quel bordo, senza offset da indovinare. */
+.refs-profile-anchor{position:relative;height:0;z-index:6}
 .refs-profile-btn{
-  position:absolute;top:calc(24px + var(--safe-top));right:22px;z-index:3;
+  position:absolute;top:-19px;right:18px;
   width:38px;height:38px;border-radius:50%;cursor:pointer;
   display:flex;align-items:center;justify-content:center;
-  background:var(--sand2);border:1.5px solid var(--sand3);color:var(--ink3);
+  background:var(--sand2);border:2px solid var(--white);color:var(--ink3);
+  box-shadow:0 2px 8px rgba(26,20,16,.18);
   transition:transform .12s,box-shadow .15s;
 }
 .refs-profile-btn:active{transform:scale(.92)}
-.refs-profile-btn.connected{background:var(--sky-deep);border-color:var(--sky-deep);color:var(--white);box-shadow:0 2px 8px rgba(42,136,184,.35)}
+.refs-profile-btn.connected{background:var(--sky-deep);color:var(--white);box-shadow:0 2px 10px rgba(42,136,184,.4)}
 .rp-initial{font-family:'Nunito',sans-serif;font-weight:800;font-size:16px;line-height:1}
 
 .refs-profile-backdrop{position:fixed;inset:0;z-index:230;background:transparent}
 .refs-profile-panel{
-  position:absolute;top:calc(60px + var(--safe-top));right:16px;z-index:240;
+  position:absolute;top:26px;right:14px;z-index:240;
   width:min(300px,calc(100vw - 32px));
   background:var(--white);border-radius:16px;overflow:hidden;
   box-shadow:0 16px 44px rgba(26,20,16,.3);border:1px solid var(--sand2);
