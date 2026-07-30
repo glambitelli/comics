@@ -548,7 +548,13 @@ function buildReaderDOM(){
           </button>
         </div>
       </div>
-      <div class="ar-clip-hint" hidden>Trascina un riquadro sulla pagina · <button class="ar-cancelclip" data-act="cancelclip">annulla</button></div>
+      <div class="ar-clip-hint" hidden>
+        <span class="ar-clip-hint-instruct">Trascina un riquadro sulla pagina · <button class="ar-cancelclip" data-act="cancelclip">annulla</button></span>
+        <span class="ar-clip-hint-confirm" hidden>
+          <button class="ar-cancelclip" data-act="retryclip">Riprova</button>
+          <button class="ar-clip-confirm-btn" data-act="confirmclip">✓ Conferma ritaglio</button>
+        </span>
+      </div>
     </div>`;
   document.body.appendChild(ov);
 
@@ -563,6 +569,8 @@ function buildReaderDOM(){
     else if(act === 'first') gotoPage(0);
     else if(act === 'last') gotoPage(_pages.length - 1);
     else if(act === 'cancelclip') toggleClip(false);
+    else if(act === 'retryclip'){ if(ov._clipRetry) ov._clipRetry(); }
+    else if(act === 'confirmclip'){ if(ov._clipConfirm) ov._clipConfirm(); }
   });
 
   // Tap sul centro dell'immagine (fuori clip) = avanti; bordo sinistro = indietro.
@@ -905,10 +913,11 @@ function wireGestures(ov){
 function toggleClip(force){
   const next = (typeof force === 'boolean') ? force : !_clipMode;
   _clipMode = next;
-  // Il crop mappa i pixel schermo → pixel reali sull'immagine NON trasformata:
-  // si ritaglia quindi sempre a pagina intera, con lo zoom azzerato (i gesti
-  // di zoom restano inerti finché si è in ritaglio).
-  if(_clipMode) resetZoom();
+  // Lo zoom NON si azzera più entrando in ritaglio: il conto del crop usa le
+  // posizioni reali a schermo di tavola e riquadro (getBoundingClientRect,
+  // vedi renderedImageRect), che includono già scala e spostamento — quindi
+  // funziona correttamente anche da zoomati, permettendo di ritagliare un
+  // dettaglio piccolo con più precisione.
   const layer = _reader.querySelector('.ar-cliplayer');
   const hint = _reader.querySelector('.ar-clip-hint');
   const box = _reader.querySelector('.ar-clipbox');
@@ -950,13 +959,26 @@ function wireClip(ov){
   const layer = ov.querySelector('.ar-cliplayer');
   const box = ov.querySelector('.ar-clipbox');
   const img = ov.querySelector('.ar-img');
+  const hintInstruct = ov.querySelector('.ar-clip-hint-instruct');
+  const hintConfirm = ov.querySelector('.ar-clip-hint-confirm');
   let sx = 0, sy = 0, drawing = false;
   // Il rettangolo del livello si misura all'inizio del gesto e si riusa: prima
   // veniva rimisurato ad ogni movimento (una misura forzata del layout per
   // evento), e il riquadro seguiva il dito a scatti.
   let lr = null;
+  // Riquadro disegnato in attesa di conferma: rilasciare il dito non salva più
+  // subito. Prima lo faceva, e "annulla" non poteva mai tornare indietro da un
+  // ritaglio già fatto — poteva solo uscire dalla modalità PRIMA di disegnare.
+  let pendingSel = null;
+
+  const showConfirm = (on)=>{
+    if(hintInstruct) hintInstruct.hidden = on;
+    if(hintConfirm) hintConfirm.hidden = !on;
+  };
 
   const start = (px, py)=>{
+    pendingSel = null;
+    showConfirm(false);
     lr = layer.getBoundingClientRect();
     sx = px - lr.left; sy = py - lr.top;
     drawing = true;
@@ -978,9 +1000,23 @@ function wireClip(ov){
     if(!drawing) return; drawing = false;
     const bw = parseFloat(box.style.width), bh = parseFloat(box.style.height);
     if(bw < 12 || bh < 12){ box.hidden = true; toast('Trascina un riquadro più grande sulla pagina.', true); return; }
-    commitClip(img, {
-      left: parseFloat(box.style.left), top: parseFloat(box.style.top), width: bw, height: bh
-    }, layer);
+    // Il riquadro RESTA a schermo: si decide con "Conferma" o "Riprova".
+    pendingSel = { left: parseFloat(box.style.left), top: parseFloat(box.style.top), width: bw, height: bh };
+    showConfirm(true);
+  };
+  // Richiamate dal tap su "Riprova"/"✓ Conferma" (vedi il click delegato più sopra).
+  ov._clipRetry = ()=>{
+    pendingSel = null;
+    box.hidden = true;
+    showConfirm(false);
+  };
+  ov._clipConfirm = async ()=>{
+    if(!pendingSel) return;
+    const sel = pendingSel;
+    pendingSel = null;
+    showConfirm(false);
+    await commitClip(img, sel, layer);
+    box.hidden = true;
   };
 
   layer.addEventListener('mousedown', e=>{ e.preventDefault(); start(e.clientX, e.clientY); });
