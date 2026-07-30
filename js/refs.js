@@ -485,9 +485,11 @@ export async function promptDeleteFolder(id){
 // dimensione che è stata davvero inviata), non un valore letto in tempo reale.
 const CLOUDINARY_FREE_BYTES = 25 * 1024 * 1024 * 1024;
 
+// Spazio Cloudinary, ora dentro il pannello profilo (non più una barra fissa
+// sotto l'header): l'interfaccia References resta più pulita.
 function updateStorageIndicator(){
-  const label = document.getElementById('refs-storage-label');
-  const fill = document.getElementById('refs-storage-fill');
+  const label = document.getElementById('rp-storage-label');
+  const fill = document.getElementById('rp-storage-fill');
   if(!label || !fill) return;
   const used = _refs.reduce((sum,r)=> sum + (typeof r.bytes==='number' ? r.bytes : 0), 0);
   const mb = used / (1024*1024);
@@ -499,11 +501,9 @@ function updateStorageIndicator(){
 
 // ── RENDER: DISPATCHER ──
 export function renderRefsScreen(){
-  updateStorageIndicator();
-  // Il collegamento a Drive è UNO per tutta l'app (il token è globale): la sua
-  // riga vive quindi a livello di References, visibile in ogni vista. Stava
-  // dentro il tab Albi di una cartella, e sembrava legata a quella cartella.
-  renderDriveRow();
+  // Profilo (avatar in alto a destra + pannello): raccoglie stato Drive e
+  // spazio Cloudinary, unici per tutta l'app, così non ingombrano ogni vista.
+  renderProfile();
   const browserEl = document.getElementById('refs-folder-browser');
   const galleryEl = document.getElementById('refs-gallery-view');
   const crumb = document.getElementById('refs-breadcrumb');
@@ -582,18 +582,70 @@ const DRIVE_ICO = `<svg viewBox="0 0 24 24" width="12" height="12"><path d="M12 
 // altro dispositivo non ci sono. Il badge lo dice a colpo d'occhio.
 const PHONE_ICO = `<svg viewBox="0 0 24 24" width="11" height="11"><rect x="7" y="3" width="10" height="18" rx="2.2" fill="none" stroke="currentColor" stroke-width="1.7"/><line x1="10.5" y1="18" x2="13.5" y2="18" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>`;
 
-// ── RENDER: RIGA STATO GOOGLE DRIVE ──
-function renderDriveRow(){
-  const el = document.getElementById('refs-drive-row');
-  if(!el) return;
-  if(!isDriveConfigured()){ el.style.display = 'none'; return; }
-  el.style.display = 'flex';
-  if(isDriveConnected()){
-    const email = driveAccountEmail();
-    el.innerHTML = `<span class="drive-status-connected">${DRIVE_ICO} Drive collegato${email ? ' · '+esc(email) : ''}</span>
-      <button class="drive-disconnect-btn" onclick="window.disconnectDriveUI()">Scollega</button>`;
-  } else {
-    el.innerHTML = `<button class="drive-connect-btn" onclick="window.connectDriveAndSync()">${DRIVE_ICO} Connetti Google Drive</button>`;
+// ── RENDER: PROFILO (avatar + pannello) ──
+// Avatar tondo in alto a destra, alla Google: iniziale dell'account su disco
+// azzurro quando Drive è collegato, sagoma neutra quando no. Toccandolo si
+// apre il pannello con stato Drive e spazio Cloudinary.
+const PERSON_ICO = `<svg viewBox="0 0 24 24" width="18" height="18"><circle cx="12" cy="8.5" r="3.4" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M5.5 19c.6-3.2 3.2-5 6.5-5s5.9 1.8 6.5 5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>`;
+
+function renderProfile(){
+  updateStorageIndicator();
+
+  const btn = document.getElementById('refs-profile-btn');
+  const connected = isDriveConfigured() && isDriveConnected();
+  const email = connected ? driveAccountEmail() : '';
+  if(btn){
+    btn.classList.toggle('connected', connected);
+    btn.innerHTML = (connected && email)
+      ? `<span class="rp-initial">${esc(email.trim().charAt(0).toUpperCase() || '?')}</span>`
+      : PERSON_ICO;
+  }
+
+  // Testata del pannello: identità dell'account (o "Non collegato").
+  const avatar = document.getElementById('rp-avatar');
+  const name = document.getElementById('rp-id-name');
+  const sub = document.getElementById('rp-id-sub');
+  if(avatar) avatar.innerHTML = (connected && email)
+    ? `<span class="rp-initial">${esc(email.trim().charAt(0).toUpperCase() || '?')}</span>`
+    : PERSON_ICO;
+  if(avatar) avatar.classList.toggle('connected', connected);
+  if(name) name.textContent = connected ? (email || 'Account Drive') : 'Nessun account';
+  if(sub) sub.textContent = connected ? 'Google Drive collegato' : 'Drive non collegato';
+
+  // Sezione Drive: azione connetti/scollega.
+  const drive = document.getElementById('rp-drive');
+  if(drive){
+    if(!isDriveConfigured()){
+      drive.innerHTML = `<div class="rp-note">Google Drive non ancora configurato.</div>`;
+    } else if(connected){
+      drive.innerHTML = `<button class="rp-btn rp-btn-ghost" onclick="window.disconnectDriveUI()">Scollega</button>`;
+    } else {
+      drive.innerHTML = `<button class="rp-btn rp-btn-primary" onclick="window.connectDriveAndSync()">${DRIVE_ICO} Connetti Google Drive</button>`;
+    }
+  }
+}
+
+// Apertura/chiusura del pannello profilo.
+export function toggleRefsProfile(){
+  const panel = document.getElementById('refs-profile-panel');
+  const back = document.getElementById('refs-profile-backdrop');
+  if(!panel) return;
+  const open = !panel.classList.contains('open');
+  renderProfile(); // rinfresca prima di mostrarlo
+  panel.hidden = false; if(back) back.hidden = false;
+  requestAnimationFrame(()=>{
+    panel.classList.toggle('open', open);
+    if(back) back.classList.toggle('open', open);
+    if(!open) setTimeout(()=>{ panel.hidden = true; if(back) back.hidden = true; }, 180);
+  });
+}
+export function closeRefsProfile(){
+  const panel = document.getElementById('refs-profile-panel');
+  const back = document.getElementById('refs-profile-backdrop');
+  if(panel && panel.classList.contains('open')){
+    panel.classList.remove('open');
+    if(back) back.classList.remove('open');
+    setTimeout(()=>{ panel.hidden = true; if(back) back.hidden = true; }, 180);
   }
 }
 

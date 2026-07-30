@@ -80,12 +80,58 @@
 body.is-touch .refs-lightbox-nav{display:none}
 
 /* ── SPAZIO OCCUPATO — piano gratuito Firestore (1GB) ── */
-.refs-storage-bar{background:var(--sand);padding:8px 16px 10px;border-bottom:1px solid #e8dcc0;flex-shrink:0}
-.refs-storage-row{display:flex;justify-content:flex-end;margin-bottom:5px}
-.refs-storage-row span{font-size:10px;font-weight:700;color:#a8925c;letter-spacing:.03em}
-.refs-storage-track{height:4px;background:#e8dcc0;border-radius:2px;overflow:hidden}
-.refs-storage-fill{height:100%;background:linear-gradient(90deg,#e0a810,#f0c020);border-radius:2px;transition:width .3s}
-.refs-storage-fill.warn{background:linear-gradient(90deg,#c85838,#e07838)}
+/* ── PROFILO: avatar in alto a destra + pannello (stile "account Google") ──
+   Raccoglie stato Drive e spazio Cloudinary, unici per tutta l'app: tolti
+   dal flusso di References, che così resta pulito. */
+.refs-profile-btn{
+  position:absolute;top:calc(24px + var(--safe-top));right:22px;z-index:3;
+  width:38px;height:38px;border-radius:50%;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--sand2);border:1.5px solid var(--sand3);color:var(--ink3);
+  transition:transform .12s,box-shadow .15s;
+}
+.refs-profile-btn:active{transform:scale(.92)}
+.refs-profile-btn.connected{background:var(--sky-deep);border-color:var(--sky-deep);color:var(--white);box-shadow:0 2px 8px rgba(42,136,184,.35)}
+.rp-initial{font-family:'Nunito',sans-serif;font-weight:800;font-size:16px;line-height:1}
+
+.refs-profile-backdrop{position:fixed;inset:0;z-index:230;background:transparent}
+.refs-profile-panel{
+  position:absolute;top:calc(60px + var(--safe-top));right:16px;z-index:240;
+  width:min(300px,calc(100vw - 32px));
+  background:var(--white);border-radius:16px;overflow:hidden;
+  box-shadow:0 16px 44px rgba(26,20,16,.3);border:1px solid var(--sand2);
+  transform-origin:top right;transform:scale(.9) translateY(-6px);opacity:0;
+  transition:transform .18s ease,opacity .16s ease;
+}
+.refs-profile-panel.open{transform:scale(1) translateY(0);opacity:1}
+.rp-head{display:flex;align-items:center;gap:11px;padding:16px 16px 14px;border-bottom:1px solid var(--sand2)}
+.rp-avatar{
+  width:42px;height:42px;flex-shrink:0;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--sand2);color:var(--ink3);
+}
+.rp-avatar.connected{background:var(--sky-deep);color:var(--white)}
+.rp-avatar .rp-initial{font-size:19px}
+.rp-id{min-width:0}
+.rp-id-name{font-family:'Nunito',sans-serif;font-size:13.5px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rp-id-sub{font-size:11px;color:var(--ink3);margin-top:1px}
+.rp-section{padding:13px 16px}
+.rp-section+.rp-section{border-top:1px solid var(--sand2)}
+.rp-section-label{font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--ink3);margin-bottom:9px}
+.rp-note{font-size:12px;color:var(--ink3)}
+.rp-btn{
+  display:inline-flex;align-items:center;gap:7px;
+  font-family:'Nunito',sans-serif;font-size:12.5px;font-weight:700;cursor:pointer;
+  border-radius:10px;padding:9px 14px;transition:background .15s,border-color .15s;
+}
+.rp-btn-primary{background:var(--sky-pale);border:1px solid var(--sky);color:var(--sky-deep)}
+.rp-btn-primary:active{background:#c0e8f8}
+.rp-btn-ghost{background:transparent;border:1px solid var(--sand3);color:var(--ink2)}
+.rp-btn-ghost:active{background:var(--sand)}
+.rp-storage-line{display:flex;justify-content:space-between;font-size:12px;font-weight:700;color:var(--ink2);margin-bottom:7px}
+.rp-storage-track{height:5px;background:var(--sand2);border-radius:3px;overflow:hidden}
+.rp-storage-fill{height:100%;background:linear-gradient(90deg,#e0a810,#f0c020);border-radius:3px;transition:width .3s}
+.rp-storage-fill.warn{background:linear-gradient(90deg,#c85838,#e07838)}
 
 /* ── STATO CARICAMENTO — banner visibile in pagina (più affidabile di alert()) ── */
 .refs-upload-status{max-height:0;overflow:hidden;opacity:0;transition:max-height .22s ease,opacity .18s ease,padding .22s ease;font-family:'Nunito',sans-serif;font-size:12px;font-weight:700;text-align:center;padding:0 20px}

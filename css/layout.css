@@ -132,4 +132,6 @@ body.is-touch .stats-scroll{padding-bottom:calc(110px + var(--safe-bot)) !import
    resta fermo nello stesso punto passando da una schermata all'altra
    (stesso principio già usato dalla modalità sera). ── */
 .section-title{font-size:46px;font-weight:700;color:var(--ink);letter-spacing:-.01em;font-family:'Castoro',serif;line-height:1;margin-bottom:2px;position:relative;z-index:2}
-.section-sub{font-size:9px;color:var(--ink3);font-weight:400;letter-spacing:.12em;text-transform:lowercase;position:relative;z-index:2}
+/* min-height uguale alla .home-sub-row della home (che ospita anche la lente):
+   senza, l'header di stats/references risultava più basso di quello della home. */
+.section-sub{font-size:9px;color:var(--ink3);font-weight:400;letter-spacing:.12em;text-transform:lowercase;position:relative;z-index:2;min-height:20px;display:flex;align-items:center}

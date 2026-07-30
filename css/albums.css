@@ -1,42 +1,18 @@
-/* ── ALBI: riga di stato Google Drive (sorgente primaria, senza picker) ── */
-/* Vive a livello di References (non dentro una cartella): il collegamento a
-   Drive è unico per tutta l'app. Sta fuori dall'area che scorre, quindi si
-   porta il proprio sfondo e i propri margini, in continuità con la barra
-   dello spazio occupato che la precede. */
-.refs-drive-row{
-  display:none;align-items:center;justify-content:space-between;gap:8px;
-  background:var(--sand);padding:9px 16px 10px;
-  border-bottom:1px solid #e8dcc0;flex-shrink:0;
-}
-.drive-connect-btn{
-  display:flex;align-items:center;gap:7px;width:100%;
-  padding:11px 14px;background:var(--sky-pale);border:1px solid var(--sky);
-  border-radius:var(--r);color:var(--sky-deep);font-family:'Nunito',sans-serif;
-  font-size:13.5px;font-weight:700;cursor:pointer;
-}
-.drive-status-connected{
-  display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink3);
-  font-family:'Nunito',sans-serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-}
-.drive-disconnect-btn{
-  flex-shrink:0;background:none;border:none;color:var(--ink3);font-size:12px;
-  text-decoration:underline;text-underline-offset:2px;cursor:pointer;padding:2px 0 2px 8px;
-}
+/* Lo stato Google Drive è ora dentro il pannello profilo (css/refs.css):
+   avatar in alto a destra → Drive + spazio Cloudinary. */
 
 /* ── ALBI: bottone di apertura nel tab "Albi" ── */
+/* Ripiego, non azione principale (quella è Drive): pillola sobria, non più una
+   grande scatola tratteggiata che si prendeva la scena. */
 .albums-open-btn{
-  display:flex;align-items:center;gap:11px;width:100%;
-  padding:15px 16px;margin:2px 0 14px;
-  background:var(--white);border:1.5px dashed var(--sand3);
-  border-radius:var(--r);color:var(--ink);font-family:'Nunito',sans-serif;
-  font-size:15px;font-weight:600;cursor:pointer;transition:border-color .15s,background .15s;
+  display:inline-flex;align-items:center;gap:7px;width:auto;
+  padding:7px 13px;margin:0 0 14px;
+  background:transparent;border:1px solid var(--sand3);
+  border-radius:20px;color:var(--ink2);font-family:'Nunito',sans-serif;
+  font-size:12.5px;font-weight:600;cursor:pointer;transition:border-color .15s,color .15s,background .15s;
 }
-.albums-open-btn:hover{border-color:var(--sky);background:var(--sky-pale)}
-.albums-open-btn .albums-open-ico{
-  width:34px;height:34px;flex-shrink:0;display:flex;align-items:center;justify-content:center;
-  background:var(--sky-pale);border-radius:9px;color:var(--sky-deep);
-}
-.albums-open-btn .albums-open-sub{display:block;font-size:12px;font-weight:400;color:var(--ink3);margin-top:1px}
+.albums-open-btn:hover{border-color:var(--sky);color:var(--sky-deep);background:var(--sky-pale)}
+.albums-open-btn svg{flex-shrink:0;opacity:.85}
 
 /* ── SCAFFALE: copertine degli albi già aperti in questa cartella ── */
 .refs-albums-grid{display:none;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:14px 12px;margin-bottom:6px}

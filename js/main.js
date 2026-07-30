@@ -11,7 +11,7 @@ import { renderHome, openNewModal, closeModal, createProject, openCardMenu, expo
 import { openProject, restoreProject, goHome, confirmDeleteCurrent, closeConfirm, confirmMicrotask } from './project.js';
 import { enterEveningMode as enterEveningImpl, exitEveningMode as exitEveningImpl } from './evening.js';
 import { openScriptment, closeScriptment, onScriptmentInput, setScriptmentFont, stepScriptmentSize, formatScriptment, openScriptmentRead, toggleScriptmentRead, refreshScriptmentButton, closeFormatPreview, applyFormatPreview } from './scriptment.js';
-import { startRefsListener, renderRefsScreen, initRefsCapture, openRefLightbox, closeRefLightbox, closeLightboxUI, nextRefImage, prevRefImage, refsImageMenu, deleteRefImageWithUndo, openFolderBrowser, openAllGrid, openFolder, promptNewFolder, promptNewFolderFlow, promptRenameFolder, promptDeleteFolder, refsFolderMenu, setFolderTab, albumShelfMenu, connectDriveAndSync, disconnectDriveUI } from './refs.js';
+import { startRefsListener, renderRefsScreen, initRefsCapture, openRefLightbox, closeRefLightbox, closeLightboxUI, nextRefImage, prevRefImage, refsImageMenu, deleteRefImageWithUndo, openFolderBrowser, openAllGrid, openFolder, promptNewFolder, promptNewFolderFlow, promptRenameFolder, promptDeleteFolder, refsFolderMenu, setFolderTab, albumShelfMenu, connectDriveAndSync, disconnectDriveUI, toggleRefsProfile, closeRefsProfile } from './refs.js';
 window.openRefLightbox=openRefLightbox; window.closeRefLightbox=closeRefLightbox;
 window.nextRefImage=nextRefImage; window.prevRefImage=prevRefImage;
 window.refsImageMenu=refsImageMenu; window.deleteRefImageWithUndo=deleteRefImageWithUndo;
@@ -19,6 +19,7 @@ window.openFolderBrowser=openFolderBrowser; window.openAllGrid=openAllGrid; wind
 window.promptNewFolder=promptNewFolder; window.promptNewFolderFlow=promptNewFolderFlow; window.promptRenameFolder=promptRenameFolder; window.promptDeleteFolder=promptDeleteFolder;
 window.refsFolderMenu=refsFolderMenu; window.setFolderTab=setFolderTab; window.albumShelfMenu=albumShelfMenu;
 window.connectDriveAndSync=connectDriveAndSync; window.disconnectDriveUI=disconnectDriveUI;
+window.toggleRefsProfile=toggleRefsProfile; window.closeRefsProfile=closeRefsProfile;
 import { initAlbums, openAlbumPicker, openAlbumFromFile, openAlbumFromDrive, createAlbumFromDriveFile, closeReaderUI } from './albums.js';
 window.openAlbumPicker=openAlbumPicker; window.openAlbumFromFile=openAlbumFromFile;
 window.openAlbumFromDrive=openAlbumFromDrive; window.createAlbumFromDriveFile=createAlbumFromDriveFile;
