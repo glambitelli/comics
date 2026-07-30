@@ -2,6 +2,7 @@ import { projects } from './state.js';
 import { db, COL, saveUserData, setDoc, doc, bumpDataRev } from './firebase.js';
 import { getStreak } from './evening.js';
 import { restoreReminderUI } from './notifications.js';
+import { isSoundEnabled, setSoundEnabled, playSfx } from './sound.js';
 
 export function exportBackup(){
   const data = {
@@ -59,6 +60,17 @@ export function openSettings(){
   const streakEl = document.getElementById('settings-streak-count');
   if(streakEl) streakEl.textContent = getStreak();
   restoreReminderUI();
+  const st = document.getElementById('sound-toggle');
+  if(st) st.checked = isSoundEnabled();
+}
+
+// Interruttore suoni: salva la preferenza e, se acceso, fa un piccolo suono
+// di conferma — così senti subito com'è (e serve anche a sbloccare l'audio).
+export function onSoundToggle(){
+  const st = document.getElementById('sound-toggle');
+  const on = !!(st && st.checked);
+  setSoundEnabled(on);
+  if(on) playSfx('done');
 }
 
 export function closeSettings(){

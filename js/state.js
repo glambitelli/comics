@@ -1,3 +1,5 @@
+import { playSfx } from './sound.js';
+
 export let projects = [];
 export let currentId = null;
 export let deleteId = null;
@@ -21,7 +23,11 @@ export function setDeleteId(id){ deleteId = id; }
 
 // ── FEEDBACK APTICO — vibrazione breve sui gesti chiave (mobile) ──
 // tap: conferma leggera · done: completamento step/tavola · reward: stella serale
+// Feedback unico dell'app: vibrazione + suono d'interfaccia, guidati dallo
+// stesso "intento". Agganciare qui il suono copre in un colpo tutti i punti
+// che già chiamano haptic(), senza disseminare chiamate audio nel codice.
 export function haptic(kind='tap'){
+  try{ playSfx(kind); }catch(e){}
   if(!('vibrate' in navigator)) return;
   try{
     if(kind==='reward') navigator.vibrate([14,70,20]);
