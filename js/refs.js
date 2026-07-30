@@ -500,6 +500,10 @@ function updateStorageIndicator(){
 // ── RENDER: DISPATCHER ──
 export function renderRefsScreen(){
   updateStorageIndicator();
+  // Il collegamento a Drive è UNO per tutta l'app (il token è globale): la sua
+  // riga vive quindi a livello di References, visibile in ogni vista. Stava
+  // dentro il tab Albi di una cartella, e sembrava legata a quella cartella.
+  renderDriveRow();
   const browserEl = document.getElementById('refs-folder-browser');
   const galleryEl = document.getElementById('refs-gallery-view');
   const crumb = document.getElementById('refs-breadcrumb');
@@ -595,7 +599,6 @@ function renderDriveRow(){
 
 // ── RENDER: SCAFFALE ALBI ──
 function renderAlbumsShelf(){
-  renderDriveRow();
   const grid = document.getElementById('refs-albums-grid');
   const empty = document.querySelector('.refs-albums-empty');
   if(!grid) return;

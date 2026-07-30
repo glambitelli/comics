@@ -1,7 +1,12 @@
 /* ── ALBI: riga di stato Google Drive (sorgente primaria, senza picker) ── */
+/* Vive a livello di References (non dentro una cartella): il collegamento a
+   Drive è unico per tutta l'app. Sta fuori dall'area che scorre, quindi si
+   porta il proprio sfondo e i propri margini, in continuità con la barra
+   dello spazio occupato che la precede. */
 .refs-drive-row{
   display:none;align-items:center;justify-content:space-between;gap:8px;
-  margin-bottom:10px;
+  background:var(--sand);padding:9px 16px 10px;
+  border-bottom:1px solid #e8dcc0;flex-shrink:0;
 }
 .drive-connect-btn{
   display:flex;align-items:center;gap:7px;width:100%;

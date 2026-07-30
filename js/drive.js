@@ -6,11 +6,11 @@
 // mai passare dal selettore file locale. Quello resta solo come ripiego per
 // tutto ciò che non è su Drive (vedi albums.js → openAlbumPicker).
 //
-// Niente backend, niente libreria esterna: l'autenticazione è un classico
-// OAuth "implicit flow" in popup (redirect su oauth-callback.html, stesso
-// dominio), le chiamate sono normali fetch alle REST API di Drive v3 con il
-// solo header Authorization — nessun segreto da proteggere perché lo scope è
-// "readonly" e il client è pubblico, come si conviene a una SPA statica.
+// Niente backend: l'autenticazione usa Google Identity Services (la libreria
+// ufficiale di Google, unica dipendenza esterna), le chiamate sono normali
+// fetch alle REST API di Drive v3 con il solo header Authorization — nessun
+// segreto da proteggere perché lo scope è "readonly" e il client è pubblico,
+// come si conviene a una SPA statica.
 //
 // ── CONFIGURAZIONE (obbligatoria prima dell'uso) ──
 // 1. Su https://console.cloud.google.com crea un progetto (va bene anche solo
@@ -22,8 +22,7 @@
 // 4. "API e servizi" → "Credenziali" → "Crea credenziali" → "ID client OAuth"
 //    → tipo "Applicazione web":
 //      - Origini JavaScript autorizzate: https://glambitelli.github.io
-//      - URI di reindirizzamento autorizzati:
-//        https://glambitelli.github.io/comics/oauth-callback.html
+//      (nessun URI di reindirizzamento: GIS non ne usa)
 // 5. Incolla il Client ID qui sotto in DRIVE_CLIENT_ID.
 // 6. Sul Drive dell'account dedicato crea UNA cartella radice per Inkflow;
 //    apri la cartella nel browser, copia l'ID dall'URL (dopo "/folders/") e
@@ -48,12 +47,8 @@ export function isDriveConfigured(){
 
 // Il token vive in localStorage (non sessionStorage): così sopravvive alla
 // chiusura del browser/PWA e, finché non è scaduto, riaprendo Inkflow si è
-// già collegati senza rifare nulla. I token OAuth "implicit" durano però solo
-// ~1 ora e non sono rinnovabili con un refresh token (servirebbe un backend):
-// quando scadono proviamo un ri-collegamento SILENZIOSO in un iframe nascosto
-// (vedi trySilentAuth), che riesce senza alcun popup se la sessione Google è
-// ancora attiva e il consenso è già stato dato. Solo se anche quello fallisce
-// si torna a mostrare il bottone "Connetti".
+// già collegati senza rifare nulla. Alla scadenza (~1 ora) ci pensa il
+// rinnovo silenzioso di GIS — vedi ensureDriveConnected più sotto.
 function loadCachedToken(){
   try{
     const raw = localStorage.getItem(TOKEN_KEY);
@@ -89,116 +84,110 @@ export function driveAccountEmail(){
   return (_token && _token.email) || '';
 }
 
-function redirectUri(){
-  return new URL('./oauth-callback.html', document.baseURI).href;
-}
+// ── AUTENTICAZIONE (Google Identity Services) ─────────────────────────────
+// GIS è la libreria ufficiale che ha sostituito il vecchio flusso "implicit"
+// fatto a mano (popup + pagina di callback + iframe nascosto per il rinnovo).
+// Il motivo del cambio è pratico: quel rinnovo silenzioso si appoggiava ai
+// cookie di terze parti verso accounts.google.com, che Chrome sta dismettendo
+// — su Android falliva quasi sempre, e ogni ora ricompariva "Connetti Drive".
+// GIS non ha quel vincolo e rinnova in silenzio finché la sessione Google del
+// browser è viva.
+//
+// Resta il limite di fondo di ogni app senza server: i token durano circa
+// un'ora e non esiste un refresh token (richiederebbe un segreto lato server,
+// che un sito statico non può custodire). La differenza è che ora il rinnovo
+// avviene da solo, senza mostrare nulla.
+const GIS_SRC = 'https://accounts.google.com/gsi/client';
+let _gisLoading = null;
 
-function buildAuthUrl(prompt){
-  const params = new URLSearchParams({
-    client_id: DRIVE_CLIENT_ID,
-    redirect_uri: redirectUri(),
-    response_type: 'token',
-    scope: DRIVE_SCOPE,
-    include_granted_scopes: 'true',
-    prompt,
+function loadGis(){
+  if(window.google && window.google.accounts && window.google.accounts.oauth2) return Promise.resolve();
+  if(_gisLoading) return _gisLoading;
+  _gisLoading = new Promise((resolve, reject)=>{
+    const sc = document.createElement('script');
+    sc.src = GIS_SRC;
+    sc.async = true; sc.defer = true;
+    sc.onload = ()=> resolve();
+    sc.onerror = ()=>{ _gisLoading = null; reject(new Error('Impossibile caricare il servizio di accesso Google.')); };
+    document.head.appendChild(sc);
   });
-  return 'https://accounts.google.com/o/oauth2/v2/auth?' + params.toString();
+  return _gisLoading;
 }
 
-// Dal messaggio della pagina di callback costruisce il token e recupera
-// l'email dell'account (solo cosmetica, non blocca nulla se fallisce).
-async function tokenFromMessage(data){
-  const t = {
-    access_token: data.access_token,
-    expiresAt: Date.now() + (parseInt(data.expires_in, 10) || 3500) * 1000,
-    email: '',
-  };
-  try{
-    const info = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-      headers: { Authorization: 'Bearer ' + t.access_token }
-    }).then(r => r.ok ? r.json() : null);
-    if(info && info.email) t.email = info.email;
-  }catch(err){}
-  return t;
+let _tokenClient = null;
+async function getTokenClient(){
+  await loadGis();
+  if(!_tokenClient){
+    _tokenClient = window.google.accounts.oauth2.initTokenClient({
+      client_id: DRIVE_CLIENT_ID,
+      scope: DRIVE_SCOPE,
+      callback: ()=>{},        // riassegnata ad ogni richiesta, vedi requestToken
+    });
+  }
+  return _tokenClient;
 }
 
-// Apre il popup di consenso Google. Va chiamata da un gesto utente diretto
-// (tap su "Connetti Drive"): i browser bloccano i popup aperti fuori da un click.
-export function connectDrive(){
+// Chiede un token. `prompt` vuoto = silenzioso (riesce solo se la sessione
+// Google è viva e il consenso già dato); 'consent' mostra la schermata.
+function requestToken(prompt){
   return new Promise((resolve, reject)=>{
-    if(!isDriveConfigured()){ reject(new Error('Google Drive non ancora configurato (vedi le istruzioni in js/drive.js).')); return; }
-    const popup = window.open(buildAuthUrl('select_account'), 'inkflow-drive-auth', 'width=480,height=640');
-    if(!popup){ reject(new Error('Il browser ha bloccato il popup di accesso.')); return; }
-
-    let done = false;
-    const onMsg = async (e)=>{
-      if(e.origin !== location.origin || !e.data || e.data.source !== 'inkflow-drive-oauth') return;
-      window.removeEventListener('message', onMsg);
-      clearInterval(poll);
-      done = true;
-      if(e.data.error){ reject(new Error('Accesso negato: '+e.data.error)); return; }
-      if(!e.data.access_token){ reject(new Error('Nessun token ricevuto da Google.')); return; }
-      saveToken(await tokenFromMessage(e.data));
-      resolve(_token);
-    };
-    window.addEventListener('message', onMsg);
-    // Se l'utente chiude il popup senza completare, non restiamo in attesa per sempre.
-    const poll = setInterval(()=>{
-      if(popup.closed){
-        clearInterval(poll);
-        window.removeEventListener('message', onMsg);
-        if(!done) reject(new Error('Finestra chiusa prima di completare l\'accesso.'));
-      }
-    }, 700);
+    getTokenClient().then(client=>{
+      client.callback = async (resp)=>{
+        if(!resp || resp.error){
+          reject(new Error(resp && (resp.error_description || resp.error) || 'Accesso a Drive non riuscito.'));
+          return;
+        }
+        const t = {
+          access_token: resp.access_token,
+          expiresAt: Date.now() + (parseInt(resp.expires_in, 10) || 3500) * 1000,
+          email: '',
+        };
+        try{
+          const info = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+            headers: { Authorization: 'Bearer ' + t.access_token }
+          }).then(r => r.ok ? r.json() : null);
+          if(info && info.email) t.email = info.email;
+        }catch(err){ /* l'email è solo cosmetica */ }
+        saveToken(t);
+        resolve(t);
+      };
+      // Chiusura/annullamento della finestra di Google: non è un errore da urlare.
+      client.error_callback = (err)=>{
+        reject(new Error((err && err.message) || 'Accesso a Drive annullato.'));
+      };
+      client.requestAccessToken({ prompt });
+    }).catch(reject);
   });
 }
 
-// Ri-collegamento SILENZIOSO: carica la pagina di consenso con prompt=none in
-// un iframe nascosto. Se la sessione Google è attiva e il consenso è già dato,
-// Google reindirizza col token senza mostrare nulla; altrimenti torna un
-// errore (login_required/consent_required) e qui rispondiamo semplicemente
-// "no" — senza mai disturbare l'utente. Nota: alcuni browser (Safari, Chrome
-// col blocco dei cookie di terze parti) possono impedire questo flusso in
-// iframe: in quel caso resta il bottone "Connetti", un solo tap.
-function trySilentAuth(){
-  return new Promise((resolve)=>{
-    if(!isDriveConfigured()){ resolve(false); return; }
-    const iframe = document.createElement('iframe');
-    iframe.style.display = 'none';
-    let settled = false;
-    const cleanup = ()=>{ window.removeEventListener('message', onMsg); clearTimeout(timer); try{ iframe.remove(); }catch(e){} };
-    const onMsg = async (e)=>{
-      if(e.origin !== location.origin || !e.data || e.data.source !== 'inkflow-drive-oauth') return;
-      if(settled) return; settled = true;
-      cleanup();
-      if(e.data.access_token){ saveToken(await tokenFromMessage(e.data)); resolve(true); }
-      else resolve(false);
-    };
-    window.addEventListener('message', onMsg);
-    const timer = setTimeout(()=>{ if(!settled){ settled = true; cleanup(); resolve(false); } }, 8000);
-    iframe.src = buildAuthUrl('none');
-    document.body.appendChild(iframe);
-  });
+// Tap su "Collega Drive": prima si tenta in silenzio (se il consenso c'è già
+// il collegamento è immediato, senza schermate), altrimenti si chiede.
+export async function connectDrive(){
+  if(!isDriveConfigured()) throw new Error('Google Drive non ancora configurato (vedi le istruzioni in js/drive.js).');
+  try{ return await requestToken(''); }
+  catch(e){ return await requestToken('consent'); }
 }
 
-// Garantisce (se possibile senza interazione) un token valido: usa quello in
-// cache se buono, altrimenti prova UNA volta il collegamento silenzioso. Le
-// chiamate concorrenti condividono lo stesso tentativo. Torna true se alla
-// fine siamo collegati. È il punto d'ingresso che refs.js/albums.js usano
-// prima di leggere o scaricare da Drive.
+// Garantisce (senza interazione, se possibile) un token valido: usa quello in
+// cache se buono, altrimenti prova UNA volta il rinnovo silenzioso. Le
+// chiamate concorrenti condividono lo stesso tentativo. È il punto d'ingresso
+// che refs.js/albums.js usano prima di leggere o scaricare da Drive.
 let _silentPromise = null;
 export function ensureDriveConnected(){
   if(isDriveConnected()) return Promise.resolve(true);
   if(!isDriveConfigured()) return Promise.resolve(false);
   if(!_silentPromise){
-    _silentPromise = trySilentAuth().finally(()=>{ _silentPromise = null; });
+    _silentPromise = requestToken('')
+      .then(()=> true)
+      .catch(()=> false)
+      .finally(()=>{ _silentPromise = null; });
   }
   return _silentPromise;
 }
 
-// Chiamata all'avvio dell'app: se non c'è già un token valido, tenta il
-// collegamento silenzioso in sottofondo così l'utente si ritrova già
-// collegato senza toccare nulla.
+// Chiamata all'avvio dell'app: se non c'è già un token valido tenta il
+// rinnovo silenzioso in sottofondo, così ci si ritrova collegati senza
+// toccare nulla.
 export function initDriveAuth(){
   if(isDriveConfigured() && !isDriveConnected()) ensureDriveConnected();
 }

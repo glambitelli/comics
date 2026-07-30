@@ -8,11 +8,11 @@
 // I .cbz (ZIP di immagini) si estraggono con fflate, vendorizzato e sempre
 // caricato. I .cbr (RAR) usano libarchive.js (WASM), caricato via import()
 // dinamico SOLO al primo .cbr aperto — chi legge solo .cbz non lo scarica mai.
-// Entrambi i formati producono una "sorgente pagine" con la stessa interfaccia
-// (vedi zipSource), quindi reader/ritaglio/scaffale non sanno da dove viene.
-// Il .cbz è letto in modo PIGRO: si conosce subito l'elenco delle tavole, ma
-// ognuna si decomprime solo quando la si guarda davvero — aprire un volume
-// non costa più il tempo e la memoria di scompattarlo tutto.
+// Entrambi producono una "sorgente pagine" con la stessa interfaccia (vedi
+// zipSource), quindi reader/ritaglio/scaffale non sanno da dove viene.
+// In entrambi i casi la lettura è PIGRA: si conosce subito l'elenco delle
+// tavole, ma ognuna si estrae solo quando la si guarda davvero — aprire un
+// volume non costa più il tempo e la memoria di scompattarlo tutto.
 //
 // Da Google Drive valgono due strategie diverse, perché i due casi hanno
 // esigenze opposte:
@@ -120,15 +120,17 @@ function toast(msg, isError, persistent){
 function clearPages(){
   _pages.forEach(p=>{ try{ if(p.url) URL.revokeObjectURL(p.url); }catch(e){} });
   _pages = [];
+  // Il .cbr tiene vivo un worker con l'archivio aperto finché si legge:
+  // chiudendo l'albo va spento, altrimenti resta appeso a consumare memoria.
+  if(_source && _source.close){ try{ _source.close(); }catch(e){} }
   _source = null;
 }
 
 // ── SORGENTE PAGINE ────────────────────────────────────────────────────────
 // Astrae da dove arrivano i byte di ogni tavola: { pages, getData(name) }.
-// Con getData definita la sorgente è PIGRA (.cbz): i nomi si conoscono tutti
-// subito, ma ogni tavola viene decompressa solo quando la si guarda davvero.
-// Con getData null le pagine sono già tutte in memoria (.cbr: la libreria
-// estrae in blocco). Il resto del lettore non vede la differenza.
+// Entrambi i formati sono PIGRI: i nomi delle tavole si conoscono tutti
+// subito, ma ognuna viene estratta solo quando la si guarda davvero. Il
+// resto del lettore non vede la differenza tra .cbz, .cbr e Drive.
 
 // Materializza (se serve) il Blob di una pagina. Asincrona: la sorgente
 // remota (Drive via Range HTTP) fa una vera richiesta di rete per tavola; la
@@ -140,7 +142,9 @@ async function pageBlob(src, page){
   if(!src || !src.getData) return null;
   const data = await src.getData(page.name);
   if(!data) return null;
-  page.blob = new Blob([data], { type: mimeFor(page.name) });
+  // Lo ZIP restituisce byte grezzi, il RAR un File già pronto: nel secondo
+  // caso si usa com'è, senza ricopiarlo in un Blob nuovo.
+  page.blob = (data instanceof Blob) ? data : new Blob([data], { type: mimeFor(page.name) });
   return page.blob;
 }
 async function pageUrl(src, page){
@@ -189,25 +193,37 @@ function clampIdx(i){ return (i < 0 || i >= _pages.length) ? 0 : i; }
 // qui, al primo .cbr aperto: i .cbz non la toccano mai, così il grosso del
 // bundle (~1MB di WASM) non pesa su chi legge solo .cbz. Il lavoro pesante
 // gira già in un web worker dentro la libreria: il main thread resta libero.
+//
+// Come per lo ZIP, la lettura è PIGRA: all'apertura si chiede solo l'ELENCO
+// delle tavole (listFiles), che non le estrae; ogni tavola viene poi tirata
+// fuori singolarmente quando la si guarda davvero. Prima si chiamava
+// extractFiles(), che le estraeva tutte in un colpo: su un volume da 200
+// tavole erano una quindicina di secondi di attesa all'apertura, tutta la
+// memoria occupata, e il contatore "Estrazione in corso… N file".
+//
+// Il worker va tenuto vivo finché l'albo resta aperto (lo chiude clearPages):
+// è lui a custodire l'archivio da cui peschiamo le tavole su richiesta.
 async function extractRarPages(file){
   const { Archive } = await import('./vendor/libarchive/libarchive.js');
   Archive.init({ workerUrl: new URL('./vendor/libarchive/worker-bundle.js', import.meta.url) });
 
   const archive = await Archive.open(file);
-  let n = 0;
-  await archive.extractFiles(()=>{ n++; toast('Estrazione in corso… ' + n + ' file', false, true); });
-  const arr = await archive.getFilesArray(); // [{file:File, path:string}]
+  const arr = await archive.getFilesArray(); // solo elenco: nessun dato estratto
 
-  const withNames = arr
-    .map(({file, path})=>({ name: (path||'') + file.name, file }))
+  const entries = arr
+    .map(({file, path})=>({ name: (path||'') + file.name, cf: file }))
     .filter(e=>isImageEntry(e.name))
     .sort((a,b)=>naturalCompare(a.name, b.name));
 
-  // getData null: il .cbr è già stato estratto tutto dalla libreria, queste
-  // sono le uniche copie in memoria e non vanno liberate sfogliando.
+  const byName = new Map(entries.map(e=>[e.name, e.cf]));
   return {
-    pages: withNames.map(({name, file})=>({ name, url: URL.createObjectURL(file), blob: file })),
-    getData: null,
+    pages: entries.map(e=>({ name: e.name, url: null, blob: null })),
+    async getData(name){
+      const cf = byName.get(name);
+      if(!cf) return null;
+      return await cf.extract();   // File vero, estratto ora
+    },
+    close(){ try{ archive.close(); }catch(e){} },
   };
 }
 
