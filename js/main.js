@@ -332,7 +332,13 @@ function navPush(view, id){
   if(_navReplaying) return;
   const s = history.state;
   if(s && s.view === view && (s.id||null) === (id||null)) return; // già qui
-  try{ history.pushState({ view, id: id||null }, ''); }catch(e){}
+  // depth conta quanti pushState separano questo stato dalla Home: References
+  // può essere annidata (refs → refs-folder), quindi "quanti passi indietro
+  // servono per tornare alla Home" non è sempre 1. Il tasto/logo Home lo
+  // legge per saltarci in un colpo solo, invece di un history.back() che
+  // uscirebbe solo di un livello (vedi goHomeAlways sotto).
+  const depth = (s && typeof s.depth === 'number' ? s.depth : 0) + 1;
+  try{ history.pushState({ view, id: id||null, depth }, ''); }catch(e){}
 }
 // Esposta globalmente: le funzioni di apertura (anche chiamate come binding
 // importato, es. dal click sulle card) registrano da sole lo stato.
@@ -379,22 +385,37 @@ window.addEventListener('popstate', e=>{
   const st = e.state || { view:'home' };
   showScreen(st.view, st.id);
 });
-try{ if(!history.state) history.replaceState({ view:'home' }, ''); }catch(e){}
+try{ if(!history.state) history.replaceState({ view:'home', depth:0 }, ''); }catch(e){}
 
 // Le impl registrano da sole lo stato (vedi window.__navSync), quindi qui basta
 // esporle. Funziona qualunque sia il chiamante (window o binding importato).
 window.openProject = openProject;
 window.openStats = openStats;
 window.enterEveningMode = enterEveningImpl;
-// Azioni "indietro" — passano dalla cronologia, così il back del browser resta coerente
+// Azioni "indietro" — passano dalla cronologia, così il back del browser resta coerente.
+// Stats e sera si aprono sempre direttamente sopra la Home (un solo livello),
+// quindi un passo indietro basta.
 const _backOrHome = ()=>{
   if(history.state && history.state.view && history.state.view !== 'home') history.back();
   else { if(document.body.classList.contains('evening-mode')) exitEveningImpl(); goHomeImpl(); }
 };
 window.closeStats = _backOrHome;
 window.exitEveningMode = _backOrHome;
-window.goHome = _backOrHome;
-window.goHomeFromLogo = _backOrHome;
+
+// Il logo/scritta "Inkflow" in ogni schermata e il pulsante Home della barra-duna
+// significano sempre "portami alla Home", non "torna indietro di un passo".
+// References però può essere annidata (refs → refs-folder di un artista): un
+// solo history.back() da lì atterrava sull'elenco cartelle invece che a casa.
+// depth (scritto da navPush sopra) dice quanti passi separano lo stato
+// corrente dalla Home: history.go(-depth) ci salta in un colpo solo, con un
+// unico evento popstate finale invece di N passaggi intermedi.
+const goHomeAlways = ()=>{
+  const depth = (history.state && typeof history.state.depth === 'number') ? history.state.depth : 0;
+  if(depth > 0){ history.go(-depth); }
+  else { if(document.body.classList.contains('evening-mode')) exitEveningImpl(); goHomeImpl(); }
+};
+window.goHome = goHomeAlways;
+window.goHomeFromLogo = goHomeAlways;
 
 (function(){
   let startX=0, startY=0;
