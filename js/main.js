@@ -438,6 +438,17 @@ window.goHomeFromLogo = goHomeAlways;
 loadUserData();
 initNotifications();
 
+// Precarica stats.js in un momento di inattività: è un modulo pigro (si
+// scarica al primo tap su "Stats"), ma è anche tra i più usati. Ogni fetch
+// dei moduli passa dal service worker in modalità "network-first" (i deploy
+// devono avere effetto subito), quindi la PRIMA apertura richiede sempre un
+// giro di rete vero — su una connessione debole può sentirsi come un'attesa,
+// a differenza del calcolo di renderStats() stesso (misurato: sempre sotto i
+// 50ms anche con dati enormi, non è mai quello il collo di bottiglia).
+// Prendendolo qui, mentre il thread è libero e non c'è fretta, il modulo è
+// già pronto quando l'utente tocca davvero "Stats".
+(window.requestIdleCallback || (fn => setTimeout(fn, 2000)))(() => trackResolved('./stats.js'));
+
 // ── PULSANTE COPIA — piccolo tasto sotto i campi di testo lunghi ──
 function wireCopyButtons(){
   const areas = document.querySelectorAll('textarea.story-textarea, textarea.char-desc-v2');

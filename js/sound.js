@@ -86,7 +86,7 @@ function unlockAudio(){
 function isInteractive(el){
   if(!el || el.nodeType !== 1) return false;
   if(el.closest('input, textarea, select, [contenteditable="true"]')) return false;
-  return !!el.closest('button, a[href], [role="button"], [onclick], .refs-thumb, .album-card, .refs-folder-row, .step-item');
+  return !!el.closest('button, a[href], [role="button"], [onclick], .refs-thumb, .album-card, .refs-folder-row, .step-item, .project-card');
 }
 document.addEventListener('pointerdown', e=>{
   if(isInteractive(e.target)) playSfx('tap');

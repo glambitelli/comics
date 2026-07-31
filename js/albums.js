@@ -566,7 +566,14 @@ function buildReaderDOM(){
       </div>
       <img class="ar-img active" alt="" decoding="async">
       <img class="ar-img" alt="" decoding="async">
-      <div class="ar-cliplayer" hidden><div class="ar-clipbox" hidden></div></div>
+      <div class="ar-cliplayer" hidden>
+        <div class="ar-clipbox" hidden>
+          <div class="ar-clip-handle" data-corner="nw"></div>
+          <div class="ar-clip-handle" data-corner="ne"></div>
+          <div class="ar-clip-handle" data-corner="se"></div>
+          <div class="ar-clip-handle" data-corner="sw"></div>
+        </div>
+      </div>
       <button class="ar-nav ar-prev" aria-label="Precedente" data-act="prev">
         <svg viewBox="0 0 24 24" width="22" height="22"><path d="M15 5 L8 12 L15 19" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
@@ -1104,6 +1111,8 @@ function wireClip(ov){
   const box = ov.querySelector('.ar-clipbox');
   const hintInstruct = ov.querySelector('.ar-clip-hint-instruct');
   const hintConfirm = ov.querySelector('.ar-clip-hint-confirm');
+  const handles = Array.from(box.querySelectorAll('.ar-clip-handle'));
+  const MIN_SIZE = 24; // dimensione minima del riquadro in px CSS, ridimensionando
   let sx = 0, sy = 0, drawing = false;
   // Il rettangolo del livello si misura all'inizio del gesto e si riusa: prima
   // veniva rimisurato ad ogni movimento (una misura forzata del layout per
@@ -1113,10 +1122,23 @@ function wireClip(ov){
   // subito. Prima lo faceva, e "annulla" non poteva mai tornare indietro da un
   // ritaglio già fatto — poteva solo uscire dalla modalità PRIMA di disegnare.
   let pendingSel = null;
+  let resizeCorner = null; // angolo in trascinamento, o null
 
   const showConfirm = (on)=>{
     if(hintInstruct) hintInstruct.hidden = on;
     if(hintConfirm) hintConfirm.hidden = !on;
+    // Le maniglie di resize hanno senso SOLO nello stato "in attesa di
+    // conferma": durante il disegno iniziale coprirebbero il gesto sulla
+    // superficie, e a riquadro chiuso non c'è nulla da ridimensionare.
+    box.classList.toggle('pending', on);
+  };
+
+  const syncPendingSelFromBox = ()=>{
+    if(!pendingSel) return;
+    pendingSel = {
+      left: parseFloat(box.style.left), top: parseFloat(box.style.top),
+      width: parseFloat(box.style.width), height: parseFloat(box.style.height),
+    };
   };
 
   const start = (px, py)=>{
@@ -1143,10 +1165,65 @@ function wireClip(ov){
     if(!drawing) return; drawing = false;
     const bw = parseFloat(box.style.width), bh = parseFloat(box.style.height);
     if(bw < 12 || bh < 12){ box.hidden = true; toast('Trascina un riquadro più grande sulla pagina.', true); return; }
-    // Il riquadro RESTA a schermo: si decide con "Conferma" o "Riprova".
+    // Il riquadro RESTA a schermo: si decide con "Conferma" o "Riprova" — o
+    // si aggiusta trascinando gli angoli prima di confermare.
     pendingSel = { left: parseFloat(box.style.left), top: parseFloat(box.style.top), width: bw, height: bh };
     showConfirm(true);
   };
+
+  // ── RIDIMENSIONAMENTO (dopo il rilascio, prima della conferma) ──
+  // Ogni angolo trascina SÉ STESSO tenendo fermo l'angolo opposto: è quello
+  // il punto di ancoraggio, non il centro — così si può sia allargare che
+  // restringere il riquadro da qualunque lato senza che "salti".
+  const resizeMove = (px, py)=>{
+    if(!resizeCorner) return;
+    const r = lr || (lr = layer.getBoundingClientRect());
+    const cx = Math.max(0, Math.min(px - r.left, r.width));
+    const cy = Math.max(0, Math.min(py - r.top, r.height));
+    const curLeft = parseFloat(box.style.left), curTop = parseFloat(box.style.top);
+    const curW = parseFloat(box.style.width), curH = parseFloat(box.style.height);
+    const anchorX = resizeCorner.includes('w') ? curLeft + curW : curLeft;
+    const anchorY = resizeCorner.includes('n') ? curTop + curH : curTop;
+
+    let left = Math.min(anchorX, cx), width = Math.abs(cx - anchorX);
+    if(width < MIN_SIZE){ width = MIN_SIZE; left = cx <= anchorX ? anchorX - MIN_SIZE : anchorX; }
+    let top = Math.min(anchorY, cy), height = Math.abs(cy - anchorY);
+    if(height < MIN_SIZE){ height = MIN_SIZE; top = cy <= anchorY ? anchorY - MIN_SIZE : anchorY; }
+    // Clamp finale: se il minimo sconfina fuori dal layer, rientra senza
+    // cambiare le dimensioni (l'ancora resta comunque il vincolo primario).
+    left = Math.max(0, Math.min(left, r.width - width));
+    top = Math.max(0, Math.min(top, r.height - height));
+
+    box.style.left = left + 'px'; box.style.top = top + 'px';
+    box.style.width = width + 'px'; box.style.height = height + 'px';
+  };
+  const resizeEnd = ()=>{
+    if(!resizeCorner) return;
+    resizeCorner = null;
+    syncPendingSelFromBox();
+  };
+  handles.forEach(h=>{
+    const corner = h.dataset.corner;
+    h.addEventListener('mousedown', e=>{
+      e.preventDefault(); e.stopPropagation(); // non deve riavviare un nuovo disegno
+      lr = layer.getBoundingClientRect();
+      resizeCorner = corner;
+    });
+    h.addEventListener('touchstart', e=>{
+      e.stopPropagation();
+      lr = layer.getBoundingClientRect();
+      resizeCorner = corner;
+    }, { passive:true });
+  });
+  window.addEventListener('mousemove', e=>{ if(resizeCorner) resizeMove(e.clientX, e.clientY); });
+  window.addEventListener('mouseup', resizeEnd);
+  window.addEventListener('touchmove', e=>{
+    if(!resizeCorner) return;
+    resizeMove(e.touches[0].clientX, e.touches[0].clientY);
+    e.preventDefault();
+  }, { passive:false });
+  window.addEventListener('touchend', resizeEnd, { passive:true });
+
   // Richiamate dal tap su "Riprova"/"✓ Conferma" (vedi il click delegato più sopra).
   ov._clipRetry = ()=>{
     pendingSel = null;
@@ -1167,10 +1244,16 @@ function wireClip(ov){
     box.hidden = true;
   };
 
-  layer.addEventListener('mousedown', e=>{ e.preventDefault(); start(e.clientX, e.clientY); });
+  layer.addEventListener('mousedown', e=>{
+    if(box.classList.contains('pending')) return; // in questo stato solo le maniglie disegnano
+    e.preventDefault(); start(e.clientX, e.clientY);
+  });
   window.addEventListener('mousemove', e=>{ if(drawing) move(e.clientX, e.clientY); });
   window.addEventListener('mouseup', ()=>{ if(drawing) end(); });
-  layer.addEventListener('touchstart', e=>{ start(e.touches[0].clientX, e.touches[0].clientY); }, { passive:true });
+  layer.addEventListener('touchstart', e=>{
+    if(box.classList.contains('pending')) return;
+    start(e.touches[0].clientX, e.touches[0].clientY);
+  }, { passive:true });
   layer.addEventListener('touchmove', e=>{ move(e.touches[0].clientX, e.touches[0].clientY); e.preventDefault(); }, { passive:false });
   layer.addEventListener('touchend', end, { passive:true });
 }

@@ -198,6 +198,28 @@ body.is-touch .ar-nav{display:none} /* su mobile si naviga con swipe/tap */
   position:absolute;border:1.5px solid var(--gold);
   background:rgba(240,192,32,.14);box-shadow:0 0 0 9999px rgba(0,0,0,.35);
 }
+/* Maniglie d'angolo: solo nello stato "in attesa di conferma" (vedi
+   showConfirm() in js/albums.js) — durante il disegno iniziale coprirebbero
+   il gesto, e a riquadro chiuso non c'è nulla da ridimensionare. Area di
+   tocco più grande del pallino visibile (comoda su mobile senza sembrare
+   ingombrante): il pallino è centrato sull'angolo, il quadrato invisibile
+   attorno è la vera zona cliccabile. */
+.ar-clip-handle{
+  display:none;position:absolute;width:30px;height:30px;
+  transform:translate(-50%,-50%);
+  touch-action:none;cursor:pointer;
+}
+.ar-clipbox.pending .ar-clip-handle{display:block}
+.ar-clip-handle::after{
+  content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:14px;height:14px;border-radius:50%;
+  background:var(--gold);border:2px solid #141210;
+  box-shadow:0 1px 4px rgba(0,0,0,.4);
+}
+.ar-clip-handle[data-corner="nw"]{top:0;left:0;cursor:nwse-resize}
+.ar-clip-handle[data-corner="ne"]{top:0;left:100%;cursor:nesw-resize}
+.ar-clip-handle[data-corner="se"]{top:100%;left:100%;cursor:nwse-resize}
+.ar-clip-handle[data-corner="sw"]{top:100%;left:0;cursor:nesw-resize}
 
 .ar-bottombar{
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
