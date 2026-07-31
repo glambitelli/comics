@@ -87,7 +87,7 @@ import { getTodayTip } from './tips.js';
 
 // ── Navigazione centralizzata: chiude tutte le schermate prima di aprirne una ──
 function hideAllScreens(){
-  ['screen-home','screen-project','screen-stats','screen-evening','screen-read','screen-refs'].forEach(id=>{
+  ['screen-home','screen-project','screen-stats','screen-evening','screen-refs'].forEach(id=>{
     const el = document.getElementById(id);
     if(el) el.classList.remove('active');
   });
@@ -194,7 +194,7 @@ window.toggleEvening=toggleEvening;
   function wireScrollHide(){
     const nav = document.getElementById('dune-nav');
     if(!nav) return;
-    const containers = document.querySelectorAll('.home-scroll,.proj-scroll,.evening-scroll,.stats-scroll,.read-scroll');
+    const containers = document.querySelectorAll('.home-scroll,.proj-scroll,.evening-scroll,.stats-scroll');
     containers.forEach(el=>{
       if(el.dataset.duneWired) return;
       el.dataset.duneWired = '1';

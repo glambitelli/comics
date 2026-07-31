@@ -119,7 +119,6 @@ body.is-touch #btn-evening-exit{display:none !important}
 body.is-touch .home-scroll,
 body.is-touch .proj-scroll,
 body.is-touch .evening-scroll,
-body.is-touch .read-scroll,
 body.is-touch .stats-scroll{padding-bottom:calc(110px + var(--safe-bot)) !important}
 
 /* ── UNDO TOAST ── */

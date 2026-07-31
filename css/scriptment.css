@@ -143,7 +143,7 @@
 }
 /* TRANSIZIONE: destra */
 .scriptment-page .sp-transition{text-align:right;font-weight:700;text-transform:uppercase;margin:.4em 0}
-/* NOME PERSONAGGIO: centrato (azzero il padding ereditato da sequence.css) */
+/* NOME PERSONAGGIO: centrato */
 .scriptment-page .sp-character{
   text-align:center;text-transform:uppercase;font-weight:700;
   margin:.7em 0 .1em;padding:0;
