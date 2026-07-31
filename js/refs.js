@@ -823,6 +823,22 @@ export function renderRefsGrid(){
 let _lightboxList = [];
 let _lightboxIndex = -1;
 
+// Doppio buffer: due <img> sovrapposte esattamente (vedi css/refs.css), una
+// sola alla volta "attiva" (visibile). Il tentativo precedente (precaricare
+// con un Image() a parte e poi riassegnare .src alla stessa <img> visibile)
+// presumeva che il browser riusasse la decodifica tra i due elementi — non
+// garantito. Qui invece si aspetta il caricamento DENTRO l'elemento nascosto
+// stesso, e si scambia la visibilità solo a caricamento concluso: quella a
+// schermo non viene mai toccata prima che l'altra sia davvero pronta, quindi
+// non può mai esserci un istante vuoto in mezzo.
+let _bufToggle = false; // false = #refs-lightbox-img attiva, true = #refs-lightbox-img-b
+function getActiveLightboxImg(){
+  return document.getElementById(_bufToggle ? 'refs-lightbox-img-b' : 'refs-lightbox-img');
+}
+function getIdleLightboxImg(){
+  return document.getElementById(_bufToggle ? 'refs-lightbox-img' : 'refs-lightbox-img-b');
+}
+
 export function openRefLightbox(id){
   const item = _refs.find(r=>r.id===id);
   if(!item) return;
@@ -836,16 +852,15 @@ export function openRefLightbox(id){
   renderLightboxAt(_lightboxIndex);
 }
 
-// Bitmap già decodificati: uno swipe non ripaga fetch+decode se l'immagine
-// era già stata vista o prefetchata. Tenuto per URL, non per indice: la
-// galleria può essere filtrata/riordinata sotto i piedi senza invalidare nulla.
-const _decodedUrls = new Set();
-function preloadRefImage(url){
-  if(!url || _decodedUrls.has(url)) return Promise.resolve();
+// Scalda la cache HTTP del browser per i vicini: non garantisce di per sé
+// zero attesa (quella la dà il doppio buffer sopra), ma se il byte sono già
+// scaricati il prossimo swipe aspetta solo la decodifica, non la rete.
+const _warmedUrls = new Set();
+function warmRefImageCache(url){
+  if(!url || _warmedUrls.has(url)) return;
+  _warmedUrls.add(url);
   const im = new Image();
   im.src = url;
-  const ready = im.decode ? im.decode() : new Promise(res=>{ im.onload = res; im.onerror = res; });
-  return ready.then(()=>{ _decodedUrls.add(url); }).catch(()=>{});
 }
 
 async function renderLightboxAt(index){
@@ -853,11 +868,10 @@ async function renderLightboxAt(index){
   _lightboxIndex = index;
   const item = _lightboxList[index];
   const ov = document.getElementById('refs-lightbox');
-  const img = document.getElementById('refs-lightbox-img');
   const counter = document.getElementById('refs-lightbox-counter');
   const prevBtn = document.getElementById('refs-lightbox-prev');
   const nextBtn = document.getElementById('refs-lightbox-next');
-  if(!ov || !img) return;
+  if(!ov) return;
   // Interfaccia (contatore, frecce, overlay): aggiornata subito, non dipende
   // dal bitmap della foto.
   ov.dataset.id = item.id;
@@ -867,18 +881,24 @@ async function renderLightboxAt(index){
   if(nextBtn) nextBtn.style.visibility = index<_lightboxList.length-1 ? 'visible' : 'hidden';
   ov.classList.add('open');
 
-  // La foto invece si scambia solo a decodifica completata: fino ad allora
-  // resta a schermo quella precedente. Prima si riassegnava .src subito,
-  // svuotando l'immagine per la durata di fetch+decode — con la galleria su
-  // sfondo quasi nero, quel vuoto si vedeva come un lampeggio ad ogni swipe.
-  await preloadRefImage(item.url);
+  const idle = getIdleLightboxImg();
+  if(!idle) return;
+  await new Promise(resolve=>{
+    if(idle.src === item.url && idle.complete){ resolve(); return; }
+    idle.onload = idle.onerror = resolve;
+    idle.src = item.url;
+  });
   if(_lightboxIndex !== index) return; // si è già passati oltre: scarta questo bitmap
-  img.src = item.url;
+
+  const prevActive = getActiveLightboxImg();
+  idle.classList.add('active');
+  if(prevActive !== idle) prevActive.classList.remove('active');
+  _bufToggle = !_bufToggle;
   resetImageZoom();
 
-  // Precarica i vicini: il prossimo swipe li troverà già decodificati.
+  // Scalda la cache per i vicini: il prossimo swipe li troverà già scaricati.
   [index + 1, index - 1].forEach(i=>{
-    if(i >= 0 && i < _lightboxList.length) preloadRefImage(_lightboxList[i].url);
+    if(i >= 0 && i < _lightboxList.length) warmRefImageCache(_lightboxList[i].url);
   });
 }
 
@@ -921,12 +941,12 @@ const ZOOM_IN = 2.6, ZOOM_MAX = 4;
 
 export function resetImageZoom(){
   _zoomScale = 1; _zoomX = 0; _zoomY = 0;
-  const img = document.getElementById('refs-lightbox-img');
+  const img = getActiveLightboxImg();
   if(img){ img.style.transition = 'none'; applyZoomTransform(img); }
 }
 
 function clampPan(scale, x, y){
-  const img = document.getElementById('refs-lightbox-img');
+  const img = getActiveLightboxImg();
   if(!img) return {x, y};
   const r = img.getBoundingClientRect();
   const baseW = r.width / scale, baseH = r.height / scale;
@@ -944,7 +964,7 @@ function applyZoomTransform(img){
 
 // Alterna zoom 1x ↔ ZOOM_IN centrando sul punto indicato, con animazione.
 function toggleZoomAt(clientX, clientY){
-  const img = document.getElementById('refs-lightbox-img');
+  const img = getActiveLightboxImg();
   if(!img) return;
   img.style.transition = 'transform .22s';
   if(_zoomScale > 1.02){
@@ -967,8 +987,7 @@ function toggleZoomAt(clientX, clientY){
 
   function bind(){
     const body = document.getElementById('refs-lightbox-body');
-    const img = document.getElementById('refs-lightbox-img');
-    if(!body || !img || body._gestureInit) return;
+    if(!body || body._gestureInit) return;
     body._gestureInit = true;
 
     let touches = [];
@@ -984,7 +1003,8 @@ function toggleZoomAt(clientX, clientY){
     body.addEventListener('touchstart', e=>{
       lastTouchAt = Date.now();
       touches = Array.from(e.touches);
-      img.style.transition = 'none';
+      const img = getActiveLightboxImg();
+      if(img) img.style.transition = 'none';
       if(touches.length === 2){
         isPinching = true; isPanning = false;
         startDist = dist(touches[0], touches[1]);
@@ -1004,6 +1024,8 @@ function toggleZoomAt(clientX, clientY){
 
     body.addEventListener('touchmove', e=>{
       touches = Array.from(e.touches);
+      const img = getActiveLightboxImg();
+      if(!img) return;
       if(isPinching && touches.length === 2){
         const nd = dist(touches[0], touches[1]);
         _zoomScale = Math.min(ZOOM_MAX, Math.max(1, startScale * (nd/startDist)));
@@ -1022,7 +1044,11 @@ function toggleZoomAt(clientX, clientY){
     body.addEventListener('touchend', e=>{
       if(isPinching){
         isPinching = false;
-        if(_zoomScale < 1.05){ resetImageZoom(); img.style.transition = 'transform .18s'; }
+        if(_zoomScale < 1.05){
+          resetImageZoom();
+          const img = getActiveLightboxImg();
+          if(img) img.style.transition = 'transform .18s';
+        }
         return;
       }
       // Un tocco senza spostamento non è un trascinamento: lasciamo che venga
@@ -1066,7 +1092,12 @@ function toggleZoomAt(clientX, clientY){
     // anche un "dblclick" sintetico dopo un doppio tap reale: se lo lasciassimo
     // passare, zoomerebbe una seconda volta annullando quello già fatto dal
     // gestore touch sopra. Lo ignoriamo se c'è stato un tocco nell'ultimo secondo.
-    img.addEventListener('dblclick', e=>{
+    // Delegati sul contenitore (non sulla singola <img>): l'elemento "attivo"
+    // cambia a ogni swipe con il doppio buffer, quindi un listener legato una
+    // volta sola all'elemento originale smetterebbe di funzionare dopo il
+    // primo swap. L'immagine inattiva ha pointer-events:none (vedi CSS), quindi
+    // i click/drag arrivano comunque solo su quella davvero visibile.
+    body.addEventListener('dblclick', e=>{
       if(Date.now() - lastTouchAt < 1000) return;
       toggleZoomAt(e.clientX, e.clientY);
     });
@@ -1075,6 +1106,8 @@ function toggleZoomAt(clientX, clientY){
     body.addEventListener('wheel', e=>{
       const ov = document.getElementById('refs-lightbox');
       if(!ov || !ov.classList.contains('open')) return;
+      const img = getActiveLightboxImg();
+      if(!img) return;
       e.preventDefault();
       const prev = _zoomScale;
       const factor = e.deltaY < 0 ? 1.16 : 1/1.16;
@@ -1096,9 +1129,11 @@ function toggleZoomAt(clientX, clientY){
 
     // Desktop: trascinamento con la "manina" quando l'immagine è ingrandita
     let mDown = false, mStartX = 0, mStartY = 0, mOrigX = 0, mOrigY = 0;
-    img.addEventListener('mousedown', e=>{
+    body.addEventListener('mousedown', e=>{
       if(_zoomScale <= 1.02) return;
       if(Date.now() - lastTouchAt < 1000) return;
+      const img = getActiveLightboxImg();
+      if(!img) return;
       e.preventDefault();
       mDown = true;
       mStartX = e.clientX; mStartY = e.clientY;
@@ -1108,6 +1143,8 @@ function toggleZoomAt(clientX, clientY){
     });
     window.addEventListener('mousemove', e=>{
       if(!mDown) return;
+      const img = getActiveLightboxImg();
+      if(!img) return;
       const c = clampPan(_zoomScale, mOrigX + (e.clientX-mStartX), mOrigY + (e.clientY-mStartY));
       _zoomX = c.x; _zoomY = c.y;
       applyZoomTransform(img);
