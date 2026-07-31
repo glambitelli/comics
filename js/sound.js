@@ -88,8 +88,25 @@ function isInteractive(el){
   if(el.closest('input, textarea, select, [contenteditable="true"]')) return false;
   return !!el.closest('button, a[href], [role="button"], [onclick], .refs-thumb, .album-card, .refs-folder-row, .step-item, .project-card');
 }
+// Suona al RILASCIO (non al tocco): appoggiare il dito su un elemento
+// interattivo per iniziare a SCORRERE (es. l'elenco fasi/task di un
+// progetto, pieno di .step-item con onclick) faceva scattare il suono anche
+// quando l'intenzione era solo scorrere, perché al momento del pointerdown
+// non si può ancora sapere se diventerà uno scroll. Al pointerup si può: se
+// il dito si è spostato più di TAP_SLOP è stato un trascinamento, non un
+// tocco, e non suona. La soglia è generosa abbastanza da non penalizzare il
+// naturale tremore di un tocco vero.
+const TAP_SLOP = 10;
+let _padX = 0, _padY = 0, _padId = null, _padTarget = null;
 document.addEventListener('pointerdown', e=>{
-  if(isInteractive(e.target)) playSfx('tap');
+  _padX = e.clientX; _padY = e.clientY; _padId = e.pointerId; _padTarget = e.target;
+}, { passive:true });
+document.addEventListener('pointerup', e=>{
+  if(e.pointerId !== _padId || !_padTarget) return;
+  const target = _padTarget; _padTarget = null;
+  const moved = Math.hypot(e.clientX - _padX, e.clientY - _padY);
+  if(moved > TAP_SLOP) return; // scroll/trascinamento, non un tocco
+  if(isInteractive(target)) playSfx('tap');
 }, { passive:true });
 
 // Riproduce il suono di un intento, se i suoni sono accesi. Fire-and-forget:
