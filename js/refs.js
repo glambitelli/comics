@@ -451,7 +451,9 @@ export function setFolderTab(tab){
   if(tab !== 'albi' && tab !== 'ritagli') return;
   if(_folderTab === tab) return;
   _folderTab = tab;
-  haptic('tap');
+  // Niente haptic('tap') qui: la tab è un <button onclick>, già coperta dal
+  // tick diffuso su pointerdown (sound.js) — chiamarlo anche qui suonava due
+  // volte per un solo tocco (stesso motivo del pulsante ritaglia in albums.js).
   renderRefsScreen();
 }
 

@@ -280,7 +280,12 @@ export async function openAlbumFromFile(file){
   // ancora in corso: vince sempre l'ultimo albo richiesto (vedi _openToken).
   ++_openToken;
 
-  toast('Apro l\'albo…', false, true);
+  // Il lettore si apre SUBITO (guscio vuoto + glifo di caricamento): prima si
+  // apriva solo a fine estrazione, quindi il glifo — pensato apposta per
+  // questa attesa — non compariva mai, e il messaggio di stato restava sulla
+  // schermata References invece che nel lettore.
+  openReaderShell(file.name.replace(/\.(cbz|cbr|zip|rar)$/i, ''));
+  toast('', false, true); // solo il glifo: il testo generico è ridondante col titolo già in barra
   let src;
   try{ src = await extractPagesForFile(file); }
   catch(e){ toast(e.message, true); return; }
@@ -323,7 +328,11 @@ export async function openAlbumFromFile(file){
   }
 
   toast('');
-  openReader();
+  // Il guscio è già aperto: qui basta aggiornare il titolo (potrebbe essere
+  // cambiato rispetto alla stima iniziale, se si è agganciato a una scheda
+  // con un nome diverso dal file) e disegnare la prima pagina.
+  _reader.querySelector('.ar-title').textContent = _albumName;
+  renderPage();
 
   // Prima apertura riuscita in questa cartella: crea la scheda con copertina.
   // Non blocca la lettura, che è già partita.
@@ -467,7 +476,11 @@ export async function openAlbumFromDrive(albumId){
   // tavole dell'albo che si stava già leggendo — e a fine scaricamento non
   // scavalca l'albo aperto nel frattempo. Il file resta comunque in cache.
   const token = ++_openToken;
-  toast('Apro l\'albo…', false, true);
+  // Guscio del lettore aperto SUBITO (vedi lo stesso ragionamento in
+  // openAlbumFromFile): il titolo dell'album è già noto dalla scheda, non
+  // serve aspettare il download per mostrarlo.
+  openReaderShell(a.title || '');
+  toast('', false, true);
   if(!(await ensureDriveConnected())){ toast('Ricollega Google Drive per aprire questo albo.', true); return; }
   if(token !== _openToken) return;
   // Per LEGGERE si prende il file intero: dalla cache locale se c'è (istantaneo,
@@ -498,7 +511,7 @@ export async function openAlbumFromDrive(albumId){
   }
   if(token !== _openToken) return;
 
-  toast('Preparo le pagine…', false, true);
+  toast('', false, true); // solo il glifo, come sopra
   let src;
   try{ src = await extractPagesForFile(file); }
   catch(e){ if(token === _openToken) toast(e.message, true); return; }
@@ -513,7 +526,8 @@ export async function openAlbumFromDrive(albumId){
   _currentAlbumId = a.id;
   _idx = clampIdx(a.lastPage || 0);
   toast('');
-  openReader();
+  _reader.querySelector('.ar-title').textContent = _albumName;
+  renderPage();
 }
 
 // ── READER (overlay a schermo intero) ───────────────────────────────────────
@@ -614,9 +628,15 @@ function buildReaderDOM(){
   return ov;
 }
 
-function openReader(){
+// Apre solo il guscio del lettore (chrome + overlay), senza disegnare
+// nessuna pagina: usata per mostrare SUBITO il lettore — col glifo di
+// caricamento — mentre l'albo si scarica/estrae ancora, invece di aprirlo
+// solo a caricamento concluso (quando il messaggio di stato, e con lui il
+// glifo, sarebbe già passato sulla schermata References prima ancora che il
+// lettore esistesse).
+function openReaderShell(title){
   const ov = _reader || buildReaderDOM();
-  ov.querySelector('.ar-title').textContent = _albumName;
+  ov.querySelector('.ar-title').textContent = title || '';
   ov.classList.add('open');
   document.body.classList.add('album-reading');
   // Registra uno stato nella cronologia (come fa il visualizzatore reference):
@@ -625,6 +645,11 @@ function openReader(){
   try{
     if(!history.state || history.state.view !== 'albumreader') history.pushState({view:'albumreader'}, '');
   }catch(e){}
+  return ov;
+}
+
+function openReader(){
+  openReaderShell(_albumName);
   renderPage();
 }
 
@@ -1045,7 +1070,11 @@ function toggleClip(force){
   if(controls) controls.hidden = _clipMode;
   _reader.querySelector('.ar-prev').style.display = _clipMode ? 'none' : '';
   _reader.querySelector('.ar-next').style.display = _clipMode ? 'none' : '';
-  if(_clipMode) haptic('tap');
+  // Niente haptic('tap') qui: il pulsante ritaglia è un <button>, già coperto
+  // dal tick diffuso su pointerdown (sound.js). Chiamarlo anche qui produceva
+  // due suoni per un solo tocco — il gesto reale (pointerdown poi click) dura
+  // spesso oltre i 70ms di soglia pensati per fondere i due, quindi entrambi
+  // finivano per suonare.
 }
 
 // Rettangolo dell'immagine effettivamente renderizzata, in coordinate relative
