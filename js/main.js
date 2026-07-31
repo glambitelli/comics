@@ -12,7 +12,8 @@ import { renderHome, openNewModal, closeModal, createProject, openCardMenu, expo
 import { openProject, restoreProject, goHome, confirmDeleteCurrent, closeConfirm, confirmMicrotask } from './project.js';
 import { enterEveningMode as enterEveningImpl, exitEveningMode as exitEveningImpl } from './evening.js';
 import { openScriptment, closeScriptment, onScriptmentInput, setScriptmentFont, stepScriptmentSize, formatScriptment, openScriptmentRead, toggleScriptmentRead, refreshScriptmentButton, closeFormatPreview, applyFormatPreview } from './scriptment.js';
-import { startRefsListener, renderRefsScreen, initRefsCapture, openRefLightbox, closeRefLightbox, closeLightboxUI, nextRefImage, prevRefImage, refsImageMenu, deleteRefImageWithUndo, openFolderBrowser, openAllGrid, openFolder, promptNewFolder, promptNewFolderFlow, promptRenameFolder, promptDeleteFolder, refsFolderMenu, setFolderTab, albumShelfMenu, connectDriveAndSync, disconnectDriveUI, toggleRefsProfile, closeRefsProfile } from './refs.js';
+import { startRefsListener, renderRefsScreen, initRefsCapture, openRefLightbox, closeRefLightbox, closeLightboxUI, nextRefImage, prevRefImage, refsImageMenu, deleteRefImageWithUndo, openFolderBrowser, openAllGrid, openFolder, refsBackToFolders, promptNewFolder, promptNewFolderFlow, promptRenameFolder, promptDeleteFolder, refsFolderMenu, setFolderTab, albumShelfMenu, connectDriveAndSync, disconnectDriveUI, toggleRefsProfile, closeRefsProfile } from './refs.js';
+window.refsBackToFolders=refsBackToFolders;
 window.openRefLightbox=openRefLightbox; window.closeRefLightbox=closeRefLightbox;
 window.nextRefImage=nextRefImage; window.prevRefImage=prevRefImage;
 window.refsImageMenu=refsImageMenu; window.deleteRefImageWithUndo=deleteRefImageWithUndo;
@@ -88,15 +89,33 @@ function openStats(){
   renderStats();
 }
 
-function openRefsScreen(){
+// Preparazione comune della schermata References, condivisa da tutti i punti
+// d'ingresso (elenco cartelle, una cartella specifica, "All"): apre lo schermo
+// e avvia i listener, ma NON decide su quale vista atterrare — quello lo fa
+// il chiamante, cosi' il tasto Indietro puo' far ripartire da una cartella
+// precisa invece che sempre dall'elenco.
+function prepRefsScreen(){
   hideAllScreens();
-  const scr = document.getElementById('screen-refs');
-  scr.classList.add('active');
-  if(window.__navSync) window.__navSync('refs');
+  document.getElementById('screen-refs').classList.add('active');
   initRefsCapture();
   initAlbums();
   startRefsListener();
+}
+function openRefsScreen(){
+  prepRefsScreen();
+  if(window.__navSync) window.__navSync('refs');
   openFolderBrowser();
+}
+// Punti d'ingresso "diretti" per il replay del tasto Indietro (vedi showScreen):
+// aprono la schermata References già dentro una cartella o nella vista "All",
+// senza passare dall'elenco cartelle.
+function openRefsScreenAtFolder(id){
+  prepRefsScreen();
+  openFolder(id);
+}
+function openRefsScreenAtAll(){
+  prepRefsScreen();
+  openAllGrid();
 }
 function closeRefsScreen(){
   document.getElementById('screen-refs').classList.remove('active');
@@ -299,6 +318,8 @@ function showScreen(view, id){
     if(view === 'project' && id && getProject(id)){ openProject(id); }
     else if(view === 'stats'){ openStats(); }
     else if(view === 'refs'){ openRefsScreen(); }
+    else if(view === 'refs-folder' && id){ openRefsScreenAtFolder(id); }
+    else if(view === 'refs-all'){ openRefsScreenAtAll(); }
     else if(view === 'evening'){ enterEveningImpl(); }
     else { // home (o stato sconosciuto)
       if(document.body.classList.contains('evening-mode')) exitEveningImpl();

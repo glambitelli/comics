@@ -408,20 +408,43 @@ async function migrateLegacyBase64Refs(){
 export function getRefs(){ return _refs; }
 
 // ── NAVIGAZIONE INTERNA (cartelle ↔ galleria) ──
+// Entrare in una cartella (o in "All") registra un secondo livello nella
+// cronologia del browser, sopra il livello base "refs" (già registrato
+// all'apertura della schermata). Prima non c'era: il tasto Indietro da
+// dentro una cartella saltava dritto alla Home, scavalcando l'elenco
+// cartelle. Stesso schema già usato per aprire un progetto (vedi
+// project.js): la chiamata è incondizionata, __navSync no-opera da sola
+// durante il "replay" del tasto Indietro (vedi _navReplaying in main.js).
 export function openFolderBrowser(){
   _view = 'folders'; _activeFolderId = null;
   renderRefsScreen();
 }
 export function openAllGrid(){
   _view = 'all'; _activeFolderId = null;
+  if(window.__navSync) window.__navSync('refs-all', null);
   renderRefsScreen();
 }
 export function openFolder(id){
   _view = 'folder'; _activeFolderId = id;
+  if(window.__navSync) window.__navSync('refs-folder', id);
   // Si apre sul tab che ha qualcosa dentro: se la cartella ha albi parte da lì,
   // altrimenti sui ritagli. Evita di sbattere in faccia una schermata vuota.
   _folderTab = countAlbumsByFolder(id) > 0 ? 'albi' : 'ritagli';
   renderRefsScreen();
+}
+
+// Bottone "‹ Cartelle" del breadcrumb: se il livello corrente in cronologia è
+// proprio quello della cartella/All aperti, torna indietro DAVVERO (pop dalla
+// cronologia), così browser Indietro e bottone in pagina restano coerenti —
+// stesso principio del lightbox e del lettore album. Altrimenti (stato base
+// o cronologia non disponibile) mostra la lista e basta.
+export function refsBackToFolders(){
+  const st = history.state;
+  if(st && (st.view === 'refs-folder' || st.view === 'refs-all')){
+    history.back();
+  } else {
+    openFolderBrowser();
+  }
 }
 
 export function setFolderTab(tab){
@@ -813,7 +836,19 @@ export function openRefLightbox(id){
   renderLightboxAt(_lightboxIndex);
 }
 
-function renderLightboxAt(index){
+// Bitmap già decodificati: uno swipe non ripaga fetch+decode se l'immagine
+// era già stata vista o prefetchata. Tenuto per URL, non per indice: la
+// galleria può essere filtrata/riordinata sotto i piedi senza invalidare nulla.
+const _decodedUrls = new Set();
+function preloadRefImage(url){
+  if(!url || _decodedUrls.has(url)) return Promise.resolve();
+  const im = new Image();
+  im.src = url;
+  const ready = im.decode ? im.decode() : new Promise(res=>{ im.onload = res; im.onerror = res; });
+  return ready.then(()=>{ _decodedUrls.add(url); }).catch(()=>{});
+}
+
+async function renderLightboxAt(index){
   if(index < 0 || index >= _lightboxList.length) return;
   _lightboxIndex = index;
   const item = _lightboxList[index];
@@ -823,14 +858,28 @@ function renderLightboxAt(index){
   const prevBtn = document.getElementById('refs-lightbox-prev');
   const nextBtn = document.getElementById('refs-lightbox-next');
   if(!ov || !img) return;
-  img.src = item.url;
-  resetImageZoom();
+  // Interfaccia (contatore, frecce, overlay): aggiornata subito, non dipende
+  // dal bitmap della foto.
   ov.dataset.id = item.id;
   ov.classList.remove('chrome-hidden');
   if(counter) counter.textContent = (index+1)+' / '+_lightboxList.length;
   if(prevBtn) prevBtn.style.visibility = index>0 ? 'visible' : 'hidden';
   if(nextBtn) nextBtn.style.visibility = index<_lightboxList.length-1 ? 'visible' : 'hidden';
   ov.classList.add('open');
+
+  // La foto invece si scambia solo a decodifica completata: fino ad allora
+  // resta a schermo quella precedente. Prima si riassegnava .src subito,
+  // svuotando l'immagine per la durata di fetch+decode — con la galleria su
+  // sfondo quasi nero, quel vuoto si vedeva come un lampeggio ad ogni swipe.
+  await preloadRefImage(item.url);
+  if(_lightboxIndex !== index) return; // si è già passati oltre: scarta questo bitmap
+  img.src = item.url;
+  resetImageZoom();
+
+  // Precarica i vicini: il prossimo swipe li troverà già decodificati.
+  [index + 1, index - 1].forEach(i=>{
+    if(i >= 0 && i < _lightboxList.length) preloadRefImage(_lightboxList[i].url);
+  });
 }
 
 // Chiusura "morbida": passa dalla cronologia, così lo stato del browser resta
