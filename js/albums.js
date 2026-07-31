@@ -659,6 +659,24 @@ function warmPage(url){
   while(_warmPages.size > WARM_MAX) _warmPages.delete(_warmPages.keys().next().value);
 }
 
+// Per un .cbz, getData() (e quindi pageUrl) è SINCRONA e bloccante: unzipSync
+// non cede mai il thread. Misurato su un volume da 220 tavole: ~13 ms per
+// pagina. renderPage() veniva richiamata una volta per ogni pressione del
+// tasto "avanti/indietro", senza aspettare la precedente: sfogliando veloce
+// (6 pressioni in rapida successione) si accumulavano fino a ~80 ms di
+// decompressioni bloccanti sul thread principale — anche per pagine scartate
+// un istante dopo, perché nel frattempo si era già premuto oltre. Da qui lo
+// scatto percepito.
+// Le due variabili sotto coalescono: mentre una pagina è in caricamento, le
+// pressioni successive non avviano una NUOVA decompressione — si limitano a
+// segnare "è arrivata una richiesta più recente" e a tornare subito. Quando
+// il caricamento in corso finisce, si riparte automaticamente dalla pagina
+// più recente saltando quelle intermedie: N pressioni rapide costano al
+// massimo 2 decompressioni (quella già avviata + quella per la pagina finale),
+// non N.
+let _pageLoadBusy = false;
+let _pageLoadPending = false;
+
 async function renderPage(){
   if(!_reader || !_pages.length) return;
   const idx = _idx;
@@ -667,7 +685,9 @@ async function renderPage(){
   _reader.querySelector('.ar-counter').textContent = String(idx + 1).padStart(pad, '0') + ' / ' + _pages.length;
   _reader.querySelector('.ar-prev').style.visibility = idx > 0 ? 'visible' : 'hidden';
   _reader.querySelector('.ar-next').style.visibility = idx < _pages.length - 1 ? 'visible' : 'hidden';
-  // Cursore e salti: aggiornati subito, non dipendono dai byte della tavola.
+  // Cursore e salti: aggiornati subito, non dipendono dai byte della tavola —
+  // e non dalla coalescenza qui sotto: si vedono seguire il dito all'istante
+  // anche mentre l'immagine sta ancora "raggiungendo" l'ultima pagina scelta.
   const seek = _reader.querySelector('.ar-seek');
   if(seek && !seek._dragging){
     seek.max = String(Math.max(0, _pages.length - 1));
@@ -678,36 +698,51 @@ async function renderPage(){
   if(first) first.disabled = idx === 0;
   if(last) last.disabled = idx >= _pages.length - 1;
 
-  const url = await pageUrl(_source, _pages[idx]);
-  if(idx !== _idx || !_reader) return; // pagina cambiata nel frattempo: scarta
-  // La tavola entra nel buffer NASCOSTO e diventa visibile solo quando è
-  // decodificata: decode() (non 'load') perché 'load' significa solo "byte
-  // arrivati", mentre il lavoro pesante su una tavola grande è la decodifica.
-  const idle = readerIdleImg();
-  if(!idle) return;
-  if(idle.src !== url) idle.src = url;
-  try{ await idle.decode(); }
-  catch(e){ /* pagina cambiata a metà o immagine rotta: si prosegue */ }
-  if(idx !== _idx || !_reader) return;
-  swapReaderBuffer(idle);
-  resetZoom();
-  measureBaseSize();   // dimensioni a riposo, per lo zoom senza ricalcoli
+  if(_pageLoadBusy){ _pageLoadPending = true; return; }
+  await loadCurrentPageBitmap();
+  while(_pageLoadPending){
+    _pageLoadPending = false;
+    await loadCurrentPageBitmap();
+  }
+}
 
-  // Prefetch dei vicini RINVIATO a thread libero: con la sorgente pigra ognuno
-  // costa una decompressione (o una richiesta Drive), e farlo subito
-  // ritarderebbe la comparsa della pagina che si sta guardando adesso.
-  // Sfogliando veloce si annulla e si prefetcha solo dove ci si ferma.
-  cancelIdle(_prefetchT);
-  _prefetchT = whenIdle(async ()=>{
-    for(const i of [idx + 1, idx - 1]){
-      if(i < 0 || i >= _pages.length) continue;
-      const u = await pageUrl(_source, _pages[i]);
-      // Solo se è ancora un vicino della pagina corrente: se nel frattempo
-      // si è saltato altrove, questo prefetch non serve più a nulla.
-      if(Math.abs(i - _idx) <= 1) warmPage(u);
-    }
-    trimPages();
-  });
+async function loadCurrentPageBitmap(){
+  _pageLoadBusy = true;
+  try{
+    const idx = _idx;
+    const url = await pageUrl(_source, _pages[idx]);
+    if(idx !== _idx || !_reader) return; // pagina cambiata nel frattempo: scarta
+    // La tavola entra nel buffer NASCOSTO e diventa visibile solo quando è
+    // decodificata: decode() (non 'load') perché 'load' significa solo "byte
+    // arrivati", mentre il lavoro pesante su una tavola grande è la decodifica.
+    const idle = readerIdleImg();
+    if(!idle) return;
+    if(idle.src !== url) idle.src = url;
+    try{ await idle.decode(); }
+    catch(e){ /* pagina cambiata a metà o immagine rotta: si prosegue */ }
+    if(idx !== _idx || !_reader) return;
+    swapReaderBuffer(idle);
+    resetZoom();
+    measureBaseSize();   // dimensioni a riposo, per lo zoom senza ricalcoli
+
+    // Prefetch dei vicini RINVIATO a thread libero: con la sorgente pigra ognuno
+    // costa una decompressione (o una richiesta Drive), e farlo subito
+    // ritarderebbe la comparsa della pagina che si sta guardando adesso.
+    // Sfogliando veloce si annulla e si prefetcha solo dove ci si ferma.
+    cancelIdle(_prefetchT);
+    _prefetchT = whenIdle(async ()=>{
+      for(const i of [idx + 1, idx - 1]){
+        if(i < 0 || i >= _pages.length) continue;
+        const u = await pageUrl(_source, _pages[i]);
+        // Solo se è ancora un vicino della pagina corrente: se nel frattempo
+        // si è saltato altrove, questo prefetch non serve più a nulla.
+        if(Math.abs(i - _idx) <= 1) warmPage(u);
+      }
+      trimPages();
+    });
+  } finally {
+    _pageLoadBusy = false;
+  }
 }
 
 function gotoPage(i){

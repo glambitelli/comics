@@ -317,139 +317,22 @@ export function selectProjectColor(color){
 }
 
 // ── TEMPESTA DI SABBIA — sfondo atmosferico leggero della home ──
-let _sandAnim = null;
+// ── SABBIA DISATTIVATA ──
+// Animazione decorativa sul canvas #home-sand (mai richiesta dall'utente per
+// nessuna funzione: puro effetto visivo). Misurata a ~559 ms di CPU al
+// secondo sulla sola Home con CPU rallentata 4× (telefono di fascia media) —
+// più di mezzo core, in continuazione, per un effetto decorativo. Anche dopo
+// un'ottimizzazione (30fps, densità 1, fillRect raggruppati) restava a
+// ~192 ms/s, quindi è stata spenta del tutto.
+//
+// Il codice completo (sia la versione originale a 60fps sia quella
+// ottimizzata) resta in js/home-sandstorm-60fps.archive.js: se in futuro la
+// si rivuole, da lì si recupera pari pari.
+//
+// window._resumeSand resta undefined di proposito: main.js ed evening.js la
+// richiamano già in forma protetta (`if(window._resumeSand) ...`), quindi
+// disattivarla qui non richiede toccare nessun altro file.
 let _sandStarted = false;
 export function startSandstorm(){
-  if(_sandStarted) return;
-  const canvas = document.getElementById('home-sand');
-  if(!canvas) return;
-  const ctx = canvas.getContext('2d');
-  let rectW = 0, rectH = 0, particles = [], groups = [];
-  const sandColors = ['rgba(170,140,100,', 'rgba(150,120,85,', 'rgba(190,160,115,', 'rgba(160,130,95,'];
-
-  function measure(){
-    const rect = canvas.getBoundingClientRect();
-    rectW = rect.width;
-    rectH = rect.height;
-    // Fallback: se il canvas non ha dimensioni ma la finestra sì, usa quelle
-    if((rectW<=0||rectH<=0) && window.innerWidth>0){
-      const screen = document.getElementById('screen-home');
-      if(screen && screen.classList.contains('active')){
-        rectW = window.innerWidth;
-        rectH = window.innerHeight;
-      }
-    }
-    return rectW > 0 && rectH > 0;
-  }
-
-  function setupCanvas(){
-    // Densità 1 e non 2: sono granelli sfocati di 1-2 px, sul retina non si
-    // distingue nulla, ma a densità 2 il canvas ha QUATTRO volte i pixel da
-    // cancellare e ricomporre a ogni fotogramma.
-    canvas.width = rectW;
-    canvas.height = rectH;
-    ctx.setTransform(1,0,0,1,0,0);
-  }
-
-  function buildParticles(){
-    const COUNT = Math.max(70, Math.min(240, Math.round((rectW*rectH)/4000)));
-    particles = [];
-    for(let i=0;i<COUNT;i++){
-      // Velocità doppie rispetto a prima: si disegna a 30 fotogrammi al secondo
-      // invece di 60, quindi per ogni disegno il granello deve avanzare il
-      // doppio perché la deriva resti identica a occhio.
-      const a = 0.18 + Math.random()*0.24;  // opacità percepibile
-      particles.push({
-        x: Math.random()*rectW,
-        y: Math.random()*rectH,
-        r: 0.9 + Math.random()*1.4,    // piccoli ma sopra il pixel → visibili
-        vx: (0.12 + Math.random()*0.4) * 2,
-        vy: (-0.1 + Math.random()*0.2) * 2,
-        // Opacità arrotondata a passi di 0.04: impercettibile a vista, ma fa
-        // collassare centinaia di sfumature diverse in poche decine di gruppi,
-        // e i gruppi sono ciò che permette di non cambiare colore a ogni granello.
-        a: Math.round(a/0.04)*0.04,
-        c: sandColors[Math.floor(Math.random()*sandColors.length)]
-      });
-    }
-    const byStyle = new Map();
-    for(const p of particles){
-      const style = p.c + p.a.toFixed(2) + ')';
-      if(!byStyle.has(style)) byStyle.set(style, []);
-      byStyle.get(style).push(p);
-    }
-    groups = [...byStyle].map(([style, items])=>({ style, items }));
-  }
-
-  // La sabbia deriva lentamente: a 60 fotogrammi al secondo si ridisegnava il
-  // doppio del necessario senza che l'occhio se ne accorgesse. A 30 il moto è
-  // identico (le velocità sono raddoppiate sotto per compensare) e il lavoro
-  // si dimezza. Misurato: la Home passava da 559 ms di CPU al secondo a una
-  // frazione, su CPU rallentata 4× come un telefono di fascia media.
-  const FRAME_MS = 1000/30;
-  let _lastDraw = 0;
-
-  function draw(){
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-    // Un solo cambio di fillStyle per gruppo invece di uno per granello (erano
-    // fino a 240 per fotogramma). I gruppi sono precalcolati in buildParticles.
-    for(const g of groups){
-      ctx.fillStyle = g.style;
-      for(const p of g.items){
-        // fillRect invece di arc(): a 1-2 px un quadratino e un cerchio sono
-        // indistinguibili, ma il cerchio richiede di costruire un path.
-        const d = p.r * 2;
-        ctx.fillRect(p.x - p.r, p.y - p.r, d, d);
-      }
-    }
-  }
-
-  function tick(now){
-    // Continua solo se la home è visibile e la tab è attiva
-    const homeActive = document.getElementById('screen-home')?.classList.contains('active');
-    if(!homeActive || document.hidden){
-      _sandAnim = null; // pausa: verrà ripreso da resumeSand()
-      return;
-    }
-    _sandAnim = requestAnimationFrame(tick);
-    if(now && now - _lastDraw < FRAME_MS) return; // salta: siamo già a 30/s
-    _lastDraw = now || 0;
-    for(const p of particles){
-      p.x += p.vx;
-      p.y += p.vy;
-      if(p.x > rectW+5){ p.x = -5; p.y = Math.random()*rectH; }
-      if(p.y < -5) p.y = rectH+5;
-      if(p.y > rectH+5) p.y = -5;
-    }
-    draw();
-  }
-
-  // Riprende l'animazione quando si torna sulla home / tab torna attiva
-  function resumeSand(){
-    const homeActive = document.getElementById('screen-home')?.classList.contains('active');
-    if(homeActive && !document.hidden && _sandStarted && _sandAnim === null){
-      if(measure()){ _sandAnim = requestAnimationFrame(tick); }
-    }
-  }
-  window._resumeSand = resumeSand;
-  document.addEventListener('visibilitychange', resumeSand);
-
-  // Aspetta che il canvas abbia dimensioni reali (lo schermo home dev'essere visibile)
-  let attempts = 0;
-  function tryStart(){
-    if(measure()){
-      _sandStarted = true;
-      setupCanvas();
-      buildParticles();
-      if(_sandAnim) cancelAnimationFrame(_sandAnim);
-      tick();
-      window.addEventListener('resize', ()=>{
-        if(measure()){ setupCanvas(); buildParticles(); }
-      }, {passive:true});
-    } else if(attempts++ < 60){
-      // riprova finché lo schermo non è visibile (max ~6s)
-      setTimeout(tryStart, 100);
-    }
-  }
-  tryStart();
+  _sandStarted = true; // no-op: vedi commento sopra
 }
