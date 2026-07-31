@@ -112,6 +112,15 @@ function toast(msg, isError, persistent){
     if(!persistent){
       el._t = setTimeout(()=>{ el.className = inReader ? 'ar-toast' : 'refs-upload-status'; el.textContent=''; }, isError ? 6000 : 2600);
     }
+    // Glifo di caricamento: solo nel lettore, solo per gli stati "sto
+    // lavorando" (persistent e non errore) mentre si APRE l'albo — non
+    // durante il ritaglio (toast('Ritaglio in corso…') è persistent anche
+    // lui, ma lì sotto c'è sempre una pagina visibile: il glifo grande al
+    // centro la coprirebbe invece di aiutare).
+    if(inReader){
+      const glyph = _reader.querySelector('.ar-loading-glyph');
+      if(glyph) glyph.classList.toggle('show', !!persistent && !isError && !_clipMode);
+    }
     return;
   }
   console[isError ? 'warn' : 'log']('[albi]', msg);
@@ -526,6 +535,21 @@ function buildReaderDOM(){
     </div>
     <div class="ar-stage">
       <div class="ar-toast"></div>
+      <div class="ar-loading-glyph" aria-hidden="true">
+        <svg class="ff-glyph" viewBox="0 0 100 100">
+          <defs><clipPath id="ar-loading-fill-clip" clipPathUnits="userSpaceOnUse">
+            <rect x="0" y="0" width="100" height="100" class="fill-rect"/>
+          </clipPath></defs>
+          <g class="ff-group">
+            <text x="50" y="58" text-anchor="middle" font-size="90" class="star-ghost">✦</text>
+            <text x="50" y="58" text-anchor="middle" font-size="90" class="star-fill" clip-path="url(#ar-loading-fill-clip)">✦</text>
+          </g>
+        </svg>
+        <div class="spark s1">✦</div>
+        <div class="spark s2">✦</div>
+        <div class="spark s3">✦</div>
+        <div class="spark s4">✦</div>
+      </div>
       <img class="ar-img active" alt="" decoding="async">
       <img class="ar-img" alt="" decoding="async">
       <div class="ar-cliplayer" hidden><div class="ar-clipbox" hidden></div></div>

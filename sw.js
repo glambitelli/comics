@@ -1,5 +1,5 @@
 // Service Worker — cache file statici locali, Firebase sempre da rete
-const CACHE = 'inkflow-static-v121';
+const CACHE = 'inkflow-static-v122';
 const SHARE_CACHE = 'inkflow-share-inbox';
 // Cache dei file .cbz/.cbr scaricati da Drive: gestita da js/drive.js, va
 // PRESERVATA tra i deploy (altrimenti a ogni aggiornamento riscaricheresti

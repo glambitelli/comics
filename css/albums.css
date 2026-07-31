@@ -120,6 +120,60 @@ body.album-reading{overflow:hidden}
 .ar-toast.ok{color:#c3e0ac}
 .ar-toast.error{color:#f3b6a8;border-color:rgba(232,72,72,.4)}
 
+/* Glifo di caricamento: lo stesso "✦" degli header, che si riempie d'oro dal
+   basso mentre l'albo si prepara — al posto del solo testo del banner sopra
+   (che resta, per il messaggio; il glifo dà un centro visivo alla schermata
+   altrimenti vuota). Prototipato e misurato a parte prima di integrarlo:
+   0,6-1ms di CPU al secondo su CPU rallentata 4x (contro le centinaia di
+   ms/s di un filter:drop-shadow animato, scartato per lo stesso motivo per
+   cui è stata spenta la sabbia della Home). Nascosto di default; comparsa/
+   scomparsa guidate da toast() qui sotto in js/albums.js, in sincrono con lo
+   stesso stato "persistent" del banner testuale — non un ciclo a parte. */
+.ar-loading-glyph{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:120px;height:120px;pointer-events:none;
+  opacity:0;transition:opacity .15s ease;
+}
+.ar-loading-glyph.show{opacity:1}
+/* Da ferme quando non visibili: altrimenti l'animazione girerebbe a vuoto
+   sotto al lettore per tutto il tempo in cui si sta solo sfogliando. */
+.ar-loading-glyph:not(.show) .fill-rect,
+.ar-loading-glyph:not(.show) .ff-group,
+.ar-loading-glyph:not(.show) .spark{animation-play-state:paused}
+
+.ar-loading-glyph .ff-glyph{width:100%;height:100%;overflow:visible}
+.ar-loading-glyph .ff-glyph text{font-family:'Castoro',serif;user-select:none}
+.ar-loading-glyph .star-ghost{fill:rgba(240,192,32,.14)}
+.ar-loading-glyph .star-fill{fill:var(--gold)}
+.ar-loading-glyph .fill-rect{
+  transform-box:fill-box;transform-origin:50% 100%;
+  animation:arGlyphFill 2.2s cubic-bezier(.45,.05,.55,.95) infinite;
+}
+.ar-loading-glyph .ff-group{animation:arGlyphFade 2.2s linear infinite}
+@keyframes arGlyphFill{
+  0%{transform:scaleY(0)} 55%{transform:scaleY(1)} 78%{transform:scaleY(1)}
+  86%{transform:scaleY(0)} 100%{transform:scaleY(0)}
+}
+@keyframes arGlyphFade{
+  0%{opacity:1} 78%{opacity:1} 84%{opacity:.05} 92%{opacity:.05} 100%{opacity:1}
+}
+/* Luccichio pixelato: "✦" in miniatura che scattano ON/OFF di netto (nessuna
+   sfumatura, nessun blur) intorno al glifo quando il riempimento arriva in
+   cima — sostituisce il bagliore morbido del primo prototipo. */
+.ar-loading-glyph .spark{position:absolute;color:#fff2c0;line-height:1;opacity:0;font-family:'Castoro',serif}
+.ar-loading-glyph .s1{top:10%;left:14%;font-size:13px;animation:arSpark1 2.2s steps(1) infinite}
+.ar-loading-glyph .s2{top:16%;right:10%;font-size:18px;animation:arSpark2 2.2s steps(1) infinite}
+.ar-loading-glyph .s3{bottom:16%;right:18%;font-size:12px;animation:arSpark3 2.2s steps(1) infinite}
+.ar-loading-glyph .s4{bottom:10%;left:10%;font-size:14px;animation:arSpark4 2.2s steps(1) infinite}
+@keyframes arSpark1{0%,58%{opacity:0}60%{opacity:1}64%{opacity:0}100%{opacity:0}}
+@keyframes arSpark2{0%,62%{opacity:0}64%{opacity:1}68%{opacity:0}100%{opacity:0}}
+@keyframes arSpark3{0%,66%{opacity:0}68%{opacity:1}72%{opacity:0}100%{opacity:0}}
+@keyframes arSpark4{0%,60%{opacity:0}62%{opacity:1}65%{opacity:0}70%{opacity:1}73%{opacity:0}100%{opacity:0}}
+
+@media (prefers-reduced-motion:reduce){
+  .ar-loading-glyph .fill-rect, .ar-loading-glyph .ff-group, .ar-loading-glyph .spark{animation:none}
+}
+
 /* Frecce: dischi color sabbia con chevron oro, gemelli di quelli della
    galleria reference (.refs-lightbox-nav). Su touch restano nascoste,
    lì si sfoglia con lo swipe. */
