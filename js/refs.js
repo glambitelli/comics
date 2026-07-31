@@ -855,12 +855,22 @@ export function openRefLightbox(id){
 // Scalda la cache HTTP del browser per i vicini: non garantisce di per sé
 // zero attesa (quella la dà il doppio buffer sopra), ma se il byte sono già
 // scaricati il prossimo swipe aspetta solo la decodifica, non la rete.
-const _warmedUrls = new Set();
+// I vicini vengono tenuti VIVI in una piccola coda: un Image() creato e subito
+// dimenticato viene raccolto dal garbage collector e con lui la decodifica già
+// fatta, quindi al momento dello swipe si ripagherebbe tutto da capo. Tenendo
+// il riferimento, il bitmap decodificato resta disponibile e il buffer trova
+// la foto già pronta. La coda è corta apposta: due tavole grandi decodificate
+// sono già decine di MB, non vogliamo tenerne di più.
+const _warmed = new Map();
+const WARM_MAX = 4;
 function warmRefImageCache(url){
-  if(!url || _warmedUrls.has(url)) return;
-  _warmedUrls.add(url);
+  if(!url || _warmed.has(url)) return;
   const im = new Image();
+  im.decoding = 'async';
   im.src = url;
+  im.decode().catch(()=>{});
+  _warmed.set(url, im);
+  while(_warmed.size > WARM_MAX) _warmed.delete(_warmed.keys().next().value);
 }
 
 async function renderLightboxAt(index){
@@ -883,16 +893,25 @@ async function renderLightboxAt(index){
 
   const idle = getIdleLightboxImg();
   if(!idle) return;
-  await new Promise(resolve=>{
-    if(idle.src === item.url && idle.complete){ resolve(); return; }
-    idle.onload = idle.onerror = resolve;
-    idle.src = item.url;
-  });
+  if(idle.src !== item.url) idle.src = item.url;
+  // decode() e non 'load': 'load' scatta quando i BYTE sono arrivati, ma la
+  // decodifica del bitmap avviene dopo, al primo paint. Su una foto grande
+  // quella decodifica dura parecchio, e scambiando la visibilità su 'load' si
+  // rende visibile un'immagine non ancora disegnabile → frame vuoto, tanto più
+  // lungo quanto è grande il file (esattamente il sintomo osservato).
+  // decode() invece si risolve solo quando l'immagine è pronta a essere
+  // dipinta senza saltare un frame.
+  try{ await idle.decode(); }
+  catch(e){ /* src cambiata a metà o file rotto: si prosegue comunque */ }
   if(_lightboxIndex !== index) return; // si è già passati oltre: scarta questo bitmap
 
+  // Trasformazione azzerata PRIMA dello scambio: il buffer può portarsi dietro
+  // lo zoom di quando era attivo l'ultima volta.
+  idle.style.transition = 'none';
+  idle.style.transform = 'translate(0px, 0px) scale(1)';
   const prevActive = getActiveLightboxImg();
   idle.classList.add('active');
-  if(prevActive !== idle) prevActive.classList.remove('active');
+  if(prevActive && prevActive !== idle) prevActive.classList.remove('active');
   _bufToggle = !_bufToggle;
   resetImageZoom();
 
@@ -1099,6 +1118,7 @@ function toggleZoomAt(clientX, clientY){
     // i click/drag arrivano comunque solo su quella davvero visibile.
     body.addEventListener('dblclick', e=>{
       if(Date.now() - lastTouchAt < 1000) return;
+      if(!e.target.classList.contains('refs-lightbox-buf')) return;
       toggleZoomAt(e.clientX, e.clientY);
     });
 
@@ -1132,6 +1152,7 @@ function toggleZoomAt(clientX, clientY){
     body.addEventListener('mousedown', e=>{
       if(_zoomScale <= 1.02) return;
       if(Date.now() - lastTouchAt < 1000) return;
+      if(!e.target.classList.contains('refs-lightbox-buf')) return;
       const img = getActiveLightboxImg();
       if(!img) return;
       e.preventDefault();

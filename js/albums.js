@@ -526,6 +526,7 @@ function buildReaderDOM(){
     </div>
     <div class="ar-stage">
       <div class="ar-toast"></div>
+      <img class="ar-img active" alt="" decoding="async">
       <img class="ar-img" alt="" decoding="async">
       <div class="ar-cliplayer" hidden><div class="ar-clipbox" hidden></div></div>
       <button class="ar-nav ar-prev" aria-label="Precedente" data-act="prev">
@@ -659,8 +660,17 @@ async function renderPage(){
 
   const url = await pageUrl(_source, _pages[idx]);
   if(idx !== _idx || !_reader) return; // pagina cambiata nel frattempo: scarta
-  const img = _reader.querySelector('.ar-img');
-  img.src = url;
+  // La tavola entra nel buffer NASCOSTO e diventa visibile solo quando è
+  // decodificata: decode() (non 'load') perché 'load' significa solo "byte
+  // arrivati", mentre il lavoro pesante su una tavola grande è la decodifica.
+  const idle = readerIdleImg();
+  if(!idle) return;
+  if(idle.src !== url) idle.src = url;
+  try{ await idle.decode(); }
+  catch(e){ /* pagina cambiata a metà o immagine rotta: si prosegue */ }
+  if(idx !== _idx || !_reader) return;
+  swapReaderBuffer(idle);
+  resetZoom();
   measureBaseSize();   // dimensioni a riposo, per lo zoom senza ricalcoli
 
   // Prefetch dei vicini RINVIATO a thread libero: con la sorgente pigra ognuno
@@ -699,7 +709,22 @@ function gotoPage(i){
 // coordinate sull'immagine non trasformata, quindi si ritaglia a pagina intera.
 const ZOOM_IN = 2.6, ZOOM_MAX = 4;
 
-function readerImg(){ return _reader && _reader.querySelector('.ar-img'); }
+// L'immagine "attiva" cambia a ogni pagina (doppio buffer): va sempre risolta
+// al momento dell'uso, mai memorizzata in una closure.
+function readerImg(){ return _reader && _reader.querySelector('.ar-img.active'); }
+function readerIdleImg(){ return _reader && _reader.querySelector('.ar-img:not(.active)'); }
+
+// Rende visibile il buffer appena decodificato. La trasformazione viene
+// azzerata PRIMA dello scambio: altrimenti la nuova tavola comparirebbe per un
+// frame con lo zoom della precedente.
+function swapReaderBuffer(next){
+  if(!next) return;
+  next.style.transition = 'none';
+  next.style.transform = 'translate(0px, 0px) scale(1)';
+  const prev = readerImg();
+  next.classList.add('active');
+  if(prev && prev !== next) prev.classList.remove('active');
+}
 
 function applyZoom(){
   const img = readerImg();
@@ -782,7 +807,6 @@ function wireSeek(ov){
 
 function wireGestures(ov){
   const stage = ov.querySelector('.ar-stage');
-  const img = ov.querySelector('.ar-img');
   let x0 = 0, y0 = 0, swiping = false;
   let pinching = false, startDist = 0, startScale = 1;
   let panning = false, panX = 0, panY = 0, origX = 0, origY = 0;
@@ -793,7 +817,8 @@ function wireGestures(ov){
   stage.addEventListener('touchstart', e=>{
     if(_clipMode) return;
     lastTouchAt = Date.now();
-    img.style.transition = 'none';
+    const img = readerImg();
+    if(img) img.style.transition = 'none';
     const t = e.touches;
     if(t.length === 2){
       pinching = true; panning = false; swiping = false;
@@ -859,6 +884,8 @@ function wireGestures(ov){
   stage.addEventListener('wheel', e=>{
     if(_clipMode || !ov.classList.contains('open')) return;
     e.preventDefault();
+    const img = readerImg();
+    if(!img) return;
     const prev = _zoom;
     const factor = e.deltaY < 0 ? 1.16 : 1 / 1.16;
     _zoom = Math.min(ZOOM_MAX, Math.max(1, prev * factor));
@@ -879,16 +906,25 @@ function wireGestures(ov){
 
   // I browser mobile emettono un dblclick sintetico dopo un doppio tap reale:
   // se lo lasciassimo passare zoomerebbe due volte annullandosi.
-  img.addEventListener('dblclick', e=>{
+  // Delegati sullo stage e non sulla singola <img>: con il doppio buffer
+  // l'elemento visibile cambia a ogni pagina, e un listener agganciato una
+  // volta sola a quello iniziale smetterebbe di rispondere dopo il primo
+  // cambio pagina. Il controllo sul bersaglio conserva il comportamento di
+  // prima (si reagisce solo sulla tavola, non sul bordo vuoto attorno).
+  stage.addEventListener('dblclick', e=>{
     if(_clipMode || Date.now() - lastTouchAt < 1000) return;
+    if(!e.target.classList.contains('ar-img')) return;
     zoomAt(e.clientX, e.clientY);
   });
 
   // Desktop: trascinamento con la manina quando la tavola è ingrandita.
   let mDown = false, mx = 0, my = 0, mox = 0, moy = 0;
-  img.addEventListener('mousedown', e=>{
+  stage.addEventListener('mousedown', e=>{
     if(_clipMode || _zoom <= 1.02) return;
     if(Date.now() - lastTouchAt < 1000) return;
+    if(!e.target.classList.contains('ar-img')) return;
+    const img = readerImg();
+    if(!img) return;
     e.preventDefault();
     mDown = true; mx = e.clientX; my = e.clientY; mox = _zx; moy = _zy;
     stage.classList.add('grabbing');
@@ -958,7 +994,6 @@ function renderedImageRect(img, layer){
 function wireClip(ov){
   const layer = ov.querySelector('.ar-cliplayer');
   const box = ov.querySelector('.ar-clipbox');
-  const img = ov.querySelector('.ar-img');
   const hintInstruct = ov.querySelector('.ar-clip-hint-instruct');
   const hintConfirm = ov.querySelector('.ar-clip-hint-confirm');
   let sx = 0, sy = 0, drawing = false;
@@ -1015,6 +1050,11 @@ function wireClip(ov){
     const sel = pendingSel;
     pendingSel = null;
     showConfirm(false);
+    // Risolta ORA e non alla creazione del lettore: il ritaglio deve usare la
+    // tavola effettivamente a schermo, non il buffer diventato nel frattempo
+    // quello nascosto.
+    const img = readerImg();
+    if(!img) return;
     await commitClip(img, sel, layer);
     box.hidden = true;
   };
