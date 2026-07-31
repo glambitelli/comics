@@ -100,6 +100,34 @@ export function getActiveFolderId(){
   return _view === 'folder' ? _activeFolderId : null;
 }
 
+// Destinazioni possibili per un ritaglio, in ordine di presentazione.
+// La prima è sempre la cartella da cui stai leggendo (l'artista): resta il
+// comportamento predefinito. Poi vengono le cartelle di STUDIO, cioè quelle
+// di una categoria diversa da quella dell'artista corrente.
+//
+// Le categorie sono testo libero ("Artisti", "Studio", …), quindi qui non si
+// cerca il nome "studio": si prendono semplicemente le cartelle che stanno in
+// un'altra categoria rispetto a dove sei. Così la regola vale comunque, anche
+// se un giorno le categorie si chiamano diversamente o se ne aggiunge una
+// terza, senza che il codice debba conoscerne i nomi.
+export function clipDestinations(){
+  const currentId = getActiveFolderId();
+  const current = currentId ? _folders.find(f=>f.id===currentId) : null;
+  const out = [];
+  if(current) out.push({ id: current.id, name: current.name, category: current.category, isCurrent: true });
+  _folders
+    .filter(f=> f.id !== currentId && (!current || f.category !== current.category))
+    .sort((a,b)=> (a.category||'').localeCompare(b.category||'') || (a.name||'').localeCompare(b.name||''))
+    .forEach(f=> out.push({ id: f.id, name: f.name, category: f.category, isCurrent: false }));
+  return out;
+}
+
+// Nome della cartella (per mostrare la provenienza di un ritaglio di studio).
+export function getFolderName(id){
+  const f = _folders.find(x=>x.id===id);
+  return f ? f.name : null;
+}
+
 function setUploadStatus(state, text){
   const el = document.getElementById('refs-upload-status');
   if(!el) return;
@@ -889,6 +917,30 @@ async function renderLightboxAt(index){
   ov.dataset.id = item.id;
   ov.classList.remove('chrome-hidden');
   if(counter) counter.textContent = (index+1)+' / '+_lightboxList.length;
+  // Provenienza: da che albo/pagina viene il ritaglio, e — se è archiviato in
+  // una cartella di studio — di quale artista è. Il dato veniva già salvato da
+  // sempre ma non era mostrato da nessuna parte: senza, guardando una mano
+  // dentro "Hands" non c'è modo di sapere chi l'ha disegnata.
+  const prov = document.getElementById('refs-lightbox-prov');
+  if(prov){
+    const p = item.provenance;
+    if(p && (p.opera || p.folderId)){
+      const artista = p.folderId ? getFolderName(p.folderId) : null;
+      // L'artista si mostra solo se il ritaglio NON è già nella sua cartella:
+      // dentro la cartella di Otomo, ripetere "Otomo" su ogni immagine è
+      // rumore. Nello studio invece è l'informazione che serve.
+      const showArtist = artista && item.folderId !== p.folderId;
+      const bits = [];
+      if(showArtist) bits.push(artista);
+      if(p.opera) bits.push(p.opera);
+      if(p.pagina) bits.push('p. ' + p.pagina);
+      prov.textContent = bits.join(' · ');
+      prov.hidden = bits.length === 0;
+    } else {
+      prov.textContent = '';
+      prov.hidden = true;
+    }
+  }
   if(prevBtn) prevBtn.style.visibility = index>0 ? 'visible' : 'hidden';
   if(nextBtn) nextBtn.style.visibility = index<_lightboxList.length-1 ? 'visible' : 'hidden';
   ov.classList.add('open');

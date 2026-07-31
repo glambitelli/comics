@@ -28,6 +28,7 @@ import { unzipSync } from './vendor/fflate.js';
 import {
   addRefBlob, getActiveFolderId, findExactAlbumMatch, createAlbumDoc,
   updateAlbumLastPage, updateAlbumSourceName, getAlbumById, findAlbumByDriveId,
+  clipDestinations, getFolderName,
 } from './refs.js';
 import { uploadToCloudinary } from './cloudinary.js';
 import { getDriveAlbumFile, ensureDriveConnected } from './drive.js';
@@ -54,6 +55,15 @@ let _pendingReopen = null;
 // ── UTIL ──────────────────────────────────────────────────────────────────
 const IMG_RE = /\.(jpe?g|png|gif|webp|avif|bmp)$/i;
 const _collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
+
+// I nomi delle cartelle li scrive l'utente e finiscono dentro HTML (pastiglie
+// di destinazione del ritaglio): vanno sempre neutralizzati, apici doppi
+// compresi perché entrano anche in attributi.
+function escAttr(s){
+  return String(s == null ? '' : s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
 
 // Ordinamento "naturale": p2.jpg prima di p10.jpg (il .sort() lessicografico
 // sbaglierebbe). Cruciale, altrimenti le pagine escono in ordine sparso.
@@ -598,7 +608,7 @@ function buildReaderDOM(){
         <span class="ar-clip-hint-instruct">Trascina un riquadro sulla pagina · <button class="ar-cancelclip" data-act="cancelclip">annulla</button></span>
         <span class="ar-clip-hint-confirm" hidden>
           <button class="ar-cancelclip" data-act="retryclip">Riprova</button>
-          <button class="ar-clip-confirm-btn" data-act="confirmclip">✓ Conferma ritaglio</button>
+          <span class="ar-clip-dests"></span>
         </span>
       </div>
     </div>`;
@@ -616,7 +626,9 @@ function buildReaderDOM(){
     else if(act === 'last') gotoPage(_pages.length - 1);
     else if(act === 'cancelclip') toggleClip(false);
     else if(act === 'retryclip'){ if(ov._clipRetry) ov._clipRetry(); }
-    else if(act === 'confirmclip'){ if(ov._clipConfirm) ov._clipConfirm(); }
+    // La pastiglia della destinazione È la conferma: un gesto solo invece di
+    // "conferma" e poi "scegli dove".
+    else if(act === 'confirmclip'){ if(ov._clipConfirm) ov._clipConfirm(b.dataset.dest || null); }
   });
 
   // Tap sul centro dell'immagine (fuori clip) = avanti; bordo sinistro = indietro.
@@ -1111,6 +1123,7 @@ function wireClip(ov){
   const box = ov.querySelector('.ar-clipbox');
   const hintInstruct = ov.querySelector('.ar-clip-hint-instruct');
   const hintConfirm = ov.querySelector('.ar-clip-hint-confirm');
+  const dests = ov.querySelector('.ar-clip-dests');
   const handles = Array.from(box.querySelectorAll('.ar-clip-handle'));
   const MIN_SIZE = 24; // dimensione minima del riquadro in px CSS, ridimensionando
   let sx = 0, sy = 0, drawing = false;
@@ -1124,9 +1137,32 @@ function wireClip(ov){
   let pendingSel = null;
   let resizeCorner = null; // angolo in trascinamento, o null
 
+  // Pastiglie di destinazione: la prima è la cartella da cui stai leggendo
+  // (i Ritagli dell'artista), poi le cartelle di Studio. Toccarne una salva
+  // il ritaglio lì dentro. Si ricostruiscono ad ogni riquadro perché nel
+  // frattempo puoi aver creato una nuova cartella di studio.
+  const renderDests = ()=>{
+    if(!dests) return;
+    const list = clipDestinations();
+    if(!list.length){
+      // Nessuna cartella: il ritaglio resta non archiviato, come oggi.
+      dests.innerHTML = '<button class="ar-clip-confirm-btn" data-act="confirmclip">✓ Salva ritaglio</button>';
+      return;
+    }
+    dests.innerHTML = list.map(d=>{
+      const cls = d.isCurrent ? 'ar-clip-dest is-current' : 'ar-clip-dest';
+      const label = d.isCurrent ? ('✓ ' + escAttr(d.name)) : escAttr(d.name);
+      const title = d.isCurrent
+        ? 'Salva tra i ritagli di ' + escAttr(d.name)
+        : 'Salva in ' + escAttr(d.category || '') + ' › ' + escAttr(d.name);
+      return `<button class="${cls}" data-act="confirmclip" data-dest="${escAttr(d.id)}" title="${title}">${label}</button>`;
+    }).join('');
+  };
+
   const showConfirm = (on)=>{
     if(hintInstruct) hintInstruct.hidden = on;
     if(hintConfirm) hintConfirm.hidden = !on;
+    if(on) renderDests();
     // Le maniglie di resize hanno senso SOLO nello stato "in attesa di
     // conferma": durante il disegno iniziale coprirebbero il gesto sulla
     // superficie, e a riquadro chiuso non c'è nulla da ridimensionare.
@@ -1230,7 +1266,7 @@ function wireClip(ov){
     box.hidden = true;
     showConfirm(false);
   };
-  ov._clipConfirm = async ()=>{
+  ov._clipConfirm = async (destFolderId)=>{
     if(!pendingSel) return;
     const sel = pendingSel;
     pendingSel = null;
@@ -1240,7 +1276,7 @@ function wireClip(ov){
     // quello nascosto.
     const img = readerImg();
     if(!img) return;
-    await commitClip(img, sel, layer);
+    await commitClip(img, sel, layer, destFolderId);
     box.hidden = true;
   };
 
@@ -1259,7 +1295,7 @@ function wireClip(ov){
 }
 
 // Ritaglia il rettangolo selezionato dalla pagina a piena risoluzione.
-async function commitClip(img, sel, layer){
+async function commitClip(img, sel, layer, destFolderId){
   const rect = renderedImageRect(img, layer);
   // Coordinate del riquadro relative all'immagine renderizzata (tolte le bande).
   const relX = sel.left - rect.x, relY = sel.top - rect.y;
@@ -1269,7 +1305,7 @@ async function commitClip(img, sel, layer){
   const cropH = Math.min(img.naturalHeight - cropY, sel.height / rect.scale);
   if(cropW < 4 || cropH < 4){ toast('Riquadro fuori dalla pagina, riprova.', true); toggleClip(false); return; }
 
-  await exportCropAndSave(await pageBlob(_source, _pages[_idx]), cropX, cropY, cropW, cropH);
+  await exportCropAndSave(await pageBlob(_source, _pages[_idx]), cropX, cropY, cropW, cropH, destFolderId);
   toggleClip(false);
 }
 
@@ -1290,7 +1326,7 @@ const CLIP_MAX_BYTES = 1400000;
 // Disegna il crop su canvas (con cap dimensionale), comprime in JPEG e lo
 // consegna a refs.js che lo carica su Cloudinary e scrive il Frammento con
 // provenienza { opera, pagina }.
-async function exportCropAndSave(sourceBlob, cx, cy, cw, ch){
+async function exportCropAndSave(sourceBlob, cx, cy, cw, ch, destFolderId){
   toast('Ritaglio in corso…', false, true);
   let im;
   try{ im = await blobToImage(sourceBlob); }
@@ -1316,14 +1352,31 @@ async function exportCropAndSave(sourceBlob, cx, cy, cw, ch){
   }
   if(!blob){ toast('Ritaglio fallito.', true); return; }
 
-  const folderId = getActiveFolderId();
+  // Cartella da cui si sta leggendo: è l'ARTISTA, e resta la destinazione
+  // predefinita. destFolderId la scavalca quando si tocca la pastiglia di una
+  // cartella di studio.
+  const sourceFolderId = getActiveFolderId();
+  const folderId = destFolderId || sourceFolderId;
+  // La provenienza viaggia SEMPRE col ritaglio, anche quando finisce in una
+  // cartella di studio: le mani archiviate in "Hands" continuano a sapere di
+  // essere di Satoshi Kon, pagina 88. Senza questo, spostando un ritaglio
+  // nello studio si perderebbe per sempre l'informazione su chi l'ha disegnato
+  // — ed è proprio quella che serve quando poi ci si torna sopra.
   const id = await addRefBlob(blob, {
     folderId,
     source: 'clip',
-    provenance: { opera: _albumName, pagina: _idx + 1 },
+    provenance: {
+      opera: _albumName,
+      pagina: _idx + 1,
+      folderId: sourceFolderId || null,   // cartella artista di origine
+    },
     w, h
   });
-  if(id){ haptic('done'); toast('Frammento salvato ✓'); }
+  if(id){
+    haptic('done');
+    const destName = destFolderId ? getFolderName(destFolderId) : null;
+    toast(destName ? ('Salvato in ' + destName + ' ✓') : 'Frammento salvato ✓');
+  }
   else { toast('Salvataggio del frammento fallito.', true); }
 }
 

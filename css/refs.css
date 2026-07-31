@@ -76,6 +76,15 @@
 .refs-lightbox-bottom{display:flex;align-items:center;justify-content:center;gap:10px;flex-shrink:0;padding:10px 14px calc(14px + var(--safe-bot));transition:opacity .18s,transform .18s}
 .refs-lightbox.chrome-hidden .refs-lightbox-bottom{opacity:0;transform:translateY(6px);pointer-events:none}
 .refs-lightbox-counter{text-align:center;font-family:'Nunito',sans-serif;font-size:10.5px;font-weight:700;color:#f0c84e;letter-spacing:.08em;background:rgba(240,200,90,.12);border:1px solid rgba(240,200,90,.28);border-radius:20px;padding:7px 14px;line-height:1}
+/* Contatore + provenienza in colonna: la provenienza è secondaria (più
+   piccola e smorzata), non deve competere col contatore. */
+.refs-lightbox-meta{display:flex;flex-direction:column;align-items:center;gap:5px;min-width:0}
+.refs-lightbox-prov{
+  font-family:'Nunito',sans-serif;font-size:10px;font-weight:600;
+  color:var(--sand3);letter-spacing:.03em;line-height:1.2;text-align:center;
+  max-width:70vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.refs-lightbox-prov[hidden]{display:none}
 .refs-lightbox-more{background:#fdf6e4;border:1.5px solid rgba(240,200,90,.4);color:#a8843c;cursor:pointer;padding:0;line-height:1;flex-shrink:0;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(0,0,0,.22);transition:transform .1s}
 .refs-lightbox-more:active{transform:scale(.92);background:#f8ecc8}
 

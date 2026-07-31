@@ -293,3 +293,28 @@ body.is-touch .ar-nav{display:none} /* su mobile si naviga con swipe/tap */
   padding:7px 14px;border-radius:20px;transition:transform .1s;
 }
 .ar-clip-confirm-btn:active{transform:scale(.94)}
+
+/* Pastiglie di destinazione: dove finisce il ritaglio. La prima (piena, oro)
+   è la cartella da cui stai leggendo — l'artista, comportamento predefinito.
+   Le altre (contorno soltanto) sono le cartelle di studio: si distinguono a
+   colpo d'occhio senza bisogno di leggere, perché la scelta di default deve
+   restare quella ovvia anche mentre si sfoglia in fretta.
+   Scorrono in orizzontale: con parecchie cartelle di studio la riga non deve
+   mandare a capo la barra né allargare il lettore. */
+.ar-clip-dests{
+  display:flex;align-items:center;gap:7px;
+  overflow-x:auto;max-width:100%;
+  scrollbar-width:none;-ms-overflow-style:none;
+  padding:1px 0;
+}
+.ar-clip-dests::-webkit-scrollbar{display:none}
+.ar-clip-dest{
+  flex-shrink:0;cursor:pointer;
+  font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;letter-spacing:.03em;
+  padding:7px 13px;border-radius:20px;transition:transform .1s,background .15s;
+  max-width:46vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  background:transparent;border:1.5px solid rgba(240,200,90,.45);color:#f0c84e;
+}
+.ar-clip-dest.is-current{background:var(--gold);border-color:var(--gold);color:var(--ink)}
+.ar-clip-dest:active{transform:scale(.94)}
+.ar-clip-dest:not(.is-current):hover{background:rgba(240,200,90,.14)}
