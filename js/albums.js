@@ -623,6 +623,9 @@ export function closeReaderUI(){
   if(_clipMode) toggleClip(false);
   _reader.classList.remove('open');
   document.body.classList.remove('album-reading');
+  // Le tavole tenute calde per il prefetch sono bitmap decodificati da parecchi
+  // MB l'uno: chiudendo il lettore non servono più e vanno lasciate andare.
+  _warmPages.clear();
   // Le pagine restano in memoria finché non apri un altro albo: riaprire lo
   // stesso file dal picker le ricrea comunque. Le liberiamo alla prossima apertura.
 }
@@ -638,6 +641,23 @@ export function closeReaderUI(){
 const whenIdle = (fn, timeout=600)=>
   (window.requestIdleCallback ? requestIdleCallback(fn, { timeout }) : setTimeout(fn, 90));
 const cancelIdle = (h)=>{ if(h==null) return; (window.cancelIdleCallback||clearTimeout)(h); };
+
+// Prefetch delle tavole vicine: si DECODIFICA subito e si tiene vivo il
+// riferimento. Prima si creava un Image() e lo si dimenticava: il garbage
+// collector se lo portava via insieme alla decodifica, quindi al cambio pagina
+// il buffer doveva rifare tutto da capo e lo swipe restava fermo un attimo.
+// La coda è corta di proposito: due tavole decodificate sono già decine di MB.
+const _warmPages = new Map();
+const WARM_MAX = 3;
+function warmPage(url){
+  if(!url || _warmPages.has(url)) return;
+  const im = new Image();
+  im.decoding = 'async';
+  im.src = url;
+  im.decode().catch(()=>{});
+  _warmPages.set(url, im);
+  while(_warmPages.size > WARM_MAX) _warmPages.delete(_warmPages.keys().next().value);
+}
 
 async function renderPage(){
   if(!_reader || !_pages.length) return;
@@ -684,7 +704,7 @@ async function renderPage(){
       const u = await pageUrl(_source, _pages[i]);
       // Solo se è ancora un vicino della pagina corrente: se nel frattempo
       // si è saltato altrove, questo prefetch non serve più a nulla.
-      if(Math.abs(i - _idx) <= 1){ const im = new Image(); im.decoding = 'async'; im.src = u; }
+      if(Math.abs(i - _idx) <= 1) warmPage(u);
     }
     trimPages();
   });
