@@ -1,6 +1,9 @@
 import { getProject, currentId , showUndoToast } from './state.js';
 import { scheduleSave } from './firebase.js';
-import { parseScreenplay } from './scriptment.js';
+// Pigro: scriptment.js (25 KB) serve solo al Breakdown, non a ogni apertura
+// di un progetto. Il modulo si carica al primo clic e resta in cache.
+let _scriptmentMod = null;
+const ensureScriptment = async () => (_scriptmentMod ||= await import('./scriptment.js'));
 import { getScriptment } from './home.js';
 
 const ACT_CONFIG=[
@@ -679,10 +682,10 @@ function _flashBtn(btn,n){
   btn._t=setTimeout(()=>{ btn.innerHTML=btn.dataset.orig; btn.classList.remove('extract-done'); },1700);
 }
 
-export function extractCharsFromScript(btn){
+export async function extractCharsFromScript(btn){
   const p=getProject(currentId); if(!p) return;
   const sm=getScriptment(p);
-  const items=parseScreenplay((sm&&sm.text)||'');
+  const items=(await ensureScriptment()).parseScreenplay((sm&&sm.text)||'');
   if(!p.story)p.story={};
   if(!p.story.characters)p.story.characters=[];
   const existing=new Set(p.story.characters.map(c=>(c.name||'').trim().toUpperCase()).filter(Boolean));
@@ -708,10 +711,10 @@ export function extractCharsFromScript(btn){
   return added;
 }
 
-export function extractScenesFromScript(btn){
+export async function extractScenesFromScript(btn){
   const p=getProject(currentId); if(!p) return;
   const sm=getScriptment(p);
-  const items=parseScreenplay((sm&&sm.text)||'');
+  const items=(await ensureScriptment()).parseScreenplay((sm&&sm.text)||'');
   if(!p.story)p.story={};
   if(!p.story.acts)p.story.acts={setup:[],confrontation:[],resolution:[]};
 
@@ -806,9 +809,9 @@ export function extractScenesFromScript(btn){
   return total;
 }
 
-export function extractAllFromScript(btn){
-  const nChars = extractCharsFromScript(null);
-  const nScenes = extractScenesFromScript(null);
+export async function extractAllFromScript(btn){
+  const nChars = await extractCharsFromScript(null);
+  const nScenes = await extractScenesFromScript(null);
   const total = (nChars||0) + (nScenes||0);
   _openSupportFor('chars');
   _flashBtn(btn, total);

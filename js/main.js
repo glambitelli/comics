@@ -1,7 +1,6 @@
 import { db, COL, syncDot, loadUserData, collection, onSnapshot, cacheProjects, getCachedProjects } from './firebase.js';
 import { projects, setProjects, currentId, getProject, haptic , loadJSON } from './state.js';
 import { saveDates } from './velocity.js';
-import { exportPDF, exportScreenplay } from './pdf.js';
 import { togglePhase, toggleStep, selectTav, addSfida, addTodo, toggleTodo, clearCompletedTodos, toggleSupport } from './pipeline.js';
 import { addScene, updateScene, deleteScene, autoResize, saveStoryField, updateCharCount, toggleSubsection, addCharacter, deleteCharacter, toggleCharCard, autoResizeAll, toggleScreenplay, addSceneText, deleteSceneText, extractAllFromScript } from './story.js';
 import { updatePlanner, applyPlanner, openPlannerModal, closePlannerModal } from './planner.js';
@@ -11,25 +10,45 @@ window.onSoundToggle=onSoundToggle;
 import { renderHome, openNewModal, closeModal, createProject, openCardMenu, exportProjectJSON, confirmDeleteProject, openColorPicker, closeColorPicker, selectProjectColor, toggleSearch, filterProjects, attachCardDrag, applyProjectOrder, startSandstorm, getScriptment } from './home.js';
 import { openProject, restoreProject, goHome, confirmDeleteCurrent, closeConfirm, confirmMicrotask } from './project.js';
 import { enterEveningMode as enterEveningImpl, exitEveningMode as exitEveningImpl } from './evening.js';
-import { openScriptment, closeScriptment, onScriptmentInput, setScriptmentFont, stepScriptmentSize, formatScriptment, openScriptmentRead, toggleScriptmentRead, refreshScriptmentButton, closeFormatPreview, applyFormatPreview } from './scriptment.js';
-import { startRefsListener, renderRefsScreen, initRefsCapture, openRefLightbox, closeRefLightbox, closeLightboxUI, nextRefImage, prevRefImage, refsImageMenu, deleteRefImageWithUndo, openFolderBrowser, openAllGrid, openFolder, refsBackToFolders, promptNewFolder, promptNewFolderFlow, promptRenameFolder, promptDeleteFolder, refsFolderMenu, setFolderTab, albumShelfMenu, connectDriveAndSync, disconnectDriveUI, toggleRefsProfile, closeRefsProfile } from './refs.js';
-window.refsBackToFolders=refsBackToFolders;
-window.openRefLightbox=openRefLightbox; window.closeRefLightbox=closeRefLightbox;
-window.nextRefImage=nextRefImage; window.prevRefImage=prevRefImage;
-window.refsImageMenu=refsImageMenu; window.deleteRefImageWithUndo=deleteRefImageWithUndo;
-window.openFolderBrowser=openFolderBrowser; window.openAllGrid=openAllGrid; window.openFolder=openFolder;
-window.promptNewFolder=promptNewFolder; window.promptNewFolderFlow=promptNewFolderFlow; window.promptRenameFolder=promptRenameFolder; window.promptDeleteFolder=promptDeleteFolder;
-window.refsFolderMenu=refsFolderMenu; window.setFolderTab=setFolderTab; window.albumShelfMenu=albumShelfMenu;
-window.connectDriveAndSync=connectDriveAndSync; window.disconnectDriveUI=disconnectDriveUI;
-window.toggleRefsProfile=toggleRefsProfile; window.closeRefsProfile=closeRefsProfile;
-import { initAlbums, openAlbumPicker, openAlbumFromFile, openAlbumFromDrive, createAlbumFromDriveFile, closeReaderUI } from './albums.js';
-window.openAlbumPicker=openAlbumPicker; window.openAlbumFromFile=openAlbumFromFile;
-window.openAlbumFromDrive=openAlbumFromDrive; window.createAlbumFromDriveFile=createAlbumFromDriveFile;
-window.openScriptment=openScriptment; window.closeScriptment=closeScriptment;
-window.setScriptmentFont=setScriptmentFont; window.stepScriptmentSize=stepScriptmentSize;
-window.formatScriptment=formatScriptment; window.openScriptmentRead=openScriptmentRead;
-window.toggleScriptmentRead=toggleScriptmentRead;
-window.closeFormatPreview=closeFormatPreview; window.applyFormatPreview=applyFormatPreview;
+// ── CARICAMENTO PIGRO DEI MODULI PESANTI ──────────────────────────────────
+// References, lettore CBR, Drive, statistiche, export PDF e scriptment pesano
+// insieme ~200 KB e all'avvio venivano parsati e valutati tutti, anche solo per
+// guardare la Home. Misurato su CPU rallentata 4× (telefono di fascia media):
+// 162 ms di parse+eval contro 69 ms caricando solo il necessario.
+//
+// Il vincolo e' che l'HTML richiama queste funzioni con onclick inline
+// (window.qualcosa()), quindi non possono sparire da window. La soluzione e'
+// esporre stub con la stessa firma: al primo clic importano il modulo e poi
+// inoltrano la chiamata. Nessun handler inline cambia, e l'import() successivo
+// si risolve dalla cache dei moduli.
+const _mods = {};
+const loadMod = path => (_mods[path] ||= import(path));
+// Modulo gia' caricato? Serve dove NON vogliamo provocarne il caricamento
+// (es. il tasto Indietro deve chiudere il lettore solo se e' davvero aperto).
+const loadedMod = path => (_mods[path] && _mods[path].__resolved) || null;
+function trackResolved(path){
+  const p = loadMod(path);
+  if(!p.__tracking){ p.__tracking = true; p.then(m => { p.__resolved = m; }); }
+  return p;
+}
+// Espone su window uno stub per ogni nome esportato dal modulo pigro.
+function exposeLazy(path, names){
+  for(const n of names){
+    window[n] = (...args) => trackResolved(path).then(m => m[n](...args));
+  }
+}
+
+exposeLazy('./refs.js', ['refsBackToFolders','openRefLightbox','closeRefLightbox',
+  'nextRefImage','prevRefImage','refsImageMenu','deleteRefImageWithUndo',
+  'openFolderBrowser','openAllGrid','openFolder','promptNewFolder','promptNewFolderFlow',
+  'promptRenameFolder','promptDeleteFolder','refsFolderMenu','setFolderTab','albumShelfMenu',
+  'connectDriveAndSync','disconnectDriveUI','toggleRefsProfile','closeRefsProfile']);
+exposeLazy('./albums.js', ['openAlbumPicker','openAlbumFromFile','openAlbumFromDrive',
+  'createAlbumFromDriveFile']);
+exposeLazy('./scriptment.js', ['openScriptment','closeScriptment','setScriptmentFont',
+  'stepScriptmentSize','formatScriptment','openScriptmentRead','toggleScriptmentRead',
+  'closeFormatPreview','applyFormatPreview','onScriptmentInput']);
+exposeLazy('./pdf.js', ['exportPDF','exportScreenplay']);
 
 // Aggancia l'autosave dell'editor scriptment (contenteditable)
 (function(){
@@ -48,8 +67,7 @@ window.closeFormatPreview=closeFormatPreview; window.applyFormatPreview=applyFor
   if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wire);
   else wire();
 })();
-window.onScriptmentInput = onScriptmentInput;
-import { renderStats, getTodayTip } from './stats.js';
+import { getTodayTip } from './tips.js';
 
 // ── Rilevamento mobile: barra-duna solo quando l'input PRINCIPALE è il tocco.
 // '(pointer: coarse)' è true sui telefoni (input primario = dito), false su
@@ -82,11 +100,16 @@ function hideAllScreens(){
   document.body.classList.remove('evening-mode');
 }
 
-function openStats(){
+// Asincrone perche' il modulo della schermata si carica al primo ingresso.
+// Lo schermo viene comunque attivato SUBITO (sincrono): si vede la schermata
+// cambiare all'istante e il contenuto compare appena il modulo e' pronto,
+// invece di restare fermi sulla schermata precedente aspettando.
+async function openStats(){
   hideAllScreens();
   document.getElementById('screen-stats').classList.add('active');
   if(window.__navSync) window.__navSync('stats');
-  renderStats();
+  const m = await trackResolved('./stats.js');
+  m.renderStats();
 }
 
 // Preparazione comune della schermata References, condivisa da tutti i punti
@@ -94,28 +117,32 @@ function openStats(){
 // e avvia i listener, ma NON decide su quale vista atterrare — quello lo fa
 // il chiamante, cosi' il tasto Indietro puo' far ripartire da una cartella
 // precisa invece che sempre dall'elenco.
-function prepRefsScreen(){
+async function prepRefsScreen(){
   hideAllScreens();
   document.getElementById('screen-refs').classList.add('active');
-  initRefsCapture();
-  initAlbums();
-  startRefsListener();
+  const [refs, albums] = await Promise.all([
+    trackResolved('./refs.js'), trackResolved('./albums.js'),
+  ]);
+  refs.initRefsCapture();
+  albums.initAlbums();
+  refs.startRefsListener();
+  return refs;
 }
-function openRefsScreen(){
-  prepRefsScreen();
+async function openRefsScreen(){
+  const refs = await prepRefsScreen();
   if(window.__navSync) window.__navSync('refs');
-  openFolderBrowser();
+  refs.openFolderBrowser();
 }
 // Punti d'ingresso "diretti" per il replay del tasto Indietro (vedi showScreen):
 // aprono la schermata References già dentro una cartella o nella vista "All",
 // senza passare dall'elenco cartelle.
-function openRefsScreenAtFolder(id){
-  prepRefsScreen();
-  openFolder(id);
+async function openRefsScreenAtFolder(id){
+  const refs = await prepRefsScreen();
+  refs.openFolder(id);
 }
-function openRefsScreenAtAll(){
-  prepRefsScreen();
-  openAllGrid();
+async function openRefsScreenAtAll(){
+  const refs = await prepRefsScreen();
+  refs.openAllGrid();
 }
 function closeRefsScreen(){
   document.getElementById('screen-refs').classList.remove('active');
@@ -277,9 +304,8 @@ window.addTodo=addTodo; window.toggleTodo=toggleTodo; window.clearCompletedTodos
 window.toggleSupport=toggleSupport;
 window.extractAllFromScript=extractAllFromScript;
 window.saveDates=saveDates; window.confirmDeleteCurrent=confirmDeleteCurrent; window.closeConfirm=closeConfirm;
-window.exportPDF=exportPDF; window.exportScreenplay=exportScreenplay;
 // Export principale: il PDF classico del progetto
-window.exportMain=()=>{ exportPDF(); };
+window.exportMain=()=>window.exportPDF();
 window.addScene=addScene; window.updateScene=updateScene;
 window.deleteScene=deleteScene; window.autoResize=autoResize; window.saveStoryField=saveStoryField;
 window.updateCharCount=updateCharCount; window.saveReminderSettings=saveReminderSettings;
@@ -312,14 +338,19 @@ function navPush(view, id){
 // importato, es. dal click sulle card) registrano da sole lo stato.
 window.__navSync = navPush;
 // Mostra una schermata SENZA registrare un nuovo stato (guidato dal tasto Indietro)
-function showScreen(view, id){
+// ASINCRONA: le schermate References/Stats caricano il modulo al primo
+// ingresso. _navReplaying deve restare alzato per TUTTA la durata, altrimenti
+// l'apertura (che chiama __navSync da sola) registrerebbe un nuovo stato
+// mentre stiamo solo ripercorrendo la cronologia — e il tasto Indietro
+// smetterebbe di tornare indietro.
+async function showScreen(view, id){
   _navReplaying = true;
   try{
     if(view === 'project' && id && getProject(id)){ openProject(id); }
-    else if(view === 'stats'){ openStats(); }
-    else if(view === 'refs'){ openRefsScreen(); }
-    else if(view === 'refs-folder' && id){ openRefsScreenAtFolder(id); }
-    else if(view === 'refs-all'){ openRefsScreenAtAll(); }
+    else if(view === 'stats'){ await openStats(); }
+    else if(view === 'refs'){ await openRefsScreen(); }
+    else if(view === 'refs-folder' && id){ await openRefsScreenAtFolder(id); }
+    else if(view === 'refs-all'){ await openRefsScreenAtAll(); }
     else if(view === 'evening'){ enterEveningImpl(); }
     else { // home (o stato sconosciuto)
       if(document.body.classList.contains('evening-mode')) exitEveningImpl();
@@ -331,12 +362,20 @@ function showScreen(view, id){
 window.addEventListener('popstate', e=>{
   // Se c'è un albo aperto a schermo intero, il tasto Indietro chiude il lettore
   // e riporta alle References, invece di uscire dall'app.
+  // loadedMod e non loadMod: se il lettore e' aperto il modulo e' per forza
+  // gia' caricato, e cosi' il tasto Indietro non provoca mai un import.
   const ar = document.getElementById('album-reader');
-  if(ar && ar.classList.contains('open')){ closeReaderUI(); return; }
+  if(ar && ar.classList.contains('open')){
+    const m = loadedMod('./albums.js');
+    if(m){ m.closeReaderUI(); return; }
+  }
   // Stessa logica per un'immagine aperta a schermo intero: si torna alla
   // griglia da cui era stata aperta.
   const lb = document.getElementById('refs-lightbox');
-  if(lb && lb.classList.contains('open')){ closeLightboxUI(); return; }
+  if(lb && lb.classList.contains('open')){
+    const m = loadedMod('./refs.js');
+    if(m){ m.closeLightboxUI(); return; }
+  }
   const st = e.state || { view:'home' };
   showScreen(st.view, st.id);
 });

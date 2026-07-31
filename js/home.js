@@ -3,7 +3,6 @@ import { saveProject, scheduleSave } from './firebase.js';
 import { drawGem } from './canvas.js';
 import { calcPct, getPhaseIndex } from './progress.js';
 import { calcDaysLeft } from './velocity.js';
-import { exportPDF, exportScreenplay } from './pdf.js';
 import { openProject, confirmDeleteCurrent } from './project.js';
 import { promptModal } from './dialogs.js';
 
@@ -128,8 +127,8 @@ export function openCardMenu(id, btn){
 
   const items = [
     {icon:'matita',     label:'Rinomina',     action:()=>{ closeCardMenu(); renameProject(id); }},
-    {icon:'report',     label:'Report',       action:()=>{ closeCardMenu(); setCurrentId(id); exportPDF(); }},
-    {icon:'scriptment', label:'Scriptment',   action:()=>{ closeCardMenu(); setCurrentId(id); exportScreenplay(); }},
+    {icon:'report',     label:'Report',       action:()=>{ closeCardMenu(); setCurrentId(id); import('./pdf.js').then(m=>m.exportPDF()); }},
+    {icon:'scriptment', label:'Scriptment',   action:()=>{ closeCardMenu(); setCurrentId(id); import('./pdf.js').then(m=>m.exportScreenplay()); }},
     {icon:'json',       label:'Esporta JSON', action:()=>{ closeCardMenu(); exportProjectJSON(id); }},
     {icon:'elimina',    label:'Elimina',      action:()=>{ closeCardMenu(); confirmDeleteProject(id); }, danger:true},
   ];
