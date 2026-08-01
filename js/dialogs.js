@@ -116,7 +116,14 @@ export function actionMenu(anchorEl, actions){
   if(left + mw > window.innerWidth - 8) left = window.innerWidth - mw - 8;
   _actionMenuEl.style.left = left+'px';
   _actionMenuEl.style.width = mw+'px';
-  _actionMenuEl.style.top = (r.bottom + 6 + window.scrollY)+'px';
+  // Sotto se c'è spazio, altrimenti SOPRA: ancorato a un pulsante in fondo
+  // allo schermo (il "⋯" della galleria, le pastiglie del ritaglio) il menu
+  // finiva sotto il bordo inferiore, di fatto irraggiungibile. L'altezza si
+  // misura ora che è già nel documento.
+  const mh = _actionMenuEl.offsetHeight;
+  let top = r.bottom + 6;
+  if(top + mh > window.innerHeight - 8) top = Math.max(8, r.top - mh - 6);
+  _actionMenuEl.style.top = (top + window.scrollY)+'px';
   _actionMenuEl.querySelectorAll('button').forEach(btn=>{
     btn.onclick = (e)=>{ e.stopPropagation(); closeActionMenu(); actions[+btn.dataset.i].onSelect(); };
   });

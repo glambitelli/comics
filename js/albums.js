@@ -28,12 +28,13 @@ import { unzipSync } from './vendor/fflate.js';
 import {
   addRefBlob, getActiveFolderId, findExactAlbumMatch, createAlbumDoc,
   updateAlbumLastPage, updateAlbumSourceName, getAlbumById, findAlbumByDriveId,
-  clipDestinations, getFolderName,
+  clipDestinations, getFolderName, rememberClipDest,
 } from './refs.js';
 import { uploadToCloudinary } from './cloudinary.js';
 import { getDriveAlbumFile, ensureDriveConnected } from './drive.js';
 import { openRemoteZipSource, openBlobZipSource } from './zipremote.js';
 import { haptic } from './state.js';
+import { actionMenu } from './dialogs.js';
 
 // Stato dell'albo attualmente aperto
 let _pages = [];        // [{ name, url (objectURL|null), blob (Blob|null) }]
@@ -629,6 +630,7 @@ function buildReaderDOM(){
     // La pastiglia della destinazione È la conferma: un gesto solo invece di
     // "conferma" e poi "scegli dove".
     else if(act === 'confirmclip'){ if(ov._clipConfirm) ov._clipConfirm(b.dataset.dest || null); }
+    else if(act === 'moredest'){ e.stopPropagation(); if(ov._clipMoreDests) ov._clipMoreDests(b); }
   });
 
   // Tap sul centro dell'immagine (fuori clip) = avanti; bordo sinistro = indietro.
@@ -1141,6 +1143,10 @@ function wireClip(ov){
   // (i Ritagli dell'artista), poi le cartelle di Studio. Toccarne una salva
   // il ritaglio lì dentro. Si ricostruiscono ad ogni riquadro perché nel
   // frattempo puoi aver creato una nuova cartella di studio.
+  // Quante pastiglie stanno comodamente in una riga su un telefono, accanto a
+  // "Riprova", senza costringere a scorrere lateralmente per trovare la
+  // cartella giusta mentre si ha il ritaglio già pronto.
+  const DEST_CHIPS_MAX = 3;
   const renderDests = ()=>{
     if(!dests) return;
     const list = clipDestinations();
@@ -1149,7 +1155,14 @@ function wireClip(ov){
       dests.innerHTML = '<button class="ar-clip-confirm-btn" data-act="confirmclip">✓ Salva ritaglio</button>';
       return;
     }
-    dests.innerHTML = list.map(d=>{
+    // Con poche cartelle si vedono tutte. Quando sono tante ne restano in
+    // vista le più probabili — quella dove sei più le ultime usate, che
+    // clipDestinations() ha già portato in cima — e le altre passano dietro
+    // "Altre…". Così la riga non diventa un elenco da scorrere proprio nel
+    // momento in cui vuoi solo archiviare e tornare a leggere.
+    const shown = list.slice(0, DEST_CHIPS_MAX);
+    const rest = list.slice(DEST_CHIPS_MAX);
+    let html = shown.map(d=>{
       const cls = d.isCurrent ? 'ar-clip-dest is-current' : 'ar-clip-dest';
       const label = d.isCurrent ? ('✓ ' + escAttr(d.name)) : escAttr(d.name);
       const title = d.isCurrent
@@ -1157,6 +1170,22 @@ function wireClip(ov){
         : 'Salva in ' + escAttr(d.category || '') + ' › ' + escAttr(d.name);
       return `<button class="${cls}" data-act="confirmclip" data-dest="${escAttr(d.id)}" title="${title}">${label}</button>`;
     }).join('');
+    if(rest.length){
+      html += `<button class="ar-clip-dest ar-clip-more" data-act="moredest" title="Altre cartelle">Altre… (${rest.length})</button>`;
+    }
+    dests.innerHTML = html;
+    dests._restDests = rest;
+  };
+
+  // Elenco completo delle cartelle rimaste fuori dalle pastiglie, raggruppate
+  // per categoria così si capisce a colpo d'occhio cos'è studio e cos'altro.
+  ov._clipMoreDests = (anchorEl)=>{
+    const rest = (dests && dests._restDests) || [];
+    if(!rest.length) return;
+    actionMenu(anchorEl, rest.map(d=>({
+      label: (d.category ? d.category + ' › ' : '') + d.name,
+      onSelect: ()=>{ if(ov._clipConfirm) ov._clipConfirm(d.id); },
+    })));
   };
 
   const showConfirm = (on)=>{
@@ -1259,6 +1288,58 @@ function wireClip(ov){
     e.preventDefault();
   }, { passive:false });
   window.addEventListener('touchend', resizeEnd, { passive:true });
+
+  // ── SPOSTAMENTO (trascinando il riquadro stesso) ──
+  // Gli angoli ridimensionano, il corpo sposta: si può inquadrare il dettaglio
+  // giusto senza ridisegnare tutto da capo quando il riquadro ha già la
+  // dimensione voluta ma è posizionato male.
+  let moving = false, mvDX = 0, mvDY = 0;
+  const moveStart = (px, py)=>{
+    lr = layer.getBoundingClientRect();
+    // Scarto tra il punto afferrato e l'angolo del riquadro: senza, il
+    // riquadro salterebbe col suo angolo sotto il dito al primo movimento.
+    mvDX = (px - lr.left) - parseFloat(box.style.left);
+    mvDY = (py - lr.top) - parseFloat(box.style.top);
+    moving = true;
+    box.classList.add('grabbing');
+  };
+  const moveTo = (px, py)=>{
+    if(!moving) return;
+    const r = lr || (lr = layer.getBoundingClientRect());
+    const w = parseFloat(box.style.width), h = parseFloat(box.style.height);
+    // Il riquadro resta dentro la pagina: trascinandolo oltre il bordo si
+    // ferma invece di uscire e portarsi via una porzione vuota.
+    const left = Math.max(0, Math.min((px - r.left) - mvDX, r.width - w));
+    const top  = Math.max(0, Math.min((py - r.top) - mvDY, r.height - h));
+    box.style.left = left + 'px';
+    box.style.top = top + 'px';
+  };
+  const moveEnd = ()=>{
+    if(!moving) return;
+    moving = false;
+    box.classList.remove('grabbing');
+    syncPendingSelFromBox();
+  };
+  box.addEventListener('mousedown', e=>{
+    if(!box.classList.contains('pending')) return;
+    if(e.target.closest('.ar-clip-handle')) return; // l'angolo ridimensiona
+    e.preventDefault(); e.stopPropagation();
+    moveStart(e.clientX, e.clientY);
+  });
+  box.addEventListener('touchstart', e=>{
+    if(!box.classList.contains('pending')) return;
+    if(e.target.closest('.ar-clip-handle')) return;
+    e.stopPropagation();
+    moveStart(e.touches[0].clientX, e.touches[0].clientY);
+  }, { passive:true });
+  window.addEventListener('mousemove', e=>{ if(moving) moveTo(e.clientX, e.clientY); });
+  window.addEventListener('mouseup', moveEnd);
+  window.addEventListener('touchmove', e=>{
+    if(!moving) return;
+    moveTo(e.touches[0].clientX, e.touches[0].clientY);
+    e.preventDefault();
+  }, { passive:false });
+  window.addEventListener('touchend', moveEnd, { passive:true });
 
   // Richiamate dal tap su "Riprova"/"✓ Conferma" (vedi il click delegato più sopra).
   ov._clipRetry = ()=>{
@@ -1374,6 +1455,9 @@ async function exportCropAndSave(sourceBlob, cx, cy, cw, ch, destFolderId){
   });
   if(id){
     haptic('done');
+    // Solo le destinazioni scelte a mano: la cartella corrente è già in cima
+    // per conto suo, e ricordarla spingerebbe giù gli studi davvero usati.
+    if(destFolderId && destFolderId !== sourceFolderId) rememberClipDest(destFolderId);
     const destName = destFolderId ? getFolderName(destFolderId) : null;
     toast(destName ? ('Salvato in ' + destName + ' ✓') : 'Frammento salvato ✓');
   }

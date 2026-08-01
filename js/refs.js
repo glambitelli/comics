@@ -110,14 +110,41 @@ export function getActiveFolderId(){
 // un'altra categoria rispetto a dove sei. Così la regola vale comunque, anche
 // se un giorno le categorie si chiamano diversamente o se ne aggiunge una
 // terza, senza che il codice debba conoscerne i nomi.
+// Le destinazioni usate di recente vengono a galla: con parecchie cartelle di
+// studio, quelle su cui stai davvero lavorando restano a portata di pollice
+// invece di finire in fondo a un elenco alfabetico. Vive in locale: è una
+// comodità del dispositivo, non un dato dell'archivio.
+const CLIP_RECENT_KEY = 'inkflow-clip-dest-recent';
+const CLIP_RECENT_MAX = 12;
+function loadRecentDests(){
+  try{
+    const v = JSON.parse(localStorage.getItem(CLIP_RECENT_KEY) || '[]');
+    return Array.isArray(v) ? v : [];
+  }catch(e){ return []; }
+}
+export function rememberClipDest(folderId){
+  if(!folderId) return;
+  try{
+    const list = loadRecentDests().filter(id => id !== folderId);
+    list.unshift(folderId);
+    localStorage.setItem(CLIP_RECENT_KEY, JSON.stringify(list.slice(0, CLIP_RECENT_MAX)));
+  }catch(e){}
+}
+
 export function clipDestinations(){
   const currentId = getActiveFolderId();
   const current = currentId ? _folders.find(f=>f.id===currentId) : null;
   const out = [];
   if(current) out.push({ id: current.id, name: current.name, category: current.category, isCurrent: true });
+  const recent = loadRecentDests();
+  const rank = id => { const i = recent.indexOf(id); return i === -1 ? Number.MAX_SAFE_INTEGER : i; };
   _folders
     .filter(f=> f.id !== currentId && (!current || f.category !== current.category))
-    .sort((a,b)=> (a.category||'').localeCompare(b.category||'') || (a.name||'').localeCompare(b.name||''))
+    // Prima le usate di recente (nell'ordine in cui le hai usate), poi le
+    // altre in ordine alfabetico per categoria e nome.
+    .sort((a,b)=> rank(a.id) - rank(b.id)
+      || (a.category||'').localeCompare(b.category||'')
+      || (a.name||'').localeCompare(b.name||''))
     .forEach(f=> out.push({ id: f.id, name: f.name, category: f.category, isCurrent: false }));
   return out;
 }
