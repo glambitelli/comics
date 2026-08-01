@@ -28,7 +28,7 @@ import { unzipSync } from './vendor/fflate.js';
 import {
   addRefBlob, getActiveFolderId, findExactAlbumMatch, createAlbumDoc,
   updateAlbumLastPage, updateAlbumSourceName, getAlbumById, findAlbumByDriveId,
-  clipDestinations, getFolderName, rememberClipDest,
+  clipDestinations, clipCategories, getFolderName, rememberClipDest,
 } from './refs.js';
 import { uploadToCloudinary } from './cloudinary.js';
 import { getDriveAlbumFile, ensureDriveConnected } from './drive.js';
@@ -631,7 +631,7 @@ function buildReaderDOM(){
     // La pastiglia della destinazione È la conferma: un gesto solo invece di
     // "conferma" e poi "scegli dove".
     else if(act === 'confirmclip'){ if(ov._clipConfirm) ov._clipConfirm(b.dataset.dest || null); }
-    else if(act === 'moredest'){ e.stopPropagation(); if(ov._clipMoreDests) ov._clipMoreDests(b); }
+    else if(act === 'catdest'){ e.stopPropagation(); if(ov._clipCatDests) ov._clipCatDests(b, +b.dataset.cat); }
   });
 
   // Tap sul centro dell'immagine (fuori clip) = avanti; bordo sinistro = indietro.
@@ -1145,26 +1145,23 @@ function wireClip(ov){
   // (i Ritagli dell'artista), poi le cartelle di Studio. Toccarne una salva
   // il ritaglio lì dentro. Si ricostruiscono ad ogni riquadro perché nel
   // frattempo puoi aver creato una nuova cartella di studio.
-  // Quante pastiglie stanno comodamente in una riga su un telefono, accanto a
-  // "Riprova", senza costringere a scorrere lateralmente per trovare la
-  // cartella giusta mentre si ha il ritaglio già pronto.
+  // Quante scorciatoie stanno in una riga su un telefono accanto a "Riprova"
+  // e alle categorie. Oltre questo numero le ultime usate scorrono, ma le
+  // categorie restano comunque ferme al loro posto.
   const DEST_CHIPS_MAX = 3;
   const renderDests = ()=>{
     if(!dests) return;
-    const list = clipDestinations();
-    if(!list.length){
+    const shortcuts = clipDestinations();
+    const cats = clipCategories();
+    if(!shortcuts.length && !cats.length){
       // Nessuna cartella: il ritaglio resta non archiviato, come oggi.
       dests.innerHTML = '<button class="ar-clip-confirm-btn" data-act="confirmclip">✓ Salva ritaglio</button>';
+      if(moreWrap) moreWrap.innerHTML = '';
       return;
     }
-    // Con poche cartelle si vedono tutte. Quando sono tante ne restano in
-    // vista le più probabili — quella dove sei più le ultime usate, che
-    // clipDestinations() ha già portato in cima — e le altre passano dietro
-    // "Altre…". Così la riga non diventa un elenco da scorrere proprio nel
-    // momento in cui vuoi solo archiviare e tornare a leggere.
-    const shown = list.slice(0, DEST_CHIPS_MAX);
-    const rest = list.slice(DEST_CHIPS_MAX);
-    dests.innerHTML = shown.map(d=>{
+    // Scorciatoie: dove sei (default) e le ultime cartelle usate. È il caso
+    // normale — si lavora su pochi studi per volta — e si risolve con un tocco.
+    dests.innerHTML = shortcuts.slice(0, DEST_CHIPS_MAX).map(d=>{
       const cls = d.isCurrent ? 'ar-clip-dest is-current' : 'ar-clip-dest';
       const label = d.isCurrent ? ('✓ ' + escAttr(d.name)) : escAttr(d.name);
       const title = d.isCurrent
@@ -1172,26 +1169,26 @@ function wireClip(ov){
         : 'Salva in ' + escAttr(d.category || '') + ' › ' + escAttr(d.name);
       return `<button class="${cls}" data-act="confirmclip" data-dest="${escAttr(d.id)}" title="${title}">${label}</button>`;
     }).join('');
-    // "Altre…" sta FUORI dalla fila che scorre, ancorato al bordo come
-    // "Riprova": dentro, con nomi di cartella lunghi, finiva oltre il bordo
-    // dello schermo e per raggiungerlo bisognava indovinare che la fila
-    // scorreva. Ora i due estremi sono sempre lì e scorre solo il centro.
+    // Categorie: ancorate al bordo destro, non scorrono via. Una voce per
+    // categoria a prescindere da quante cartelle contenga, così la riga ha la
+    // stessa forma con due artisti e con cinquanta — e da lì si raggiunge
+    // qualunque sottocartella, anche una mai usata.
     if(moreWrap){
-      moreWrap.innerHTML = rest.length
-        ? `<button class="ar-clip-dest ar-clip-more" data-act="moredest" title="Altre cartelle">Altre… (${rest.length})</button>`
-        : '';
+      moreWrap.innerHTML = cats.map((c,i)=>
+        `<button class="ar-clip-dest ar-clip-cat" data-act="catdest" data-cat="${i}" title="Sfoglia ${escAttr(c.category)}">${escAttr(c.category)} ›</button>`
+      ).join('');
+      moreWrap._cats = cats;
     }
-    dests._restDests = rest;
   };
 
-  // Elenco completo delle cartelle rimaste fuori dalle pastiglie, raggruppate
-  // per categoria così si capisce a colpo d'occhio cos'è studio e cos'altro.
-  ov._clipMoreDests = (anchorEl)=>{
-    const rest = (dests && dests._restDests) || [];
-    if(!rest.length) return;
-    actionMenu(anchorEl, rest.map(d=>({
-      label: (d.category ? d.category + ' › ' : '') + d.name,
-      onSelect: ()=>{ if(ov._clipConfirm) ov._clipConfirm(d.id); },
+  // Sottocartelle di una categoria, per raggiungerne una qualunque.
+  ov._clipCatDests = (anchorEl, idx)=>{
+    const cats = (moreWrap && moreWrap._cats) || [];
+    const c = cats[idx];
+    if(!c || !c.folders.length) return;
+    actionMenu(anchorEl, c.folders.map(f=>({
+      label: f.name,
+      onSelect: ()=>{ if(ov._clipConfirm) ov._clipConfirm(f.id); },
     })));
   };
 

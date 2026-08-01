@@ -100,22 +100,15 @@ export function getActiveFolderId(){
   return _view === 'folder' ? _activeFolderId : null;
 }
 
-// Destinazioni possibili per un ritaglio, in ordine di presentazione.
-// La prima è sempre la cartella da cui stai leggendo: resta il comportamento
-// predefinito. Poi TUTTE le altre, senza esclusioni.
-//
-// Un tentativo precedente nascondeva le cartelle della stessa categoria di
-// quella corrente (sfogliando Otomo non compariva Kon, essendo entrambi
-// artisti). Sulla carta evitava un errore; in pratica faceva sparire una
-// cartella senza che ci fosse modo di capire perché o di raggiungerla. Una
-// destinazione insolita si sceglie di rado, ma quando serve dev'esserci:
-// l'ordinamento sotto la mette in fondo, l'elenco "Altre…" la rende comunque
-// raggiungibile, e nessuna cartella è più irraggiungibile per una regola
-// invisibile.
-// Le destinazioni usate di recente vengono a galla: con parecchie cartelle di
-// studio, quelle su cui stai davvero lavorando restano a portata di pollice
-// invece di finire in fondo a un elenco alfabetico. Vive in locale: è una
-// comodità del dispositivo, non un dato dell'archivio.
+// ── DESTINAZIONI DEL RITAGLIO ───────────────────────────────────────────────
+// Due strade affiancate, perché rispondono a due bisogni diversi:
+//   1. le SCORCIATOIE (qui sotto): dove sei + le ultime cartelle usate. Coprono
+//      il caso normale — si lavora su pochi studi per volta — con un tocco solo.
+//   2. le CATEGORIE (clipCategories): "Artisti", "Studio"… da cui si naviga
+//      fino a qualunque sottocartella. Non dipendono da quante cartelle ci
+//      sono: due voci oggi, due voci con cinquanta artisti.
+// Un elenco piatto di tutte le cartelle non regge la crescita; queste due
+// insieme sì, e nessuna cartella resta irraggiungibile.
 const CLIP_RECENT_KEY = 'inkflow-clip-dest-recent';
 const CLIP_RECENT_MAX = 12;
 function loadRecentDests(){
@@ -133,22 +126,28 @@ export function rememberClipDest(folderId){
   }catch(e){}
 }
 
+// Scorciatoie: la cartella da cui stai leggendo (default) seguita dalle ultime
+// destinazioni scelte a mano, nell'ordine in cui le hai usate.
 export function clipDestinations(){
   const currentId = getActiveFolderId();
   const current = currentId ? _folders.find(f=>f.id===currentId) : null;
   const out = [];
   if(current) out.push({ id: current.id, name: current.name, category: current.category, isCurrent: true });
-  const recent = loadRecentDests();
-  const rank = id => { const i = recent.indexOf(id); return i === -1 ? Number.MAX_SAFE_INTEGER : i; };
-  _folders
-    .filter(f=> f.id !== currentId)
-    // Prima le usate di recente (nell'ordine in cui le hai usate), poi le
-    // altre in ordine alfabetico per categoria e nome.
-    .sort((a,b)=> rank(a.id) - rank(b.id)
-      || (a.category||'').localeCompare(b.category||'')
-      || (a.name||'').localeCompare(b.name||''))
-    .forEach(f=> out.push({ id: f.id, name: f.name, category: f.category, isCurrent: false }));
+  loadRecentDests().forEach(id=>{
+    if(id === currentId) return;
+    const f = _folders.find(x=>x.id===id);
+    if(f) out.push({ id: f.id, name: f.name, category: f.category, isCurrent: false });
+  });
   return out;
+}
+
+// Categorie con le loro sottocartelle, per navigare fino a una qualunque.
+export function clipCategories(){
+  const out = [];
+  foldersByCategory().forEach((folders, category)=>{
+    out.push({ category, folders: folders.map(f=>({ id:f.id, name:f.name, category:f.category })) });
+  });
+  return out.sort((a,b)=> (a.category||'').localeCompare(b.category||''));
 }
 
 // Nome della cartella (per mostrare la provenienza di un ritaglio di studio).
