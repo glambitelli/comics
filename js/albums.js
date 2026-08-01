@@ -610,6 +610,7 @@ function buildReaderDOM(){
         <span class="ar-clip-hint-confirm" hidden>
           <button class="ar-cancelclip" data-act="retryclip">Riprova</button>
           <span class="ar-clip-dests"></span>
+          <span class="ar-clip-more-wrap"></span>
         </span>
       </div>
     </div>`;
@@ -1126,6 +1127,7 @@ function wireClip(ov){
   const hintInstruct = ov.querySelector('.ar-clip-hint-instruct');
   const hintConfirm = ov.querySelector('.ar-clip-hint-confirm');
   const dests = ov.querySelector('.ar-clip-dests');
+  const moreWrap = ov.querySelector('.ar-clip-more-wrap');
   const handles = Array.from(box.querySelectorAll('.ar-clip-handle'));
   const MIN_SIZE = 24; // dimensione minima del riquadro in px CSS, ridimensionando
   let sx = 0, sy = 0, drawing = false;
@@ -1162,7 +1164,7 @@ function wireClip(ov){
     // momento in cui vuoi solo archiviare e tornare a leggere.
     const shown = list.slice(0, DEST_CHIPS_MAX);
     const rest = list.slice(DEST_CHIPS_MAX);
-    let html = shown.map(d=>{
+    dests.innerHTML = shown.map(d=>{
       const cls = d.isCurrent ? 'ar-clip-dest is-current' : 'ar-clip-dest';
       const label = d.isCurrent ? ('✓ ' + escAttr(d.name)) : escAttr(d.name);
       const title = d.isCurrent
@@ -1170,10 +1172,15 @@ function wireClip(ov){
         : 'Salva in ' + escAttr(d.category || '') + ' › ' + escAttr(d.name);
       return `<button class="${cls}" data-act="confirmclip" data-dest="${escAttr(d.id)}" title="${title}">${label}</button>`;
     }).join('');
-    if(rest.length){
-      html += `<button class="ar-clip-dest ar-clip-more" data-act="moredest" title="Altre cartelle">Altre… (${rest.length})</button>`;
+    // "Altre…" sta FUORI dalla fila che scorre, ancorato al bordo come
+    // "Riprova": dentro, con nomi di cartella lunghi, finiva oltre il bordo
+    // dello schermo e per raggiungerlo bisognava indovinare che la fila
+    // scorreva. Ora i due estremi sono sempre lì e scorre solo il centro.
+    if(moreWrap){
+      moreWrap.innerHTML = rest.length
+        ? `<button class="ar-clip-dest ar-clip-more" data-act="moredest" title="Altre cartelle">Altre… (${rest.length})</button>`
+        : '';
     }
-    dests.innerHTML = html;
     dests._restDests = rest;
   };
 

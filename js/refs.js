@@ -101,15 +101,17 @@ export function getActiveFolderId(){
 }
 
 // Destinazioni possibili per un ritaglio, in ordine di presentazione.
-// La prima è sempre la cartella da cui stai leggendo (l'artista): resta il
-// comportamento predefinito. Poi vengono le cartelle di STUDIO, cioè quelle
-// di una categoria diversa da quella dell'artista corrente.
+// La prima è sempre la cartella da cui stai leggendo: resta il comportamento
+// predefinito. Poi TUTTE le altre, senza esclusioni.
 //
-// Le categorie sono testo libero ("Artisti", "Studio", …), quindi qui non si
-// cerca il nome "studio": si prendono semplicemente le cartelle che stanno in
-// un'altra categoria rispetto a dove sei. Così la regola vale comunque, anche
-// se un giorno le categorie si chiamano diversamente o se ne aggiunge una
-// terza, senza che il codice debba conoscerne i nomi.
+// Un tentativo precedente nascondeva le cartelle della stessa categoria di
+// quella corrente (sfogliando Otomo non compariva Kon, essendo entrambi
+// artisti). Sulla carta evitava un errore; in pratica faceva sparire una
+// cartella senza che ci fosse modo di capire perché o di raggiungerla. Una
+// destinazione insolita si sceglie di rado, ma quando serve dev'esserci:
+// l'ordinamento sotto la mette in fondo, l'elenco "Altre…" la rende comunque
+// raggiungibile, e nessuna cartella è più irraggiungibile per una regola
+// invisibile.
 // Le destinazioni usate di recente vengono a galla: con parecchie cartelle di
 // studio, quelle su cui stai davvero lavorando restano a portata di pollice
 // invece di finire in fondo a un elenco alfabetico. Vive in locale: è una
@@ -139,7 +141,7 @@ export function clipDestinations(){
   const recent = loadRecentDests();
   const rank = id => { const i = recent.indexOf(id); return i === -1 ? Number.MAX_SAFE_INTEGER : i; };
   _folders
-    .filter(f=> f.id !== currentId && (!current || f.category !== current.category))
+    .filter(f=> f.id !== currentId)
     // Prima le usate di recente (nell'ordine in cui le hai usate), poi le
     // altre in ordine alfabetico per categoria e nome.
     .sort((a,b)=> rank(a.id) - rank(b.id)

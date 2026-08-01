@@ -194,16 +194,9 @@ body.is-touch .ar-nav{display:none} /* su mobile si naviga con swipe/tap */
 
 /* strato di ritaglio */
 .ar-cliplayer{position:absolute;inset:0;cursor:crosshair;touch-action:none}
-/* Il riquadro: linea sottile color sabbia invece del bordo oro pieno, e
-   velo interno appena accennato. Sulla tavola deve leggersi come una
-   inquadratura sovrapposta al disegno, non come un rettangolo colorato che
-   se lo mangia — l'oro resta riservato agli angoli, che sono la parte con
-   cui si interagisce. */
 .ar-clipbox{
-  position:absolute;
-  border:1px solid rgba(245,240,232,.75);
-  background:rgba(240,192,32,.07);
-  box-shadow:0 0 0 9999px rgba(0,0,0,.42), inset 0 0 0 1px rgba(20,18,16,.45);
+  position:absolute;border:1.5px solid var(--gold);
+  background:rgba(240,192,32,.14);box-shadow:0 0 0 9999px rgba(0,0,0,.35);
 }
 /* Trascinando il corpo si sposta l'inquadratura (gli angoli invece la
    ridimensionano). */
@@ -212,11 +205,13 @@ body.is-touch .ar-nav{display:none} /* su mobile si naviga con swipe/tap */
 
 /* Maniglie d'angolo: solo nello stato "in attesa di conferma" (vedi
    showConfirm() in js/albums.js) — durante il disegno iniziale coprirebbero
-   il gesto, e a riquadro chiuso non c'è nulla da ridimensionare.
-   Sono squadre d'angolo, non pallini: è il segno del mirino/ritaglio, sta
-   fuori dai bordi del riquadro così non copre il disegno che stai inquadrando,
-   e l'oro su tratto scuro resta leggibile sia su una tavola bianca sia su una
-   nera. L'area di tocco (30px) resta molto più grande del segno visibile. */
+   il gesto, e a riquadro chiuso non c'è nulla da ridimensionare. Area di
+   tocco (30px) molto più grande del pallino visibile: il pallino è centrato
+   sull'angolo, il quadrato invisibile attorno è la vera zona cliccabile.
+   Sabbia con anello nero, non giallo pieno: il giallo saturo dentro un
+   riquadro già dorato faceva a pugni col resto: così i pallini si staccano
+   dal riquadro invece di confondersi, e l'anello scuro li tiene leggibili
+   anche su una tavola bianca. */
 .ar-clip-handle{
   display:none;position:absolute;width:30px;height:30px;
   transform:translate(-50%,-50%);
@@ -224,21 +219,16 @@ body.is-touch .ar-nav{display:none} /* su mobile si naviga con swipe/tap */
 }
 .ar-clipbox.pending .ar-clip-handle{display:block}
 .ar-clip-handle::after{
-  content:'';position:absolute;width:13px;height:13px;
-  border:2.5px solid var(--gold);
-  /* Contorno scuro sottile: senza, l'oro sparisce sui fondi chiari. */
-  filter:drop-shadow(0 0 1px rgba(20,18,16,.95)) drop-shadow(0 1px 2px rgba(0,0,0,.5));
+  content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:13px;height:13px;border-radius:50%;
+  background:var(--sand);border:2px solid #141210;
+  box-shadow:0 1px 5px rgba(0,0,0,.5);
 }
-/* Ogni squadra tiene i due lati del proprio angolo e si apre verso l'interno,
-   con lo spigolo esattamente sull'angolo del riquadro (centro della maniglia). */
+.ar-clip-handle:active::after{background:var(--gold)}
 .ar-clip-handle[data-corner="nw"]{top:0;left:0;cursor:nwse-resize}
-.ar-clip-handle[data-corner="nw"]::after{top:50%;left:50%;border-right:none;border-bottom:none;margin:-1px 0 0 -1px}
 .ar-clip-handle[data-corner="ne"]{top:0;left:100%;cursor:nesw-resize}
-.ar-clip-handle[data-corner="ne"]::after{top:50%;right:50%;border-left:none;border-bottom:none;margin:-1px -1px 0 0}
 .ar-clip-handle[data-corner="se"]{top:100%;left:100%;cursor:nwse-resize}
-.ar-clip-handle[data-corner="se"]::after{bottom:50%;right:50%;border-left:none;border-top:none;margin:0 -1px -1px 0}
 .ar-clip-handle[data-corner="sw"]{top:100%;left:0;cursor:nesw-resize}
-.ar-clip-handle[data-corner="sw"]::after{bottom:50%;left:50%;border-right:none;border-top:none;margin:0 0 -1px -1px}
 
 .ar-bottombar{
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
@@ -292,6 +282,10 @@ body.is-touch .ar-nav{display:none} /* su mobile si naviga con swipe/tap */
   display:flex;align-items:center;gap:8px;
   font-family:'Nunito',sans-serif;font-size:10.5px;font-weight:700;
   letter-spacing:.08em;color:var(--gold-pale);
+  /* Senza questi la riga delle destinazioni sfonda la barra: il lettore la
+     centra, quindi l'eccedenza veniva tagliata da entrambi i lati e
+     "Riprova" finiva mezzo fuori dallo schermo. */
+  max-width:100%;min-width:0;
 }
 /* Il "display:flex" sopra ha più peso della proprietà nativa che dovrebbe
    nascondere l'elemento: senza questa riga la scritta restava visibile
@@ -304,7 +298,12 @@ body.is-touch .ar-nav{display:none} /* su mobile si naviga con swipe/tap */
    interno, e i bordi restano sempre raggiungibili. */
 .ar-clip-hint-confirm{display:flex;align-items:center;gap:10px;max-width:100%;min-width:0}
 .ar-clip-hint-confirm[hidden]{display:none}
+/* I due estremi non si comprimono e non scorrono: "Riprova" a sinistra e
+   "Altre…" a destra restano sempre raggiungibili, scorre solo la fila di
+   destinazioni in mezzo. */
 .ar-clip-hint-confirm .ar-cancelclip{flex-shrink:0}
+.ar-clip-more-wrap{flex-shrink:0;display:flex;align-items:center}
+.ar-clip-more-wrap:empty{display:none}
 .ar-clip-hint .ar-cancelclip{
   background:none;border:none;color:var(--gold);cursor:pointer;padding:0;
   font-family:'Nunito',sans-serif;font-size:10.5px;font-weight:700;letter-spacing:.08em;
@@ -337,7 +336,7 @@ body.is-touch .ar-nav{display:none} /* su mobile si naviga con swipe/tap */
   flex-shrink:0;cursor:pointer;
   font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;letter-spacing:.03em;
   padding:7px 13px;border-radius:20px;transition:transform .1s,background .15s;
-  max-width:46vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  max-width:34vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
   background:transparent;border:1.5px solid rgba(240,200,90,.45);color:#f0c84e;
 }
 .ar-clip-dest.is-current{background:var(--gold);border-color:var(--gold);color:var(--ink)}
