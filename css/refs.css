@@ -79,12 +79,25 @@
 /* Contatore + provenienza in colonna: la provenienza è secondaria (più
    piccola e smorzata), non deve competere col contatore. */
 .refs-lightbox-meta{display:flex;flex-direction:column;align-items:center;gap:5px;min-width:0}
+/* Riga di altezza FISSA, sempre presente nel layout: prima [hidden] toglieva
+   la riga (display:none) quando un'immagine non aveva provenienza, la barra
+   in basso si accorciava di conseguenza, e siccome lo stage sopra prende lo
+   spazio restante (flex:1) la tavola "saltava" su o giù passando da
+   un'immagine con la scritta a una senza. Ora la riga c'è sempre — invisibile
+   (visibility, non display) quando non serve — quindi l'altezza della barra
+   non cambia mai e la tavola resta ferma. */
 .refs-lightbox-prov{
   font-family:'Nunito',sans-serif;font-size:10px;font-weight:600;
   color:var(--sand3);letter-spacing:.03em;line-height:1.2;text-align:center;
   max-width:70vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  visibility:visible;
+  /* Senza altezza esplicita il salto tornava comunque: un <div> senza testo
+     non stabilisce un contesto di riga, quindi line-height non si applica e
+     la scatola collassa a 0px anche con visibility:hidden — è per questo
+     che la prima versione di questo fix (solo visibility) non bastava. */
+  height:calc(10px * 1.2);
 }
-.refs-lightbox-prov[hidden]{display:none}
+.refs-lightbox-prov.is-empty{visibility:hidden}
 .refs-lightbox-more{background:#fdf6e4;border:1.5px solid rgba(240,200,90,.4);color:#a8843c;cursor:pointer;padding:0;line-height:1;flex-shrink:0;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(0,0,0,.22);transition:transform .1s}
 .refs-lightbox-more:active{transform:scale(.92);background:#f8ecc8}
 

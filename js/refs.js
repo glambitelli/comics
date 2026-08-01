@@ -963,10 +963,10 @@ async function renderLightboxAt(index){
       if(p.opera) bits.push(p.opera);
       if(p.pagina) bits.push('p. ' + p.pagina);
       prov.textContent = bits.join(' · ');
-      prov.hidden = bits.length === 0;
+      prov.classList.toggle('is-empty', bits.length === 0);
     } else {
       prov.textContent = '';
-      prov.hidden = true;
+      prov.classList.add('is-empty');
     }
   }
   if(prevBtn) prevBtn.style.visibility = index>0 ? 'visible' : 'hidden';
