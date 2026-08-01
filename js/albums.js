@@ -130,7 +130,18 @@ function toast(msg, isError, persistent){
     // centro la coprirebbe invece di aiutare).
     if(inReader){
       const glyph = _reader.querySelector('.ar-loading-glyph');
-      if(glyph) glyph.classList.toggle('show', !!persistent && !isError && !_clipMode);
+      if(glyph){
+        const on = !!persistent && !isError && !_clipMode;
+        // Il riempimento si ferma pieno a fine corsa (vedi CSS): riaprendolo
+        // per un albo successivo va fatto ripartire da vuoto esplicitamente,
+        // altrimenti lo si ritroverebbe già pieno dalla volta prima.
+        if(on && !glyph.classList.contains('show')){
+          glyph.classList.add('reset');
+          void glyph.offsetWidth;
+          glyph.classList.remove('reset');
+        }
+        glyph.classList.toggle('show', on);
+      }
     }
     return;
   }
@@ -565,15 +576,10 @@ function buildReaderDOM(){
           <defs><clipPath id="ar-loading-fill-clip" clipPathUnits="userSpaceOnUse">
             <rect x="0" y="0" width="100" height="100" class="fill-rect"/>
           </clipPath></defs>
-          <g class="ff-group">
-            <text x="50" y="58" text-anchor="middle" font-size="90" class="star-ghost">✦</text>
-            <text x="50" y="58" text-anchor="middle" font-size="90" class="star-fill" clip-path="url(#ar-loading-fill-clip)">✦</text>
-          </g>
+          <text x="50" y="58" text-anchor="middle" font-size="90" class="star-ghost">✦</text>
+          <text x="50" y="58" text-anchor="middle" font-size="90" class="star-fill" clip-path="url(#ar-loading-fill-clip)">✦</text>
         </svg>
-        <div class="spark s1">✦</div>
-        <div class="spark s2">✦</div>
-        <div class="spark s3">✦</div>
-        <div class="spark s4">✦</div>
+        <div class="glow"></div>
       </div>
       <img class="ar-img active" alt="" decoding="async">
       <img class="ar-img" alt="" decoding="async">
