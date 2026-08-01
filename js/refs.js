@@ -109,21 +109,44 @@ export function getActiveFolderId(){
 //      sono: due voci oggi, due voci con cinquanta artisti.
 // Un elenco piatto di tutte le cartelle non regge la crescita; queste due
 // insieme sì, e nessuna cartella resta irraggiungibile.
+//
+// Le "recenti" vivono anche su Firestore, non solo in localStorage: la
+// cartella corrente compare sempre perché è calcolata al volo, ma le recenti
+// no — se il browser svuota lo storage locale (poco spazio, tab privata,
+// un altro dispositivo) sparivano senza preavviso, mentre il resto di
+// Inkflow è sincronizzato. Ora anche loro sopravvivono al cambio dispositivo.
 const CLIP_RECENT_KEY = 'inkflow-clip-dest-recent';
+const CLIP_RECENT_DOC = 'inkflow_clip_recents';
 const CLIP_RECENT_MAX = 12;
-function loadRecentDests(){
+let _recentDests = loadRecentDestsLocal();
+let _recentDestsUnsub = null;
+
+function loadRecentDestsLocal(){
   try{
     const v = JSON.parse(localStorage.getItem(CLIP_RECENT_KEY) || '[]');
     return Array.isArray(v) ? v : [];
   }catch(e){ return []; }
 }
+function saveRecentDestsLocal(list){
+  try{ localStorage.setItem(CLIP_RECENT_KEY, JSON.stringify(list)); }catch(e){}
+}
+
+function subscribeRecentDests(){
+  if(_recentDestsUnsub) return;
+  _recentDestsUnsub = onSnapshot(doc(db, 'userdata', CLIP_RECENT_DOC), snap=>{
+    if(snap.exists() && Array.isArray(snap.data().ids)){
+      _recentDests = snap.data().ids;
+      saveRecentDestsLocal(_recentDests);
+    }
+  }, err=>console.warn('clip recents listener error:', err));
+}
+
 export function rememberClipDest(folderId){
   if(!folderId) return;
-  try{
-    const list = loadRecentDests().filter(id => id !== folderId);
-    list.unshift(folderId);
-    localStorage.setItem(CLIP_RECENT_KEY, JSON.stringify(list.slice(0, CLIP_RECENT_MAX)));
-  }catch(e){}
+  _recentDests = [folderId, ..._recentDests.filter(id => id !== folderId)].slice(0, CLIP_RECENT_MAX);
+  saveRecentDestsLocal(_recentDests);
+  setDoc(doc(db, 'userdata', CLIP_RECENT_DOC), { ids: _recentDests, updatedAt: serverTimestamp() })
+    .catch(e=>console.warn('salvataggio recenti fallito:', e));
 }
 
 // Scorciatoie: la cartella da cui stai leggendo (default) seguita dalle ultime
@@ -133,7 +156,7 @@ export function clipDestinations(){
   const current = currentId ? _folders.find(f=>f.id===currentId) : null;
   const out = [];
   if(current) out.push({ id: current.id, name: current.name, category: current.category, isCurrent: true });
-  loadRecentDests().forEach(id=>{
+  _recentDests.forEach(id=>{
     if(id === currentId) return;
     const f = _folders.find(x=>x.id===id);
     if(f) out.push({ id: f.id, name: f.name, category: f.category, isCurrent: false });
@@ -437,6 +460,7 @@ export function startRefsListener(){
       renderRefsScreen();
     }, err=>console.warn('refAlbums listener error:', err));
   }
+  subscribeRecentDests();
 }
 
 // ── MIGRAZIONE UNA TANTUM: vecchie immagini base64 (Firestore) → Cloudinary ──
