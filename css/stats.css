@@ -20,58 +20,66 @@
 .stat-big{font-size:19px;font-weight:700;font-family:'Castoro',serif;color:var(--ink);line-height:1}
 .stat-lbl{font-size:9px;font-weight:600;color:var(--ink3);letter-spacing:.04em;text-transform:uppercase;margin-top:4px}
 
-/* TRAGUARDI A LIVELLI */
-/* BACHECA TROFEI */
-.achievements-list{}
-.trophy-progress{margin-bottom:16px}
-.trophy-progress>span{font-size:12px;font-weight:700;color:var(--ink2);display:block;margin-bottom:6px}
-.trophy-progress-bar{height:8px;background:var(--sand2);border-radius:4px;overflow:hidden}
-.trophy-progress-fill{height:100%;background:linear-gradient(90deg,var(--gold),var(--coral));border-radius:4px;transition:width .5s}
-.trophy-cat{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);margin:18px 0 10px;padding-bottom:4px;border-bottom:1.5px solid var(--sand2)}
-.trophy-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
-.trophy-medal{display:flex;flex-direction:column;align-items:center;gap:5px;padding:10px 4px;border-radius:12px;background:var(--sand);border:1.5px solid var(--sand2);opacity:.5;transition:all .2s;cursor:default}
-.trophy-medal.earned{opacity:1;background:linear-gradient(135deg,#fffdf8,#fdf0d8);border-color:var(--gold);box-shadow:0 2px 8px rgba(240,192,32,.18)}
-.trophy-medal-icon{width:26px;height:26px;line-height:1;color:#b8ac94}
-.trophy-medal.earned .trophy-medal-icon{color:#c8930f}
-.trophy-medal-name{font-size:9px;font-weight:700;color:var(--ink3);text-align:center;line-height:1.2}
-.trophy-medal.earned .trophy-medal-name{color:var(--ink)}
-.trophy-medal.secret{border-style:dashed}
-.trophy-medal.secret .trophy-medal-icon{opacity:.5}
+/* ── BOLLINI: LINGUAGGIO COMUNE DI TROFEI E BADGE ──────────────────────────
+   Stessa forma per entrambi — cerchio + glifo tracciato — così si legge a
+   colpo d'occhio che appartengono alla stessa famiglia. A distinguerli è il
+   RIEMPIMENTO, non il disegno:
+     · TROFEO conquistato = disco pieno nel colore della sua categoria
+     · BADGE conquistato  = anello oro su crema, più piccolo
+   I trofei sono le conquiste grosse e rare (pesano di più, quindi pieni), i
+   badge sono le tappe di ogni progetto (leggeri, quindi solo contornati).
+   Da bloccati diventano entrambi un anello sabbia con il glifo pallido: si
+   vede cosa manca senza che rubino l'occhio a quello che hai già preso. */
+.bdg{
+  border-radius:50%;display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;box-sizing:border-box;
+  background:var(--sand);border:1.5px solid var(--sand2);color:#c2b7a0;
+  transition:transform .12s;
+}
+/* 48%: diversi glifi disegnano fino ai bordi del loro riquadro 24×24, e in un
+   contenitore tondo gli angoli finivano a filo dell'anello. */
+.bdg svg{width:48%;height:48%;display:block}
+.bdg-lg{width:46px;height:46px}
+.bdg-sm{width:34px;height:34px}
+/* Conquistati */
+.bdg-lg.is-on{background:var(--bdg-c,#c8930f);border-color:var(--bdg-c,#c8930f);color:#fffdf6;box-shadow:0 2px 7px rgba(90,70,30,.22)}
+.bdg-sm.is-on{background:#fffdf6;border:2px solid var(--gold);color:#c8930f}
 
-/* BADGE PER PROGETTO */
-.project-badges-list{display:flex;flex-direction:column;gap:18px}
-.proj-badge-row{}
+/* ── BACHECA TROFEI ── */
+.trophy-cat{
+  display:flex;align-items:center;gap:8px;
+  font-size:9.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  color:#9a8458;margin:16px 0 10px;
+}
+.trophy-cat::after{content:'';flex:1;height:1.5px;background:var(--sand2);border-radius:1px}
+.trophy-cat:first-child{margin-top:0}
+.trophy-cat b{color:#8a7248;font-weight:700}
+.trophy-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(62px,1fr));gap:12px 6px}
+.trophy-item{
+  display:flex;flex-direction:column;align-items:center;gap:6px;
+  cursor:pointer;-webkit-tap-highlight-color:transparent;
+}
+.trophy-item:active .bdg{transform:scale(.9)}
+.trophy-name{font-size:8.5px;font-weight:700;color:#b0a48c;text-align:center;line-height:1.25;max-width:66px}
+.trophy-item.earned .trophy-name{color:var(--ink2)}
+/* Targhetta: toccando un trofeo si legge qui nome e traguardo, senza aprire
+   nulla e senza scrivere una descrizione sotto ognuno dei trentadue. */
+.trophy-caption{
+  margin-top:16px;padding-top:12px;border-top:1.5px solid var(--sand2);
+  text-align:center;font-size:11px;color:var(--ink3);line-height:1.5;min-height:32px;
+}
+
+/* ── BADGE PER PROGETTO ── */
+.project-badges-list{display:flex;flex-direction:column;gap:20px}
 .proj-badge-head{display:flex;align-items:center;gap:8px;margin-bottom:10px}
 .proj-badge-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
 .proj-badge-title{font-size:13px;font-weight:700;color:var(--ink);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .proj-badge-count{font-size:11px;font-weight:700;color:var(--ink3)}
-.proj-badge-icons{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
-.proj-badge{display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 2px;border-radius:10px;background:var(--sand);opacity:.55;border:1.5px solid var(--sand2)}
-.proj-badge-glyph{width:18px;height:18px;display:block;color:#b8ac94}
-.proj-badge.earned{opacity:1;background:linear-gradient(135deg,#fffdf8,#fdf0d8);border-color:var(--gold)}
-.proj-badge.earned .proj-badge-glyph{color:#c8930f}
-.proj-badge-lbl{font-size:8px;font-weight:700;color:var(--ink3);text-align:center;line-height:1.1}
-.proj-badge.earned .proj-badge-lbl{color:var(--ink)}
+.proj-badge-icons{display:grid;grid-template-columns:repeat(5,1fr);gap:10px 4px}
+.proj-badge{display:flex;flex-direction:column;align-items:center;gap:5px}
+.proj-badge-lbl{font-size:8px;font-weight:700;color:#b0a48c;text-align:center;line-height:1.15}
+.proj-badge.earned .proj-badge-lbl{color:var(--ink2)}
 
 @media (max-width:600px){
   .stats-numbers{grid-template-columns:repeat(2,1fr)}
 }
-
-/* ── BACHECA PIXEL — notte del deserto, ripiani, sprite crispEdges ──
-   Il fondo era #000 puro: una lastra nera piantata in mezzo a una pagina di
-   sabbia. I trofei sono lune, stelle, dune e lampade — la scena È notturna e
-   va tenuta scura, ma con lo STESSO nero caldo del cielo della modalità sera
-   (#14100c → #0a0806), così legge come una notte di Inkflow e non come un
-   buco nella pagina. */
-.bacheca{background:linear-gradient(165deg,#14100c 0%,#0d0a08 55%,#0a0806 100%);border:3px solid #4a3820;border-radius:14px;padding:14px 10px 10px;image-rendering:pixelated;box-shadow:inset 0 1px 0 rgba(232,196,104,.10)}
-.bacheca-title{text-align:center;font-size:12px;font-weight:800;letter-spacing:.18em;color:#e8c468;text-transform:uppercase;margin-bottom:12px}
-.bacheca-shelf-label{font-size:9px;font-weight:700;letter-spacing:.12em;color:#a8845c;text-transform:uppercase;margin:0 6px 4px}
-.bacheca-row{display:flex;flex-wrap:wrap;justify-content:space-around;align-items:flex-end;gap:6px 2px;padding:4px 2px 2px}
-.bacheca-shelf{height:5px;background:linear-gradient(180deg,#6a5230,#3a2c16);border-radius:2px;margin:3px 2px 13px;box-shadow:0 4px 8px rgba(232,196,104,.10)}
-.px-trophy{display:flex;flex-direction:column;align-items:center;gap:3px;min-width:52px;cursor:pointer;-webkit-tap-highlight-color:transparent}
-.px-trophy-svg{width:36px;height:42px;display:block}
-.px-trophy-name{font-size:8px;font-weight:700;color:#5a4c38;text-align:center;line-height:1.15;max-width:62px}
-.px-trophy.earned .px-trophy-name{color:#c8a868}
-.px-trophy:active .px-trophy-svg{transform:scale(1.12)}
-.px-trophy-svg{transition:transform .12s}
-.bacheca-caption{text-align:center;font-size:9.5px;color:#8a7248;margin-top:6px;min-height:14px;padding:0 8px;line-height:1.4}

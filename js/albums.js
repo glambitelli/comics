@@ -136,6 +136,12 @@ function toast(msg, isError, persistent){
         // per un albo successivo va fatto ripartire da vuoto esplicitamente,
         // altrimenti lo si ritroverebbe già pieno dalla volta prima.
         if(on && !glyph.classList.contains('show')){
+          fitLoadingGlyphFill();
+          if(!_glyphFitted && document.fonts && document.fonts.ready){
+            // Font non ancora pronto: rimisura appena arriva, il glifo resta
+            // comunque visibile nel frattempo.
+            document.fonts.ready.then(fitLoadingGlyphFill);
+          }
           glyph.classList.add('reset');
           void glyph.offsetWidth;
           glyph.classList.remove('reset');
@@ -146,6 +152,31 @@ function toast(msg, isError, persistent){
     return;
   }
   console[isError ? 'warn' : 'log']('[albi]', msg);
+}
+
+// Il rettangolo che "riempie" il glifo era fisso a 0,0 100×100, ma il ✦ di
+// Castoro NON sta in quel riquadro: la sua punta superiore arriva a y≈-23 e la
+// base si ferma a y≈77. Risultato, la punta restava fuori dal clip e non si
+// riempiva MAI, e il primo quinto dell'animazione scorreva a vuoto sotto la
+// base. Qui il rettangolo si misura sul glifo vero — a font caricato, perché
+// col serif di ripiego le metriche sono altre — così il riempimento parte
+// esattamente dalla base e arriva esattamente alla punta.
+let _glyphFitted = false;
+function fitLoadingGlyphFill(){
+  if(_glyphFitted || !_reader) return;
+  const ghost = _reader.querySelector('.ar-loading-glyph .star-ghost');
+  const rect  = _reader.querySelector('.ar-loading-glyph .fill-rect');
+  if(!ghost || !rect) return;
+  let b;
+  try{ b = ghost.getBBox(); }catch(e){ return; }
+  if(!b || !b.height) return;
+  // Un filo di margine: gli angoli arrotondati del tratto possono sbordare di
+  // una frazione di unità, e mezzo pixel non riempito si vede.
+  rect.setAttribute('x', b.x - 1);
+  rect.setAttribute('y', b.y - 1);
+  rect.setAttribute('width',  b.width  + 2);
+  rect.setAttribute('height', b.height + 2);
+  _glyphFitted = true;
 }
 
 function clearPages(){
@@ -579,7 +610,6 @@ function buildReaderDOM(){
           <text x="50" y="58" text-anchor="middle" font-size="90" class="star-ghost">✦</text>
           <text x="50" y="58" text-anchor="middle" font-size="90" class="star-fill" clip-path="url(#ar-loading-fill-clip)">✦</text>
         </svg>
-        <div class="glow"></div>
       </div>
       <img class="ar-img active" alt="" decoding="async">
       <img class="ar-img" alt="" decoding="async">
