@@ -93,9 +93,13 @@ body.is-touch .dune-nav.dune-hidden{transform:translateY(calc(100% + 4px))}
 .dune-home-svg{width:30px;height:30px;display:block}
 
 /* ── Modalità sera: barra scura coordinata ── */
-body.evening-mode.is-touch .dune-color{background:rgba(30,22,10,.40);border-color:rgba(232,200,120,.18)}
-body.evening-mode.is-touch .dune-grain-coarse{opacity:.14;mix-blend-mode:screen}
-body.evening-mode.is-touch .dune-grain-fine{opacity:.10;mix-blend-mode:screen}
+body.evening-mode.is-touch .dune-color{background:rgba(30,22,10,.46);border-color:rgba(232,200,120,.2)}
+/* Niente grana di notte. Di giorno il rumore in multiply sull'oro fa davvero
+   texture di sabbia; su un fondo quasi nero serve il blend "screen", che però
+   trasforma lo stesso rumore in pulviscolo grigio chiaro — legge come sporco
+   sullo schermo, non come duna. Di sera la barra resta vetro smerigliato
+   pulito, in tono con il cielo notturno della schermata. */
+body.evening-mode.is-touch .dune-grain{display:none}
 body.evening-mode.is-touch .dune-btn-light{background:rgba(255,248,232,.12);border-color:rgba(232,200,120,.2);color:#e8c878;box-shadow:none}
 body.evening-mode.is-touch .dune-home-svg{fill:#e8c878}
 /* la luna nel tondo nero resta uguale; in sera mostra il sole ✷ */
@@ -109,7 +113,7 @@ body.is-touch #btn-refs,
 body.is-touch #btn-stats,
 body.is-touch #btn-settings{display:none !important}
 /* La lente resta invece visibile su touch: sopra la lista progetti, come da browser */
-body.is-touch .header-search-btn{display:inline-block !important}
+body.is-touch .header-search-btn{display:inline-flex !important}
 /* Nascondi anche il pulsante "esci dalla sera" flottante su touch (luce-fantasma) */
 body.is-touch #evening-exit,
 body.is-touch .evening-exit-btn,

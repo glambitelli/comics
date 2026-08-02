@@ -6,6 +6,18 @@
 .home-title{font-size:46px;font-weight:700;color:var(--ink);letter-spacing:-.01em;font-family:'Castoro',serif;line-height:1.0;margin-bottom:2px}
 .home-sub{font-size:9px;color:var(--ink3);margin-top:0;margin-bottom:0;font-weight:400;letter-spacing:.12em;text-transform:lowercase}
 .home-sub-row{display:flex;align-items:center;justify-content:space-between;min-height:20px}
+/* Lente: glifo tracciato come tutte le altre icone di chrome (references,
+   duna, lettore), non un'emoji a colori — quella stonava con la palette e
+   pesava come un adesivo in un header per il resto tipografico. Discreta a
+   riposo, si accende appena la si tocca. */
+.header-search-btn{
+  background:none;border:none;padding:0;cursor:pointer;
+  display:inline-flex;align-items:center;justify-content:center;
+  width:22px;height:22px;flex-shrink:0;margin:-2px -2px -2px 0;
+  color:var(--ink3);opacity:.5;transition:opacity .15s,color .15s;
+}
+.header-search-btn svg{display:block}
+.header-search-btn:active{opacity:1;color:#c8930f}
 .home-scroll{flex:1;overflow-y:auto;padding:20px 18px calc(20px + var(--safe-bot));position:relative;z-index:1}
 .project-card{background:var(--white);border-radius:var(--r);padding:16px;margin-bottom:12px;cursor:pointer;box-shadow:var(--shadow);display:flex;align-items:center;gap:14px;border:1.5px solid var(--sand2);transition:border-color .2s,box-shadow .2s}
 .project-card:active{border-color:var(--coral);box-shadow:var(--shadow-lg)}

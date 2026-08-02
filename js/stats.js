@@ -295,11 +295,15 @@ function renderMonthlyStars(){
   months.forEach(m=>{
     if(m.count>0){
       const barH = Math.max(8, Math.round((m.count/maxCount)*60));
-      const color = m.isCurrent ? 'var(--sky)' : m.count>=maxCount*0.8 ? 'var(--green)' : m.count>=maxCount*0.4 ? 'var(--gold)' : 'var(--sand3)';
+      // Rampa sabbia→oro come il donut e il grafico settimanale; il mese in
+      // corso si distingue con l'oro scuro e l'etichetta in neretto, come già
+      // fa il "giorno d'oro" qui sotto. Prima era verde con il mese corrente
+      // in azzurro: due colori che in questa schermata non compaiono altrove.
+      const color = m.isCurrent ? '#b8860f' : m.count>=maxCount*0.8 ? '#cca343' : m.count>=maxCount*0.4 ? '#ddbe72' : '#e8d4a0';
       html += `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;justify-content:flex-end">
         <div style="font-size:10px;font-weight:700;color:var(--ink3)">${m.count}</div>
         <div style="height:${barH}px;width:100%;border-radius:4px 4px 0 0;background:${color}"></div>
-        <div style="font-size:9px;color:${m.isCurrent?'var(--sky-deep)':'var(--ink3)'};font-weight:${m.isCurrent?'700':'400'}">${m.label}</div>
+        <div style="font-size:9px;color:${m.isCurrent?'#8a6a30':'var(--ink3)'};font-weight:${m.isCurrent?'700':'400'}">${m.label}</div>
       </div>`;
     } else {
       html += `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;justify-content:flex-end">
@@ -513,7 +517,11 @@ function renderHeatmap(){
     week.forEach((day,di)=>{
       if(day.future)return;
       const c=day.count;
-      const color=c===0?'#ece5d8':c===1?'#bfe3c0':c===2?'#7fc882':'#48a848';
+      // Stessa rampa sabbia→oro del donut "Tavole per stadio" e del grafico
+      // settimanale. Prima era la scala verde del grafico contributi di
+      // GitHub: riconoscibile, ma estranea alla palette — ed era la macchia
+      // di colore più grande della schermata.
+      const color=c===0?'#ece2cd':c===1?'#e8d4a0':c===2?'#ddbe72':'#c8930f';
       const y=topPad+di*(cell+gap);
       const x=leftPad+wi*(cell+gap);
       const plural=c===1?'attività':'attività';
@@ -528,13 +536,13 @@ function renderHeatmap(){
   const legend=document.getElementById('stats-heatmap-legend');
   if(legend){
     legend.innerHTML=`
-      <div style="margin-bottom:8px">Ogni quadrato è un giorno. Più è verde, più hai lavorato (task serali completate + tavole finite).</div>
+      <div style="margin-bottom:8px">Ogni quadrato è un giorno. Più è dorato, più hai lavorato (task serali completate + tavole finite).</div>
       <div style="display:flex;align-items:center;justify-content:center;gap:6px;font-size:10px;color:var(--ink3)">
         <span>meno</span>
-        <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#ece5d8"></span>
-        <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#bfe3c0"></span>
-        <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#7fc882"></span>
-        <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#48a848"></span>
+        <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#ece2cd"></span>
+        <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#e8d4a0"></span>
+        <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#ddbe72"></span>
+        <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#c8930f"></span>
         <span>più</span>
         <span style="margin-left:8px;font-weight:600">${totalDays} giorni attivi</span>
       </div>`;

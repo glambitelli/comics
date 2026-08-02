@@ -42,13 +42,15 @@
     <div class="home-title" onclick="goHomeFromLogo()" style="cursor:pointer" role="button" tabindex="0" aria-label="Torna alla home">Inkflow <span style="font-size:.6em;color:#f0c020;vertical-align:.14em;font-weight:400">✦</span></div>
     <div class="home-sub-row">
       <div class="home-sub">pipeline · tracker · storyboard <span class="sync-dot" id="sync-dot"></span><span style="margin-left:6px;opacity:.4;font-size:8px;letter-spacing:.06em">v1.0.0</span></div>
-      <button onclick="toggleSearch()" class="header-search-btn" style="background:none;border:none;font-size:15px;cursor:pointer;color:var(--ink3);padding:0;line-height:1;opacity:.55">🔍</button>
+      <button onclick="toggleSearch()" class="header-search-btn" aria-label="Cerca progetto">
+        <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M15.2 15.2 20 20" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+      </button>
     </div>
   </div>
   <div class="home-scroll" id="home-scroll">
     <div id="search-bar" style="display:none;margin-bottom:10px">
       <div style="display:flex;align-items:center;gap:8px;background:var(--white);border-radius:12px;padding:8px 14px;box-shadow:var(--shadow);border:1.5px solid var(--sand2)">
-        <span style="font-size:13px;color:var(--ink3)">🔍</span>
+        <svg viewBox="0 0 24 24" width="14" height="14" style="display:block;flex-shrink:0;color:var(--ink3)" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M15.2 15.2 20 20" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
         <input id="search-input" type="text" placeholder="Cerca progetto…" oninput="filterProjects(this.value)"
           style="flex:1;background:none;border:none;font-family:'Nunito',sans-serif;font-size:13px;color:var(--ink);outline:none"/>
         <button onclick="toggleSearch()" style="background:none;border:none;font-size:13px;color:var(--ink3);cursor:pointer;padding:0;line-height:1">✕</button>
@@ -425,7 +427,7 @@
     </div>
     <!-- Stelle per mese -->
     <div class="stats-card" style="margin-bottom:16px">
-      <div class="stats-card-label"><span style="color:#f0c020">★</span> Stelle per mese</div>
+      <div class="stats-card-label">Stelle per mese</div>
       <div id="stats-monthly"></div>
     </div>
     <!-- Tavole per stadio -->
