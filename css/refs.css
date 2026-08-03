@@ -194,6 +194,8 @@ body.is-touch .refs-profile{bottom:calc(104px + var(--safe-bot))}
 
 /* ── STATO CARICAMENTO — banner visibile in pagina (più affidabile di alert()) ── */
 .refs-upload-status{max-height:0;overflow:hidden;opacity:0;transition:max-height .22s ease,opacity .18s ease,padding .22s ease;font-family:'Nunito',sans-serif;font-size:12px;font-weight:700;text-align:center;padding:0 20px}
+/* Come per .ar-toast: senza testo non occupa e non dipinge nulla. */
+.refs-upload-status:empty{display:none}
 .refs-upload-status.show{max-height:60px;opacity:1;padding:9px 20px}
 .refs-upload-status.loading{background:#f5ecd8;color:#8a7248}
 .refs-upload-status.ok{background:#e2f0d8;color:#4a7a30}

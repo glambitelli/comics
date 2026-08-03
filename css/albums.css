@@ -129,6 +129,11 @@ body.album-reading{overflow:hidden}
   z-index:5;box-shadow:0 3px 12px rgba(0,0,0,.35);
 }
 .ar-toast.show{opacity:1;transform:translate(-50%,0)}
+/* Cintura E bretelle: un banner senza testo non deve dipingere NIENTE, per
+   qualunque strada ci si arrivi. La pastiglia nera vuota in alto nasceva da
+   un percorso che lasciava la classe "show" con il testo svuotato; quello è
+   corretto lato JS, ma qui la regola vale a prescindere da chi la chiama. */
+.ar-toast:empty{display:none}
 .ar-toast.ok{color:#c3e0ac}
 .ar-toast.error{color:#f3b6a8;border-color:rgba(232,72,72,.4)}
 
