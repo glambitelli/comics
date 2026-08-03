@@ -58,8 +58,16 @@
 #screen-refs.drag-over{outline:3px dashed #e0a810;outline-offset:-3px}
 #screen-refs.drag-over .refs-scroll{background:#f5ecd2}
 
-/* ── LIGHTBOX ── */
-.refs-lightbox{position:fixed;inset:0;background:rgba(10,8,4,.94);z-index:9500;display:none;flex-direction:column;opacity:0;transition:opacity .18s}
+/* ── LIGHTBOX ──
+   Direzione "vetro notturno": stessa capsula in vetro smerigliato scuro della
+   barra di navigazione in modalità sera, non un linguaggio a parte. Mockup
+   e diagnosi in /tmp — due difetti reali corretti qui:
+     1) lo sfondo era rgba(10,8,4,.94): sotto si intravedeva la schermata
+        References. Ora è opaco, la galleria isola davvero l'immagine.
+     2) la barra-duna restava accesa dietro (invisibile all'occhio per pochi
+        punti percentuale, ma visibile): ora esplicitamente nascosta mentre
+        la galleria è aperta (vedi body.refs-lightbox-open in layout.css). */
+.refs-lightbox{position:fixed;inset:0;background:#0a0806;z-index:9500;display:none;flex-direction:column;opacity:0;transition:opacity .18s}
 .refs-lightbox.open{display:flex;opacity:1}
 .refs-lightbox-body{flex:1;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;touch-action:none}
 .refs-lightbox-body img{max-width:100%;max-height:100%;object-fit:contain;transform-origin:center center;will-change:transform;user-select:none;-webkit-user-drag:none}
@@ -70,41 +78,54 @@
 .refs-lightbox-buf{position:absolute;opacity:0;pointer-events:none}
 .refs-lightbox-buf.active{position:relative;opacity:1;pointer-events:auto}
 
-/* Barra in basso: solo contatore + menu, come una galleria nativa. Niente più
-   X (il tasto Indietro chiude, come su qualunque galleria di sistema) e niente
-   più metadati tecnici — qui si guardano le immagini, non se ne leggono i dati. */
-.refs-lightbox-bottom{display:flex;align-items:center;justify-content:center;gap:10px;flex-shrink:0;padding:10px 14px calc(14px + var(--safe-bot));transition:opacity .18s,transform .18s}
+/* Barra in basso: una sola capsula in vetro smerigliato — stessa costruzione
+   della barra di navigazione in modalità sera (blur 8px + fondo scuro
+   translucido + filo oro), non un linguaggio a parte per la galleria. */
+.refs-lightbox-bottom{flex-shrink:0;padding:0 14px calc(14px + var(--safe-bot));transition:opacity .18s,transform .18s}
 .refs-lightbox.chrome-hidden .refs-lightbox-bottom{opacity:0;transform:translateY(6px);pointer-events:none}
-.refs-lightbox-counter{text-align:center;font-family:'Nunito',sans-serif;font-size:10.5px;font-weight:700;color:#f0c84e;letter-spacing:.08em;background:rgba(240,200,90,.12);border:1px solid rgba(240,200,90,.28);border-radius:20px;padding:7px 14px;line-height:1}
-/* Contatore + provenienza in colonna: la provenienza è secondaria (più
-   piccola e smorzata), non deve competere col contatore. */
-.refs-lightbox-meta{display:flex;flex-direction:column;align-items:center;gap:5px;min-width:0}
-/* Riga di altezza FISSA, sempre presente nel layout: prima [hidden] toglieva
-   la riga (display:none) quando un'immagine non aveva provenienza, la barra
-   in basso si accorciava di conseguenza, e siccome lo stage sopra prende lo
-   spazio restante (flex:1) la tavola "saltava" su o giù passando da
-   un'immagine con la scritta a una senza. Ora la riga c'è sempre — invisibile
-   (visibility, non display) quando non serve — quindi l'altezza della barra
-   non cambia mai e la tavola resta ferma. */
-.refs-lightbox-prov{
-  font-family:'Nunito',sans-serif;font-size:10px;font-weight:600;
-  color:var(--sand3);letter-spacing:.03em;line-height:1.2;text-align:center;
-  max-width:70vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-  visibility:visible;
-  /* Senza altezza esplicita il salto tornava comunque: un <div> senza testo
-     non stabilisce un contesto di riga, quindi line-height non si applica e
-     la scatola collassa a 0px anche con visibility:hidden — è per questo
-     che la prima versione di questo fix (solo visibility) non bastava. */
-  height:calc(10px * 1.2);
+.refs-lightbox-pill{
+  display:flex;align-items:center;gap:10px;height:46px;padding:0 6px 0 16px;
+  border-radius:23px;background:rgba(30,22,10,.46);
+  border:1px solid rgba(232,200,120,.2);
+  backdrop-filter:blur(8px) saturate(1.15);-webkit-backdrop-filter:blur(8px) saturate(1.15);
 }
-.refs-lightbox-prov.is-empty{visibility:hidden}
-.refs-lightbox-more{background:#fdf6e4;border:1.5px solid rgba(240,200,90,.4);color:#a8843c;cursor:pointer;padding:0;line-height:1;flex-shrink:0;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(0,0,0,.22);transition:transform .1s}
-.refs-lightbox-more:active{transform:scale(.92);background:#f8ecc8}
+.refs-lightbox-counter{
+  font-family:'Nunito',sans-serif;font-size:10.5px;font-weight:700;
+  letter-spacing:.1em;color:#e8c878;font-variant-numeric:tabular-nums;flex-shrink:0;
+}
+/* Divisore + provenienza in un unico gruppo che riempie lo spazio restante:
+   la capsula ha larghezza FISSA (ancorata ai bordi come la duna), quindi
+   nasconderlo quando manca la provenienza non fa mai muovere il bottone
+   "altre azioni", che resta sempre l'ultimo elemento della riga. */
+.refs-lightbox-prov-wrap{display:flex;align-items:center;gap:10px;flex:1;min-width:0}
+.refs-lightbox-prov-wrap.is-empty{visibility:hidden}
+.refs-lightbox-divider{width:1px;height:16px;background:rgba(232,200,120,.22);flex-shrink:0}
+.refs-lightbox-prov{
+  font-family:'Nunito',sans-serif;font-size:10.5px;font-weight:600;
+  color:#b8ab95;letter-spacing:.02em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.refs-lightbox-more{
+  background:rgba(255,248,232,.1);border:none;color:#e8c878;cursor:pointer;padding:0;
+  flex-shrink:0;width:34px;height:34px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  transition:background .12s,transform .1s;
+}
+.refs-lightbox-more:active{transform:scale(.92);background:rgba(255,248,232,.18)}
 
-.refs-lightbox-nav{position:absolute;top:50%;transform:translateY(-50%);background:#fdf6e4;border:1.5px solid rgba(240,200,90,.4);border-radius:50%;width:42px;height:42px;color:#a8843c;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:2;box-shadow:0 3px 12px rgba(0,0,0,.28)}
-.refs-lightbox-nav-prev{left:4px}
-.refs-lightbox-nav-next{right:4px}
-.refs-lightbox-nav:active{background:#f8ecc8}
+/* Frecce avanti/indietro (solo desktop, il touch scorre col dito): nessun
+   disco — nella galleria è l'immagine che deve avere peso, non il suo chrome. */
+.refs-lightbox-nav{
+  position:absolute;top:50%;transform:translateY(-50%);
+  background:none;border:none;color:rgba(240,232,216,.55);
+  display:flex;align-items:center;justify-content:center;
+  width:44px;height:44px;cursor:pointer;z-index:2;
+  transition:color .15s,transform .1s;
+}
+.refs-lightbox-nav:hover{color:rgba(240,232,216,.9)}
+.refs-lightbox-nav:active{transform:translateY(-50%) scale(.88)}
+.refs-lightbox-nav-prev{left:2px}
+.refs-lightbox-nav-next{right:2px}
 body.is-touch .refs-lightbox-nav{display:none}
 
 /* ── SPAZIO OCCUPATO — piano gratuito Firestore (1GB) ── */

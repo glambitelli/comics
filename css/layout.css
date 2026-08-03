@@ -38,6 +38,10 @@ body.is-touch .dune-nav{
   transition:transform .32s cubic-bezier(.4,0,.2,1);
 }
 body.is-touch .dune-nav.dune-hidden{transform:translateY(calc(100% + 4px))}
+/* La galleria References ha una capsula tutta sua nello stesso punto dello
+   schermo: senza questo, i due tondi restavano visibili UNO DIETRO L'ALTRO,
+   sembrando una barra sola sdoppiata. */
+body.refs-lightbox-open .dune-nav{display:none}
 
 /* Layer blur + colore + grana — CAPSULA FLOTTANTE (pill staccata dai bordi) */
 .dune-blur,.dune-color,.dune-grain{

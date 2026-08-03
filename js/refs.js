@@ -931,6 +931,9 @@ export function openRefLightbox(id){
   try{
     if(!history.state || history.state.view !== 'lightbox') history.pushState({view:'lightbox'}, '');
   }catch(e){}
+  // Nasconde la barra-duna sotto (vedi body.refs-lightbox-open in
+  // layout.css): senza, restava visibile dietro la capsula della galleria.
+  document.body.classList.add('refs-lightbox-open');
   renderLightboxAt(_lightboxIndex);
 }
 
@@ -974,6 +977,7 @@ async function renderLightboxAt(index){
   // sempre ma non era mostrato da nessuna parte: senza, guardando una mano
   // dentro "Hands" non c'è modo di sapere chi l'ha disegnata.
   const prov = document.getElementById('refs-lightbox-prov');
+  const provWrap = document.getElementById('refs-lightbox-prov-wrap');
   if(prov){
     const p = item.provenance;
     if(p && (p.opera || p.folderId)){
@@ -987,10 +991,10 @@ async function renderLightboxAt(index){
       if(p.opera) bits.push(p.opera);
       if(p.pagina) bits.push('p. ' + p.pagina);
       prov.textContent = bits.join(' · ');
-      prov.classList.toggle('is-empty', bits.length === 0);
+      if(provWrap) provWrap.classList.toggle('is-empty', bits.length === 0);
     } else {
       prov.textContent = '';
-      prov.classList.add('is-empty');
+      if(provWrap) provWrap.classList.add('is-empty');
     }
   }
   if(prevBtn) prevBtn.style.visibility = index>0 ? 'visible' : 'hidden';
@@ -1043,6 +1047,7 @@ export function closeRefLightbox(){
 export function closeLightboxUI(){
   const ov = document.getElementById('refs-lightbox');
   if(ov) ov.classList.remove('open');
+  document.body.classList.remove('refs-lightbox-open');
   resetImageZoom();
 }
 
