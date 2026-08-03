@@ -52,10 +52,16 @@
 .album-reader.open{display:flex}
 body.album-reading{overflow:hidden}
 
+/* Vetro scuro col filo oro, in famiglia con la capsula dei comandi in basso
+   e con la barra-duna serale. Resta da bordo a bordo — a differenza di
+   quella in basso — perché ospita il titolo dell'albo: una capsula che si
+   allarga a seconda di quanto è lungo il titolo ballerebbe da un albo
+   all'altro. */
 .ar-topbar{
   display:flex;align-items:center;gap:8px;
-  padding:9px 8px 9px 14px;background:rgba(20,18,16,.94);
-  border-bottom:1px solid rgba(255,255,255,.07);flex-shrink:0;
+  padding:9px 8px 9px 14px;background:rgba(24,18,10,.7);
+  backdrop-filter:blur(8px) saturate(1.15);-webkit-backdrop-filter:blur(8px) saturate(1.15);
+  border-bottom:1px solid rgba(232,200,120,.14);flex-shrink:0;
 }
 .ar-title{
   flex:1;min-width:0;color:var(--sand);font-family:'Nunito',sans-serif;
@@ -63,20 +69,22 @@ body.album-reading{overflow:hidden}
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
 .ar-top-actions{display:flex;gap:7px;flex-shrink:0}
-/* Bottoni tondi color crema con bordo oro: gli stessi del visualizzatore
-   reference (.refs-lightbox-more), così lettore e galleria si somigliano
-   invece di sembrare due app diverse. */
+/* Bottoni in vetro scuro con glifo oro, non più dischi color crema: quelli
+   erano il punto più CHIARO dello schermo — l'occhio ci finiva sopra prima
+   che sulla tavola, che è esattamente il contrario di quello che deve fare
+   un lettore. Stessa famiglia della capsula in basso e del visualizzatore
+   reference (.refs-lightbox-more). */
 .ar-btn{
   width:34px;height:34px;flex-shrink:0;display:flex;align-items:center;justify-content:center;
-  background:#fdf6e4;border:1.5px solid rgba(240,200,90,.4);color:#a8843c;
+  background:rgba(255,248,232,.1);border:none;color:#e8c878;
   cursor:pointer;border-radius:50%;padding:0;line-height:1;
-  box-shadow:0 3px 10px rgba(0,0,0,.22);
   transition:background .15s,color .15s,transform .1s;
 }
-.ar-btn:hover{background:#f8ecc8}
-.ar-btn:active{transform:scale(.9);background:#f8ecc8}
+.ar-btn:hover{background:rgba(255,248,232,.18)}
+.ar-btn:active{transform:scale(.9);background:rgba(255,248,232,.22)}
 .ar-close{margin-right:2px}
-.ar-clip.active{background:var(--gold);border-color:var(--gold);color:var(--ink)}
+/* Ritaglio attivo: qui l'oro pieno ci sta, è uno STATO acceso e deve gridare. */
+.ar-clip.active{background:var(--gold);color:var(--ink)}
 
 .ar-stage{
   position:relative;flex:1;min-height:0;overflow:hidden;
@@ -173,22 +181,22 @@ body.album-reading{overflow:hidden}
   .ar-loading-glyph .ff-glyph{animation:none}
 }
 
-/* Frecce: dischi color sabbia con chevron oro, gemelli di quelli della
-   galleria reference (.refs-lightbox-nav). Su touch restano nascoste,
+/* Frecce nude, senza disco (gemelle di .refs-lightbox-nav): stanno SOPRA la
+   tavola, quindi devono pesare il meno possibile. Su touch restano nascoste,
    lì si sfoglia con lo swipe. */
 .ar-nav{
   position:absolute;top:50%;transform:translateY(-50%);
-  width:42px;height:42px;border-radius:50%;
-  background:#fdf6e4;border:1.5px solid rgba(240,200,90,.4);color:#a8843c;
+  width:46px;height:46px;
+  background:none;border:none;color:rgba(240,232,216,.5);
   display:flex;align-items:center;justify-content:center;cursor:pointer;
-  z-index:2;box-shadow:0 3px 12px rgba(0,0,0,.28);
-  transition:background .15s,transform .1s;
+  z-index:2;padding:0;
+  transition:color .15s,transform .1s;
 }
-.ar-prev{left:10px}
-.ar-next{right:10px}
+.ar-prev{left:4px}
+.ar-next{right:4px}
 .ar-nav svg{display:block}
-.ar-nav:hover{background:#f8ecc8}
-.ar-nav:active{transform:translateY(-50%) scale(.92);background:#f8ecc8}
+.ar-nav:hover{color:rgba(240,232,216,.92)}
+.ar-nav:active{transform:translateY(-50%) scale(.88)}
 body.is-touch .ar-nav{display:none} /* su mobile si naviga con swipe/tap */
 
 /* strato di ritaglio */
@@ -235,25 +243,36 @@ body.is-touch .ar-nav{display:none} /* su mobile si naviga con swipe/tap */
 .ar-clip-handle[data-corner="sw"]{top:100%;left:0;cursor:nesw-resize}
 .ar-clip-handle[data-corner="sw"]::after{bottom:50%;left:50%;border-right:none;border-top:none;margin:0 0 -1.5px -1.5px}
 
+/* La barra sparisce come fondo: i comandi vivono in una capsula flottante in
+   vetro smerigliato, la stessa della barra-duna serale e del visualizzatore
+   reference. Prima era una fascia piena da bordo a bordo che tagliava lo
+   schermo in due sotto la tavola. */
 .ar-bottombar{
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
-  padding:9px 16px 10px;background:rgba(20,18,16,.94);
-  border-top:1px solid rgba(255,255,255,.07);flex-shrink:0;min-height:40px;
+  padding:0 14px 12px;background:none;flex-shrink:0;
 }
-.ar-controls{width:100%;display:flex;flex-direction:column;align-items:center;gap:7px}
+/* Cursore e comandi dentro UNA capsula sola, larga quanto la barra: separati
+   il cursore restava incollato al bordo inferiore dello schermo, staccato
+   dai comandi e appoggiato sul nulla. */
+.ar-controls{
+  width:100%;display:flex;flex-direction:column;align-items:stretch;gap:2px;
+  padding:6px 14px 4px;border-radius:24px;
+  background:rgba(30,22,10,.46);border:1px solid rgba(232,200,120,.2);
+  backdrop-filter:blur(8px) saturate(1.15);-webkit-backdrop-filter:blur(8px) saturate(1.15);
+}
 .ar-controls[hidden]{display:none}
-.ar-controls-row{display:flex;align-items:center;justify-content:center;gap:14px}
+.ar-controls-row{display:flex;align-items:center;justify-content:center;gap:6px}
 
-/* Salto a inizio/fine: gemelli discreti dei bottoni in alto, ma senza il
-   disco pieno — qui la barra è già scura e affollata. */
+/* Salto a inizio/fine: dentro la capsula bastano i glifi, il contorno che
+   avevano prima raddoppiava un bordo che c'è già intorno a tutta la riga. */
 .ar-jump{
-  width:32px;height:32px;flex-shrink:0;display:flex;align-items:center;justify-content:center;
-  background:transparent;border:1px solid rgba(245,240,232,.18);border-radius:50%;
-  color:var(--sand2);cursor:pointer;padding:0;transition:background .15s,color .15s,opacity .15s,transform .1s;
+  width:34px;height:34px;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  background:none;border:none;border-radius:50%;
+  color:#c8bca4;cursor:pointer;padding:0;transition:background .15s,color .15s,opacity .15s,transform .1s;
 }
-.ar-jump:hover:not(:disabled){background:rgba(245,240,232,.1);color:var(--sand)}
+.ar-jump:hover:not(:disabled){background:rgba(255,248,232,.1);color:var(--sand)}
 .ar-jump:active:not(:disabled){transform:scale(.9)}
-.ar-jump:disabled{opacity:.28;cursor:default}
+.ar-jump:disabled{opacity:.26;cursor:default}
 
 /* Cursore di scorrimento: raggiungere una tavola precisa in un volume da
    centinaia di pagine senza sfogliare all'infinito. */
@@ -275,18 +294,24 @@ body.is-touch .ar-nav{display:none} /* su mobile si naviga con swipe/tap */
 .ar-seek:active::-webkit-slider-thumb{transform:scale(1.25)}
 /* Numeri sempre a larghezza fissa (zero-padding lato JS): niente più "salto"
    visivo passando da una a due cifre, come in un vero contapagine da lettore. */
+/* Nessuna pastiglia intorno: sarebbe una pillola dentro una pillola. Dentro
+   la capsula il contatore è solo testo oro, come nella galleria reference. */
 .ar-counter{
   display:inline-flex;align-items:center;
   font-family:'Nunito',sans-serif;font-variant-numeric:tabular-nums;
-  font-size:10.5px;font-weight:700;letter-spacing:.08em;
-  color:#f0c84e;background:rgba(240,200,90,.12);
-  border:1px solid rgba(240,200,90,.28);border-radius:20px;
-  padding:7px 14px;line-height:1;
+  font-size:11px;font-weight:700;letter-spacing:.1em;
+  color:#e8c878;padding:0 8px;line-height:1;
 }
+/* Anche la riga del ritaglio è una capsula in vetro: da quando la barra in
+   basso non ha più un fondo pieno, senza questa le pastiglie galleggerebbero
+   direttamente sopra la tavola. */
 .ar-clip-hint{
   display:flex;align-items:center;gap:8px;
   font-family:'Nunito',sans-serif;font-size:10.5px;font-weight:700;
   letter-spacing:.08em;color:var(--gold-pale);
+  min-height:46px;padding:0 12px;border-radius:23px;
+  background:rgba(30,22,10,.46);border:1px solid rgba(232,200,120,.2);
+  backdrop-filter:blur(8px) saturate(1.15);-webkit-backdrop-filter:blur(8px) saturate(1.15);
   /* Senza questi la riga delle destinazioni sfonda la barra: il lettore la
      centra, quindi l'eccedenza veniva tagliata da entrambi i lati e
      "Riprova" finiva mezzo fuori dallo schermo. */
