@@ -52,22 +52,16 @@
 .album-reader.open{display:flex}
 body.album-reading{overflow:hidden}
 
-/* Vetro scuro col filo oro, in famiglia con la capsula dei comandi in basso
-   e con la barra-duna serale. Resta da bordo a bordo — a differenza di
-   quella in basso — perché ospita il titolo dell'albo: una capsula che si
-   allarga a seconda di quanto è lungo il titolo ballerebbe da un albo
-   all'altro. */
+/* Nessuna barra in alto: solo i due bottoni, sospesi sopra la tavola. La
+   fascia piena rubava una striscia di schermo per tenere un titolo che ora
+   sta nella capsula in basso, insieme al numero di pagina — dove serve
+   davvero, perché è lì che si guarda per capire a che punto si è. */
 .ar-topbar{
-  display:flex;align-items:center;gap:8px;
-  padding:9px 8px 9px 14px;background:rgba(24,18,10,.7);
-  backdrop-filter:blur(8px) saturate(1.15);-webkit-backdrop-filter:blur(8px) saturate(1.15);
-  border-bottom:1px solid rgba(232,200,120,.14);flex-shrink:0;
+  position:absolute;top:0;left:0;right:0;z-index:3;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 12px;pointer-events:none;background:none;
 }
-.ar-title{
-  flex:1;min-width:0;color:var(--sand);font-family:'Nunito',sans-serif;
-  font-size:14px;font-weight:700;letter-spacing:.01em;line-height:1.25;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-}
+.ar-topbar > *{pointer-events:auto}
 .ar-top-actions{display:flex;gap:7px;flex-shrink:0}
 /* Bottoni in vetro scuro con glifo oro, non più dischi color crema: quelli
    erano il punto più CHIARO dello schermo — l'occhio ci finiva sopra prima
@@ -114,7 +108,10 @@ body.album-reading{overflow:hidden}
    scura e translucida in tinta col chrome del lettore, non una pillola piena
    che copre il disegno. Il colore lo porta il testo, non il fondo. */
 .ar-toast{
-  position:absolute;top:10px;left:50%;transform:translate(-50%,-6px);
+  /* Sotto i due bottoni sospesi: da quando non c'è più una barra in alto lo
+     stage parte dal bordo dello schermo, e a 10px il banner finiva sulla
+     stessa riga di "chiudi" e "ritaglia", sovrapponendosi a entrambi. */
+  position:absolute;top:60px;left:50%;transform:translate(-50%,-6px);
   max-width:82%;padding:6px 14px;border-radius:16px;
   font-family:'Nunito',sans-serif;font-size:11px;font-weight:700;letter-spacing:.02em;
   text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
@@ -261,7 +258,16 @@ body.is-touch .ar-nav{display:none} /* su mobile si naviga con swipe/tap */
   backdrop-filter:blur(8px) saturate(1.15);-webkit-backdrop-filter:blur(8px) saturate(1.15);
 }
 .ar-controls[hidden]{display:none}
-.ar-controls-row{display:flex;align-items:center;justify-content:center;gap:6px}
+/* Contatore, divisore, titolo, comandi: la stessa riga della galleria
+   reference (.refs-lightbox-pill). Il titolo si stringe con l'ellissi, i
+   bottoni in fondo non si muovono mai. */
+.ar-controls-row{display:flex;align-items:center;gap:8px;min-width:0}
+.ar-divider{width:1px;height:16px;background:rgba(232,200,120,.22);flex-shrink:0}
+.ar-title{
+  flex:1;min-width:0;color:#b8ab95;font-family:'Nunito',sans-serif;
+  font-size:11px;font-weight:600;letter-spacing:.02em;line-height:1.2;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
 
 /* Salto a inizio/fine: dentro la capsula bastano i glifi, il contorno che
    avevano prima raddoppiava un bordo che c'è già intorno a tutta la riga. */

@@ -593,7 +593,6 @@ function buildReaderDOM(){
       <button class="ar-btn ar-close" aria-label="Chiudi" data-act="close">
         <svg viewBox="0 0 24 24" width="17" height="17"><path d="M6.5 6.5 17.5 17.5 M17.5 6.5 6.5 17.5" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"/></svg>
       </button>
-      <span class="ar-title"></span>
       <div class="ar-top-actions">
         <button class="ar-btn ar-clip" aria-label="Ritaglia" data-act="clip">
           <svg viewBox="0 0 24 24" width="20" height="20"><circle cx="6.5" cy="6.5" r="2.4" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="6.5" cy="17.5" r="2.4" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8.6 8.2 20 18 M8.6 15.8 20 6" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg>
@@ -632,10 +631,12 @@ function buildReaderDOM(){
       <div class="ar-controls">
         <input class="ar-seek" type="range" min="0" value="0" step="1" aria-label="Vai alla pagina">
         <div class="ar-controls-row">
+          <span class="ar-counter"></span>
+          <span class="ar-divider" aria-hidden="true"></span>
+          <span class="ar-title"></span>
           <button class="ar-jump" data-act="first" aria-label="Prima pagina" title="Prima pagina">
             <svg viewBox="0 0 24 24" width="17" height="17"><path d="M18 5 L10 12 L18 19" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/><path d="M7 5.5v13" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"/></svg>
           </button>
-          <span class="ar-counter"></span>
           <button class="ar-jump" data-act="last" aria-label="Ultima pagina" title="Ultima pagina">
             <svg viewBox="0 0 24 24" width="17" height="17"><path d="M6 5 L14 12 L6 19" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/><path d="M17 5.5v13" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"/></svg>
           </button>
