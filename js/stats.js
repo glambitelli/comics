@@ -317,15 +317,18 @@ function renderMonthlyStars(){
 }
 
 
-// Un colore per categoria: i trofei si leggono a gruppi anche prima di
-// leggerne il nome, e restano tutti dentro la palette dell'app.
+// Un colore per categoria, tutti sulla stessa scala calda di Inkflow —
+// sabbia dorata → oro → rame → bronzo → nero d'inchiostro. Non sono sei
+// tinte a caso: seguono la profondità della conquista, così l'occhio capisce
+// il peso di un trofeo prima ancora di leggerne il nome. Verdi e azzurri
+// erano fuori posto: in questa schermata non compaiono da nessun'altra parte.
 const TROPHY_CAT_COLOR = {
-  'Inizio':'#5f9a4a',                // germoglio, verde
-  'Tavole':'#c8930f',                // il lavoro vero, oro
-  'Costanza':'#3d87a8',              // le serate, cielo notturno
-  'Costanza interrotta':'#d0603a',   // le strisce, brace
-  'Opere':'#8a6a30',                 // i progetti finiti, bronzo
-  'Segreti':'#3a332c',               // inchiostro
+  'Inizio':'#c2a869',                // sabbia dorata — i primi passi
+  'Tavole':'#d9a417',                // oro pieno — il lavoro vero
+  'Costanza':'#a8763c',              // ottone — le serate che si accumulano
+  'Costanza interrotta':'#9a5a34',   // rame — la brace delle strisce
+  'Opere':'#6e4c2e',                 // bronzo scuro — i progetti finiti
+  'Segreti':'#2a2420',               // nero d'inchiostro — quello che non sai
 };
 
 function renderTrophyCase(){

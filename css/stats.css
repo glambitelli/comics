@@ -20,65 +20,70 @@
 .stat-big{font-size:19px;font-weight:700;font-family:'Castoro',serif;color:var(--ink);line-height:1}
 .stat-lbl{font-size:9px;font-weight:600;color:var(--ink3);letter-spacing:.04em;text-transform:uppercase;margin-top:4px}
 
-/* ── BOLLINI: LINGUAGGIO COMUNE DI TROFEI E BADGE ──────────────────────────
-   Stessa forma per entrambi — cerchio + glifo tracciato — così si legge a
-   colpo d'occhio che appartengono alla stessa famiglia. A distinguerli è il
-   RIEMPIMENTO, non il disegno:
-     · TROFEO conquistato = disco pieno nel colore della sua categoria
-     · BADGE conquistato  = anello oro su crema, più piccolo
-   I trofei sono le conquiste grosse e rare (pesano di più, quindi pieni), i
-   badge sono le tappe di ogni progetto (leggeri, quindi solo contornati).
-   Da bloccati diventano entrambi un anello sabbia con il glifo pallido: si
-   vede cosa manca senza che rubino l'occhio a quello che hai già preso. */
+/* ── TROFEI E BADGE: STESSA FAMIGLIA, DUE FORME ───────────────────────────
+   Entrambi sono un glifo tracciato dentro una pastiglia, con la stessa
+   costruzione e gli stessi stati — ma la FORMA dice subito di quale dei due
+   si tratta, anche in mezzo alla pagina e senza leggere l'etichetta:
+     · TROFEO = tondo, grande. Conquiste rare, una tantum.
+     · BADGE  = quadrato stondato, piccolo. Tappe che ogni progetto ripete.
+   Conquistati sono pieni, bloccati sono un contorno sabbia col glifo
+   pallido: si vede cosa manca senza che rubi l'occhio a quello che hai già.
+   I colori restano tutti nella scala calda di Inkflow (sabbia → oro → rame
+   → bronzo → nero): niente verdi o azzurri, che qui non compaiono altrove. */
 .bdg{
-  border-radius:50%;display:flex;align-items:center;justify-content:center;
+  display:flex;align-items:center;justify-content:center;
   flex-shrink:0;box-sizing:border-box;
-  background:var(--sand);border:1.5px solid var(--sand2);color:#c2b7a0;
+  background:#f2ece0;border:1.5px solid var(--sand2);color:#bcae94;
   transition:transform .12s;
 }
-/* 48%: diversi glifi disegnano fino ai bordi del loro riquadro 24×24, e in un
-   contenitore tondo gli angoli finivano a filo dell'anello. */
+/* 48%: diversi glifi disegnano fino ai bordi del loro riquadro 24×24, e in
+   una pastiglia stondata gli angoli finivano a filo del contorno. */
 .bdg svg{width:48%;height:48%;display:block}
-.bdg-lg{width:46px;height:46px}
-.bdg-sm{width:34px;height:34px}
-/* Conquistati */
-.bdg-lg.is-on{background:var(--bdg-c,#c8930f);border-color:var(--bdg-c,#c8930f);color:#fffdf6;box-shadow:0 2px 7px rgba(90,70,30,.22)}
-.bdg-sm.is-on{background:#fffdf6;border:2px solid var(--gold);color:#c8930f}
+.bdg-lg{width:48px;height:48px;border-radius:50%}
+.bdg-sm{width:38px;height:38px;border-radius:12px}
+/* Nella pastiglia piccola il glifo ha meno raggio da spendere sugli angoli. */
+.bdg-sm svg{width:45%;height:45%}
+.bdg.is-on{
+  background:var(--bdg-c,#c8930f);border-color:var(--bdg-c,#c8930f);
+  color:#fffdf6;box-shadow:0 2px 7px rgba(90,70,30,.20);
+}
 
 /* ── BACHECA TROFEI ── */
 .trophy-cat{
   display:flex;align-items:center;gap:8px;
-  font-size:9.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
-  color:#9a8458;margin:16px 0 10px;
+  font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  color:#9a8458;margin:18px 0 12px;
 }
 .trophy-cat::after{content:'';flex:1;height:1.5px;background:var(--sand2);border-radius:1px}
 .trophy-cat:first-child{margin-top:0}
 .trophy-cat b{color:#8a7248;font-weight:700}
-.trophy-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(62px,1fr));gap:12px 6px}
+.trophy-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:16px 4px}
 .trophy-item{
-  display:flex;flex-direction:column;align-items:center;gap:6px;
+  display:flex;flex-direction:column;align-items:center;gap:7px;
   cursor:pointer;-webkit-tap-highlight-color:transparent;
 }
 .trophy-item:active .bdg{transform:scale(.9)}
-.trophy-name{font-size:8.5px;font-weight:700;color:#b0a48c;text-align:center;line-height:1.25;max-width:66px}
-.trophy-item.earned .trophy-name{color:var(--ink2)}
+.trophy-name{font-size:10px;font-weight:600;color:#a1957c;text-align:center;line-height:1.3;max-width:72px}
+.trophy-item.earned .trophy-name{color:var(--ink2);font-weight:700}
 /* Targhetta: toccando un trofeo si legge qui nome e traguardo, senza aprire
    nulla e senza scrivere una descrizione sotto ognuno dei trentadue. */
 .trophy-caption{
-  margin-top:16px;padding-top:12px;border-top:1.5px solid var(--sand2);
-  text-align:center;font-size:11px;color:var(--ink3);line-height:1.5;min-height:32px;
+  margin-top:18px;padding-top:12px;border-top:1.5px solid var(--sand2);
+  text-align:center;font-size:11.5px;color:var(--ink3);line-height:1.5;min-height:34px;
 }
 
 /* ── BADGE PER PROGETTO ── */
-.project-badges-list{display:flex;flex-direction:column;gap:20px}
-.proj-badge-head{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.project-badges-list{display:flex;flex-direction:column;gap:22px}
+.proj-badge-head{display:flex;align-items:center;gap:8px;margin-bottom:12px}
 .proj-badge-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
 .proj-badge-title{font-size:13px;font-weight:700;color:var(--ink);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .proj-badge-count{font-size:11px;font-weight:700;color:var(--ink3)}
-.proj-badge-icons{display:grid;grid-template-columns:repeat(5,1fr);gap:10px 4px}
-.proj-badge{display:flex;flex-direction:column;align-items:center;gap:5px}
-.proj-badge-lbl{font-size:8px;font-weight:700;color:#b0a48c;text-align:center;line-height:1.15}
-.proj-badge.earned .proj-badge-lbl{color:var(--ink2)}
+/* Quattro colonne, non cinque: con etichette leggibili cinque costringevano
+   "Ambientazione" e "Completato" a spezzarsi in tre righe. */
+.proj-badge-icons{display:grid;grid-template-columns:repeat(4,1fr);gap:14px 6px}
+.proj-badge{display:flex;flex-direction:column;align-items:center;gap:6px}
+.proj-badge-lbl{font-size:10px;font-weight:600;color:#a1957c;text-align:center;line-height:1.25}
+.proj-badge.earned .proj-badge-lbl{color:var(--ink2);font-weight:700}
 
 @media (max-width:600px){
   .stats-numbers{grid-template-columns:repeat(2,1fr)}
