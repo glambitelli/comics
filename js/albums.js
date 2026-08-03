@@ -116,12 +116,22 @@ function toast(msg, isError, persistent){
     ? _reader.querySelector('.ar-toast')
     : document.getElementById('refs-upload-status');
   if(el){
-    const base = inReader ? 'ar-toast show' : 'refs-upload-status show';
-    el.className = base + ' ' + (isError ? 'error' : 'ok');
-    el.textContent = msg;
+    const idle = inReader ? 'ar-toast' : 'refs-upload-status';
     clearTimeout(el._t);
-    if(!persistent){
-      el._t = setTimeout(()=>{ el.className = inReader ? 'ar-toast' : 'refs-upload-status'; el.textContent=''; }, isError ? 6000 : 2600);
+    // toast('') significa "non c'è più niente da dire": va nascosto SUBITO.
+    // Prima passava dalla via normale e restava una pastiglia vuota — bordo,
+    // fondo e tutto — piantata in alto per i 2,6 secondi del timer, senza una
+    // riga di testo dentro. Si vedeva ogni volta che si apriva un albo, che è
+    // esattamente il momento in cui la si nota di più.
+    if(!msg){
+      el.className = idle;
+      el.textContent = '';
+    } else {
+      el.className = idle + ' show ' + (isError ? 'error' : 'ok');
+      el.textContent = msg;
+      if(!persistent){
+        el._t = setTimeout(()=>{ el.className = idle; el.textContent=''; }, isError ? 6000 : 2600);
+      }
     }
     // Glifo di caricamento: solo nel lettore, solo per gli stati "sto
     // lavorando" (persistent e non errore) mentre si APRE l'albo — non
