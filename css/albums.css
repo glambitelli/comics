@@ -48,6 +48,13 @@
   position:fixed;inset:0;z-index:4000;display:none;
   flex-direction:column;background:#141210;
   padding-top:var(--safe-top);padding-bottom:var(--safe-bot);
+  /* Altezza della capsula in basso, UNA per tutti i suoi stati. Entrando in
+     ritaglio i comandi lasciano il posto alla riga delle destinazioni: se le
+     due avessero altezze diverse la barra si accorcerebbe, e siccome lo
+     stage sopra prende lo spazio restante (flex:1) la tavola si
+     ingrandirebbe di quei pochi pixel — un sobbalzo piccolo ma fastidioso
+     proprio nel momento in cui stai inquadrando un dettaglio. */
+  --ar-dock-h:64px;
 }
 .album-reader.open{display:flex}
 body.album-reading{overflow:hidden}
@@ -252,8 +259,9 @@ body.is-touch .ar-nav{display:none} /* su mobile si naviga con swipe/tap */
    il cursore restava incollato al bordo inferiore dello schermo, staccato
    dai comandi e appoggiato sul nulla. */
 .ar-controls{
-  width:100%;display:flex;flex-direction:column;align-items:stretch;gap:2px;
-  padding:6px 14px 4px;border-radius:24px;
+  width:100%;height:var(--ar-dock-h);
+  display:flex;flex-direction:column;align-items:stretch;justify-content:center;gap:2px;
+  padding:0 14px;border-radius:24px;
   background:rgba(30,22,10,.46);border:1px solid rgba(232,200,120,.2);
   backdrop-filter:blur(8px) saturate(1.15);-webkit-backdrop-filter:blur(8px) saturate(1.15);
 }
@@ -315,7 +323,8 @@ body.is-touch .ar-nav{display:none} /* su mobile si naviga con swipe/tap */
   display:flex;align-items:center;gap:8px;
   font-family:'Nunito',sans-serif;font-size:10.5px;font-weight:700;
   letter-spacing:.08em;color:var(--gold-pale);
-  min-height:46px;padding:0 12px;border-radius:23px;
+  /* Stessa altezza dei comandi che sostituisce: vedi --ar-dock-h sopra. */
+  height:var(--ar-dock-h);padding:0 12px;border-radius:24px;
   background:rgba(30,22,10,.46);border:1px solid rgba(232,200,120,.2);
   backdrop-filter:blur(8px) saturate(1.15);-webkit-backdrop-filter:blur(8px) saturate(1.15);
   /* Senza questi la riga delle destinazioni sfonda la barra: il lettore la

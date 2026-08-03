@@ -1427,10 +1427,24 @@ async function commitClip(img, sel, layer, destFolderId){
   const cropH = Math.min(img.naturalHeight - cropY, sel.height / rect.scale);
   if(cropW < 4 || cropH < 4){ toast('Riquadro fuori dalla pagina, riprova.', true); toggleClip(false); return; }
 
-  await exportCropAndSave(await pageBlob(_source, _pages[_idx]), cropX, cropY, cropW, cropH, destFolderId);
+  // Si ritaglia DALLA TAVOLA GIÀ A SCHERMO. Prima si rileggeva la pagina
+  // dall'archivio e la si decodificava una seconda volta da zero, solo per
+  // ritagliarne un rettangolo: su una tavola da qualche migliaio di pixel
+  // quella decodifica è la parte più lenta di tutto il ritaglio, ed era
+  // completamente inutile — l'immagine identica, già decodificata, era lì
+  // davanti. L'elemento a schermo è a piena risoluzione (il conto del crop
+  // usa già il suo naturalWidth/naturalHeight), quindi il risultato non
+  // cambia di un pixel.
+  const done = exportCropAndSave(img, cropX, cropY, cropW, cropH, destFolderId);
+  // La modalità ritaglio si chiude SUBITO: il caricamento su Cloudinary
+  // prosegue in sottofondo e si annuncia da solo col banner. Prima l'intera
+  // interfaccia restava bloccata per tutta la durata della rete.
   toggleClip(false);
+  await done;
 }
 
+// Serve ancora alla copertina dello scaffale (makeCoverBlob), che parte da un
+// Blob e non da un'immagine già a schermo.
 function blobToImage(blob){
   return new Promise((res, rej)=>{
     const url = URL.createObjectURL(blob);
@@ -1448,11 +1462,22 @@ const CLIP_MAX_BYTES = 1400000;
 // Disegna il crop su canvas (con cap dimensionale), comprime in JPEG e lo
 // consegna a refs.js che lo carica su Cloudinary e scrive il Frammento con
 // provenienza { opera, pagina }.
-async function exportCropAndSave(sourceBlob, cx, cy, cw, ch, destFolderId){
+async function exportCropAndSave(sourceImg, cx, cy, cw, ch, destFolderId){
   toast('Ritaglio in corso…', false, true);
-  let im;
-  try{ im = await blobToImage(sourceBlob); }
-  catch(e){ toast('Ritaglio fallito.', true); return; }
+  const im = sourceImg;
+  if(!im || !im.naturalWidth){ toast('Ritaglio fallito.', true); return; }
+
+  // Provenienza e destinazione lette ORA, non dopo l'upload: da quando il
+  // caricamento prosegue in sottofondo si può già voltare pagina mentre è in
+  // corso, e _idx sarebbe quello nuovo — il frammento si porterebbe dietro il
+  // numero di pagina sbagliato.
+  const sourceFolderId = getActiveFolderId();
+  const folderId = destFolderId || sourceFolderId;
+  const provenance = {
+    opera: _albumName,
+    pagina: _idx + 1,
+    folderId: sourceFolderId || null,   // cartella artista di origine
+  };
 
   let w = Math.round(cw), h = Math.round(ch);
   if(w > CLIP_MAX_DIM || h > CLIP_MAX_DIM){
@@ -1462,8 +1487,9 @@ async function exportCropAndSave(sourceBlob, cx, cy, cw, ch, destFolderId){
   const canvas = document.createElement('canvas');
   canvas.width = w; canvas.height = h;
   const ctx = canvas.getContext('2d');
+  // Niente revoke dell'URL qui: questa immagine è la tavola VISUALIZZATA, non
+  // una copia usa-e-getta. Revocarla la farebbe sparire dallo schermo.
   ctx.drawImage(im, cx, cy, cw, ch, 0, 0, w, h);
-  if(im._objurl) URL.revokeObjectURL(im._objurl);
 
   let quality = 0.88;
   const encode = ()=> new Promise(res=> canvas.toBlob(res, 'image/jpeg', quality));
@@ -1474,26 +1500,11 @@ async function exportCropAndSave(sourceBlob, cx, cy, cw, ch, destFolderId){
   }
   if(!blob){ toast('Ritaglio fallito.', true); return; }
 
-  // Cartella da cui si sta leggendo: è l'ARTISTA, e resta la destinazione
-  // predefinita. destFolderId la scavalca quando si tocca la pastiglia di una
-  // cartella di studio.
-  const sourceFolderId = getActiveFolderId();
-  const folderId = destFolderId || sourceFolderId;
-  // La provenienza viaggia SEMPRE col ritaglio, anche quando finisce in una
-  // cartella di studio: le mani archiviate in "Hands" continuano a sapere di
-  // essere di Satoshi Kon, pagina 88. Senza questo, spostando un ritaglio
-  // nello studio si perderebbe per sempre l'informazione su chi l'ha disegnato
-  // — ed è proprio quella che serve quando poi ci si torna sopra.
-  const id = await addRefBlob(blob, {
-    folderId,
-    source: 'clip',
-    provenance: {
-      opera: _albumName,
-      pagina: _idx + 1,
-      folderId: sourceFolderId || null,   // cartella artista di origine
-    },
-    w, h
-  });
+  // folderId e provenance sono stati catturati in cima, prima di qualunque
+  // await: la provenienza viaggia SEMPRE col ritaglio, anche quando finisce
+  // in una cartella di studio, così le mani archiviate in "Hands" continuano
+  // a sapere di essere di Satoshi Kon, pagina 88.
+  const id = await addRefBlob(blob, { folderId, source: 'clip', provenance, w, h });
   if(id){
     haptic('done');
     // Solo le destinazioni scelte a mano: la cartella corrente è già in cima
