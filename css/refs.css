@@ -85,8 +85,26 @@
 /* Barra in basso: una sola capsula in vetro smerigliato — stessa costruzione
    della barra di navigazione in modalità sera (blur 8px + fondo scuro
    translucido + filo oro), non un linguaggio a parte per la galleria. */
+/* Chiudi: gemello di quello del lettore (.ar-btn) — vetro scuro, glifo oro,
+   sospeso sopra l'immagine. Prima non c'era, contando sul tasto Indietro:
+   ma il lettore la X ce l'ha, e due schermate a schermo intero che si
+   chiudono in modi diversi si assomigliano solo per sbaglio. */
+.refs-lightbox-close{
+  position:absolute;top:calc(10px + var(--safe-top));left:12px;z-index:4;
+  width:34px;height:34px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(255,248,232,.1);border:none;color:#e8c878;
+  cursor:pointer;border-radius:50%;padding:0;line-height:1;
+  transition:opacity .18s,background .15s,transform .1s;
+}
+.refs-lightbox-close:hover{background:rgba(255,248,232,.18)}
+.refs-lightbox-close:active{transform:scale(.9);background:rgba(255,248,232,.22)}
+
 .refs-lightbox-bottom{flex-shrink:0;padding:0 14px calc(14px + var(--safe-bot));transition:opacity .18s,transform .18s}
+/* Il tocco che nasconde il chrome deve nascondere ANCHE la X, altrimenti
+   resterebbe l'unica cosa a galleggiare sopra un'immagine "pulita". */
 .refs-lightbox.chrome-hidden .refs-lightbox-bottom{opacity:0;transform:translateY(6px);pointer-events:none}
+.refs-lightbox.chrome-hidden .refs-lightbox-close{opacity:0;pointer-events:none}
 .refs-lightbox-pill{
   display:flex;align-items:center;gap:10px;height:46px;padding:0 6px 0 16px;
   border-radius:23px;background:rgba(30,22,10,.46);
