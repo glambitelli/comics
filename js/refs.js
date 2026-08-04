@@ -43,13 +43,19 @@ let _gridSort = 'recenti';             // 'recenti' | 'vecchi' | 'artista'
 let _albumQuery = '';                  // cerca albi (titolo)
 let _albumSort = 'recenti';            // 'recenti' | 'vecchi' | 'titolo'
 
-// Larghezze richieste a Cloudinary per ogni contesto, con margine per gli
-// schermi retina (fino a 2×) senza chiedere più pixel di quanti la CSS ne
-// mostri mai: la griglia (.refs-grid) sta tra 78 e ~130px, le copertine
-// (.album-cover) intorno a 104px.
-const _dpr = Math.min(2, (typeof window !== 'undefined' && window.devicePixelRatio) || 1);
-const THUMB_W = Math.round(150 * _dpr);
-const COVER_W = Math.round(130 * _dpr);
+// Larghezze FISSE, non dipendenti dal devicePixelRatio dello schermo.
+// Cloudinary genera ogni variante la prima volta che qualcuno la chiede e poi
+// la tiene in cache: legare la larghezza al dpr significava che telefono
+// (300) e desktop non-retina (150) chiedevano due immagini DIVERSE della
+// stessa foto, e ognuno pagava per conto suo l'attesa della prima
+// generazione. Con un valore unico la variante è una sola per immagine, e
+// una volta scaldata da un dispositivo è già pronta per tutti gli altri.
+// I numeri sono quelli che un telefono retina generava già (300/260): così
+// il lavoro fatto finora resta valido e non si riparte da zero.
+// Misure CSS di riferimento: .refs-grid sta tra 78 e ~130px, .album-cover
+// intorno a 104px — 300 e 260 coprono con abbondanza anche a 3×.
+const THUMB_W = 300;
+const COVER_W = 260;
 // La lightbox mostra il ritaglio a piena risoluzione: qui non si riduce la
 // dimensione (gli originali sono già capped a 2000px in fase di salvataggio),
 // solo q_auto/f_auto per un formato più leggero a parità di qualità visibile.
@@ -61,6 +67,35 @@ function genId(){
   return Date.now().toString(36) + Math.random().toString(36).slice(2,8);
 }
 function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// ── PRE-GENERAZIONE DELLA MINIATURA ──
+// Cloudinary crea una variante ridimensionata solo quando qualcuno gliela
+// chiede per la prima volta, e da lì in poi la serve dalla cache. Senza
+// questo, la prima volta che un ritaglio nuovo compare in griglia si vede
+// l'attesa della generazione. Qui la chiediamo SUBITO dopo il caricamento,
+// mentre l'utente sta ancora guardando il banner di conferma: quando poi
+// aprirà la cartella, la miniatura è già pronta e compare all'istante.
+// Non blocca niente e un fallimento non conta — è solo un anticipo di
+// lavoro, se salta lo si rifà al primo sguardo come prima.
+// La variante grande della lightbox NON si scalda: sarebbe quasi un
+// megabyte riscaricato subito dopo averlo caricato, e lì una sola immagine
+// per volta si sta comunque già aspettando.
+const _warmedThumbs = [];
+function warmDerived(url, w = THUMB_W){
+  try{
+    const im = new Image();
+    im.decoding = 'async';
+    im.src = cldResize(url, w);
+    // Tenuta viva finché non ha finito: un Image() creato e subito
+    // dimenticato può essere raccolto dal GC prima di aver fatto la richiesta.
+    _warmedThumbs.push(im);
+    const done = ()=>{
+      const i = _warmedThumbs.indexOf(im);
+      if(i >= 0) _warmedThumbs.splice(i, 1);
+    };
+    im.onload = done; im.onerror = done;
+  }catch(e){ /* pre-generazione: se fallisce non cambia nulla */ }
+}
 
 // ── SALVATAGGIO IMMAGINE ──
 // Cattura sempre istantanea e senza cartella: si archivia dopo, dal lightbox,
@@ -74,6 +109,7 @@ export async function addRefImage(file, source='file', folderId=null){
   try{
     const { blob, w, h } = await compressImageFile(file);
     const { url } = await uploadToCloudinary(blob, id+'.jpg');
+    warmDerived(url);
     const data = {
       url, source,
       projectId: null,
@@ -101,6 +137,7 @@ export async function addRefBlob(blob, opts={}){
   const id = genId();
   try{
     const { url } = await uploadToCloudinary(blob, id+'.jpg');
+    warmDerived(url);
     const data = {
       url, source,
       projectId: null,
@@ -315,6 +352,9 @@ export function findExactAlbumMatch(folderId, sourceName, sourceSize){
 
 export async function createAlbumDoc({folderId, title, cover, pageCount, sourceName, sourceSize, lastPage=0, driveFileId=null}){
   const id = genId();
+  // Come per i ritagli: la copertina ridotta si chiede subito, così quando lo
+  // scaffale si apre è già pronta invece di doverla generare lì per lì.
+  if(cover) warmDerived(cover, COVER_W);
   await setDoc(doc(db, ALBUMS_COL, id), {
     folderId, title: title||'Senza titolo', cover: cover||null, pageCount: pageCount||0,
     sourceName: sourceName||'', sourceSize: sourceSize||0, lastPage,
