@@ -22,6 +22,33 @@
    il più piccolo dei tre e la gerarchia si leggeva al contrario. */
 .refs-breadcrumb #refs-breadcrumb-name{font-size:15.5px;font-weight:700;color:var(--ink);letter-spacing:-.01em}
 
+/* ── RICERCA + ORDINA — stesso linguaggio nei tre punti in cui compare
+   (elenco cartelle, scaffale albi, griglia ritagli): "trova/riordina quello
+   che c'è già", non una funzione diversa per ogni vista. ── */
+.refs-toolbar{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.refs-search{
+  flex:1;min-width:0;display:flex;align-items:center;gap:8px;
+  background:var(--white);border:1.5px solid var(--sand2);border-radius:20px;
+  padding:8px 14px;color:var(--ink3);
+}
+.refs-search svg{flex-shrink:0}
+.refs-search input{
+  flex:1;min-width:0;background:none;border:none;outline:none;
+  font-family:'Nunito',sans-serif;font-size:13px;color:var(--ink);
+}
+.refs-search input::placeholder{color:var(--ink3)}
+.refs-sort-btn{
+  flex-shrink:0;width:34px;height:34px;border-radius:50%;
+  background:var(--white);border:1.5px solid var(--sand2);color:#8a7248;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;
+  transition:background .15s,border-color .15s,transform .1s;
+}
+.refs-sort-btn:active{transform:scale(.92);background:var(--sand)}
+/* Quella sopra l'elenco cartelle sta FUORI dallo scroll, come tab e
+   breadcrumb: stesso fondo sabbia e stesso filo, resta ferma mentre il
+   contenuto sotto scorre — le altre due vivono dentro lo scroll e bastano
+   le regole sopra. */
+#refs-folder-toolbar{margin-bottom:0;padding:10px 16px 12px;background:var(--sand);border-bottom:1px solid #e8dcc0}
 
 .refs-scroll{flex:1;overflow-y:auto;background:#efe6d4;padding:14px 14px calc(20px + var(--safe-bot))}
 

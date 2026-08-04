@@ -6,7 +6,7 @@
 import { db, collection, doc, onSnapshot, setDoc, deleteDoc, serverTimestamp } from './firebase.js';
 import { haptic, showUndoToast } from './state.js';
 import { compressImageFile, dataUrlToBlob } from './imgcompress.js';
-import { uploadToCloudinary } from './cloudinary.js';
+import { uploadToCloudinary, cldResize } from './cloudinary.js';
 import { promptModal, confirmModal, actionMenu } from './dialogs.js';
 import {
   isDriveConfigured, isDriveConnected, connectDrive, disconnectDrive,
@@ -31,6 +31,31 @@ let _activeFolderId = null;
 // non compaiono: lì si guardano solo immagini.
 let _folderTab = 'ritagli';      // 'albi' | 'ritagli'
 let _lastUploadError = '';
+
+// ── RICERCA E ORDINAMENTO ──
+// Il testo si azzera cambiando cartella/vista (vedi openFolder/openAllGrid/
+// openFolderBrowser): un filtro dimenticato acceso nasconderebbe ritagli
+// senza spiegazione. L'ordinamento invece è un'abitudine — resta impostato
+// finché non lo cambi tu, per tutta la sessione.
+let _folderQuery = '';                 // cerca cartelle nell'elenco
+let _gridQuery = '';                   // cerca ritagli (opera/pagina/artista)
+let _gridSort = 'recenti';             // 'recenti' | 'vecchi' | 'artista'
+let _albumQuery = '';                  // cerca albi (titolo)
+let _albumSort = 'recenti';            // 'recenti' | 'vecchi' | 'titolo'
+
+// Larghezze richieste a Cloudinary per ogni contesto, con margine per gli
+// schermi retina (fino a 2×) senza chiedere più pixel di quanti la CSS ne
+// mostri mai: la griglia (.refs-grid) sta tra 78 e ~130px, le copertine
+// (.album-cover) intorno a 104px.
+const _dpr = Math.min(2, (typeof window !== 'undefined' && window.devicePixelRatio) || 1);
+const THUMB_W = Math.round(150 * _dpr);
+const COVER_W = Math.round(130 * _dpr);
+// La lightbox mostra il ritaglio a piena risoluzione: qui non si riduce la
+// dimensione (gli originali sono già capped a 2000px in fase di salvataggio),
+// solo q_auto/f_auto per un formato più leggero a parità di qualità visibile.
+// Il cap a 2000 resta comunque come rete di sicurezza per eventuali immagini
+// più vecchie/più grandi.
+const LIGHTBOX_W = 2000;
 
 function genId(){
   return Date.now().toString(36) + Math.random().toString(36).slice(2,8);
@@ -495,17 +520,35 @@ export function getRefs(){ return _refs; }
 // cartelle. Stesso schema già usato per aprire un progetto (vedi
 // project.js): la chiamata è incondizionata, __navSync no-opera da sola
 // durante il "replay" del tasto Indietro (vedi _navReplaying in main.js).
+// Le variabili di stato si azzerano SEMPRE con la navigazione (vedi sopra);
+// gli <input> a schermo vanno svuotati insieme a loro, altrimenti il campo
+// mostrerebbe ancora il testo cercato anche se il filtro è già stato tolto.
+function clearSearchInputs(){
+  ['refs-folder-search-input','refs-grid-search-input','refs-albums-search-input'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.value = '';
+  });
+}
+
 export function openFolderBrowser(){
   _view = 'folders'; _activeFolderId = null;
+  _folderQuery = '';
+  clearSearchInputs();
   renderRefsScreen();
 }
 export function openAllGrid(){
   _view = 'all'; _activeFolderId = null;
+  _gridQuery = '';
+  clearSearchInputs();
   if(window.__navSync) window.__navSync('refs-all', null);
   renderRefsScreen();
 }
 export function openFolder(id){
   _view = 'folder'; _activeFolderId = id;
+  // La ricerca resta legata a dove sei: portarsela dietro da una cartella
+  // all'altra nasconderebbe ritagli senza che se ne veda il motivo.
+  _gridQuery = ''; _albumQuery = '';
+  clearSearchInputs();
   if(window.__navSync) window.__navSync('refs-folder', id);
   // Si apre sul tab che ha qualcosa dentro: se la cartella ha albi parte da lì,
   // altrimenti sui ritagli. Evita di sbattere in faccia una schermata vuota.
@@ -582,6 +625,48 @@ export async function promptDeleteFolder(id){
   openFolderBrowser();
 }
 
+// ── RICERCA E ORDINAMENTO: azioni ──
+export function refsFolderSearch(value){
+  _folderQuery = value || '';
+  renderFolderBrowser();
+}
+export function refsGridSearch(value){
+  _gridQuery = value || '';
+  renderRefsGrid();
+}
+export function refsAlbumsSearch(value){
+  _albumQuery = value || '';
+  renderAlbumsShelf();
+}
+
+// "✓ " davanti alla voce già selezionata, come le altre scelte a pastiglia
+// dell'app (i.e. le destinazioni del ritaglio) — si vede subito cos'è attivo
+// senza dover leggere un'etichetta a parte sul bottone.
+function sortMenuActions(current, options, apply){
+  return options.map(([key,label])=>({
+    label: (key===current ? '✓ ' : '') + label,
+    onSelect: ()=>apply(key),
+  }));
+}
+export function refsGridSortMenu(btnEl){
+  // "Artista A→Z" ha senso solo guardando più artisti insieme (vista "All"):
+  // dentro la cartella di un singolo artista ordinare per artista non
+  // cambierebbe nulla, quindi l'opzione sparisce invece di restare lì inerte.
+  const opts = [['recenti','Più recenti'], ['vecchi','Meno recenti']];
+  if(_view === 'all') opts.push(['artista','Artista A→Z']);
+  actionMenu(btnEl, sortMenuActions(_gridSort, opts, key=>{
+    _gridSort = key;
+    renderRefsGrid();
+  }));
+}
+export function refsAlbumsSortMenu(btnEl){
+  const opts = [['recenti','Più recenti'], ['vecchi','Meno recenti'], ['titolo','Titolo A→Z']];
+  actionMenu(btnEl, sortMenuActions(_albumSort, opts, key=>{
+    _albumSort = key;
+    renderAlbumsShelf();
+  }));
+}
+
 // ── SPAZIO OCCUPATO ──
 // Le immagini vivono su Cloudinary (25GB gratis); non c'è modo di interrogare
 // l'uso reale dell'account senza esporre credenziali admin lato client, quindi
@@ -612,10 +697,12 @@ export function renderRefsScreen(){
   const browserEl = document.getElementById('refs-folder-browser');
   const galleryEl = document.getElementById('refs-gallery-view');
   const crumb = document.getElementById('refs-breadcrumb');
+  const folderToolbar = document.getElementById('refs-folder-toolbar');
   if(!browserEl || !galleryEl) return;
 
   if(_view === 'folders'){
     browserEl.style.display = 'block';
+    if(folderToolbar) folderToolbar.style.display = 'flex';
     galleryEl.style.display = 'none';
     if(crumb) crumb.style.display = 'none';
     // I tab appartengono alla cartella aperta: uscendo vanno nascosti qui,
@@ -627,6 +714,7 @@ export function renderRefsScreen(){
     renderFolderBrowser();
   } else {
     browserEl.style.display = 'none';
+    if(folderToolbar) folderToolbar.style.display = 'none';
     galleryEl.style.display = 'block';
     if(crumb){
       crumb.style.display = 'flex';
@@ -752,21 +840,41 @@ export function closeRefsProfile(){
   }
 }
 
+function sortAlbumsList(list){
+  const arr = list.slice();
+  if(_albumSort === 'titolo'){
+    arr.sort((a,b)=>(a.title||'').localeCompare(b.title||'', undefined, {sensitivity:'base'}));
+    return arr;
+  }
+  // getAlbumsInFolder torna già per data decrescente: "vecchi" ribalta.
+  if(_albumSort === 'vecchi') arr.reverse();
+  return arr;
+}
+
 // ── RENDER: SCAFFALE ALBI ──
 function renderAlbumsShelf(){
   const grid = document.getElementById('refs-albums-grid');
   const empty = document.querySelector('.refs-albums-empty');
+  const noResults = document.getElementById('refs-albums-noresults');
   if(!grid) return;
-  const list = getAlbumsInFolder(_activeFolderId);
+  const all = getAlbumsInFolder(_activeFolderId);
+  const q = _albumQuery.trim().toLowerCase();
+  const list = sortAlbumsList(q ? all.filter(a=>(a.title||'').toLowerCase().includes(q)) : all);
 
   if(!list.length){
     grid.innerHTML = '';
     grid.dataset.sig = '';
     grid.style.display = 'none';
-    if(empty) empty.style.display = 'flex';
+    // Cartella davvero vuota vs ricerca senza risultati: due messaggi diversi,
+    // altrimenti "Sfoglia un albo" suggerirebbe di aprirne uno che magari hai
+    // già, solo filtrato via dal testo cercato.
+    const isSearchMiss = q && all.length > 0;
+    if(empty) empty.style.display = isSearchMiss ? 'none' : 'flex';
+    if(noResults) noResults.style.display = isSearchMiss ? 'flex' : 'none';
     return;
   }
   if(empty) empty.style.display = 'none';
+  if(noResults) noResults.style.display = 'none';
   grid.style.display = 'grid';
   const sig = list.map(a=>[a.id,a.cover,a.title,a.pageCount,a.driveFileId].join(':')).join('|');
   if(grid.dataset.sig === sig) return;
@@ -779,7 +887,7 @@ function renderAlbumsShelf(){
     return `
     <div class="album-card ${isDrive ? 'is-drive' : 'is-local'}" data-id="${a.id}">
       <div class="album-cover">
-        <img src="${a.cover||''}" loading="lazy" alt=""/>
+        <img src="${cldResize(a.cover||'', COVER_W)}" loading="lazy" alt=""/>
         ${badge}
         <button class="album-menu-btn" onclick="event.stopPropagation();window.albumShelfMenu('${a.id}',this)" aria-label="Altro">⋯</button>
       </div>
@@ -800,7 +908,10 @@ function renderFolderBrowser(){
   const el = document.getElementById('refs-folder-browser');
   if(!el) return;
   const cats = foldersByCategory();
+  const q = _folderQuery.trim().toLowerCase();
 
+  // "All" è una scorciatoia fissa, non un risultato di ricerca: resta sempre
+  // in cima, cercare "kon" non deve farla sparire insieme alle cartelle.
   let html = `
     <div class="refs-quicklink" onclick="window.openAllGrid()">
       <span class="refs-quicklink-ico">▦</span>
@@ -812,11 +923,15 @@ function renderFolderBrowser(){
     html += `<div class="refs-folders-empty">Ancora nessuna cartella. Crea la prima categoria (es. "Artists" o "Study") per iniziare a organizzare le tue reference.</div>`;
   }
 
+  let shown = 0;
   cats.forEach((folders, category)=>{
+    const visible = q ? folders.filter(f=>f.name.toLowerCase().includes(q)) : folders;
+    if(!visible.length) return;
+    shown += visible.length;
     html += `<div class="refs-cat-row">
       <span class="refs-cat-name">${esc(category)}</span>
     </div>`;
-    folders.forEach(f=>{
+    visible.forEach(f=>{
       html += `<div class="refs-folder-row" onclick="window.openFolder('${f.id}')">
         <span class="refs-folder-ico">${FOLDER_ICON}</span>
         <span class="refs-folder-name">${esc(f.name)}</span>
@@ -825,6 +940,10 @@ function renderFolderBrowser(){
       </div>`;
     });
   });
+
+  if(cats.size > 0 && q && shown === 0){
+    html += `<div class="refs-folders-empty">Nessuna cartella corrisponde a "${esc(_folderQuery.trim())}".</div>`;
+  }
 
   // Unica azione di questa vista: qui si organizzano contenitori, non immagini.
   html += `<button class="refs-new-folder-row" onclick="window.promptNewFolderFlow(this)">
@@ -848,7 +967,39 @@ export function refsFolderMenu(id, btnEl){
 }
 
 // ── RENDER: GALLERIA (vista "Tutte" o cartella singola) ──
-function currentGridList(){
+// Testo cercato contro l'artista (nome cartella) e la provenienza (opera,
+// eventuale artista di origine se il ritaglio vive altrove — es. in Studio):
+// gli unici campi che un ritaglio porta sempre con sé.
+function refMatchesQuery(r, q){
+  const bits = [];
+  const f = _folders.find(x=>x.id===r.folderId);
+  if(f) bits.push(f.name);
+  if(r.provenance){
+    if(r.provenance.opera) bits.push(r.provenance.opera);
+    const pf = r.provenance.folderId && _folders.find(x=>x.id===r.provenance.folderId);
+    if(pf) bits.push(pf.name);
+  }
+  return bits.join(' ').toLowerCase().includes(q);
+}
+
+function sortRefsList(list){
+  const arr = list.slice();
+  if(_gridSort === 'artista'){
+    arr.sort((a,b)=>{
+      const fa = _folders.find(x=>x.id===a.folderId);
+      const fb = _folders.find(x=>x.id===b.folderId);
+      return (fa?fa.name:'').localeCompare(fb?fb.name:'', undefined, {sensitivity:'base'});
+    });
+    return arr;
+  }
+  // "recenti"/"vecchi": _refs arriva già ordinato per data dal listener
+  // (vedi startRefsListener), quindi "recenti" è già l'ordine naturale —
+  // qui basta eventualmente ribaltarlo.
+  if(_gridSort === 'vecchi') arr.reverse();
+  return arr;
+}
+
+function rawGridList(){
   if(_view === 'folder'){
     return _activeFolderId
       ? _refs.filter(r=>r.folderId===_activeFolderId)
@@ -857,9 +1008,16 @@ function currentGridList(){
   return _refs;
 }
 
+function currentGridList(){
+  const raw = rawGridList();
+  const q = _gridQuery.trim().toLowerCase();
+  return sortRefsList(q ? raw.filter(r=>refMatchesQuery(r,q)) : raw);
+}
+
 export function renderRefsGrid(){
   const grid = document.getElementById('refs-grid');
   const empty = document.getElementById('refs-empty');
+  const noResults = document.getElementById('refs-noresults');
   if(!grid) return;
 
   const list = currentGridList();
@@ -867,10 +1025,14 @@ export function renderRefsGrid(){
   if(!list.length){
     grid.innerHTML='';
     grid.dataset.sig = '';
-    if(empty) empty.style.display='flex';
+    // Stessa distinzione dello scaffale albi: cartella vuota vs ricerca a vuoto.
+    const isSearchMiss = _gridQuery.trim() && rawGridList().length > 0;
+    if(empty) empty.style.display = isSearchMiss ? 'none' : 'flex';
+    if(noResults) noResults.style.display = isSearchMiss ? 'flex' : 'none';
     return;
   }
   if(empty) empty.style.display='none';
+  if(noResults) noResults.style.display='none';
 
   // I tre listener Firestore chiamano renderRefsScreen ad OGNI modifica, anche
   // di un campo che qui non si vede: ricostruire l'HTML rifà da capo tutte le
@@ -882,7 +1044,7 @@ export function renderRefsGrid(){
 
   grid.innerHTML = list.map(r=>`
     <div class="refs-thumb" data-id="${r.id}">
-      <img src="${r.url}" loading="lazy" decoding="async" alt=""/>
+      <img src="${cldResize(r.url, THUMB_W)}" loading="lazy" decoding="async" alt=""/>
     </div>
   `).join('');
 
@@ -1003,7 +1165,8 @@ async function renderLightboxAt(index){
 
   const idle = getIdleLightboxImg();
   if(!idle) return;
-  if(idle.src !== item.url) idle.src = item.url;
+  const fullUrl = cldResize(item.url, LIGHTBOX_W);
+  if(idle.src !== fullUrl) idle.src = fullUrl;
   // decode() e non 'load': 'load' scatta quando i BYTE sono arrivati, ma la
   // decodifica del bitmap avviene dopo, al primo paint. Su una foto grande
   // quella decodifica dura parecchio, e scambiando la visibilità su 'load' si
@@ -1026,8 +1189,11 @@ async function renderLightboxAt(index){
   resetImageZoom();
 
   // Scalda la cache per i vicini: il prossimo swipe li troverà già scaricati.
+  // Stessa URL trasformata che verrà davvero richiesta al momento dello
+  // swipe — scaldarne una diversa dall'originale sprecherebbe la rete due
+  // volte invece di risparmiarla.
   [index + 1, index - 1].forEach(i=>{
-    if(i >= 0 && i < _lightboxList.length) warmRefImageCache(_lightboxList[i].url);
+    if(i >= 0 && i < _lightboxList.length) warmRefImageCache(cldResize(_lightboxList[i].url, LIGHTBOX_W));
   });
 }
 
