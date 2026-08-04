@@ -6,17 +6,21 @@
 .refs-inline-add:active .refs-inline-add-circle{transform:scale(.9);background:#fdf3da}
 
 .refs-breadcrumb{display:none;align-items:center;gap:8px;padding:10px 16px;background:var(--sand);border-bottom:1px solid #e8dcc0;flex-shrink:0;cursor:pointer}
-.refs-breadcrumb-back{font-size:18px;font-weight:700;color:#8a7248;line-height:1}
+.refs-breadcrumb-back{font-size:20px;font-weight:700;color:#8a7248;line-height:1}
 
 /* Tab Albi / Ritagli — visibili solo dentro una cartella vera */
 .refs-tabs{display:none;gap:20px;padding:0 16px;background:var(--sand);border-bottom:1px solid #e8dcc0;flex-shrink:0}
 .refs-tabs.show{display:flex}
-.refs-tab{background:none;border:none;font-family:inherit;font-size:15px;font-weight:600;color:var(--ink3);padding:11px 0 9px;border-bottom:2.5px solid transparent;cursor:pointer;line-height:1.2}
+.refs-tab{background:none;border:none;font-family:inherit;font-size:14px;font-weight:600;color:var(--ink3);padding:10px 0 9px;border-bottom:2.5px solid transparent;cursor:pointer;line-height:1.2}
 .refs-tab.active{color:var(--ink);border-bottom-color:var(--coral)}
-.refs-tab-n{font-size:13px;font-weight:700;color:var(--ink3);margin-left:3px}
+.refs-tab-n{font-size:12px;font-weight:700;color:var(--ink3);margin-left:3px}
 .refs-tab.active .refs-tab-n{color:#b8a078}
 .refs-albums-empty{display:flex}
-.refs-breadcrumb #refs-breadcrumb-name{font-size:13px;font-weight:700;color:var(--ink2)}
+/* Scala tipografica della cartella, dall'alto in basso: il NOME è il titolo
+   di dove ti trovi e sta sopra a tutto (17px), le tab sono la navigazione al
+   suo interno (14px), i conteggi sono di servizio (12px). Prima il nome era
+   il più piccolo dei tre e la gerarchia si leggeva al contrario. */
+.refs-breadcrumb #refs-breadcrumb-name{font-size:17px;font-weight:700;color:var(--ink);letter-spacing:-.01em}
 
 
 .refs-scroll{flex:1;overflow-y:auto;background:#efe6d4;padding:14px 14px calc(20px + var(--safe-bot))}
