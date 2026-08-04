@@ -6,7 +6,7 @@
 .refs-inline-add:active .refs-inline-add-circle{transform:scale(.9);background:#fdf3da}
 
 .refs-breadcrumb{display:none;align-items:center;gap:8px;padding:10px 16px;background:var(--sand);border-bottom:1px solid #e8dcc0;flex-shrink:0;cursor:pointer}
-.refs-breadcrumb-back{font-size:20px;font-weight:700;color:#8a7248;line-height:1}
+.refs-breadcrumb-back{font-size:18px;font-weight:700;color:#8a7248;line-height:1}
 
 /* Tab Albi / Ritagli — visibili solo dentro una cartella vera */
 .refs-tabs{display:none;gap:20px;padding:0 16px;background:var(--sand);border-bottom:1px solid #e8dcc0;flex-shrink:0}
@@ -20,7 +20,7 @@
    di dove ti trovi e sta sopra a tutto (17px), le tab sono la navigazione al
    suo interno (14px), i conteggi sono di servizio (12px). Prima il nome era
    il più piccolo dei tre e la gerarchia si leggeva al contrario. */
-.refs-breadcrumb #refs-breadcrumb-name{font-size:17px;font-weight:700;color:var(--ink);letter-spacing:-.01em}
+.refs-breadcrumb #refs-breadcrumb-name{font-size:15.5px;font-weight:700;color:var(--ink);letter-spacing:-.01em}
 
 
 .refs-scroll{flex:1;overflow-y:auto;background:#efe6d4;padding:14px 14px calc(20px + var(--safe-bot))}
