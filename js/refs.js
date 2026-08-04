@@ -56,12 +56,14 @@ let _albumSort = 'recenti';            // 'recenti' | 'vecchi' | 'titolo'
 // intorno a 104px — 300 e 260 coprono con abbondanza anche a 3×.
 const THUMB_W = 300;
 const COVER_W = 260;
-// La lightbox mostra il ritaglio a piena risoluzione: qui non si riduce la
-// dimensione (gli originali sono già capped a 2000px in fase di salvataggio),
-// solo q_auto/f_auto per un formato più leggero a parità di qualità visibile.
-// Il cap a 2000 resta comunque come rete di sicurezza per eventuali immagini
-// più vecchie/più grandi.
-const LIGHTBOX_W = 2000;
+// La lightbox usa l'URL ORIGINALE, senza trasformazioni. Ci avevo messo
+// q_auto/f_auto per risparmiare byte, ma ogni immagine così diventava una
+// variante nuova da generare al primo sguardo: swipando in galleria si
+// aspettava quella generazione ad ogni foto mai vista, e lo swipe sembrava
+// non funzionare. L'originale invece esiste da sempre ed è servito subito.
+// Il risparmio non valeva il prezzo: gli originali sono già limitati a 2000px
+// e ~1.4MB dalla compressione fatta al salvataggio.
+const lightboxUrl = url => url;
 
 function genId(){
   return Date.now().toString(36) + Math.random().toString(36).slice(2,8);
@@ -1205,7 +1207,7 @@ async function renderLightboxAt(index){
 
   const idle = getIdleLightboxImg();
   if(!idle) return;
-  const fullUrl = cldResize(item.url, LIGHTBOX_W);
+  const fullUrl = lightboxUrl(item.url);
   if(idle.src !== fullUrl) idle.src = fullUrl;
   // decode() e non 'load': 'load' scatta quando i BYTE sono arrivati, ma la
   // decodifica del bitmap avviene dopo, al primo paint. Su una foto grande
@@ -1233,7 +1235,7 @@ async function renderLightboxAt(index){
   // swipe — scaldarne una diversa dall'originale sprecherebbe la rete due
   // volte invece di risparmiarla.
   [index + 1, index - 1].forEach(i=>{
-    if(i >= 0 && i < _lightboxList.length) warmRefImageCache(cldResize(_lightboxList[i].url, LIGHTBOX_W));
+    if(i >= 0 && i < _lightboxList.length) warmRefImageCache(lightboxUrl(_lightboxList[i].url));
   });
 }
 
@@ -1399,7 +1401,14 @@ function toggleZoomAt(clientX, clientY){
       const t = e.changedTouches[0];
       const dx = t.clientX - swipeStartX, dy = t.clientY - swipeStartY;
       const moved = Math.hypot(dx, dy);
-      if(_zoomScale <= 1.02 && moved > 55 && Math.abs(dx) > Math.abs(dy)*1.4){
+      // Si misura lo spostamento ORIZZONTALE, non la diagonale, e si accetta
+      // anche il colpetto veloce e corto. Prima serviva una diagonale di 55px:
+      // un flick rapido spesso non ci arrivava e il gesto cadeva nel vuoto,
+      // senza che succedesse niente — da qui il "a volte devo riprovare".
+      const adx = Math.abs(dx), ady = Math.abs(dy);
+      const elapsed = Date.now() - lastTouchAt;
+      const isFlick = elapsed < 300 && adx > 24;   // colpetto secco
+      if(_zoomScale <= 1.02 && (adx > 38 || isFlick) && adx > ady * 1.2){
         if(dx < 0) nextRefImage(); else prevRefImage();
         return;
       }

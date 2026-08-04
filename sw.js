@@ -1,5 +1,5 @@
 // Service Worker — cache file statici locali, Firebase sempre da rete
-const CACHE = 'inkflow-static-v146';
+const CACHE = 'inkflow-static-v147';
 const SHARE_CACHE = 'inkflow-share-inbox';
 // Cache dei file .cbz/.cbr scaricati da Drive: gestita da js/drive.js, va
 // PRESERVATA tra i deploy (altrimenti a ogni aggiornamento riscaricheresti
@@ -56,18 +56,26 @@ self.addEventListener('fetch', e => {
     return;
   }
 
-  // NETWORK-FIRST: online prendi sempre l'ultima versione (così i deploy hanno
-  // effetto subito), la cache è solo fallback quando sei offline.
+  // STALE-WHILE-REVALIDATE: se il file è in cache si serve SUBITO, e intanto
+  // in sottofondo si ricontrolla la rete per la volta dopo.
+  //
+  // Prima era network-first: ogni singolo file aspettava un giro in rete anche
+  // quando era già in cache. Da browser desktop non si nota, ma nella PWA
+  // installata su 4G aprire References significa caricare quattro moduli più i
+  // loro CSS, e ognuno pagava la latenza prima che si vedesse qualcosa.
+  //
+  // I deploy continuano ad arrivare senza ritardo percepito: CACHE cambia nome
+  // ad ogni versione e "activate" cancella le vecchie, quindi il primo avvio
+  // dopo un aggiornamento scarica comunque tutto dalla rete. Da lì in poi le
+  // aperture sono immediate.
   e.respondWith(
-    fetch(e.request).then(resp => {
-      if(resp && resp.status === 200){
-        const clone = resp.clone();
-        caches.open(CACHE).then(cache => cache.put(e.request, clone));
-      }
-      return resp;
-    }).catch(() =>
-      caches.open(CACHE).then(cache => cache.match(e.request))
-    )
+    caches.open(CACHE).then(cache => cache.match(e.request).then(hit => {
+      const network = fetch(e.request).then(resp => {
+        if(resp && resp.status === 200) cache.put(e.request, resp.clone());
+        return resp;
+      }).catch(() => hit);   // offline: resta valido quello che abbiamo
+      return hit || network;
+    }))
   );
 });
 
