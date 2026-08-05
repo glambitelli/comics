@@ -743,6 +743,9 @@ export function closeReaderUI(){
   document.body.classList.remove('album-reading');
   // Le tavole tenute calde per il prefetch sono bitmap decodificati da parecchi
   // MB l'uno: chiudendo il lettore non servono più e vanno lasciate andare.
+  // Insieme a loro si annulla il prefetch ancora in attesa, che altrimenti si
+  // metterebbe a decomprimere tavole di un albo che non è più a schermo.
+  cancelIdle(_prefetchT); _prefetchT = null;
   _warmPages.clear();
   // Le pagine restano in memoria finché non apri un altro albo: riaprire lo
   // stesso file dal picker le ricrea comunque. Le liberiamo alla prossima apertura.
@@ -766,7 +769,12 @@ const cancelIdle = (h)=>{ if(h==null) return; (window.cancelIdleCallback||clearT
 // il buffer doveva rifare tutto da capo e lo swipe restava fermo un attimo.
 // La coda è corta di proposito: due tavole decodificate sono già decine di MB.
 const _warmPages = new Map();
-const WARM_MAX = 3;
+// Quante tavole decodificate tenere vive: la corrente, due avanti nel verso di
+// lettura e una alle spalle. Una tavola decodificata occupa larghezza × altezza
+// × 4 byte (una da 1600×2300 sono ~15MB), quindi questo numero non va alzato
+// con leggerezza: è il compromesso tra "la prossima è già pronta" e la memoria
+// di un telefono.
+const WARM_MAX = 4;
 function warmPage(url){
   if(!url || _warmPages.has(url)) return;
   const im = new Image();
@@ -794,6 +802,7 @@ function warmPage(url){
 // non N.
 let _pageLoadBusy = false;
 let _pageLoadPending = false;
+let _readDir = 1;   // +1 = si sta andando avanti, -1 = indietro
 
 async function renderPage(){
   if(!_reader || !_pages.length) return;
@@ -843,18 +852,45 @@ async function loadCurrentPageBitmap(){
     resetZoom();
     measureBaseSize();   // dimensioni a riposo, per lo zoom senza ricalcoli
 
-    // Prefetch dei vicini RINVIATO a thread libero: con la sorgente pigra ognuno
-    // costa una decompressione (o una richiesta Drive), e farlo subito
-    // ritarderebbe la comparsa della pagina che si sta guardando adesso.
-    // Sfogliando veloce si annulla e si prefetcha solo dove ci si ferma.
-    cancelIdle(_prefetchT);
+    // Prefetch NEL VERSO DI LETTURA, due tavole avanti più una alle spalle.
+    //
+    // Prima era simmetrico (±1) e per giunta rinviato a thread libero e
+    // annullato ad ogni cambio pagina: sfogliando veloce non arrivava mai in
+    // fondo, così ogni tavola veniva decodificata da zero al momento di
+    // mostrarla — da qui i ~70ms di attesa per pagina che si sentono come
+    // scatto. Preparando due tavole nella direzione in cui si sta andando, la
+    // prossima è quasi sempre già pronta.
+    //
+    // Resta rinviato a thread libero (con la sorgente pigra ogni tavola costa
+    // una decompressione, o una richiesta Drive) ma NON si annulla più: il
+    // controllo di pertinenza qui sotto scarta da solo il lavoro diventato
+    // inutile, senza buttare via quello ancora buono.
+    const dir = _readDir;
+    // La tavola SUCCESSIVA nel verso di lettura si prepara SUBITO, senza
+    // aspettare un momento di inattività. È quella che servirà tra un istante,
+    // ed è proprio quella che non arrivava mai in tempo: rinviata a thread
+    // libero, sfogliando in fretta la finestra di calma non si presentava e la
+    // tavola finiva per essere decodificata a freddo al momento di mostrarla.
+    // Misurato su tavole vere (2480×3508, CPU 8×): erano picchi oltre il
+    // secondo. decode() lavora fuori dal thread principale, quindi anticiparlo
+    // non rallenta la tavola che si sta già guardando.
+    const nextI = idx + dir;
+    if(nextI >= 0 && nextI < _pages.length){
+      pageUrl(_source, _pages[nextI]).then(u=>{
+        if(Math.abs(nextI - _idx) <= 2) warmPage(u);
+      }).catch(()=>{});
+    }
+    // Il resto della finestra (due avanti, una alle spalle) resta rinviato:
+    // serve meno urgentemente e non deve rubare tempo all'immediato.
+    const wanted = [idx + 2*dir, idx - dir];
     _prefetchT = whenIdle(async ()=>{
-      for(const i of [idx + 1, idx - 1]){
+      for(const i of wanted){
         if(i < 0 || i >= _pages.length) continue;
+        // Ancora dentro la finestra utile rispetto a dove siamo ADESSO?
+        // Se nel frattempo si è saltati altrove, questa tavola non serve più.
+        if(Math.abs(i - _idx) > 2) continue;
         const u = await pageUrl(_source, _pages[i]);
-        // Solo se è ancora un vicino della pagina corrente: se nel frattempo
-        // si è saltato altrove, questo prefetch non serve più a nulla.
-        if(Math.abs(i - _idx) <= 1) warmPage(u);
+        if(Math.abs(i - _idx) <= 2) warmPage(u);
       }
       trimPages();
     });
@@ -866,6 +902,10 @@ async function loadCurrentPageBitmap(){
 function gotoPage(i){
   if(_clipMode) return; // in ritaglio la navigazione è disattivata
   if(i < 0 || i >= _pages.length) return;
+  // Verso di lettura: sfogliando in avanti le pagine utili da preparare sono
+  // quelle DAVANTI, non quelle già lasciate indietro (vedi il prefetch in
+  // loadCurrentPageBitmap).
+  if(i !== _idx) _readDir = i > _idx ? 1 : -1;
   _idx = i;
   saveReadingPos();
   if(_currentAlbumId) updateAlbumLastPage(_currentAlbumId, _idx);
@@ -1034,7 +1074,13 @@ function wireGestures(ov){
     }
     const dx = t.clientX - x0, dy = t.clientY - y0;
     const moved = Math.hypot(dx, dy);
-    if(swiping && _zoom <= 1.02 && moved > 55 && Math.abs(dx) > Math.abs(dy) * 1.3){
+    // Stessa regola della galleria reference: conta lo spostamento
+    // ORIZZONTALE, non la diagonale, e vale anche il colpetto secco e corto.
+    // Con la soglia di 55px sulla diagonale un flick rapido spesso non
+    // arrivava e la pagina non girava, costringendo a ripetere il gesto.
+    const adx = Math.abs(dx), ady = Math.abs(dy);
+    const isFlick = (Date.now() - lastTouchAt) < 300 && adx > 24;
+    if(swiping && _zoom <= 1.02 && (adx > 38 || isFlick) && adx > ady * 1.2){
       swiping = false;
       if(dx < 0) gotoPage(_idx + 1); else gotoPage(_idx - 1);
       return;

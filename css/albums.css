@@ -98,11 +98,18 @@ body.album-reading{overflow:hidden}
    un istante di nero tanto più lungo quanto era grande la tavola. */
 .ar-img{
   max-width:100%;max-height:100%;object-fit:contain;
-  transform-origin:center center;will-change:transform;
+  transform-origin:center center;
   user-select:none;-webkit-user-drag:none;
   position:absolute;opacity:0;pointer-events:none;
 }
 .ar-img.active{position:relative;opacity:1;pointer-events:auto}
+/* will-change SOLO mentre si è ingranditi, non sempre. Promuove l'immagine a
+   un livello di composizione a sé, tenuto in memoria video alla sua
+   risoluzione PIENA: su tavole da 8,7 megapixel sono decine di MB per
+   ciascuno dei due buffer, occupati per tutta la lettura anche stando fermi a
+   dimensione naturale, dove non c'è nessuna trasformazione da accelerare. Su
+   un telefono quella pressione si paga in scatti; da desktop non si nota. */
+.ar-stage.zoomed .ar-img{will-change:transform}
 /* La manina compare solo quando c'e' davvero qualcosa da spostare */
 .ar-stage.zoomed{cursor:grab}
 .ar-stage.zoomed.grabbing{cursor:grabbing}

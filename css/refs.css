@@ -101,7 +101,11 @@
 .refs-lightbox{position:fixed;inset:0;background:#0a0806;z-index:9500;display:none;flex-direction:column;opacity:0;transition:opacity .18s}
 .refs-lightbox.open{display:flex;opacity:1}
 .refs-lightbox-body{flex:1;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;touch-action:none}
-.refs-lightbox-body img{max-width:100%;max-height:100%;object-fit:contain;transform-origin:center center;will-change:transform;user-select:none;-webkit-user-drag:none}
+.refs-lightbox-body img{max-width:100%;max-height:100%;object-fit:contain;transform-origin:center center;user-select:none;-webkit-user-drag:none}
+/* Come per il lettore (vedi .ar-img in albums.css): il livello di
+   composizione dedicato serve solo mentre si è ingranditi, non per tutta la
+   permanenza sull'immagine. */
+.refs-lightbox-body.zoomed img{will-change:transform}
 /* Due immagini sovrapposte esattamente (doppio buffer): mentre una è a
    schermo, l'altra carica la foto successiva NASCOSTA e fuori dal flusso.
    Solo quando è pronta si scambia la visibilità — mai un istante in cui
