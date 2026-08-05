@@ -741,12 +741,12 @@ export function closeReaderUI(){
   if(_clipMode) toggleClip(false);
   _reader.classList.remove('open');
   document.body.classList.remove('album-reading');
-  // Le tavole tenute calde per il prefetch sono bitmap decodificati da parecchi
-  // MB l'uno: chiudendo il lettore non servono più e vanno lasciate andare.
-  // Insieme a loro si annulla il prefetch ancora in attesa, che altrimenti si
-  // metterebbe a decomprimere tavole di un albo che non è più a schermo.
+  // Si annulla il prefetch ancora in attesa, che altrimenti si metterebbe a
+  // decomprimere tavole di un albo non più a schermo. E si svuotano i due
+  // buffer: finché tengono una src, il browser conserva il bitmap decodificato
+  // (decine di MB su una scansione grande) anche a lettore chiuso.
   cancelIdle(_prefetchT); _prefetchT = null;
-  _warmPages.clear();
+  _reader.querySelectorAll('.ar-img').forEach(im=>{ im.removeAttribute('src'); });
   // Le pagine restano in memoria finché non apri un altro albo: riaprire lo
   // stesso file dal picker le ricrea comunque. Le liberiamo alla prossima apertura.
 }
@@ -768,22 +768,21 @@ const cancelIdle = (h)=>{ if(h==null) return; (window.cancelIdleCallback||clearT
 // collector se lo portava via insieme alla decodifica, quindi al cambio pagina
 // il buffer doveva rifare tutto da capo e lo swipe restava fermo un attimo.
 // La coda è corta di proposito: due tavole decodificate sono già decine di MB.
-const _warmPages = new Map();
-// Quante tavole decodificate tenere vive: la corrente, due avanti nel verso di
-// lettura e una alle spalle. Una tavola decodificata occupa larghezza × altezza
-// × 4 byte (una da 1600×2300 sono ~15MB), quindi questo numero non va alzato
-// con leggerezza: è il compromesso tra "la prossima è già pronta" e la memoria
-// di un telefono.
-const WARM_MAX = 4;
-function warmPage(url){
-  if(!url || _warmPages.has(url)) return;
-  const im = new Image();
-  im.decoding = 'async';
-  im.src = url;
-  im.decode().catch(()=>{});
-  _warmPages.set(url, im);
-  while(_warmPages.size > WARM_MAX) _warmPages.delete(_warmPages.keys().next().value);
-}
+// NIENTE tavole decodificate tenute da parte.
+//
+// Qui prima si decodificavano fino a quattro tavole in Image() a parte,
+// tenendole vive per "scaldarle". Non funzionava e costava carissimo:
+//   · non funzionava perché il browser non riusa la decodifica di un elemento
+//     su un altro, quindi il buffer che mostrava davvero la tavola la
+//     decodificava comunque da zero (a rendere istantaneo lo scambio è il
+//     precarico DENTRO il buffer, in loadCurrentPageBitmap);
+//   · costava carissimo perché una tavola decodificata occupa larghezza ×
+//     altezza × 4 byte: su scansioni da 2480×3508 sono ~35MB l'una, cioè fino
+//     a 140MB di bitmap tenuti in vita oltre ai due buffer. Su un telefono
+//     quella pressione porta il sistema a buttare via e ridecodificare, ed è
+//     il motivo per cui gli albi grandi erano molto peggio dei piccoli.
+// Restano i Blob/objectURL già materializzati (vedi pageUrl), che sono
+// economici e risparmiano la ri-decompressione dallo ZIP.
 
 // Per un .cbz, getData() (e quindi pageUrl) è SINCRONA e bloccante: unzipSync
 // non cede mai il thread. Misurato su un volume da 220 tavole: ~13 ms per
@@ -866,22 +865,40 @@ async function loadCurrentPageBitmap(){
     // controllo di pertinenza qui sotto scarta da solo il lavoro diventato
     // inutile, senza buttare via quello ancora buono.
     const dir = _readDir;
-    // La tavola SUCCESSIVA nel verso di lettura si prepara SUBITO, senza
-    // aspettare un momento di inattività. È quella che servirà tra un istante,
-    // ed è proprio quella che non arrivava mai in tempo: rinviata a thread
-    // libero, sfogliando in fretta la finestra di calma non si presentava e la
-    // tavola finiva per essere decodificata a freddo al momento di mostrarla.
-    // Misurato su tavole vere (2480×3508, CPU 8×): erano picchi oltre il
-    // secondo. decode() lavora fuori dal thread principale, quindi anticiparlo
-    // non rallenta la tavola che si sta già guardando.
+    // La tavola SUCCESSIVA si prepara DENTRO IL BUFFER CHE LA MOSTRERÀ, non in
+    // un'immagine usa-e-getta.
+    //
+    // È questo il punto che rendeva lo swipe lento sugli albi grandi. Il
+    // prefetch di prima decodificava la tavola in un Image() a parte: il
+    // browser tiene in cache la RISORSA, ma non garantisce di riusare la
+    // DECODIFICA su un elemento diverso — e con un blob: la risorsa è già
+    // locale, quindi quel prefetch non risparmiava quasi niente. Ogni tavola
+    // veniva perciò decodificata da zero proprio nell'istante in cui andava
+    // mostrata. Misurato con swipe veri su tavole 2480×3508 (CPU 8×): il
+    // contatore avanzava subito ma l'immagine arrivava ~400ms dopo, ed è
+    // esattamente la sensazione di "swipe che non funziona".
+    //
+    // I buffer sono due e si alternano: appena mostrata la tavola corrente,
+    // quello rimasto libero è proprio quello che mostrerà la prossima. Caricando
+    // lì dentro la tavola successiva, al momento dello swipe decode() trova il
+    // lavoro già fatto e lo scambio è immediato.
     const nextI = idx + dir;
     if(nextI >= 0 && nextI < _pages.length){
+      const spare = readerIdleImg();   // dopo lo scambio: il buffer nascosto
       pageUrl(_source, _pages[nextI]).then(u=>{
-        if(Math.abs(nextI - _idx) <= 2) warmPage(u);
+        // Se nel frattempo si è già navigato altrove, questo lavoro è inutile
+        // e — peggio — sovrascriverebbe un buffer che serve a qualcos'altro.
+        if(!u || !spare || _idx !== idx) return;
+        if(spare.src !== u){
+          spare.src = u;
+          spare.decode().catch(()=>{});
+        }
       }).catch(()=>{});
     }
-    // Il resto della finestra (due avanti, una alle spalle) resta rinviato:
-    // serve meno urgentemente e non deve rubare tempo all'immediato.
+    // Il resto della finestra (due avanti, una alle spalle) resta rinviato a
+    // thread libero e si limita a ESTRARRE i byte dallo ZIP, senza
+    // decodificarli: così saltando avanti o tornando indietro non si ripaga la
+    // decompressione, ma non si accumulano bitmap in memoria.
     const wanted = [idx + 2*dir, idx - dir];
     _prefetchT = whenIdle(async ()=>{
       for(const i of wanted){
@@ -889,8 +906,7 @@ async function loadCurrentPageBitmap(){
         // Ancora dentro la finestra utile rispetto a dove siamo ADESSO?
         // Se nel frattempo si è saltati altrove, questa tavola non serve più.
         if(Math.abs(i - _idx) > 2) continue;
-        const u = await pageUrl(_source, _pages[i]);
-        if(Math.abs(i - _idx) <= 2) warmPage(u);
+        await pageUrl(_source, _pages[i]);
       }
       trimPages();
     });
