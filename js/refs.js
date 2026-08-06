@@ -1130,6 +1130,7 @@ export function openRefLightbox(id){
   if(!item) return;
   _lightboxList = currentGridList();
   _lightboxIndex = _lightboxList.findIndex(r=>r.id===id);
+  _lightboxDir = 1;   // si riparte sfogliando in avanti
   // Registra uno stato nella cronologia: così il tasto Indietro (browser o
   // gesto Android) chiude l'immagine e torna alla griglia, invece di uscire.
   try{
@@ -1141,26 +1142,10 @@ export function openRefLightbox(id){
   renderLightboxAt(_lightboxIndex);
 }
 
-// Scalda la cache HTTP del browser per i vicini: non garantisce di per sé
-// zero attesa (quella la dà il doppio buffer sopra), ma se il byte sono già
-// scaricati il prossimo swipe aspetta solo la decodifica, non la rete.
-// I vicini vengono tenuti VIVI in una piccola coda: un Image() creato e subito
-// dimenticato viene raccolto dal garbage collector e con lui la decodifica già
-// fatta, quindi al momento dello swipe si ripagherebbe tutto da capo. Tenendo
-// il riferimento, il bitmap decodificato resta disponibile e il buffer trova
-// la foto già pronta. La coda è corta apposta: due tavole grandi decodificate
-// sono già decine di MB, non vogliamo tenerne di più.
-const _warmed = new Map();
-const WARM_MAX = 4;
-function warmRefImageCache(url){
-  if(!url || _warmed.has(url)) return;
-  const im = new Image();
-  im.decoding = 'async';
-  im.src = url;
-  im.decode().catch(()=>{});
-  _warmed.set(url, im);
-  while(_warmed.size > WARM_MAX) _warmed.delete(_warmed.keys().next().value);
-}
+// Verso in cui si sta sfogliando: +1 avanti, -1 indietro. Serve a preparare
+// la foto GIUSTA (vedi sotto): sfogliando in avanti quella utile è la
+// successiva, non quella già vista.
+let _lightboxDir = 1;
 
 async function renderLightboxAt(index){
   if(index < 0 || index >= _lightboxList.length) return;
@@ -1230,13 +1215,29 @@ async function renderLightboxAt(index){
   _bufToggle = !_bufToggle;
   resetImageZoom();
 
-  // Scalda la cache per i vicini: il prossimo swipe li troverà già scaricati.
-  // Stessa URL trasformata che verrà davvero richiesta al momento dello
-  // swipe — scaldarne una diversa dall'originale sprecherebbe la rete due
-  // volte invece di risparmiarla.
-  [index + 1, index - 1].forEach(i=>{
-    if(i >= 0 && i < _lightboxList.length) warmRefImageCache(lightboxUrl(_lightboxList[i].url));
-  });
+  // La foto SUCCESSIVA si prepara DENTRO IL BUFFER CHE LA MOSTRERÀ.
+  //
+  // Prima si precaricava in un Image() usa-e-getta, tenuto vivo in una piccola
+  // coda per non farsi portare via la decodifica dal garbage collector. Non
+  // serviva a niente: il browser tiene in cache la RISORSA, ma non garantisce
+  // di riusare la DECODIFICA su un elemento diverso — quindi il buffer che
+  // mostrava davvero la foto la decodificava comunque da zero, proprio
+  // nell'istante dello swipe. E costava: fino a quattro ritagli decodificati
+  // tenuti in memoria per nulla. È lo stesso errore già corretto nel lettore
+  // album; qui era rimasto.
+  //
+  // I buffer sono due e si alternano: appena mostrata la foto corrente, quello
+  // rimasto libero è proprio quello che mostrerà la prossima. Caricandola lì
+  // dentro, al momento dello swipe decode() trova il lavoro già fatto.
+  const nextI = index + _lightboxDir;
+  if(nextI >= 0 && nextI < _lightboxList.length){
+    const spare = getIdleLightboxImg();   // dopo lo scambio: il buffer nascosto
+    const u = lightboxUrl(_lightboxList[nextI].url);
+    if(spare && u && spare.src !== u){
+      spare.src = u;
+      spare.decode().catch(()=>{});
+    }
+  }
 }
 
 // Chiusura "morbida": passa dalla cronologia, così lo stato del browser resta
@@ -1259,8 +1260,8 @@ export function closeLightboxUI(){
   resetImageZoom();
 }
 
-export function nextRefImage(){ renderLightboxAt(_lightboxIndex+1); }
-export function prevRefImage(){ renderLightboxAt(_lightboxIndex-1); }
+export function nextRefImage(){ _lightboxDir =  1; renderLightboxAt(_lightboxIndex+1); }
+export function prevRefImage(){ _lightboxDir = -1; renderLightboxAt(_lightboxIndex-1); }
 
 // Tastiera (desktop): ← → per scorrere, Esc per chiudere
 document.addEventListener('keydown', e=>{
