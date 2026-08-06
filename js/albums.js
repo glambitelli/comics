@@ -348,6 +348,7 @@ export async function openAlbumFromFile(file){
   // questa attesa — non compariva mai, e il messaggio di stato restava sulla
   // schermata References invece che nel lettore.
   openReaderShell(file.name.replace(/\.(cbz|cbr|zip|rar)$/i, ''));
+  detachCurrentAlbum();   // via le tavole dell'albo precedente (vedi la funzione)
   toast('', false, true); // solo il glifo: il testo generico è ridondante col titolo già in barra
   let src;
   try{ src = await extractPagesForFile(file); }
@@ -543,6 +544,7 @@ export async function openAlbumFromDrive(albumId){
   // openAlbumFromFile): il titolo dell'album è già noto dalla scheda, non
   // serve aspettare il download per mostrarlo.
   openReaderShell(a.title || '');
+  detachCurrentAlbum();   // via le tavole dell'albo precedente (vedi la funzione)
   toast('', false, true);
   if(!(await ensureDriveConnected())){ toast('Ricollega Google Drive per aprire questo albo.', true); return; }
   if(token !== _openToken) return;
@@ -746,7 +748,7 @@ export function closeReaderUI(){
   // buffer: finché tengono una src, il browser conserva il bitmap decodificato
   // (decine di MB su una scansione grande) anche a lettore chiuso.
   cancelIdle(_prefetchT); _prefetchT = null;
-  _reader.querySelectorAll('.ar-img').forEach(im=>{ im.removeAttribute('src'); });
+  clearReaderBuffers();
   // Le pagine restano in memoria finché non apri un altro albo: riaprire lo
   // stesso file dal picker le ricrea comunque. Le liberiamo alla prossima apertura.
 }
@@ -834,10 +836,16 @@ async function renderPage(){
 
 async function loadCurrentPageBitmap(){
   _pageLoadBusy = true;
+  // Quale ALBO stiamo servendo. Controllare solo l'indice non basta: due albi
+  // diversi stanno quasi sempre entrambi a pagina 0, quindi il lavoro rimasto
+  // in sospeso sul primo passava i controlli e finiva per dipingere le sue
+  // tavole dentro il secondo — è il bug "apro OPUS e si apre ancora Naruto".
+  const token = _openToken;
+  const stale = ()=> token !== _openToken || !_reader;
   try{
     const idx = _idx;
     const url = await pageUrl(_source, _pages[idx]);
-    if(idx !== _idx || !_reader) return; // pagina cambiata nel frattempo: scarta
+    if(stale() || idx !== _idx) return; // albo o pagina cambiati: scarta
     // La tavola entra nel buffer NASCOSTO e diventa visibile solo quando è
     // decodificata: decode() (non 'load') perché 'load' significa solo "byte
     // arrivati", mentre il lavoro pesante su una tavola grande è la decodifica.
@@ -846,7 +854,7 @@ async function loadCurrentPageBitmap(){
     if(idle.src !== url) idle.src = url;
     try{ await idle.decode(); }
     catch(e){ /* pagina cambiata a metà o immagine rotta: si prosegue */ }
-    if(idx !== _idx || !_reader) return;
+    if(stale() || idx !== _idx) return;
     swapReaderBuffer(idle);
     resetZoom();
     measureBaseSize();   // dimensioni a riposo, per lo zoom senza ricalcoli
@@ -888,7 +896,7 @@ async function loadCurrentPageBitmap(){
       pageUrl(_source, _pages[nextI]).then(u=>{
         // Se nel frattempo si è già navigato altrove, questo lavoro è inutile
         // e — peggio — sovrascriverebbe un buffer che serve a qualcos'altro.
-        if(!u || !spare || _idx !== idx) return;
+        if(!u || !spare || stale() || _idx !== idx) return;
         if(spare.src !== u){
           spare.src = u;
           spare.decode().catch(()=>{});
@@ -902,6 +910,7 @@ async function loadCurrentPageBitmap(){
     const wanted = [idx + 2*dir, idx - dir];
     _prefetchT = whenIdle(async ()=>{
       for(const i of wanted){
+        if(stale()) return;   // nel frattempo si è aperto un altro albo
         if(i < 0 || i >= _pages.length) continue;
         // Ancora dentro la finestra utile rispetto a dove siamo ADESSO?
         // Se nel frattempo si è saltati altrove, questa tavola non serve più.
@@ -953,6 +962,46 @@ function swapReaderBuffer(next){
   const prev = readerImg();
   next.classList.add('active');
   if(prev && prev !== next) prev.classList.remove('active');
+}
+
+// Stacca l'albo precedente prima di aprirne un altro. Da chiamare SUBITO,
+// appena si sa che si sta aprendo qualcosa di nuovo — non a fine
+// scaricamento: fra il tap e la prima tavola di un albo da mezzo giga passano
+// minuti, e per tutto quel tempo il lettore mostrava titolo nuovo e tavole
+// vecchie, contatore compreso, con lo swipe che sfogliava ancora l'albo di
+// prima. Chi guarda vede semplicemente "ho aperto OPUS ed è uscito Naruto".
+function detachCurrentAlbum(){
+  saveReadingPos();          // la posizione dell'albo che stiamo lasciando
+  cancelIdle(_prefetchT); _prefetchT = null;
+  clearReaderBuffers();
+  clearPages();              // niente più tavole da sfogliare finché non arrivano le nuove
+  _albumSig = null;
+  _currentAlbumId = null;
+  _idx = 0;
+  if(_reader){
+    const c = _reader.querySelector('.ar-counter');
+    if(c) c.textContent = '';
+    const seek = _reader.querySelector('.ar-seek');
+    if(seek) seek.value = '0';
+    _reader.querySelector('.ar-prev').style.visibility = 'hidden';
+    _reader.querySelector('.ar-next').style.visibility = 'hidden';
+  }
+}
+
+// Svuota entrambi i buffer: finché tengono una src il browser conserva il
+// bitmap decodificato (decine di MB su una scansione grande), e — soprattutto
+// — la tavola dell'albo precedente resta a schermo.
+function clearReaderBuffers(){
+  if(!_reader) return;
+  _reader.querySelectorAll('.ar-img').forEach(im=>{
+    im.removeAttribute('src');
+    im.classList.remove('active');
+  });
+  // Il primo buffer torna a essere quello "attivo" (vuoto): senza questo
+  // readerIdleImg() ne restituirebbe uno a caso e lo scambio successivo non
+  // avrebbe nulla da nascondere.
+  const first = _reader.querySelector('.ar-img');
+  if(first) first.classList.add('active');
 }
 
 function applyZoom(){
