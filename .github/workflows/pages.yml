@@ -1,20 +1,29 @@
 # Pubblicazione del sito su GitHub Pages.
 #
-# PERCHÉ ESISTE QUESTO FILE. Prima la pubblicazione era affidata al workflow
-# "pages build and deployment" che GitHub genera da solo quando la sorgente è
-# "Deploy from a branch". Quel workflow non è modificabile, e al suo interno
-# actions/deploy-pages aspetta l'esito del deployment per un tempo FISSO di 10
-# minuti: scaduto quello, ANNULLA il deployment e fallisce.
+# PERCHÉ ESISTE QUESTO FILE, E PERCHÉ NON USA actions/deploy-pages.
 #
-# Il 6 agosto la coda di Pages ha cominciato a rallentare progressivamente —
-# 41s il giorno prima, poi 5m05s, poi 6m48s — finché ha superato i 10 minuti.
-# Da quel momento nessun deploy poteva più atterrare: ogni tentativo veniva
-# ucciso dal timeout proprio mentre era in attesa, all'infinito, per tre
-# tentativi consecutivi su tre commit diversi.
+# Il 6 agosto la coda di Pages ha rallentato progressivamente — 41s il giorno
+# prima, poi 5m05s, poi 6m48s — finché ha superato i dieci minuti. Dieci minuti
+# è il tempo che actions/deploy-pages aspetta prima di arrendersi, e allo
+# scadere non si limita a fallire: ANNULLA il deployment. Da quel momento
+# nessuna pubblicazione poteva più atterrare, qualunque commit si spingesse:
+# ogni tentativo veniva ucciso mentre stava semplicemente aspettando il proprio
+# turno.
 #
-# Con un workflow nostro il timeout lo decidiamo noi. Trenta minuti coprono
-# ampiamente i rallentamenti visti, e se un giorno la coda dovesse rallentare
-# ancora di più basta alzare questo numero invece di restare in ostaggio.
+# Il primo rimedio tentato — alzare il timeout dell'azione a mezz'ora — non
+# funziona, e vale la pena ricordarlo qui perché il parametro esiste e sembra
+# accettato. Dentro l'azione c'è:
+#
+#     this.timeout = Math.min(timeoutInput, MAX_TIMEOUT)   // MAX_TIMEOUT = 600000
+#
+# cioè i dieci minuti sono un tetto invalicabile: qualsiasi valore più alto
+# viene troncato in silenzio. Non è una configurazione, è un limite.
+#
+# Quindi qui il deployment lo creiamo da soli, con la stessa identica chiamata
+# che farebbe l'azione, e poi NON LO ANNULLIAMO. Se la coda è lenta il
+# deployment ci mette il tempo che ci mette, ma arriva in fondo per conto suo:
+# nessuno lo uccide più a metà strada. Il workflow riferisce lo stato per
+# qualche minuto e poi si fa da parte, senza toccare nulla.
 name: Deploy sito
 
 on:
@@ -82,9 +91,66 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - id: deployment
-        uses: actions/deploy-pages@v4
-        with:
-          # In MILLISECONDI. Il valore predefinito è 600000 (10 minuti) ed è
-          # esattamente ciò che ci ha bloccati: qui diventa mezz'ora.
-          timeout: 1800000
+      - name: Crea il deployment (e non annullarlo mai)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          # 1) Token OIDC. Stessa chiamata che fa actions/deploy-pages tramite
+          #    core.getIDToken(): nessuna audience, quella predefinita va bene.
+          #    Serve il permesso id-token: write dichiarato sopra.
+          IDTOKEN=$(curl -sS \
+            -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL" | jq -r '.value')
+          # Fuori dai log, in ogni caso: è una credenziale a tutti gli effetti.
+          echo "::add-mask::$IDTOKEN"
+          test -n "$IDTOKEN" && test "$IDTOKEN" != "null"
+
+          # 2) L'artefatto caricato dal job "build". I due job condividono
+          #    GITHUB_RUN_ID, quindi si ritrova dall'elenco di questa esecuzione.
+          ART=$(curl -sS \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts" \
+            | jq -r 'first(.artifacts[] | select(.name=="github-pages") | .id)')
+          test -n "$ART" && test "$ART" != "null"
+          echo "artefatto github-pages: id $ART"
+
+          # 3) Creazione del deployment: POST /repos/{owner}/{repo}/pages/deployments
+          RESP=$(curl -sS -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/pages/deployments" \
+            -d "$(jq -nc --argjson art "$ART" --arg ver "$GITHUB_SHA" --arg tok "$IDTOKEN" \
+                  '{artifact_id:$art, pages_build_version:$ver, oidc_token:$tok}')")
+          echo "$RESP" | jq 'del(.oidc_token)'
+          echo "$RESP" | jq -e '.status_url' > /dev/null \
+            || { echo "::error::Creazione del deployment fallita"; exit 1; }
+          echo "$RESP" | jq -r '.status_url' > /tmp/status_url
+          echo "Deployment creato. Da qui in poi va avanti da solo."
+
+      - name: Riferisci lo stato (senza mai interromperlo)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -uo pipefail
+          URL=$(cat /tmp/status_url)
+          # Si guarda per qualche minuto solo per lasciare traccia nei log.
+          # Se al termine non è ancora finito NON si annulla e NON si fallisce:
+          # il deployment prosegue lato GitHub e il sito si aggiorna da sé.
+          # È esattamente il passo che prima ci uccideva la pubblicazione.
+          for i in $(seq 1 40); do
+            S=$(curl -sS -H "Authorization: Bearer $GH_TOKEN" \
+                 -H "Accept: application/vnd.github+json" "$URL" | jq -r '.status')
+            echo "stato: $S"
+            case "$S" in
+              succeed|succeeded)
+                echo "✅ Sito pubblicato."; exit 0 ;;
+              error|failed|deployment_failed|deployment_content_failed|deployment_cancelled)
+                echo "::error::Deployment fallito: $S"; exit 1 ;;
+            esac
+            sleep 15
+          done
+          echo "::notice::Ancora in corso dopo 10 minuti. Lo si lascia proseguire:" \
+               "arriverà in fondo da solo, senza bisogno di un altro tentativo."
