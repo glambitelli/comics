@@ -1,0 +1,90 @@
+# Pubblicazione del sito su GitHub Pages.
+#
+# PERCHÉ ESISTE QUESTO FILE. Prima la pubblicazione era affidata al workflow
+# "pages build and deployment" che GitHub genera da solo quando la sorgente è
+# "Deploy from a branch". Quel workflow non è modificabile, e al suo interno
+# actions/deploy-pages aspetta l'esito del deployment per un tempo FISSO di 10
+# minuti: scaduto quello, ANNULLA il deployment e fallisce.
+#
+# Il 6 agosto la coda di Pages ha cominciato a rallentare progressivamente —
+# 41s il giorno prima, poi 5m05s, poi 6m48s — finché ha superato i 10 minuti.
+# Da quel momento nessun deploy poteva più atterrare: ogni tentativo veniva
+# ucciso dal timeout proprio mentre era in attesa, all'infinito, per tre
+# tentativi consecutivi su tre commit diversi.
+#
+# Con un workflow nostro il timeout lo decidiamo noi. Trenta minuti coprono
+# ampiamente i rallentamenti visti, e se un giorno la coda dovesse rallentare
+# ancora di più basta alzare questo numero invece di restare in ostaggio.
+name: Deploy sito
+
+on:
+  push:
+    branches: [main]
+  # Permette di rilanciare la pubblicazione a mano, senza dover inventare un
+  # commit vuoto solo per farlo (Actions → Deploy sito → Run workflow).
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Un deploy alla volta. cancel-in-progress resta FALSE apposta: se la coda è
+# lenta, un deploy già in viaggio sta solo aspettando il suo turno — annullarlo
+# per far partire il successivo lo rimetterebbe in fondo, ed è esattamente il
+# circolo vizioso da cui veniamo.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prepara i file da pubblicare
+        # Si copia tutto tranne le voci che iniziano con punto (.git,
+        # .github, .claude…): sono roba di sviluppo, e non venivano
+        # pubblicate nemmeno prima, perché Jekyll le escludeva per
+        # impostazione predefinita. Il sito servito resta identico.
+        run: |
+          mkdir -p _site
+          # `*` non espande le voci che iniziano con punto: è proprio il
+          # comportamento voluto, e coincide con quello che Jekyll faceva
+          # prima. Niente extglob, che nei blocchi `run` non è affidabile.
+          for f in *; do
+            [ "$f" = "_site" ] && continue
+            cp -R "$f" _site/
+          done
+          # Dice a Pages di servire i file così come sono, senza passarli per
+          # Jekyll: è un'app statica, non c'è niente da compilare.
+          touch _site/.nojekyll
+          ls -la _site
+
+      - uses: actions/configure-pages@v5
+        with:
+          # Sposta da solo la sorgente di Pages su "GitHub Actions", via API,
+          # usando il permesso `pages: write` qui sopra. Senza questo il passo
+          # di deploy non troverebbe il sito, perché il repository era
+          # configurato in modalità "Deploy from a branch" — quella con il
+          # workflow automatico e il timeout fisso che ci ha bloccati.
+          enablement: true
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
+        with:
+          # In MILLISECONDI. Il valore predefinito è 600000 (10 minuti) ed è
+          # esattamente ciò che ci ha bloccati: qui diventa mezz'ora.
+          timeout: 1800000
