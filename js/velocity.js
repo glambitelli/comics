@@ -24,6 +24,69 @@ export function calcVelocity(p){
   return{tavDone,weeksElapsed,actual,needed};
 }
 
+// ── PREVISIONE DI FINE ────────────────────────────────────────────────────
+// calcVelocity() sopra divide le tavole finite per le settimane di
+// CALENDARIO dall'inizio: se per due mesi non tocchi il progetto, quei due
+// mesi contano lo stesso, e il ritmo medio risulta un terzo di quello vero.
+// Intanto p.velocityLog registra ogni completamento con la sua data reale —
+// lo stesso dato che alimenta il grafico qui sotto — ma finora nessuno lo
+// usava per rispondere alla domanda che conta: "a questo ritmo, quando
+// finisco?"
+//
+// Qui si guarda solo alle settimane RECENTI (le ultime 6, finestra scorrevole
+// da oggi) e solo alle voci reali (mai quelle `synthetic` ricostruite in
+// renderVelocityHistory). Un progetto fermo da mesi e ripreso da poco mostra
+// il ritmo di adesso, non la media annacquata da quando era fermo.
+const FORECAST_WINDOW_DAYS = 42; // 6 settimane
+const FORECAST_MIN_ENTRIES = 2;  // sotto due tavole recenti il ritmo è rumore
+
+function formatDataBreve(ms){
+  const d = new Date(ms);
+  const mesi = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
+  return `${d.getDate()} ${mesi[d.getMonth()]}`;
+}
+
+export function calcForecast(p){
+  const tavDone = Object.values(p.tavole||{}).filter(v=>v>=4).length;
+  const remaining = p.numTav - tavDone;
+  if(remaining <= 0) return { stato: 'completo' };
+
+  const ora = Date.now();
+  const inizioFinestra = ora - FORECAST_WINDOW_DAYS*86400000;
+  const recenti = (p.velocityLog||[])
+    .filter(e => !e.synthetic && e.date >= inizioFinestra)
+    .sort((a,b) => a.date - b.date);
+
+  if(recenti.length < FORECAST_MIN_ENTRIES) return { stato: 'pochi-dati', remaining };
+
+  // Il ritmo si misura sulla finestra REALMENTE trascorsa da quando è
+  // arrivata la prima tavola recente ad oggi, non sui 42 giorni fissi: se le
+  // due tavole più recenti sono di ieri e stamattina, dire "1 tav/settimana
+  // negli ultimi 42 giorni" sarebbe falso quanto il problema che si vuole
+  // risolvere.
+  const spanGiorni = Math.max(1, (ora - recenti[0].date) / 86400000);
+  const ritmo = recenti.length / (spanGiorni/7); // tavole a settimana
+  if(ritmo <= 0) return { stato: 'pochi-dati', remaining };
+
+  const giorniPrevisti = Math.ceil((remaining / ritmo) * 7);
+  const dataPrevista = ora + giorniPrevisti*86400000;
+
+  let scartoGiorni = null;
+  if(p.dateEnd){
+    const fine = new Date(p.dateEnd).setHours(23,59,59,999);
+    scartoGiorni = Math.round((dataPrevista - fine) / 86400000);
+  }
+
+  return {
+    stato: 'ok',
+    ritmo: +ritmo.toFixed(1),
+    remaining,
+    dataPrevista,
+    dataPrevistaLabel: formatDataBreve(dataPrevista),
+    scartoGiorni,
+  };
+}
+
 export function saveDates(){
   const p=getProject(currentId); if(!p) return;
   p.dateStart=document.getElementById('date-start').value;
@@ -138,7 +201,29 @@ export function renderVelocity(p){
     ${neededHtml}`;
   const alertEl=document.getElementById('vel-alert');
   const phIdx = getPhaseIndex(p);
-  if(v.needed!==null && phIdx >= 2){
+
+  // La previsione (dati reali delle ultime settimane) ha sempre la
+  // precedenza quando ce n'è abbastanza: risponde alla domanda vera — "a
+  // questo ritmo, quando finisco?" — non solo se il rapporto tav/settimana
+  // regge il confronto con un numero astratto. Il vecchio confronto
+  // v.needed/v.actual resta come ripiego per i progetti con troppo pochi
+  // completamenti recenti da fidarsene (appena iniziati, o ripresi ora).
+  const f = calcForecast(p);
+  if(f.stato === 'completo'){
+    alertEl.innerHTML = `<div class="vel-alert ok">✅ Tutte le tavole sono finite.</div>`;
+  } else if(f.stato === 'ok'){
+    const base = `Al ritmo delle ultime settimane (${f.ritmo} tav/sett), finisci il <strong>${f.dataPrevistaLabel}</strong>`;
+    if(f.scartoGiorni === null){
+      alertEl.innerHTML = `<div class="vel-alert info">🔮 ${base}.</div>`;
+    } else if(f.scartoGiorni <= 0){
+      const anticipo = -f.scartoGiorni;
+      alertEl.innerHTML = `<div class="vel-alert ok">✅ ${base} — ${anticipo>0?anticipo+' giorni prima della deadline':'in tempo per la deadline'}.</div>`;
+    } else if(f.scartoGiorni <= 10){
+      alertEl.innerHTML = `<div class="vel-alert warn">⚠️ ${base} — ${f.scartoGiorni} giorni dopo la deadline.</div>`;
+    } else {
+      alertEl.innerHTML = `<div class="vel-alert bad">🔴 ${base} — ${f.scartoGiorni} giorni dopo la deadline, al ritmo attuale.</div>`;
+    }
+  } else if(v.needed!==null && phIdx >= 2){
     const diff=v.needed-v.actual;
     if(diff<=0) alertEl.innerHTML=`<div class="vel-alert ok">✅ Sei in anticipo — ritmo attuale sufficiente per la deadline.</div>`;
     else if(diff<=1) alertEl.innerHTML=`<div class="vel-alert warn">⚠️ Aumenta il ritmo di ${diff.toFixed(1)} tav/sett per rispettare la deadline.</div>`;
@@ -208,11 +293,18 @@ export function renderVelocityHistory(p){
   if(!canvas) return;
 
   if(!p.velocityLog) p.velocityLog = [];
+  // Tavole segnate finite prima che esistesse questo registro: si inventa
+  // una data solo per non lasciare buchi nel grafico settimanale. `synthetic`
+  // le marca come tali: calcForecast() (sotto) le esclude sempre, perché
+  // spalmarle a una al giorno dalla creazione del progetto darebbe un ritmo
+  // finto — spesso molto più veloce del vero — e la previsione perderebbe
+  // esattamente l'affidabilità che dovrebbe avere in più rispetto al vecchio
+  // calcolo su calcVelocity().
   Object.entries(p.tavole||{}).forEach(([num, stage])=>{
     if(stage >= 4){
       const n = parseInt(num);
       if(!p.velocityLog.some(e => e.tav === n)){
-        p.velocityLog.push({ tav: n, date: p.createdAt ? p.createdAt + n*86400000 : Date.now() });
+        p.velocityLog.push({ tav: n, date: p.createdAt ? p.createdAt + n*86400000 : Date.now(), synthetic: true });
       }
     }
   });

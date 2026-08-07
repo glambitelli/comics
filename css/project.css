@@ -59,6 +59,9 @@
 .vel-alert.ok{background:var(--moss-pale);color:#2a5a2a}
 .vel-alert.warn{background:var(--gold-pale);color:#7a5010}
 .vel-alert.bad{background:var(--coral-pale);color:#8a3020}
+/* Stato informativo, non un giudizio: la previsione di fine senza una
+   deadline da confrontare non è "buona" né "cattiva", è solo una data. */
+.vel-alert.info{background:var(--sand);color:var(--ink2)}
 .chart-wrap{overflow-x:auto;padding-bottom:4px}
 
 /* PHASES / PIPELINE */
