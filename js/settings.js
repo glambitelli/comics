@@ -54,6 +54,13 @@ export function importBackup(){
 export function openSettings(){
   document.getElementById('settings-overlay').classList.add('open');
   document.getElementById('settings-panel').classList.add('open');
+  // Nasconde la barra-duna (vedi body.settings-open in layout.css). Stesso
+  // trattamento della galleria References: finché il pannello è aperto
+  // l'overlay blocca comunque la navigazione, quindi la barra non serve — e
+  // se resta lì si sovrappone ai comandi in fondo al pannello, che su alcuni
+  // telefoni (safe-area più alta della nostra spaziatura) diventano
+  // intoccabili. Toglierla è più solido che rincorrere i pixel.
+  document.body.classList.add('settings-open');
   const stars = parseInt(localStorage.getItem('inkflow_stars')||'0');
   const el = document.getElementById('settings-stars-count');
   if(el) el.textContent = stars;
@@ -76,6 +83,7 @@ export function onSoundToggle(){
 export function closeSettings(){
   document.getElementById('settings-overlay').classList.remove('open');
   document.getElementById('settings-panel').classList.remove('open');
+  document.body.classList.remove('settings-open');
 }
 
 export function resetStarsConfirm(){

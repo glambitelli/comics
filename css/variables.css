@@ -9,6 +9,18 @@
   --moss:#48a848;--moss-pale:#c8ecc8;
   --ink:#2a2420;--ink2:#5a5048;--ink3:#9a9088;
   --white:#fefcf8;
+
+  /* Palette Inkflow — nero, oro, rame, sabbia.
+     È quella delle schermate rifatte (lettore, References, trofei), dove
+     finora viveva come esadecimali sparsi. Nominarla qui serve a smettere di
+     ricopiarla a mano e a dare al resto dell'app un posto da cui pescare. I
+     nomi sono quelli dei materiali, non dei ruoli: l'oro è l'accento vivo,
+     l'ottone il tono di servizio, il rame l'avviso. */
+  --oro:#d9a417;        /* oro pieno — l'accento acceso (stelle, interruttori) */
+  --oro-sabbia:#c2a869; /* sabbia dorata — bordi e toni tenui */
+  --ottone:#a8763c;     /* ottone — testo secondario caldo, stati attivi */
+  --rame:#9a5a34;       /* rame — avvisi e attenzione, senza il rosso squillante */
+  --bronzo:#6e4c2e;     /* bronzo scuro — testo caldo di peso */
   --r:14px;--r-sm:10px;
   --shadow:0 2px 14px rgba(74,184,216,.12);
   --shadow-lg:0 8px 32px rgba(74,184,216,.18);

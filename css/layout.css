@@ -42,6 +42,13 @@ body.is-touch .dune-nav.dune-hidden{transform:translateY(calc(100% + 4px))}
    schermo: senza questo, i due tondi restavano visibili UNO DIETRO L'ALTRO,
    sembrando una barra sola sdoppiata. */
 body.refs-lightbox-open .dune-nav{display:none}
+/* Stessa ragione per il pannello Impostazioni: è un foglio che sale dal
+   fondo, e la barra gli si sovrapporrebbe proprio sopra gli ultimi comandi
+   (Backup). Prima si provava a lasciarle spazio con un padding di 88px, ma
+   quella misura non tiene conto della safe-area del telefono: dove è più
+   alta, i pulsanti finivano comunque sotto la capsula e non si potevano
+   toccare. */
+body.settings-open .dune-nav{display:none}
 
 /* Layer blur + colore + grana — CAPSULA FLOTTANTE (pill staccata dai bordi) */
 .dune-blur,.dune-color,.dune-grain{

@@ -566,46 +566,49 @@
     <button class="settings-close" onclick="closeSettings()">✕</button>
   </div>
 
+  <!-- Le intestazioni non portano più emoji: erano gli unici disegni a colori
+       pieni di tutta l'app, che altrove usa glifi di linea e la palette calda.
+       Restano la stella e l'onda, che sono simboli veri di Inkflow. -->
   <div class="settings-section">
-    <div class="settings-section-label">🔔 Reminder mattina</div>
+    <div class="settings-section-label">Reminder mattina</div>
     <div class="reminder-row" style="margin-bottom:8px">
       <div class="reminder-label">Ogni giorno alle</div>
       <input class="reminder-time" type="time" id="reminder-time" value="08:20" onchange="saveReminderSettings()"/>
       <input class="reminder-toggle" type="checkbox" id="reminder-toggle" onchange="saveReminderSettings()"/>
     </div>
     <div class="reminder-status" id="reminder-status">Reminder disattivato</div>
-    <button class="reminder-test" style="margin-top:8px" onclick="testNotification()">Invia notifica di test</button>
+    <button class="settings-btn" style="margin-top:10px" onclick="testNotification()">Invia notifica di test</button>
   </div>
 
   <div class="settings-section">
-    <div class="settings-section-label">🔊 Suoni interfaccia</div>
+    <div class="settings-section-label">Suoni interfaccia</div>
     <div class="reminder-row">
       <div class="reminder-label">Suoni di menu (FFVII)</div>
       <input class="reminder-toggle" type="checkbox" id="sound-toggle" onchange="onSoundToggle()"/>
     </div>
-    <div style="font-size:11px;color:var(--ink3);margin-top:8px">Piccoli suoni che accompagnano navigazione, conferme e la serata completata.</div>
+    <div class="settings-note">Piccoli suoni che accompagnano navigazione, conferme e la serata completata.</div>
   </div>
 
   <div class="settings-section">
-    <div class="settings-section-label"><span style="color:#f0c020">★</span> Stelle &amp; <span style="color:#e8804a">〰</span> Streak</div>
-    <div style="font-size:13px;color:var(--ink2);margin-bottom:14px">
+    <div class="settings-section-label"><span style="color:var(--oro)">★</span> Stelle &amp; <span style="color:var(--rame)">〰</span> Streak</div>
+    <div class="settings-stat">
       Serate completate: <strong id="settings-stars-count">0</strong>
       &nbsp;·&nbsp;
       Streak attuale: <strong id="settings-streak-count">0</strong> gg
     </div>
-    <div style="padding-top:8px;border-top:1px solid var(--sand2);display:flex;gap:10px;flex-wrap:wrap">
-      <button onclick="resetStarsConfirm()" style="font-size:12px;padding:7px 14px;border-radius:10px;border:1.5px solid var(--sand3);background:none;color:var(--ink3);cursor:pointer;font-family:'Nunito',sans-serif;font-weight:600"><span style="color:#f0c020">★</span> Reset stelle</button>
-      <button onclick="resetStreakConfirm()" style="font-size:12px;padding:7px 14px;border-radius:10px;border:1.5px solid var(--sand3);background:none;color:var(--ink3);cursor:pointer;font-family:'Nunito',sans-serif;font-weight:600"><span style="color:#e8804a">〰</span> Reset streak</button>
+    <div class="settings-btn-row" style="padding-top:10px;border-top:1px solid var(--sand2)">
+      <button class="settings-btn" onclick="resetStarsConfirm()"><span style="color:var(--oro)">★</span> Reset stelle</button>
+      <button class="settings-btn" onclick="resetStreakConfirm()"><span style="color:var(--rame)">〰</span> Reset streak</button>
     </div>
   </div>
 
   <div class="settings-section">
-    <div class="settings-section-label">💾 Backup</div>
-    <div style="display:flex;gap:10px;flex-wrap:wrap">
-      <button onclick="exportBackup()" style="flex:1;font-size:12px;padding:10px 14px;border-radius:10px;border:1.5px solid var(--sand3);background:var(--sand);color:var(--ink2);cursor:pointer;font-family:'Nunito',sans-serif;font-weight:600">⬇ Esporta JSON</button>
-      <button onclick="importBackup()" style="flex:1;font-size:12px;padding:10px 14px;border-radius:10px;border:1.5px solid var(--sand3);background:var(--sand);color:var(--ink2);cursor:pointer;font-family:'Nunito',sans-serif;font-weight:600">⬆ Importa JSON</button>
+    <div class="settings-section-label">Backup</div>
+    <div class="settings-btn-row">
+      <button class="settings-btn" onclick="exportBackup()">Esporta JSON</button>
+      <button class="settings-btn" onclick="importBackup()">Importa JSON</button>
     </div>
-    <div style="font-size:11px;color:var(--ink3);margin-top:8px">Il backup include tutti i progetti e i dati delle stelle.</div>
+    <div class="settings-note">Il backup include tutti i progetti e i dati delle stelle.</div>
   </div>
 
   <div style="height:calc(20px + var(--safe-bot))"></div>
