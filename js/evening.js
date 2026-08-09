@@ -325,10 +325,6 @@ export function completeEveningTask(id, card){
   const history = loadJSON('inkflow_task_history', []);
   const now = new Date();
   history.push({
-    pid: p.id,          // per ritrovare le voci di QUESTO progetto anche se
-                         // lo rinomini — vedi getProjectDiary più sotto, che
-                         // ricade su `project` (il titolo) solo per le voci
-                         // scritte prima che questo campo esistesse.
     project: p.title,
     task: p.microtask,
     color: p.color||'#4ab8d8',
@@ -394,93 +390,8 @@ export function clearStars(){
 
 export function markEveningDone(){ exitEveningMode(); }
 
-// ── DIARIO DI PRODUZIONE (per progetto) ─────────────────────────────────────
-// inkflow_task_history esiste già — ogni sera in cui spunti il task lo
-// registra, con data e testo — ma finora si vedeva solo tutto insieme, in
-// ordine cronologico, dentro la Modalità Sera: nessun modo di rileggere cosa
-// hai fatto su UN progetto specifico. I dati c'erano già; mancava solo il
-// filtro e un posto dove mostrarlo — la schermata del progetto stesso, dove
-// serve davvero quando lo riapri dopo una pausa.
-function getProjectDiary(p){
-  const history = loadJSON('inkflow_task_history', []);
-  // Le voci vecchie (prima del campo `pid`) si riconoscono solo dal titolo:
-  // se il progetto è stato rinominato da allora, quelle restano agganciate
-  // al nome di quando furono scritte. Non c'è modo di recuperarle meglio —
-  // il dato perduto è perduto — ma almeno non si mischiano col progetto
-  // sbagliato se un ALTRO progetto viene rinominato con lo stesso titolo.
-  // Ordinate per data reale, non per posizione nell'array: in pratica
-  // `history` è già cronologico perché ogni voce viene aggiunta in coda
-  // quando succede — ma affidarsi a un ordine implicito è fragile (un
-  // ripristino da backup, un fuso orario diverso, un domani in cui le voci
-  // arrivano da un'altra fonte) e il costo di ordinare esplicitamente è
-  // nullo su una lista di questa taglia.
-  return history.filter(h => h.pid ? h.pid === p.id : h.project === p.title)
-                .slice()
-                .sort((a, b) => new Date(b.ts||0) - new Date(a.ts||0));
-}
-
-const DIARY_PAGE = 6;
-let _diaryExpanded = false;
-let _diaryProjectId = null;
-
-export function renderProjectDiary(p){
-  const box = document.getElementById('proj-diary');
-  if(!box) return;
-  _diaryExpanded = false;
-  _diaryProjectId = p.id;
-  const voci = getProjectDiary(p);
-  if(!voci.length){
-    box.innerHTML = `<div class="diary-empty">Ancora nessuna serata registrata. Le trovi qui appena ne completi una dalla Modalità Sera.</div>`;
-    return;
-  }
-  disegnaDiario(box, voci);
-}
-
-function fmtDiaryDate(ts, date){
-  // Le voci con `ts` (tutte, da quando esiste il campo) mostrano l'anno se
-  // diverso da quello corrente — un "12 mar" da solo è ambiguo su un
-  // progetto che va avanti da più di un anno.
-  if(!ts) return date; // voci antichissime, prima di `ts`: solo giorno/mese
-  const d = new Date(ts);
-  const mesi = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
-  const oraAnno = new Date().getFullYear();
-  return d.getFullYear() === oraAnno
-    ? `${d.getDate()} ${mesi[d.getMonth()]}`
-    : `${d.getDate()} ${mesi[d.getMonth()]} ${d.getFullYear()}`;
-}
-
-function escDiary(s){
-  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
-
-function disegnaDiario(box, voci){
-  const mostrate = _diaryExpanded ? voci : voci.slice(0, DIARY_PAGE);
-  box.innerHTML = mostrate.map(h => `
-    <div class="diary-item">
-      <div class="diary-item-date">${fmtDiaryDate(h.ts, h.date)}</div>
-      <div class="diary-item-task">${escDiary(h.task)}</div>
-    </div>`).join('')
-    + (!_diaryExpanded && voci.length > DIARY_PAGE
-        ? `<button class="diary-more" onclick="expandProjectDiary()">Mostra tutte (${voci.length})</button>`
-        : '');
-}
-
-// Esposta su window (come le altre azioni da onclick inline in index.html):
-// riusa le voci già filtrate invece di rileggere localStorage, così espandere
-// non può mai mostrare un elenco diverso da quello appena visto.
-export function expandProjectDiary(){
-  const box = document.getElementById('proj-diary');
-  if(!box) return;
-  const p = getProject(_diaryProjectId);
-  if(!p) return;
-  _diaryExpanded = true;
-  disegnaDiario(box, getProjectDiary(p));
-}
-
-
 window.enterEveningMode=enterEveningMode;
 window.exitEveningMode=exitEveningMode;
 window.markEveningDone=markEveningDone;
 window.clearStars=clearStars;
 window.clearTaskHistory=clearTaskHistory;
-window.expandProjectDiary=expandProjectDiary;
