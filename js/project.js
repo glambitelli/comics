@@ -65,6 +65,15 @@ export function restoreProject(p){
   // chiunque apra un progetto. Aggiorna solo l'etichetta di un pulsante,
   // quindi farlo un attimo dopo non si nota.
   import('./scriptment.js').then(m => m.refreshScriptmentButton());
+  // Pigro anche refs.js: la libreria References (Cloudinary, Drive, dialoghi)
+  // serve qui solo per il pannello "Riferimenti agganciati" — non ha senso
+  // portarsela dietro per chi apre un progetto senza mai aver toccato
+  // References. startRefsListener() è idempotente: se la schermata References
+  // era già stata aperta in questa sessione, non fa nulla di nuovo.
+  import('./refs.js').then(refs => {
+    refs.startRefsListener();
+    refs.resetProjectRefPanel(p.id);
+  });
   requestAnimationFrame(() => { renderVelocityHistory(p); renderPhaseCalendar(p); autoResizeAll(); });
 }
 

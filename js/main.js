@@ -43,7 +43,8 @@ exposeLazy('./refs.js', ['refsBackToFolders','openRefLightbox','closeRefLightbox
   'openFolderBrowser','openAllGrid','openFolder','promptNewFolder','promptNewFolderFlow',
   'promptRenameFolder','promptDeleteFolder','refsFolderMenu','setFolderTab','albumShelfMenu',
   'connectDriveAndSync','disconnectDriveUI','toggleRefsProfile','closeRefsProfile',
-  'refsFolderSearch','refsGridSearch','refsAlbumsSearch','refsGridSortMenu','refsAlbumsSortMenu']);
+  'refsFolderSearch','refsGridSearch','refsAlbumsSearch','refsGridSortMenu','refsAlbumsSortMenu',
+  'promptLinkProjectFromLightbox','toggleProjectRefPanel']);
 exposeLazy('./albums.js', ['openAlbumPicker','openAlbumFromFile','openAlbumFromDrive',
   'createAlbumFromDriveFile']);
 exposeLazy('./scriptment.js', ['openScriptment','closeScriptment','setScriptmentFont',

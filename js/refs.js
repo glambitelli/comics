@@ -4,7 +4,7 @@
 // Organizzazione a cartelle per categoria (es. "Artists" → "Hiroyuki Okiura",
 // "Study (Temporary)" → "Hands").
 import { db, collection, doc, onSnapshot, setDoc, deleteDoc, serverTimestamp } from './firebase.js';
-import { haptic, showUndoToast } from './state.js';
+import { haptic, showUndoToast, projects, currentId } from './state.js';
 import { compressImageFile, dataUrlToBlob } from './imgcompress.js';
 import { uploadToCloudinary, cldResize } from './cloudinary.js';
 import { promptModal, confirmModal, actionMenu } from './dialogs.js';
@@ -513,6 +513,14 @@ export function startRefsListener(){
         });
       renderRefsScreen();
       migrateLegacyBase64Refs();
+      // Se in questo momento è aperta la schermata Progetto, il suo pannello
+      // "Riferimenti agganciati" pesca anche lui da _refs: senza questa riga
+      // resterebbe fermo alla foto scattata all'apertura del progetto finché
+      // non lo si riapriva da capo.
+      const projScreen = document.getElementById('screen-project');
+      if(projScreen && projScreen.classList.contains('active') && currentId){
+        renderProjectRefPanel(currentId);
+      }
     }, err=>console.warn('refs listener error:', err));
   }
   if(!_foldersUnsub){
@@ -1080,15 +1088,26 @@ export function renderRefsGrid(){
   // di un campo che qui non si vede: ricostruire l'HTML rifà da capo tutte le
   // miniature (nuovi <img>, decodifica, sfarfallio). Se il contenuto mostrato
   // è identico non tocchiamo niente.
-  const sig = list.map(r=>r.id+':'+r.url).join('|');
+  // `projectId` entra nella firma apposta: è invisibile in griglia (il
+  // puntino sotto lo mostra) ma cambia con "Collega a un progetto", e senza
+  // di lui in coda quel cambiamento non farebbe mai ridisegnare la griglia.
+  const sig = list.map(r=>r.id+':'+r.url+':'+(r.projectId||'')).join('|');
   if(grid.dataset.sig === sig) return;
   grid.dataset.sig = sig;
 
-  grid.innerHTML = list.map(r=>`
+  grid.innerHTML = list.map(r=>{
+    // Puntino nell'angolo, colorato come il progetto a cui il ritaglio è
+    // agganciato: un promemoria muto mentre scorri la griglia, senza dover
+    // aprire ogni immagine per saperlo.
+    const proj = r.projectId ? projects.find(p=>p.id===r.projectId) : null;
+    const dot = proj ? `<span class="refs-thumb-linkdot" style="background:${proj.color||'#4ab8d8'}" title="${esc(proj.title||'')}"></span>` : '';
+    return `
     <div class="refs-thumb" data-id="${r.id}">
       <img src="${cldResize(r.url, THUMB_W)}" loading="lazy" decoding="async" alt=""/>
+      ${dot}
     </div>
-  `).join('');
+  `;
+  }).join('');
 
   // Tap = apri · tocco prolungato (o tasto destro) = menu sposta/elimina
   grid.querySelectorAll('.refs-thumb').forEach(el=>{
@@ -1147,6 +1166,22 @@ export function openRefLightbox(id){
 // successiva, non quella già vista.
 let _lightboxDir = 1;
 
+// Pulsante "collega a un progetto" nel lightbox: pieno e colorato come il
+// progetto agganciato, altrimenti solo il contorno — stesso linguaggio del
+// puntino in griglia, così riconosci lo stato senza dover leggere niente.
+// Funzione a parte (non solo inline in renderLightboxAt) perché va rifatta
+// anche subito dopo aver collegato un ritaglio dal menu, senza aspettare il
+// giro di andata e ritorno da Firestore.
+function refreshLightboxLinkBtn(item){
+  const linkBtn = document.getElementById('refs-lightbox-link');
+  if(!linkBtn || !item) return;
+  const proj = item.projectId ? projects.find(p=>p.id===item.projectId) : null;
+  const path = linkBtn.querySelector('path');
+  if(path) path.style.fill = proj ? (proj.color||'#4ab8d8') : 'none';
+  linkBtn.classList.toggle('linked', !!proj);
+  linkBtn.setAttribute('aria-label', proj ? `Collegato a "${proj.title}" — cambia` : 'Collega a un progetto');
+}
+
 async function renderLightboxAt(index){
   if(index < 0 || index >= _lightboxList.length) return;
   _lightboxIndex = index;
@@ -1188,6 +1223,10 @@ async function renderLightboxAt(index){
   }
   if(prevBtn) prevBtn.style.visibility = index>0 ? 'visible' : 'hidden';
   if(nextBtn) nextBtn.style.visibility = index<_lightboxList.length-1 ? 'visible' : 'hidden';
+  // Pulsante "collega a un progetto": pieno e colorato come il progetto
+  // agganciato, altrimenti solo il contorno — stesso linguaggio del puntino
+  // in griglia, così riconosci lo stato senza dover leggere niente.
+  refreshLightboxLinkBtn(item);
   ov.classList.add('open');
 
   const idle = getIdleLightboxImg();
@@ -1262,6 +1301,79 @@ export function closeLightboxUI(){
 
 export function nextRefImage(){ _lightboxDir =  1; renderLightboxAt(_lightboxIndex+1); }
 export function prevRefImage(){ _lightboxDir = -1; renderLightboxAt(_lightboxIndex-1); }
+
+// ── GALLERIA SCOPED A UN PROGETTO ────────────────────────────────────────────
+// Apre la stessa identica lightbox usata da References, ma con l'elenco
+// ristretto ai soli ritagli agganciati a QUESTO progetto: sfogliare avanti e
+// indietro resta dentro quel sottoinsieme, non nell'intera libreria. La
+// lightbox è un overlay a schermo intero indipendente dalle .screen — non
+// serve lasciare la schermata Progetto per aprirla, né tornarci esplicitamente
+// alla chiusura: quella sotto è già lì, invariata.
+export function openProjectRefGallery(projectId, startIndex=0){
+  const list = _refs.filter(r => r.projectId === projectId);
+  if(!list.length) return;
+  _lightboxList = list;
+  _lightboxIndex = Math.min(Math.max(0, startIndex), list.length-1);
+  _lightboxDir = 1;
+  try{
+    if(!history.state || history.state.view !== 'lightbox') history.pushState({view:'lightbox'}, '');
+  }catch(e){}
+  document.body.classList.add('refs-lightbox-open');
+  renderLightboxAt(_lightboxIndex);
+}
+
+// ── PANNELLO "RIFERIMENTI AGGANCIATI" — schermata Progetto ──────────────────
+// Chiuso di default ("pannello nascosto all'inizio"): un progetto lavorato
+// per mesi non deve aprirsi con una parete di miniature. Si apre solo se
+// c'è qualcosa da mostrare — nessuna sezione vuota che invita a chiedersi
+// "a che serve questo".
+let _refPanelOpen = false;
+
+export function renderProjectRefPanel(projectId){
+  const section = document.getElementById('ref-panel');
+  const grid = document.getElementById('ref-panel-grid');
+  const countEl = document.getElementById('ref-panel-count');
+  if(!section || !grid) return;
+  const list = _refs.filter(r => r.projectId === projectId);
+  if(!list.length){
+    section.style.display = 'none';
+    grid.dataset.sig = '';
+    return;
+  }
+  section.style.display = '';
+  if(countEl) countEl.textContent = list.length;
+  const sig = list.map(r=>r.id+':'+r.url).join('|');
+  if(grid.dataset.sig !== sig){
+    grid.dataset.sig = sig;
+    grid.innerHTML = list.map((r,i)=>`
+      <div class="ref-panel-thumb" data-i="${i}">
+        <img src="${cldResize(r.url, THUMB_W)}" loading="lazy" decoding="async" alt=""/>
+      </div>
+    `).join('');
+    grid.querySelectorAll('.ref-panel-thumb').forEach(el=>{
+      el.addEventListener('click', ()=> openProjectRefGallery(projectId, +el.dataset.i));
+    });
+  }
+}
+
+// Richiamata da openProject() a ogni apertura: il pannello riparte sempre
+// chiuso, anche se era stato aperto l'ultima volta che si era su questo
+// stesso progetto — "nascosto all'inizio" vale a ogni apertura, non solo
+// alla prima.
+export function resetProjectRefPanel(projectId){
+  _refPanelOpen = false;
+  const section = document.getElementById('ref-panel');
+  if(section) section.classList.remove('open');
+  renderProjectRefPanel(projectId);
+}
+
+export function toggleProjectRefPanel(){
+  const section = document.getElementById('ref-panel');
+  if(!section) return;
+  _refPanelOpen = !_refPanelOpen;
+  section.classList.toggle('open', _refPanelOpen);
+  haptic('tap');
+}
 
 // Tastiera (desktop): ← → per scorrere, Esc per chiudere
 document.addEventListener('keydown', e=>{
@@ -1516,6 +1628,7 @@ export function refsImageMenu(anchorEl, imageId){
   const id = imageId || (document.getElementById('refs-lightbox')||{}).dataset?.id;
   if(!id) return;
   actionMenu(anchorEl, [
+    { label:'Collega a un progetto…', onSelect:()=>promptLinkProject(id, anchorEl) },
     { label:'Sposta in cartella…', onSelect:()=>promptMoveImage(id, anchorEl) },
     { label:'Elimina', danger:true, onSelect:()=>deleteRefImageWithUndo(id) },
   ]);
@@ -1532,6 +1645,47 @@ function promptMoveImage(id, anchorEl){
   actions.push({ label:'Nessuna cartella', onSelect:()=>{ assignRefToFolder(id, null); haptic('tap'); } });
   if(!actions.length) return;
   actionMenu(anchorEl, actions);
+}
+
+// ── COLLEGAMENTO A UN PROGETTO ──────────────────────────────────────────────
+// Il campo `projectId` esisteva già nello schema di ogni ritaglio — scritto a
+// null alla creazione, mai letto né mai impostato da nessuna parte. Qui
+// diventa il collegamento vero fra un ritaglio e il progetto per cui serve da
+// riferimento: stesso identico meccanismo di "Sposta in cartella" (menu ad
+// azioni, "Nessun progetto" per scollegare), così chi ha già imparato l'uno
+// sa già usare l'altro.
+export function linkRefToProject(id, projectId){
+  setDoc(doc(db, REFS_COL, id), {projectId: projectId||null}, {merge:true});
+  // Riflette subito il cambio in locale: aspettare il giro di andata e
+  // ritorno da Firestore per aggiornare il pulsante nel lightbox si sente,
+  // anche se dura poco — e qui serve fluido "nel minor numero di passi".
+  const item = _refs.find(r=>r.id===id);
+  if(item){
+    item.projectId = projectId||null;
+    const ov = document.getElementById('refs-lightbox');
+    if(ov && ov.dataset.id === id) refreshLightboxLinkBtn(item);
+  }
+}
+
+function promptLinkProject(id, anchorEl){
+  const item = _refs.find(r=>r.id===id);
+  const current = item?.projectId || null;
+  const actions = projects.map(p => ({
+    label: (p.id===current ? '✓ ' : '') + (p.title||'Senza titolo'),
+    onSelect: ()=>{ linkRefToProject(id, p.id); haptic('tap'); },
+  }));
+  actions.push({ label:'Nessun progetto', onSelect:()=>{ linkRefToProject(id, null); haptic('tap'); } });
+  if(!actions.length) return;
+  actionMenu(anchorEl, actions);
+}
+
+// Stesso ingresso usato dal pulsante dedicato nella galleria a schermo
+// intero (vedi index.html): legge l'id dal ritaglio aperto, come fa già
+// refsImageMenu quando viene chiamato senza un id esplicito.
+export function promptLinkProjectFromLightbox(anchorEl){
+  const id = (document.getElementById('refs-lightbox')||{}).dataset?.id;
+  if(!id) return;
+  promptLinkProject(id, anchorEl);
 }
 
 export function deleteRefImageWithUndo(id){

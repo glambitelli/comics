@@ -21,6 +21,24 @@
 .sec-label{display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#8a7248;margin:0 0 10px;background:#f5ecd8;border:1px solid #e0d4b4;border-radius:20px;padding:4px 12px}
 .sec-label::before{content:'';width:6px;height:6px;border-radius:50%;background:#e0a810;flex-shrink:0}
 .sec-label::after{content:'';flex:1;height:1.5px;background:#dccca0;border-radius:1px}
+
+/* Riferimenti agganciati — chiuso di default, si apre a fisarmonica. Stessa
+   scheda bianca con filo sabbia di .todo-box/.diary-box, per restare nel
+   linguaggio già stabilito in questo file. */
+.ref-panel{background:var(--white);border:1.5px solid var(--sand2);border-radius:var(--r);margin-bottom:20px;overflow:hidden;box-shadow:0 2px 10px rgba(74,184,216,.08)}
+.ref-panel-toggle{display:flex;align-items:center;gap:10px;width:100%;padding:12px 14px;background:none;border:none;cursor:pointer;font-family:'Nunito',sans-serif;text-align:left;color:var(--ink)}
+.ref-panel-toggle:active{background:var(--sand)}
+.ref-panel-toggle-ico{flex-shrink:0;color:#9a8458}
+.ref-panel-toggle-label{flex:1;font-size:13px;font-weight:700}
+.ref-panel-count{font-size:11px;font-weight:700;color:#8a7248;background:#f5ecd8;border-radius:10px;padding:2px 9px;flex-shrink:0}
+.ref-panel-chev{font-size:11px;color:var(--ink3);transition:transform .2s;flex-shrink:0}
+.ref-panel.open .ref-panel-chev{transform:rotate(180deg)}
+.ref-panel-body{display:none;padding:0 14px 14px}
+.ref-panel.open .ref-panel-body{display:block}
+.ref-panel-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:8px}
+.ref-panel-thumb{aspect-ratio:1/1;border-radius:8px;overflow:hidden;background:var(--sand2);cursor:pointer;transition:transform .1s;border:1.5px solid #fefcf8;box-shadow:0 1px 4px rgba(40,30,15,.12)}
+.ref-panel-thumb:active{transform:scale(.92)}
+.ref-panel-thumb img{width:100%;height:100%;object-fit:cover;display:block}
 /* Sezione comprimibile con linea divisoria pulita */
 .sec-content{overflow:hidden}
 
