@@ -1386,6 +1386,12 @@ function wireClip(ov){
       ).join('');
       moreWrap._cats = cats;
     }
+    // Se le scorciatoie non ci stanno tutte, l'ultima viene tagliata di netto
+    // dallo scroll — un bordo dritto appiccicato alle categorie fisse accanto,
+    // che a colpo d'occhio sembra un pasticcio/sovrapposizione. Una sfumatura
+    // sul bordo (solo quando c'è davvero altro da scorrere) lo fa leggere
+    // come "continua qui", non come un difetto.
+    dests.classList.toggle('has-more', dests.scrollWidth > dests.clientWidth + 1);
   };
 
   // Sottocartelle di una categoria, per raggiungerne una qualunque.

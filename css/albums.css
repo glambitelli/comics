@@ -389,6 +389,15 @@ body.is-touch .ar-nav{display:none} /* su mobile si naviga con swipe/tap */
   padding:1px 0;
 }
 .ar-clip-dests::-webkit-scrollbar{display:none}
+/* Quando le scorciatoie non ci stanno tutte, l'ultima viene tagliata dallo
+   scroll: senza sfumatura è un bordo dritto appiccicato alle categorie fisse
+   accanto (Artisti/Studio), a colpo d'occhio indistinguibile da una vera
+   sovrapposizione. La sfumatura compare SOLO quando c'è davvero altro da
+   scorrere (classe aggiunta da JS confrontando scrollWidth/clientWidth). */
+.ar-clip-dests.has-more{
+  -webkit-mask-image:linear-gradient(to right, #000 calc(100% - 22px), transparent 100%);
+  mask-image:linear-gradient(to right, #000 calc(100% - 22px), transparent 100%);
+}
 .ar-clip-dest{
   flex-shrink:0;cursor:pointer;
   font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;letter-spacing:.03em;
