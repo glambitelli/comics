@@ -6,6 +6,7 @@ import { renderDeadline, renderVelocity, renderVelocityHistory, renderPhaseCalen
 import { renderTavole, renderSfide, renderTodos } from './pipeline.js';
 import { restoreStoryFields, autoResizeAll } from './story.js';
 import { restorePlanner } from './planner.js';
+import { renderProjectDiary } from './evening.js';
 
 export function openProject(id){
   setCurrentId(id);
@@ -60,7 +61,7 @@ export function restoreProject(p){
     chk.classList.toggle('done', done);
     nm.classList.toggle('done', done);
   });
-  renderTavole(p); renderSfide(p); renderTodos(p); updateProgress(p); renderDeadline(p); renderVelocity(p); restoreStoryFields(p); restorePlanner(p);
+  renderTavole(p); renderSfide(p); renderTodos(p); updateProgress(p); renderDeadline(p); renderVelocity(p); renderProjectDiary(p); restoreStoryFields(p); restorePlanner(p);
   // Pigro: scriptment.js (25 KB) serve solo a chi apre lo scriptment, non a
   // chiunque apra un progetto. Aggiorna solo l'etichetta di un pulsante,
   // quindi farlo un attimo dopo non si nota.
