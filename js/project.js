@@ -3,7 +3,7 @@ import { db, COL, scheduleSave, deleteDoc, doc } from './firebase.js';
 import { hexToRgb } from './canvas.js';
 import { updateProgress } from './progress.js';
 import { renderDeadline, renderVelocity, renderVelocityHistory, renderPhaseCalendar } from './velocity.js';
-import { renderTavole, renderSfide, renderTodos } from './pipeline.js';
+import { renderTavole, renderSfide, renderTodos, resetTavSelection } from './pipeline.js';
 import { restoreStoryFields, autoResizeAll } from './story.js';
 import { restorePlanner } from './planner.js';
 
@@ -60,6 +60,7 @@ export function restoreProject(p){
     chk.classList.toggle('done', done);
     nm.classList.toggle('done', done);
   });
+  resetTavSelection();
   renderTavole(p); renderSfide(p); renderTodos(p); updateProgress(p); renderDeadline(p); renderVelocity(p); restoreStoryFields(p); restorePlanner(p);
   // Pigro: scriptment.js (25 KB) serve solo a chi apre lo scriptment, non a
   // chiunque apra un progetto. Aggiorna solo l'etichetta di un pulsante,

@@ -220,7 +220,7 @@
     </div>
     <div class="proj-meta">
       <div><span id="meta-fase">—</span></div>
-      <div>tav <span id="meta-tav">10</span></div>
+      <div class="meta-editable" onclick="editNumTav()" role="button" tabindex="0" title="Cambia il numero di tavole">tav <span id="meta-tav">10</span><span class="meta-edit-ico">✎</span></div>
       <div><span id="meta-step">0/0</span> step</div>
       <div><span id="meta-pct">0</span>%</div>
       <div id="meta-days-wrap" style="display:none"><span id="meta-days"></span></div>
@@ -417,9 +417,18 @@
         <div class="phase-chev" id="ph3-chev">▾</div>
       </div>
       <div class="phase-body" id="ph3-body">
-        <div class="tav-hint">Tocca una tavola per aggiornare la fase</div>
+        <div class="tav-hint" id="tav-hint">Tocca una tavola per aggiornare la fase · tieni premuto per sceglierne più di una</div>
         <div class="tav-grid" id="tav-grid"></div>
-        <div class="tav-detail" id="tav-detail"><div class="tav-detail-title" id="tav-detail-title">Tavola —</div><div class="tav-pills" id="tav-pills"></div></div>
+        <div class="tav-detail" id="tav-detail">
+          <div class="tav-detail-head">
+            <div class="tav-detail-title" id="tav-detail-title">Tavola —</div>
+            <div class="tav-detail-actions" id="tav-detail-actions" hidden>
+              <button class="tav-sel-act" id="tav-sel-all">Tutte</button>
+              <button class="tav-sel-act" id="tav-sel-none">Annulla</button>
+            </div>
+          </div>
+          <div class="tav-pills" id="tav-pills"></div>
+        </div>
       </div>
     </div>
 
