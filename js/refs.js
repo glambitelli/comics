@@ -514,7 +514,7 @@ export function startRefsListener(){
       renderRefsScreen();
       migrateLegacyBase64Refs();
       // Se in questo momento è aperta la schermata Progetto, il suo pannello
-      // "Riferimenti agganciati" pesca anche lui da _refs: senza questa riga
+      // "Riferimenti visivi" pesca anche lui da _refs: senza questa riga
       // resterebbe fermo alla foto scattata all'apertura del progetto finché
       // non lo si riapriva da capo.
       const projScreen = document.getElementById('screen-project');
@@ -1322,7 +1322,7 @@ export function openProjectRefGallery(projectId, startIndex=0){
   renderLightboxAt(_lightboxIndex);
 }
 
-// ── PANNELLO "RIFERIMENTI AGGANCIATI" — schermata Progetto ──────────────────
+// ── PANNELLO "RIFERIMENTI VISIVI" — schermata Progetto ─────────────────────
 // Chiuso di default ("pannello nascosto all'inizio"): un progetto lavorato
 // per mesi non deve aprirsi con una parete di miniature. Si apre solo se
 // c'è qualcosa da mostrare — nessuna sezione vuota che invita a chiedersi
@@ -1345,13 +1345,26 @@ export function renderProjectRefPanel(projectId){
   const sig = list.map(r=>r.id+':'+r.url).join('|');
   if(grid.dataset.sig !== sig){
     grid.dataset.sig = sig;
+    // In coda alle miniature, una tessera tratteggiata che porta a References:
+    // il momento in cui ti accorgi che i riferimenti non bastano è proprio
+    // questo, mentre li stai guardando. Tratteggiata e senza immagine per non
+    // farsi scambiare per un ritaglio.
     grid.innerHTML = list.map((r,i)=>`
       <div class="ref-panel-thumb" data-i="${i}">
         <img src="${cldResize(r.url, THUMB_W)}" loading="lazy" decoding="async" alt=""/>
       </div>
-    `).join('');
+    `).join('') + `
+      <button class="ref-panel-add" id="ref-panel-add" title="Apri References per aggiungerne altri" aria-label="Apri References per aggiungere riferimenti">
+        <span class="ref-panel-add-plus">+</span>
+        <span class="ref-panel-add-lbl">Aggiungi</span>
+      </button>`;
     grid.querySelectorAll('.ref-panel-thumb').forEach(el=>{
       el.addEventListener('click', ()=> openProjectRefGallery(projectId, +el.dataset.i));
+    });
+    const addBtn = grid.querySelector('#ref-panel-add');
+    if(addBtn) addBtn.addEventListener('click', ()=>{
+      haptic('tap');
+      if(window.openRefsScreen) window.openRefsScreen();
     });
   }
 }
