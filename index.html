@@ -190,8 +190,11 @@
     <button onclick="prevRefImage()" id="refs-lightbox-prev" class="refs-lightbox-nav refs-lightbox-nav-prev" aria-label="Precedente">
       <svg viewBox="0 0 24 24" width="22" height="22"><path d="M15 5 L8 12 L15 19" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </button>
-    <img id="refs-lightbox-img" class="refs-lightbox-buf active" src="" alt=""/>
-    <img id="refs-lightbox-img-b" class="refs-lightbox-buf" src="" alt=""/>
+    <div class="refs-lightbox-track" id="refs-lightbox-track">
+      <div class="refs-lightbox-cell"><img class="refs-lightbox-img" alt=""/></div>
+      <div class="refs-lightbox-cell"><img class="refs-lightbox-img" alt=""/></div>
+      <div class="refs-lightbox-cell"><img class="refs-lightbox-img" alt=""/></div>
+    </div>
     <button onclick="nextRefImage()" id="refs-lightbox-next" class="refs-lightbox-nav refs-lightbox-nav-next" aria-label="Successiva">
       <svg viewBox="0 0 24 24" width="22" height="22"><path d="M9 5 L16 12 L9 19" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </button>

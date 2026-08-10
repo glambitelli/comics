@@ -1128,20 +1128,52 @@ export function renderRefsGrid(){
 let _lightboxList = [];
 let _lightboxIndex = -1;
 
-// Doppio buffer: due <img> sovrapposte esattamente (vedi css/refs.css), una
-// sola alla volta "attiva" (visibile). Il tentativo precedente (precaricare
-// con un Image() a parte e poi riassegnare .src alla stessa <img> visibile)
-// presumeva che il browser riusasse la decodifica tra i due elementi — non
-// garantito. Qui invece si aspetta il caricamento DENTRO l'elemento nascosto
-// stesso, e si scambia la visibilità solo a caricamento concluso: quella a
-// schermo non viene mai toccata prima che l'altra sia davvero pronta, quindi
-// non può mai esserci un istante vuoto in mezzo.
-let _bufToggle = false; // false = #refs-lightbox-img attiva, true = #refs-lightbox-img-b
-function getActiveLightboxImg(){
-  return document.getElementById(_bufToggle ? 'refs-lightbox-img-b' : 'refs-lightbox-img');
+// Nastro di TRE celle affiancate (precedente/corrente/successiva, vedi
+// css/refs.css .refs-lightbox-track/-cell): a riposo il nastro sta spostato
+// esattamente di una cella (translateX(-100%), percentuale = sulla propria
+// larghezza, quindi non serve mai misurarla in px), così la cella centrale
+// riempie lo schermo. Durante il trascinamento si somma solo un delta in px
+// alla stessa formula: il dito muove il nastro, non ricostruisce nulla.
+//
+// Le tre celle sono elementi DOM FISSI: non si ricreano mai. A ogni pagina
+// completata (swipe confermato o freccia/tastiera) la cella ormai fuori
+// schermo viene RIUSATA per il prossimo vicino — spostata nel DOM con
+// insertBefore/appendChild, che non tocca src né decodifica, esattamente
+// come già succedeva nel lettore album per lo stesso motivo (vedi commento
+// storico più sotto): il browser non garantisce di riusare la decodifica se
+// si riassegna la stessa src a un ELEMENTO diverso, ma la riusa sempre se è
+// lo stesso elemento che si sposta.
+let _lbCells = null;   // [{el,img}, {el,img}, {el,img}] — indici 0/1/2 = prev/cur/next, SEMPRE (ordine DOM = ordine visivo)
+let _lbAnimating = false;
+
+function ensureLbCells(){
+  if(_lbCells) return;
+  const track = document.getElementById('refs-lightbox-track');
+  if(!track) return;
+  _lbCells = Array.from(track.children).map(el => ({ el, img: el.querySelector('.refs-lightbox-img') }));
 }
-function getIdleLightboxImg(){
-  return document.getElementById(_bufToggle ? 'refs-lightbox-img' : 'refs-lightbox-img-b');
+
+function curImg(){ return _lbCells && _lbCells[1] && _lbCells[1].img; }
+
+// Carica UNA cella con l'immagine dell'indice dato. `hideUntilReady` nasconde
+// la cella (visibility, il layout a fisarmonica resta invariato) finché
+// decode() non è risolta — usato solo per la cella CENTRALE in apertura, dove
+// altrimenti si vedrebbe un frame vuoto/rotto; le celle vicine si caricano
+// invece già fuori schermo, quindi non serve nascondere nulla.
+async function preloadCell(cell, index, hideUntilReady){
+  if(!cell) return;
+  const item = _lightboxList[index];
+  if(!item){ cell.img.removeAttribute('src'); return; }
+  const url = lightboxUrl(item.url);
+  if(cell.img.src !== url){
+    if(hideUntilReady) cell.el.style.visibility = 'hidden';
+    cell.img.src = url;
+  } else if(!hideUntilReady){
+    return; // già quella giusta e nessuno sta aspettando: niente da fare
+  }
+  try{ await cell.img.decode(); }
+  catch(e){ /* src cambiata a metà o file rotto: si prosegue comunque */ }
+  if(hideUntilReady) cell.el.style.visibility = '';
 }
 
 export function openRefLightbox(id){
@@ -1149,7 +1181,6 @@ export function openRefLightbox(id){
   if(!item) return;
   _lightboxList = currentGridList();
   _lightboxIndex = _lightboxList.findIndex(r=>r.id===id);
-  _lightboxDir = 1;   // si riparte sfogliando in avanti
   // Registra uno stato nella cronologia: così il tasto Indietro (browser o
   // gesto Android) chiude l'immagine e torna alla griglia, invece di uscire.
   try{
@@ -1161,17 +1192,12 @@ export function openRefLightbox(id){
   renderLightboxAt(_lightboxIndex);
 }
 
-// Verso in cui si sta sfogliando: +1 avanti, -1 indietro. Serve a preparare
-// la foto GIUSTA (vedi sotto): sfogliando in avanti quella utile è la
-// successiva, non quella già vista.
-let _lightboxDir = 1;
-
 // Pulsante "collega a un progetto" nel lightbox: pieno e colorato come il
 // progetto agganciato, altrimenti solo il contorno — stesso linguaggio del
 // puntino in griglia, così riconosci lo stato senza dover leggere niente.
-// Funzione a parte (non solo inline in renderLightboxAt) perché va rifatta
-// anche subito dopo aver collegato un ritaglio dal menu, senza aspettare il
-// giro di andata e ritorno da Firestore.
+// Funzione a parte (non solo inline in updateLightboxChrome) perché va
+// rifatta anche subito dopo aver collegato un ritaglio dal menu, senza
+// aspettare il giro di andata e ritorno da Firestore.
 function refreshLightboxLinkBtn(item){
   const linkBtn = document.getElementById('refs-lightbox-link');
   if(!linkBtn || !item) return;
@@ -1182,17 +1208,15 @@ function refreshLightboxLinkBtn(item){
   linkBtn.setAttribute('aria-label', proj ? `Collegato a "${proj.title}" — cambia` : 'Collega a un progetto');
 }
 
-async function renderLightboxAt(index){
-  if(index < 0 || index >= _lightboxList.length) return;
-  _lightboxIndex = index;
-  const item = _lightboxList[index];
+// Interfaccia intorno alla foto (contatore, frecce, provenienza, segnalibro):
+// non dipende dal bitmap, si aggiorna subito — sia in apertura sia a ogni
+// pagina completata.
+function updateLightboxChrome(item, index){
   const ov = document.getElementById('refs-lightbox');
+  if(!ov) return;
   const counter = document.getElementById('refs-lightbox-counter');
   const prevBtn = document.getElementById('refs-lightbox-prev');
   const nextBtn = document.getElementById('refs-lightbox-next');
-  if(!ov) return;
-  // Interfaccia (contatore, frecce, overlay): aggiornata subito, non dipende
-  // dal bitmap della foto.
   ov.dataset.id = item.id;
   ov.classList.remove('chrome-hidden');
   if(counter) counter.textContent = (index+1)+' / '+_lightboxList.length;
@@ -1223,60 +1247,124 @@ async function renderLightboxAt(index){
   }
   if(prevBtn) prevBtn.style.visibility = index>0 ? 'visible' : 'hidden';
   if(nextBtn) nextBtn.style.visibility = index<_lightboxList.length-1 ? 'visible' : 'hidden';
-  // Pulsante "collega a un progetto": pieno e colorato come il progetto
-  // agganciato, altrimenti solo il contorno — stesso linguaggio del puntino
-  // in griglia, così riconosci lo stato senza dover leggere niente.
   refreshLightboxLinkBtn(item);
   ov.classList.add('open');
+}
 
-  const idle = getIdleLightboxImg();
-  if(!idle) return;
-  const fullUrl = lightboxUrl(item.url);
-  if(idle.src !== fullUrl) idle.src = fullUrl;
+// Apertura "a freddo": popola le tre celle da zero e riporta il nastro a
+// riposo senza animazione. La navigazione dentro la galleria (swipe, frecce,
+// tastiera) NON passa più di qui: usa commitSwipe, che anima e ricicla le
+// celle già pronte invece di ricaricare tutto — vedi sotto.
+async function renderLightboxAt(index){
+  if(index < 0 || index >= _lightboxList.length) return;
+  _lightboxIndex = index;
+  ensureLbCells();
+  const track = document.getElementById('refs-lightbox-track');
+  if(track){ track.style.transition='none'; track.style.willChange=''; track.style.transform='translate3d(-100%,0,0)'; }
+  updateLightboxChrome(_lightboxList[index], index);
+  resetImageZoom();
   // decode() e non 'load': 'load' scatta quando i BYTE sono arrivati, ma la
   // decodifica del bitmap avviene dopo, al primo paint. Su una foto grande
-  // quella decodifica dura parecchio, e scambiando la visibilità su 'load' si
-  // rende visibile un'immagine non ancora disegnabile → frame vuoto, tanto più
-  // lungo quanto è grande il file (esattamente il sintomo osservato).
-  // decode() invece si risolve solo quando l'immagine è pronta a essere
-  // dipinta senza saltare un frame.
-  try{ await idle.decode(); }
-  catch(e){ /* src cambiata a metà o file rotto: si prosegue comunque */ }
-  if(_lightboxIndex !== index) return; // si è già passati oltre: scarta questo bitmap
+  // quella decodifica dura parecchio, e mostrare la cella su 'load' si
+  // tradurrebbe in un frame vuoto/a scatti, tanto più lungo quanto è grande
+  // il file. decode() si risolve solo quando è pronta a essere dipinta.
+  await preloadCell(_lbCells[1], index, true);
+  if(_lightboxIndex !== index) return; // si è già passati oltre nel frattempo: scarta
+  // I vicini si preparano DENTRO le celle che li mostreranno già a riposo,
+  // fuori schermo: quando lo swipe li porta al centro, decode() trova il
+  // lavoro già fatto, in ENTRAMBE le direzioni — trascinare da una parte o
+  // dall'altra deve essere fluido allo stesso modo.
+  preloadCell(_lbCells[0], index-1, false);
+  preloadCell(_lbCells[2], index+1, false);
+}
 
-  // Trasformazione azzerata PRIMA dello scambio: il buffer può portarsi dietro
-  // lo zoom di quando era attivo l'ultima volta.
-  idle.style.transition = 'none';
-  idle.style.transform = 'translate(0px, 0px) scale(1)';
-  const prevActive = getActiveLightboxImg();
-  idle.classList.add('active');
-  if(prevActive && prevActive !== idle) prevActive.classList.remove('active');
-  _bufToggle = !_bufToggle;
-  resetImageZoom();
+// Le celle riciclate si spostano nel DOM (mai ricreate): appendChild/
+// insertBefore su un nodo già presente lo SPOSTA soltanto, senza toccare src
+// né decodifica — la cella che PRIMA era "successiva", già decodificata
+// mentre si trascinava, diventa "corrente" senza ridecodificare nulla.
+function rotateCellsForward(){   // si è confermato "avanti"
+  const track = document.getElementById('refs-lightbox-track');
+  const [a,b,c] = _lbCells;
+  track.appendChild(a.el);
+  _lbCells = [b, c, a];
+}
+function rotateCellsBackward(){  // si è confermato "indietro"
+  const track = document.getElementById('refs-lightbox-track');
+  const [a,b,c] = _lbCells;
+  track.insertBefore(c.el, a.el);
+  _lbCells = [c, a, b];
+}
 
-  // La foto SUCCESSIVA si prepara DENTRO IL BUFFER CHE LA MOSTRERÀ.
-  //
-  // Prima si precaricava in un Image() usa-e-getta, tenuto vivo in una piccola
-  // coda per non farsi portare via la decodifica dal garbage collector. Non
-  // serviva a niente: il browser tiene in cache la RISORSA, ma non garantisce
-  // di riusare la DECODIFICA su un elemento diverso — quindi il buffer che
-  // mostrava davvero la foto la decodificava comunque da zero, proprio
-  // nell'istante dello swipe. E costava: fino a quattro ritagli decodificati
-  // tenuti in memoria per nulla. È lo stesso errore già corretto nel lettore
-  // album; qui era rimasto.
-  //
-  // I buffer sono due e si alternano: appena mostrata la foto corrente, quello
-  // rimasto libero è proprio quello che mostrerà la prossima. Caricandola lì
-  // dentro, al momento dello swipe decode() trova il lavoro già fatto.
-  const nextI = index + _lightboxDir;
-  if(nextI >= 0 && nextI < _lightboxList.length){
-    const spare = getIdleLightboxImg();   // dopo lo scambio: il buffer nascosto
-    const u = lightboxUrl(_lightboxList[nextI].url);
-    if(spare && u && spare.src !== u){
-      spare.src = u;
-      spare.decode().catch(()=>{});
-    }
+// Rete di sicurezza sotto transitionend: se il nastro è già esattamente al
+// valore di arrivo (es. un trascinamento uscito e rientrato allo stesso punto
+// prima del rilascio) la proprietà non cambia e transitionend non scatta mai
+// — senza questa rete _lbAnimating resterebbe bloccato a true per sempre.
+function afterLbTransition(track, cb){
+  let done = false;
+  const finish = () => { if(done) return; done = true; track.removeEventListener('transitionend', onEnd); cb(); };
+  const onEnd = e => { if(e.target === track && e.propertyName === 'transform') finish(); };
+  track.addEventListener('transitionend', onEnd);
+  setTimeout(finish, 260);
+}
+
+const LB_TRANSITION = 'transform .22s cubic-bezier(.22,.61,.36,1)';
+let _lbPendingDir = 0;
+
+// Anima il nastro di una cella intera nella direzione data (+1 avanti,
+// -1 indietro) e, a fine corsa, ricicla le celle e sposta l'indice. Unico
+// punto d'ingresso sia per lo swipe confermato sia per frecce/tastiera:
+// quando parte da un trascinamento già in corso continua da dove il dito
+// l'ha lasciato (la transizione interpola dal valore ATTUALE), quando parte
+// "a freddo" (freccia, tastiera) il nastro è già a riposo e scorre uguale.
+function commitSwipe(dir){
+  if(_lbAnimating) return;
+  const target = _lightboxIndex + dir;
+  if(target < 0 || target >= _lightboxList.length) return;
+  const track = document.getElementById('refs-lightbox-track');
+  if(!track) return;
+  _lbAnimating = true;
+  _lbPendingDir = dir;
+  track.style.willChange = 'transform';
+  track.style.transition = LB_TRANSITION;
+  track.style.transform = dir > 0 ? 'translate3d(-200%,0,0)' : 'translate3d(0%,0,0)';
+  afterLbTransition(track, onSwipeSettled);
+}
+
+function onSwipeSettled(){
+  const dir = _lbPendingDir;
+  const track = document.getElementById('refs-lightbox-track');
+  if(dir > 0) rotateCellsForward(); else rotateCellsBackward();
+  if(track){
+    track.style.transition = 'none';
+    track.style.transform = 'translate3d(-100%,0,0)';
+    track.style.willChange = '';
   }
+  _lightboxIndex += dir;
+  _lbAnimating = false;
+  resetImageZoom();
+  updateLightboxChrome(_lightboxList[_lightboxIndex], _lightboxIndex);
+  // Il nuovo vicino lontano, appena rivelato dalla rotazione, si prepara
+  // subito — è la cella riciclata, ancora vuota o con la foto di due passi fa.
+  const farIndex = dir > 0 ? _lightboxIndex + 1 : _lightboxIndex - 1;
+  const farCell = dir > 0 ? _lbCells[2] : _lbCells[0];
+  preloadCell(farCell, farIndex, false);
+}
+
+// Rilascio senza conferma: il nastro torna a riposo con la stessa molla
+// dell'animazione di conferma, così cambiare idea a metà gesto si sente
+// naturale quanto completarlo.
+function cancelSwipe(){
+  const track = document.getElementById('refs-lightbox-track');
+  if(!track) return;
+  _lbAnimating = true;
+  track.style.willChange = 'transform';
+  track.style.transition = LB_TRANSITION;
+  track.style.transform = 'translate3d(-100%,0,0)';
+  afterLbTransition(track, ()=>{
+    track.style.transition = '';
+    track.style.willChange = '';
+    _lbAnimating = false;
+  });
 }
 
 // Chiusura "morbida": passa dalla cronologia, così lo stato del browser resta
@@ -1299,8 +1387,8 @@ export function closeLightboxUI(){
   resetImageZoom();
 }
 
-export function nextRefImage(){ _lightboxDir =  1; renderLightboxAt(_lightboxIndex+1); }
-export function prevRefImage(){ _lightboxDir = -1; renderLightboxAt(_lightboxIndex-1); }
+export function nextRefImage(){ commitSwipe(1); }
+export function prevRefImage(){ commitSwipe(-1); }
 
 // ── GALLERIA SCOPED A UN PROGETTO ────────────────────────────────────────────
 // Apre la stessa identica lightbox usata da References, ma con l'elenco
@@ -1314,7 +1402,6 @@ export function openProjectRefGallery(projectId, startIndex=0){
   if(!list.length) return;
   _lightboxList = list;
   _lightboxIndex = Math.min(Math.max(0, startIndex), list.length-1);
-  _lightboxDir = 1;
   try{
     if(!history.state || history.state.view !== 'lightbox') history.pushState({view:'lightbox'}, '');
   }catch(e){}
@@ -1399,18 +1486,22 @@ document.addEventListener('keydown', e=>{
 
 // ── ZOOM/PAN/SWIPE — tocca due volte o pizzica per ingrandire, come una vera
 // galleria: a 1x lo swipe orizzontale cambia immagine, da zoomato trascini
-// per spostarti dentro la foto invece di cambiarla. ──
+// per spostarti dentro la foto invece di cambiarla. Lo zoom lavora SEMPRE
+// sulla sola cella centrale (curImg()) e non tocca mai il nastro: le due
+// trasformazioni (pagina/nastro, zoom/immagine) restano indipendenti apposta,
+// altrimenti trascinare per zoomare e trascinare per sfogliare si
+// confonderebbero. ──
 let _zoomScale = 1, _zoomX = 0, _zoomY = 0;
 const ZOOM_IN = 2.6, ZOOM_MAX = 4;
 
 export function resetImageZoom(){
   _zoomScale = 1; _zoomX = 0; _zoomY = 0;
-  const img = getActiveLightboxImg();
+  const img = curImg();
   if(img){ img.style.transition = 'none'; applyZoomTransform(img); }
 }
 
 function clampPan(scale, x, y){
-  const img = getActiveLightboxImg();
+  const img = curImg();
   if(!img) return {x, y};
   const r = img.getBoundingClientRect();
   const baseW = r.width / scale, baseH = r.height / scale;
@@ -1428,7 +1519,7 @@ function applyZoomTransform(img){
 
 // Alterna zoom 1x ↔ ZOOM_IN centrando sul punto indicato, con animazione.
 function toggleZoomAt(clientX, clientY){
-  const img = getActiveLightboxImg();
+  const img = curImg();
   if(!img) return;
   img.style.transition = 'transform .22s';
   if(_zoomScale > 1.02){
@@ -1443,6 +1534,20 @@ function toggleZoomAt(clientX, clientY){
     _zoomX = c.x; _zoomY = c.y;
     applyZoomTransform(img);
   }
+}
+
+// Resistenza elastica ai bordi della galleria: se non c'è un vicino in quella
+// direzione, il trascinamento rallenta invece di seguire il dito 1:1 (curva
+// standard "rubber band", converge a poco più di metà schermo e non oltre —
+// così si SENTE che sei all'estremo, invece di uno scatto nel vuoto).
+function applyLbResistance(dx, w){
+  if(!w) return dx;
+  const goingNext = dx < 0;
+  const blocked = goingNext ? (_lightboxIndex+1 >= _lightboxList.length) : (_lightboxIndex-1 < 0);
+  if(!blocked) return dx;
+  const c = 0.55;
+  const rb = (1 - 1/((Math.abs(dx)*c/w)+1)) * w;
+  return goingNext ? -rb : rb;
 }
 
 (function initLightboxGestures(){
@@ -1461,47 +1566,81 @@ function toggleZoomAt(clientX, clientY){
     let isPinching = false, isPanning = false;
     let lastTapTime = 0, lastTapX = 0, lastTapY = 0, singleTapTimer = null;
 
+    // Trascinamento del NASTRO (cambio immagine a 1x): "candidato" appena
+    // parte un tocco singolo a zoom 1x, "armato" solo quando il movimento
+    // indica chiaramente un gesto orizzontale — prima di allora il nastro
+    // resta fermo, così un tap con un lieve tremore del dito non lo smuove
+    // di un pixel e la logica di tap/doppio-tap sotto funziona invariata.
+    let lbDragCandidate = false, lbArmed = false, lbBodyW = 0;
+    let lbLastX = 0, lbLastT = 0, lbPrevX = 0, lbPrevT = 0;
+    const LB_ARM_PX = 8;
+
     function dist(t0, t1){ return Math.hypot(t1.clientX-t0.clientX, t1.clientY-t0.clientY); }
 
     let lastTouchAt = 0;
     body.addEventListener('touchstart', e=>{
       lastTouchAt = Date.now();
       touches = Array.from(e.touches);
-      const img = getActiveLightboxImg();
+      const img = curImg();
       if(img) img.style.transition = 'none';
       if(touches.length === 2){
-        isPinching = true; isPanning = false;
+        isPinching = true; isPanning = false; lbDragCandidate = false; lbArmed = false;
         startDist = dist(touches[0], touches[1]);
         startScale = _zoomScale;
       } else if(touches.length === 1){
         isPinching = false;
         swipeStartX = touches[0].clientX; swipeStartY = touches[0].clientY;
         if(_zoomScale > 1.02){
-          isPanning = true;
+          isPanning = true; lbDragCandidate = false; lbArmed = false;
           panStartX = touches[0].clientX; panStartY = touches[0].clientY;
           panOrigX = _zoomX; panOrigY = _zoomY;
         } else {
           isPanning = false;
+          lbDragCandidate = !_lbAnimating;
+          lbArmed = false;
+          lbBodyW = body.clientWidth;
+          lbLastX = lbPrevX = touches[0].clientX;
+          lbLastT = lbPrevT = performance.now();
         }
       }
     }, {passive:true});
 
     body.addEventListener('touchmove', e=>{
       touches = Array.from(e.touches);
-      const img = getActiveLightboxImg();
-      if(!img) return;
       if(isPinching && touches.length === 2){
+        const img = curImg(); if(!img) return;
         const nd = dist(touches[0], touches[1]);
         _zoomScale = Math.min(ZOOM_MAX, Math.max(1, startScale * (nd/startDist)));
         const c = clampPan(_zoomScale, _zoomX, _zoomY);
         _zoomX = c.x; _zoomY = c.y;
         applyZoomTransform(img);
       } else if(isPanning && touches.length === 1){
+        const img = curImg(); if(!img) return;
         const dx = touches[0].clientX - panStartX;
         const dy = touches[0].clientY - panStartY;
         const c = clampPan(_zoomScale, panOrigX+dx, panOrigY+dy);
         _zoomX = c.x; _zoomY = c.y;
         applyZoomTransform(img);
+      } else if(lbDragCandidate && touches.length === 1){
+        const x = touches[0].clientX, y = touches[0].clientY;
+        const ddx = x - swipeStartX, ddy = y - swipeStartY;
+        if(!lbArmed){
+          if(Math.abs(ddx) > LB_ARM_PX && Math.abs(ddx) > Math.abs(ddy)){
+            lbArmed = true;
+            const track = document.getElementById('refs-lightbox-track');
+            if(track){ track.style.transition = 'none'; track.style.willChange = 'transform'; }
+          } else if(Math.abs(ddy) > LB_ARM_PX){
+            lbDragCandidate = false;   // gesto verticale: non è il nostro
+            return;
+          } else {
+            return;   // ancora sotto soglia, si aspetta
+          }
+        }
+        lbPrevX = lbLastX; lbPrevT = lbLastT;
+        lbLastX = x; lbLastT = performance.now();
+        const dx = applyLbResistance(ddx, lbBodyW);
+        const track = document.getElementById('refs-lightbox-track');
+        if(track) track.style.transform = `translate3d(calc(-100% + ${dx}px),0,0)`;
       }
     }, {passive:true});
 
@@ -1510,7 +1649,7 @@ function toggleZoomAt(clientX, clientY){
         isPinching = false;
         if(_zoomScale < 1.05){
           resetImageZoom();
-          const img = getActiveLightboxImg();
+          const img = curImg();
           if(img) img.style.transition = 'transform .18s';
         }
         return;
@@ -1523,21 +1662,32 @@ function toggleZoomAt(clientX, clientY){
         const movedPan = Math.hypot(tp.clientX - panStartX, tp.clientY - panStartY);
         if(movedPan > 14) return;
       }
-      // swipe per cambiare immagine (solo a 1x) o doppio tap per zoomare
+      // ── RILASCIO DI UN TRASCINAMENTO ARMATO: conferma o molla indietro ──
+      // Si conferma per DISTANZA (oltre il 30% dello schermo) o per VELOCITÀ,
+      // misurata sugli ultimi due campioni e non sull'intero gesto — così un
+      // trascinamento lento che finisce con uno scatto conta come scatto. Il
+      // secondo controllo (durata totale breve + distanza minima) resta come
+      // rete di sicurezza per i gesti troppo rapidi da campionare bene.
+      if(lbArmed){
+        lbArmed = false; lbDragCandidate = false;
+        const t = e.changedTouches[0];
+        const dx = t.clientX - swipeStartX;
+        const adx = Math.abs(dx);
+        const vx = lbLastT > lbPrevT ? (lbLastX - lbPrevX) / (lbLastT - lbPrevT) : 0;
+        const elapsed = Date.now() - lastTouchAt;
+        const distOk = adx > lbBodyW * 0.3;
+        const flickOk = (Math.abs(vx) > 0.5 && Math.sign(vx) === Math.sign(dx)) || (elapsed < 300 && adx > 24);
+        const dir = dx < 0 ? 1 : -1;   // trascino a sinistra → avanti
+        const blocked = dir > 0 ? (_lightboxIndex+1 >= _lightboxList.length) : (_lightboxIndex-1 < 0);
+        if(!blocked && (distOk || flickOk)) commitSwipe(dir);
+        else cancelSwipe();
+        return;
+      }
+      lbDragCandidate = false;
+      // tap / doppio tap (solo se non si è mai armato un trascinamento)
       const t = e.changedTouches[0];
       const dx = t.clientX - swipeStartX, dy = t.clientY - swipeStartY;
       const moved = Math.hypot(dx, dy);
-      // Si misura lo spostamento ORIZZONTALE, non la diagonale, e si accetta
-      // anche il colpetto veloce e corto. Prima serviva una diagonale di 55px:
-      // un flick rapido spesso non ci arrivava e il gesto cadeva nel vuoto,
-      // senza che succedesse niente — da qui il "a volte devo riprovare".
-      const adx = Math.abs(dx), ady = Math.abs(dy);
-      const elapsed = Date.now() - lastTouchAt;
-      const isFlick = elapsed < 300 && adx > 24;   // colpetto secco
-      if(_zoomScale <= 1.02 && (adx > 38 || isFlick) && adx > ady * 1.2){
-        if(dx < 0) nextRefImage(); else prevRefImage();
-        return;
-      }
       if(moved < 20){
         const now = Date.now();
         const closeTap = Math.hypot(t.clientX-lastTapX, t.clientY-lastTapY) < 50;
@@ -1563,14 +1713,14 @@ function toggleZoomAt(clientX, clientY){
     // anche un "dblclick" sintetico dopo un doppio tap reale: se lo lasciassimo
     // passare, zoomerebbe una seconda volta annullando quello già fatto dal
     // gestore touch sopra. Lo ignoriamo se c'è stato un tocco nell'ultimo secondo.
-    // Delegati sul contenitore (non sulla singola <img>): l'elemento "attivo"
-    // cambia a ogni swipe con il doppio buffer, quindi un listener legato una
-    // volta sola all'elemento originale smetterebbe di funzionare dopo il
-    // primo swap. L'immagine inattiva ha pointer-events:none (vedi CSS), quindi
-    // i click/drag arrivano comunque solo su quella davvero visibile.
+    // Delegati sul contenitore (non sulla singola <img>): la cella "centrale"
+    // cambia a ogni pagina col riciclo del nastro, quindi un listener legato
+    // una volta sola all'elemento originale smetterebbe di funzionare dopo il
+    // primo giro. Le celle laterali hanno pointer-events:none (vedi CSS),
+    // quindi i click/drag arrivano comunque solo a quella davvero centrale.
     body.addEventListener('dblclick', e=>{
       if(Date.now() - lastTouchAt < 1000) return;
-      if(!e.target.classList.contains('refs-lightbox-buf')) return;
+      if(!e.target.classList.contains('refs-lightbox-img')) return;
       toggleZoomAt(e.clientX, e.clientY);
     });
 
@@ -1578,7 +1728,7 @@ function toggleZoomAt(clientX, clientY){
     body.addEventListener('wheel', e=>{
       const ov = document.getElementById('refs-lightbox');
       if(!ov || !ov.classList.contains('open')) return;
-      const img = getActiveLightboxImg();
+      const img = curImg();
       if(!img) return;
       e.preventDefault();
       const prev = _zoomScale;
@@ -1604,8 +1754,8 @@ function toggleZoomAt(clientX, clientY){
     body.addEventListener('mousedown', e=>{
       if(_zoomScale <= 1.02) return;
       if(Date.now() - lastTouchAt < 1000) return;
-      if(!e.target.classList.contains('refs-lightbox-buf')) return;
-      const img = getActiveLightboxImg();
+      if(!e.target.classList.contains('refs-lightbox-img')) return;
+      const img = curImg();
       if(!img) return;
       e.preventDefault();
       mDown = true;
@@ -1616,7 +1766,7 @@ function toggleZoomAt(clientX, clientY){
     });
     window.addEventListener('mousemove', e=>{
       if(!mDown) return;
-      const img = getActiveLightboxImg();
+      const img = curImg();
       if(!img) return;
       const c = clampPan(_zoomScale, mOrigX + (e.clientX-mStartX), mOrigY + (e.clientY-mStartY));
       _zoomX = c.x; _zoomY = c.y;
