@@ -661,6 +661,11 @@ function buildReaderDOM(){
       </div>
     </div>
     <div class="ar-stage">
+      <div class="ar-track">
+        <div class="ar-cell"><img class="ar-img" alt="" decoding="async"></div>
+        <div class="ar-cell"><img class="ar-img" alt="" decoding="async"></div>
+        <div class="ar-cell"><img class="ar-img" alt="" decoding="async"></div>
+      </div>
       <div class="ar-toast"></div>
       <div class="ar-loading-glyph" aria-hidden="true">
         <svg class="ff-glyph" viewBox="0 0 100 100">
@@ -671,8 +676,6 @@ function buildReaderDOM(){
           <text x="50" y="58" text-anchor="middle" font-size="90" class="star-fill" clip-path="url(#ar-loading-fill-clip)">✦</text>
         </svg>
       </div>
-      <img class="ar-img active" alt="" decoding="async">
-      <img class="ar-img" alt="" decoding="async">
       <div class="ar-cliplayer" hidden>
         <div class="ar-clipbox" hidden>
           <div class="ar-clip-handle" data-corner="nw"></div>
@@ -797,7 +800,7 @@ export function closeReaderUI(){
   // buffer: finché tengono una src, il browser conserva il bitmap decodificato
   // (decine di MB su una scansione grande) anche a lettore chiuso.
   cancelIdle(_prefetchT); _prefetchT = null;
-  clearReaderBuffers();
+  clearReaderCells();
   // Le pagine restano in memoria finché non apri un altro albo: riaprire lo
   // stesso file dal picker le ricrea comunque. Le liberiamo alla prossima apertura.
 }
@@ -826,10 +829,10 @@ const cancelIdle = (h)=>{ if(h==null) return; (window.cancelIdleCallback||clearT
 //   · non funzionava perché il browser non riusa la decodifica di un elemento
 //     su un altro, quindi il buffer che mostrava davvero la tavola la
 //     decodificava comunque da zero (a rendere istantaneo lo scambio è il
-//     precarico DENTRO il buffer, in loadCurrentPageBitmap);
+//     precarico DENTRO la cella che la mostrerà, vedi primeNeighbours);
 //   · costava carissimo perché una tavola decodificata occupa larghezza ×
 //     altezza × 4 byte: su scansioni da 2480×3508 sono ~35MB l'una, cioè fino
-//     a 140MB di bitmap tenuti in vita oltre ai due buffer. Su un telefono
+//     a 140MB di bitmap tenuti in vita oltre alle celle. Su un telefono
 //     quella pressione porta il sistema a buttare via e ridecodificare, ed è
 //     il motivo per cui gli albi grandi erano molto peggio dei piccoli.
 // Restano i Blob/objectURL già materializzati (vedi pageUrl), che sono
@@ -844,27 +847,149 @@ const cancelIdle = (h)=>{ if(h==null) return; (window.cancelIdleCallback||clearT
 // un istante dopo, perché nel frattempo si era già premuto oltre. Da qui lo
 // scatto percepito.
 // Le due variabili sotto coalescono: mentre una pagina è in caricamento, le
-// pressioni successive non avviano una NUOVA decompressione — si limitano a
+// richieste successive non avviano una NUOVA decompressione — si limitano a
 // segnare "è arrivata una richiesta più recente" e a tornare subito. Quando
 // il caricamento in corso finisce, si riparte automaticamente dalla pagina
-// più recente saltando quelle intermedie: N pressioni rapide costano al
+// più recente saltando quelle intermedie: N richieste rapide costano al
 // massimo 2 decompressioni (quella già avviata + quella per la pagina finale),
 // non N.
+// Da quando i passi di UNA pagina scorrono sul nastro (vedi gotoPage), qui ci
+// passano solo i salti veri — cursore, prima/ultima, apertura — ma la
+// coalescenza resta: trascinare il cursore e rilasciarlo più volte di seguito
+// fa esattamente lo stesso effetto delle pressioni rapide di prima.
 let _pageLoadBusy = false;
 let _pageLoadPending = false;
 let _readDir = 1;   // +1 = si sta andando avanti, -1 = indietro
 
-async function renderPage(){
+// ── NASTRO A TRE CELLE ──────────────────────────────────────────────────────
+// Stessa costruzione della galleria References (vedi il nastro in js/refs.js e
+// .refs-lightbox-track in css/refs.css): tre celle affiancate — precedente,
+// corrente, successiva — dentro uno stage che le taglia. A riposo il nastro sta
+// spostato di esattamente una cella (translateX(-100%), percentuale sulla
+// PROPRIA larghezza, quindi non serve mai misurarla in px), così la centrale
+// riempie lo schermo. Durante il trascinamento cambia solo quel transform: il
+// dito muove il nastro, non si ricostruisce e non si decodifica niente.
+//
+// Qui però c'è una differenza vera rispetto alla galleria, ed è il motivo per
+// cui questa parte è più prudente: una tavola non è una miniatura. A 2480×3508
+// pesa ~35MB DECODIFICATA, quindi tenerne tre vive porta il picco di memoria da
+// ~70 a ~105MB nel momento del passaggio. È un picco, non un accumulo: le
+// tavole fuori finestra continuano a essere liberate da trimPages come prima.
+//
+// Le tre celle sono elementi DOM FISSI: non si ricreano mai. A pagina cambiata
+// quella uscita di scena viene RIUSATA per il nuovo vicino, spostandola nel DOM
+// (appendChild su un nodo già presente lo sposta soltanto, senza toccare src né
+// decodifica). È la stessa ragione per cui già il vecchio doppio buffer
+// caricava la tavola successiva DENTRO il buffer che l'avrebbe mostrata: il
+// browser non garantisce di riusare la decodifica se la stessa src passa a un
+// ELEMENTO diverso, ma la riusa sempre se è lo stesso elemento che si sposta.
+let _arCells = null;        // [{el, img, page, shown}] — 0/1/2 = prec/corrente/succ, SEMPRE
+let _arAnimating = false;
+let _arPendingDir = 0;
+
+function arTrack(){ return _reader && _reader.querySelector('.ar-track'); }
+
+function ensureArCells(){
+  if(_arCells) return _arCells;
+  const track = arTrack();
+  if(!track) return null;
+  _arCells = Array.from(track.children).map(el=>({
+    el, img: el.querySelector('.ar-img'),
+    page: null,    // tavola ASSEGNATA alla cella (anche se ancora in caricamento)
+    shown: null,   // tavola davvero dipinta dentro la cella
+  }));
+  return _arCells;
+}
+
+// Riporta il nastro a riposo senza animazione: cella centrale al centro.
+function restArTrack(){
+  const track = arTrack();
+  if(!track) return;
+  track.style.transition = 'none';
+  track.style.willChange = '';
+  track.style.transform = 'translate3d(-100%,0,0)';
+}
+
+// L'ordine di _arCells È l'ordine visivo: si riallinea il DOM all'array.
+function applyArOrder(){
+  const track = arTrack();
+  if(!track || !_arCells) return;
+  _arCells.forEach(c=> track.appendChild(c.el));
+}
+function rotateArForward(){  const [a,b,c] = _arCells; _arCells = [b,c,a]; applyArOrder(); }
+function rotateArBackward(){ const [a,b,c] = _arCells; _arCells = [c,a,b]; applyArOrder(); }
+
+// Lo zoom vive sull'immagine della cella centrale. Quando le celle ruotano,
+// quella che esce di scena si porterebbe dietro la propria trasformazione e
+// tornerebbe al centro, un giro dopo, già ingrandita.
+function resetArTransforms(){
+  if(!_arCells) return;
+  _arCells.forEach(c=>{
+    c.img.style.transition = 'none';
+    c.img.style.transform = 'translate(0px, 0px) scale(1)';
+  });
+}
+
+function cellHas(cell, index){
+  return !!(cell && cell.shown === index && cell.img.complete && cell.img.naturalWidth > 0);
+}
+
+// Carica UNA cella con la tavola dell'indice dato. La cella resta segnata
+// "pending" finché decode() non è risolta: sulle laterali il lavoro avviene
+// fuori schermo e non si vede, ma su una sorgente lenta (Drive, o un .cbr da
+// decomprimere) può capitare di arrivarci sopra prima che sia pronta — e una
+// cella vuota senza spiegazione è peggio di una che dice "sto arrivando".
+async function loadArCell(cell, index, token){
+  if(!cell) return;
+  if(index < 0 || index >= _pages.length){
+    cell.page = null; cell.shown = null;
+    cell.el.classList.remove('pending');
+    cell.img.removeAttribute('src');
+    return;
+  }
+  if(cellHas(cell, index)){
+    cell.page = index;
+    cell.el.classList.remove('pending');
+    return;
+  }
+  // Una cella che sta per cambiare tavola si SVUOTA subito. Lasciarci sopra
+  // quella di prima costerebbe caro proprio nel caso che conta: se lo swipe
+  // arriva mentre la nuova si sta ancora estraendo, si scivolerebbe su una
+  // tavola sbagliata invece che su un'attesa dichiarata.
+  if(cell.shown !== index){
+    cell.img.removeAttribute('src');
+    cell.shown = null;
+  }
+  cell.page = index;
+  cell.el.classList.add('pending');
+  const url = await pageUrl(_source, _pages[index]);
+  // Albo cambiato sotto i piedi, o cella già riassegnata a un'altra tavola
+  // mentre si estraeva: questo lavoro non serve più, e peggio ancora
+  // sovrascriverebbe una cella che ormai serve a qualcos'altro.
+  if(token !== _openToken || cell.page !== index) return;
+  if(!url){ cell.el.classList.remove('pending'); return; }
+  if(cell.img.src !== url) cell.img.src = url;
+  // decode() e non 'load': 'load' vuol dire solo "byte arrivati", mentre su una
+  // tavola grande il lavoro pesante è la decodifica, e mostrarla prima che sia
+  // finita si vede come uno scatto.
+  try{ await cell.img.decode(); }
+  catch(e){ /* src cambiata a metà o tavola rotta: si prosegue comunque */ }
+  if(token !== _openToken || cell.page !== index) return;
+  cell.shown = index;
+  cell.el.classList.remove('pending');
+}
+
+// Interfaccia intorno alla tavola (contatore, frecce, cursore, salti): non
+// dipende dai byte della pagina, si aggiorna SUBITO — sia in apertura sia a
+// ogni pagina completata. Si vede il cursore seguire il dito all'istante anche
+// mentre l'immagine sta ancora raggiungendo l'ultima pagina scelta.
+function updateReaderChrome(){
   if(!_reader || !_pages.length) return;
   const idx = _idx;
-  resetZoom(); // ogni tavola si apre a dimensione naturale
   const pad = String(_pages.length).length;
   _reader.querySelector('.ar-counter').textContent = String(idx + 1).padStart(pad, '0') + ' / ' + _pages.length;
   _reader.querySelector('.ar-prev').style.visibility = idx > 0 ? 'visible' : 'hidden';
   _reader.querySelector('.ar-next').style.visibility = idx < _pages.length - 1 ? 'visible' : 'hidden';
-  // Cursore e salti: aggiornati subito, non dipendono dai byte della tavola —
-  // e non dalla coalescenza qui sotto: si vedono seguire il dito all'istante
-  // anche mentre l'immagine sta ancora "raggiungendo" l'ultima pagina scelta.
   const seek = _reader.querySelector('.ar-seek');
   if(seek && !seek._dragging){
     seek.max = String(Math.max(0, _pages.length - 1));
@@ -874,16 +999,28 @@ async function renderPage(){
   const last = _reader.querySelector('[data-act="last"]');
   if(first) first.disabled = idx === 0;
   if(last) last.disabled = idx >= _pages.length - 1;
+}
 
+async function renderPage(){
+  if(!_reader || !_pages.length) return;
+  resetZoom(); // ogni tavola si apre a dimensione naturale
+  updateReaderChrome();
   if(_pageLoadBusy){ _pageLoadPending = true; return; }
-  await loadCurrentPageBitmap();
+  await loadCenterPage();
   while(_pageLoadPending){
     _pageLoadPending = false;
-    await loadCurrentPageBitmap();
+    await loadCenterPage();
   }
 }
 
-async function loadCurrentPageBitmap(){
+// Salto "a freddo": apertura dell'albo, cursore di scorrimento, prima/ultima
+// pagina. La tavola nuova NON si carica nella cella centrale, ma in una
+// laterale, che viene poi portata al centro d'un colpo, senza animazione.
+// Sembra un giro largo ed è invece il vecchio doppio buffer detto sul nastro:
+// assegnare una src nuova all'immagine centrale la svuoterebbe all'istante,
+// lasciando lo schermo nero per tutta la decompressione. Così invece la tavola
+// che stai guardando resta lì finché la prossima non è pronta a essere dipinta.
+async function loadCenterPage(){
   _pageLoadBusy = true;
   // Quale ALBO stiamo servendo. Controllare solo l'indice non basta: due albi
   // diversi stanno quasi sempre entrambi a pagina 0, quindi il lavoro rimasto
@@ -892,94 +1029,175 @@ async function loadCurrentPageBitmap(){
   const token = _openToken;
   const stale = ()=> token !== _openToken || !_reader;
   try{
+    const cells = ensureArCells();
+    if(!cells) return;
     const idx = _idx;
-    const url = await pageUrl(_source, _pages[idx]);
-    if(stale() || idx !== _idx) return; // albo o pagina cambiati: scarta
-    // La tavola entra nel buffer NASCOSTO e diventa visibile solo quando è
-    // decodificata: decode() (non 'load') perché 'load' significa solo "byte
-    // arrivati", mentre il lavoro pesante su una tavola grande è la decodifica.
-    const idle = readerIdleImg();
-    if(!idle) return;
-    if(idle.src !== url) idle.src = url;
-    try{ await idle.decode(); }
-    catch(e){ /* pagina cambiata a metà o immagine rotta: si prosegue */ }
-    if(stale() || idx !== _idx) return;
-    swapReaderBuffer(idle);
-    resetZoom();
-    measureBaseSize();   // dimensioni a riposo, per lo zoom senza ricalcoli
-
-    // Prefetch NEL VERSO DI LETTURA, due tavole avanti più una alle spalle.
-    //
-    // Prima era simmetrico (±1) e per giunta rinviato a thread libero e
-    // annullato ad ogni cambio pagina: sfogliando veloce non arrivava mai in
-    // fondo, così ogni tavola veniva decodificata da zero al momento di
-    // mostrarla — da qui i ~70ms di attesa per pagina che si sentono come
-    // scatto. Preparando due tavole nella direzione in cui si sta andando, la
-    // prossima è quasi sempre già pronta.
-    //
-    // Resta rinviato a thread libero (con la sorgente pigra ogni tavola costa
-    // una decompressione, o una richiesta Drive) ma NON si annulla più: il
-    // controllo di pertinenza qui sotto scarta da solo il lavoro diventato
-    // inutile, senza buttare via quello ancora buono.
-    const dir = _readDir;
-    // La tavola SUCCESSIVA si prepara DENTRO IL BUFFER CHE LA MOSTRERÀ, non in
-    // un'immagine usa-e-getta.
-    //
-    // È questo il punto che rendeva lo swipe lento sugli albi grandi. Il
-    // prefetch di prima decodificava la tavola in un Image() a parte: il
-    // browser tiene in cache la RISORSA, ma non garantisce di riusare la
-    // DECODIFICA su un elemento diverso — e con un blob: la risorsa è già
-    // locale, quindi quel prefetch non risparmiava quasi niente. Ogni tavola
-    // veniva perciò decodificata da zero proprio nell'istante in cui andava
-    // mostrata. Misurato con swipe veri su tavole 2480×3508 (CPU 8×): il
-    // contatore avanzava subito ma l'immagine arrivava ~400ms dopo, ed è
-    // esattamente la sensazione di "swipe che non funziona".
-    //
-    // I buffer sono due e si alternano: appena mostrata la tavola corrente,
-    // quello rimasto libero è proprio quello che mostrerà la prossima. Caricando
-    // lì dentro la tavola successiva, al momento dello swipe decode() trova il
-    // lavoro già fatto e lo scambio è immediato.
-    const nextI = idx + dir;
-    if(nextI >= 0 && nextI < _pages.length){
-      const spare = readerIdleImg();   // dopo lo scambio: il buffer nascosto
-      pageUrl(_source, _pages[nextI]).then(u=>{
-        // Se nel frattempo si è già navigato altrove, questo lavoro è inutile
-        // e — peggio — sovrascriverebbe un buffer che serve a qualcos'altro.
-        if(!u || !spare || stale() || _idx !== idx) return;
-        if(spare.src !== u){
-          spare.src = u;
-          spare.decode().catch(()=>{});
-        }
-      }).catch(()=>{});
+    if(!cellHas(cells[1], idx)){
+      // Cella di scorta: quella dal lato OPPOSTO al verso di lettura, che dopo
+      // la rotazione finisce comunque alle spalle. Resta fuori schermo per
+      // tutto il caricamento.
+      const spareAt = _readDir >= 0 ? 2 : 0;
+      await loadArCell(cells[spareAt], idx, token);
+      if(stale() || idx !== _idx) return;  // albo o pagina cambiati: scarta
+      if(spareAt === 2) rotateArForward(); else rotateArBackward();
+      restArTrack();
+      resetArTransforms();
+      resetZoom();
+      measureBaseSize();   // dimensioni a riposo, per lo zoom senza ricalcoli
     }
-    // Il resto della finestra (due avanti, una alle spalle) resta rinviato a
-    // thread libero e si limita a ESTRARRE i byte dallo ZIP, senza
-    // decodificarli: così saltando avanti o tornando indietro non si ripaga la
-    // decompressione, ma non si accumulano bitmap in memoria.
-    const wanted = [idx + 2*dir, idx - dir];
-    _prefetchT = whenIdle(async ()=>{
-      for(const i of wanted){
-        if(stale()) return;   // nel frattempo si è aperto un altro albo
-        if(i < 0 || i >= _pages.length) continue;
-        // Ancora dentro la finestra utile rispetto a dove siamo ADESSO?
-        // Se nel frattempo si è saltati altrove, questa tavola non serve più.
-        if(Math.abs(i - _idx) > 2) continue;
-        await pageUrl(_source, _pages[i]);
-      }
-      trimPages();
-    });
+    if(stale() || idx !== _idx) return;
+    primeNeighbours(idx, token);
   } finally {
     _pageLoadBusy = false;
   }
 }
 
+// Prepara i due vicini DENTRO le celle che li mostreranno, e lascia al thread
+// libero il resto della finestra.
+//
+// È il punto che rendeva lento lo sfogliare sugli albi grandi. Il prefetch di
+// una volta decodificava la tavola in un Image() usa-e-getta: il browser tiene
+// in cache la RISORSA ma non garantisce di riusare la DECODIFICA su un altro
+// elemento — e con un blob: la risorsa è già locale, quindi quel prefetch non
+// risparmiava quasi niente. Ogni tavola veniva perciò decodificata da zero
+// proprio nell'istante in cui andava mostrata: misurato con swipe veri su
+// tavole 2480×3508 (CPU 8×), il contatore avanzava subito ma l'immagine
+// arrivava ~400ms dopo, ed è esattamente la sensazione di "swipe che non
+// funziona".
+//
+// Col nastro le celle vicine SONO il prefetch, e per costruzione è simmetrico:
+// prima si preparava solo il verso di lettura, perché di buffer liberi ce n'era
+// uno solo; adesso trascinare in avanti o all'indietro trova in entrambi i casi
+// il lavoro già fatto.
+function primeNeighbours(idx, token){
+  if(!_arCells) return;
+  loadArCell(_arCells[0], idx - 1, token);
+  loadArCell(_arCells[2], idx + 1, token);
+  // Il resto della finestra (due tavole nel verso di lettura, una alle spalle)
+  // resta rinviato a thread libero e si limita a ESTRARRE i byte, senza
+  // decodificarli: così saltando avanti o tornando indietro non si ripaga la
+  // decompressione, ma non si accumulano bitmap in memoria.
+  //
+  // Rinviato a thread libero (con la sorgente pigra ogni tavola costa una
+  // decompressione, o una richiesta Drive) ma NON annullato ad ogni cambio
+  // pagina: il controllo di pertinenza qui sotto scarta da solo il lavoro
+  // diventato inutile, senza buttare via quello ancora buono.
+  const dir = _readDir;
+  const wanted = [idx + 2*dir, idx - dir];
+  _prefetchT = whenIdle(async ()=>{
+    for(const i of wanted){
+      if(token !== _openToken || !_reader) return;   // nel frattempo si è aperto un altro albo
+      if(i < 0 || i >= _pages.length) continue;
+      // Ancora dentro la finestra utile rispetto a dove siamo ADESSO?
+      // Se nel frattempo si è saltati altrove, questa tavola non serve più.
+      if(Math.abs(i - _idx) > 2) continue;
+      await pageUrl(_source, _pages[i]);
+    }
+    trimPages();
+  });
+}
+
+const AR_TRANSITION = 'transform .22s cubic-bezier(.22,.61,.36,1)';
+
+// Rete di sicurezza sotto transitionend: se il nastro è già esattamente al
+// valore d'arrivo (un trascinamento uscito e rientrato allo stesso punto prima
+// del rilascio) la proprietà non cambia e transitionend non scatta mai — senza
+// questa rete _arAnimating resterebbe bloccato a true per sempre.
+function afterArTransition(track, cb){
+  let done = false;
+  const finish = ()=>{ if(done) return; done = true; track.removeEventListener('transitionend', onEnd); cb(); };
+  const onEnd = e=>{ if(e.target === track && e.propertyName === 'transform') finish(); };
+  track.addEventListener('transitionend', onEnd);
+  setTimeout(finish, 260);
+}
+
+// Anima il nastro di una cella intera e, a fine corsa, ricicla le celle e
+// sposta l'indice. Unico ingresso sia per lo swipe confermato sia per frecce e
+// tastiera: partendo da un trascinamento già in corso continua da dove il dito
+// l'ha lasciato (la transizione interpola dal valore ATTUALE), partendo a
+// freddo il nastro è già a riposo e scorre uguale.
+function commitPageSwipe(dir){
+  if(_arAnimating) return;
+  const target = _idx + dir;
+  if(target < 0 || target >= _pages.length) return;
+  const track = arTrack();
+  const cells = ensureArCells();
+  if(!track || !cells) return;
+  _arAnimating = true;
+  _arPendingDir = dir;
+  // Se la cella verso cui si sta andando non è ancora pronta (sorgente lenta, o
+  // un salto che ha scavalcato il prefetch) la si avvia adesso: arriverà col
+  // suo segno di attesa invece che come un buco muto.
+  loadArCell(dir > 0 ? cells[2] : cells[0], target, _openToken);
+  track.style.willChange = 'transform';
+  track.style.transition = AR_TRANSITION;
+  track.style.transform = dir > 0 ? 'translate3d(-200%,0,0)' : 'translate3d(0%,0,0)';
+  afterArTransition(track, onPageSettled);
+}
+
+function onPageSettled(){
+  const dir = _arPendingDir;
+  if(dir > 0) rotateArForward(); else rotateArBackward();
+  restArTrack();
+  resetArTransforms();
+  _idx += dir;
+  _readDir = dir;   // il verso di lettura è quello appena percorso
+  _arAnimating = false;
+  resetZoom();
+  measureBaseSize();
+  updateReaderChrome();
+  saveReadingPos();
+  if(_currentAlbumId) updateAlbumLastPage(_currentAlbumId, _idx);
+  // Il vicino lontano, appena rivelato dalla rotazione, si prepara subito: è la
+  // cella riciclata, che porta ancora la tavola di due passi fa.
+  primeNeighbours(_idx, _openToken);
+}
+
+// Rilascio senza conferma: il nastro torna a riposo con la stessa molla della
+// conferma, così cambiare idea a metà gesto si sente naturale quanto arrivare
+// in fondo.
+function cancelPageSwipe(){
+  const track = arTrack();
+  if(!track) return;
+  _arAnimating = true;
+  track.style.willChange = 'transform';
+  track.style.transition = AR_TRANSITION;
+  track.style.transform = 'translate3d(-100%,0,0)';
+  afterArTransition(track, ()=>{
+    track.style.transition = '';
+    track.style.willChange = '';
+    _arAnimating = false;
+  });
+}
+
+// Ai due estremi dell'albo non c'è niente da mostrare oltre: il nastro cede
+// sempre meno, come una molla, invece di scorrere su una cella vuota.
+function arResistance(dx, w){
+  if(!w) return dx;
+  const goingNext = dx < 0;
+  const blocked = goingNext ? (_idx + 1 >= _pages.length) : (_idx - 1 < 0);
+  if(!blocked) return dx;
+  const c = 0.55;
+  const rb = (1 - 1/((Math.abs(dx)*c/w)+1)) * w;
+  return goingNext ? -rb : rb;
+}
+
 function gotoPage(i){
   if(_clipMode) return; // in ritaglio la navigazione è disattivata
-  if(i < 0 || i >= _pages.length) return;
-  // Verso di lettura: sfogliando in avanti le pagine utili da preparare sono
-  // quelle DAVANTI, non quelle già lasciate indietro (vedi il prefetch in
-  // loadCurrentPageBitmap).
-  if(i !== _idx) _readDir = i > _idx ? 1 : -1;
+  if(i < 0 || i >= _pages.length || i === _idx) return;
+  if(_arAnimating) return;
+  // Un passo solo: lo fa scorrere il nastro, riciclando celle già pronte invece
+  // di ricaricare qualcosa. Vale anche per frecce e tastiera, così il movimento
+  // è lo stesso da qualunque comando arrivi.
+  if(Math.abs(i - _idx) === 1 && _reader && _reader.classList.contains('open')){
+    commitPageSwipe(i > _idx ? 1 : -1);
+    return;
+  }
+  // Salto vero (cursore, prima/ultima): non c'è niente da far scorrere, si
+  // cambia la tavola sotto — vedi loadCenterPage.
+  // Verso di lettura: saltando in avanti le pagine utili da preparare sono
+  // quelle DAVANTI, non quelle già lasciate indietro (vedi primeNeighbours).
+  _readDir = i > _idx ? 1 : -1;
   _idx = i;
   saveReadingPos();
   if(_currentAlbumId) updateAlbumLastPage(_currentAlbumId, _idx);
@@ -996,21 +1214,12 @@ function gotoPage(i){
 // coordinate sull'immagine non trasformata, quindi si ritaglia a pagina intera.
 const ZOOM_IN = 2.6, ZOOM_MAX = 4;
 
-// L'immagine "attiva" cambia a ogni pagina (doppio buffer): va sempre risolta
-// al momento dell'uso, mai memorizzata in una closure.
-function readerImg(){ return _reader && _reader.querySelector('.ar-img.active'); }
-function readerIdleImg(){ return _reader && _reader.querySelector('.ar-img:not(.active)'); }
-
-// Rende visibile il buffer appena decodificato. La trasformazione viene
-// azzerata PRIMA dello scambio: altrimenti la nuova tavola comparirebbe per un
-// frame con lo zoom della precedente.
-function swapReaderBuffer(next){
-  if(!next) return;
-  next.style.transition = 'none';
-  next.style.transform = 'translate(0px, 0px) scale(1)';
-  const prev = readerImg();
-  next.classList.add('active');
-  if(prev && prev !== next) prev.classList.remove('active');
+// L'immagine a schermo è quella della cella CENTRALE, e le celle si riciclano
+// a ogni pagina: va sempre risolta al momento dell'uso, mai memorizzata in una
+// closure.
+function readerImg(){
+  const cells = _arCells || ensureArCells();
+  return cells ? cells[1].img : null;
 }
 
 // Stacca l'albo precedente prima di aprirne un altro. Da chiamare SUBITO,
@@ -1022,7 +1231,7 @@ function swapReaderBuffer(next){
 function detachCurrentAlbum(){
   saveReadingPos();          // la posizione dell'albo che stiamo lasciando
   cancelIdle(_prefetchT); _prefetchT = null;
-  clearReaderBuffers();
+  clearReaderCells();
   clearPages();              // niente più tavole da sfogliare finché non arrivano le nuove
   _albumSig = null;
   _currentAlbumId = null;
@@ -1037,20 +1246,21 @@ function detachCurrentAlbum(){
   }
 }
 
-// Svuota entrambi i buffer: finché tengono una src il browser conserva il
-// bitmap decodificato (decine di MB su una scansione grande), e — soprattutto
-// — la tavola dell'albo precedente resta a schermo.
-function clearReaderBuffers(){
+// Svuota tutte e tre le celle: finché tengono una src il browser conserva il
+// bitmap decodificato (decine di MB l'uno su una scansione grande), e —
+// soprattutto — la tavola dell'albo precedente resta a schermo.
+function clearReaderCells(){
   if(!_reader) return;
-  _reader.querySelectorAll('.ar-img').forEach(im=>{
-    im.removeAttribute('src');
-    im.classList.remove('active');
+  const cells = ensureArCells();
+  if(!cells) return;
+  cells.forEach(c=>{
+    c.img.removeAttribute('src');
+    c.page = null; c.shown = null;
+    c.el.classList.remove('pending');
   });
-  // Il primo buffer torna a essere quello "attivo" (vuoto): senza questo
-  // readerIdleImg() ne restituirebbe uno a caso e lo scambio successivo non
-  // avrebbe nulla da nascondere.
-  const first = _reader.querySelector('.ar-img');
-  if(first) first.classList.add('active');
+  restArTrack();
+  resetArTransforms();
+  _arAnimating = false;
 }
 
 function applyZoom(){
@@ -1134,10 +1344,19 @@ function wireSeek(ov){
 
 function wireGestures(ov){
   const stage = ov.querySelector('.ar-stage');
-  let x0 = 0, y0 = 0, swiping = false;
+  let x0 = 0, y0 = 0;
   let pinching = false, startDist = 0, startScale = 1;
   let panning = false, panX = 0, panY = 0, origX = 0, origY = 0;
   let lastTap = 0, lastTapX = 0, lastTapY = 0, tapTimer = null, lastTouchAt = 0;
+
+  // Trascinamento del NASTRO (cambio pagina a 1x): "candidato" appena parte un
+  // tocco singolo a dimensione naturale, "armato" solo quando il movimento
+  // indica chiaramente un gesto orizzontale — prima di allora il nastro resta
+  // fermo, così un tap con un lieve tremore del dito non lo smuove di un pixel
+  // e la logica di tap/doppio tap qui sotto funziona invariata.
+  let dragCandidate = false, dragArmed = false, stageW = 0;
+  let lastX = 0, lastT = 0, prevX = 0, prevT = 0;
+  const ARM_PX = 8;
 
   const dist = (a, b) => Math.hypot(b.clientX - a.clientX, b.clientY - a.clientY);
 
@@ -1148,13 +1367,22 @@ function wireGestures(ov){
     if(img) img.style.transition = 'none';
     const t = e.touches;
     if(t.length === 2){
-      pinching = true; panning = false; swiping = false;
+      pinching = true; panning = false; dragCandidate = false; dragArmed = false;
       startDist = dist(t[0], t[1]); startScale = _zoom;
     } else if(t.length === 1){
       pinching = false;
       x0 = t[0].clientX; y0 = t[0].clientY;
-      if(_zoom > 1.02){ panning = true; swiping = false; panX = x0; panY = y0; origX = _zx; origY = _zy; }
-      else { panning = false; swiping = true; }
+      if(_zoom > 1.02){
+        panning = true; dragCandidate = false; dragArmed = false;
+        panX = x0; panY = y0; origX = _zx; origY = _zy;
+      } else {
+        panning = false;
+        dragCandidate = !_arAnimating && _pages.length > 0;
+        dragArmed = false;
+        stageW = stage.clientWidth;
+        lastX = prevX = x0;
+        lastT = prevT = performance.now();
+      }
     }
   }, { passive: true });
 
@@ -1170,6 +1398,25 @@ function wireGestures(ov){
       const c = clampPan(_zoom, origX + (t[0].clientX - panX), origY + (t[0].clientY - panY));
       _zx = c.x; _zy = c.y;
       applyZoom();
+    } else if(dragCandidate && t.length === 1){
+      const x = t[0].clientX, y = t[0].clientY;
+      const ddx = x - x0, ddy = y - y0;
+      if(!dragArmed){
+        if(Math.abs(ddx) > ARM_PX && Math.abs(ddx) > Math.abs(ddy)){
+          dragArmed = true;
+          const track = arTrack();
+          if(track){ track.style.transition = 'none'; track.style.willChange = 'transform'; }
+        } else if(Math.abs(ddy) > ARM_PX){
+          dragCandidate = false;   // gesto verticale: non è il nostro
+          return;
+        } else {
+          return;   // ancora sotto soglia, si aspetta
+        }
+      }
+      prevX = lastX; prevT = lastT;
+      lastX = x; lastT = performance.now();
+      const track = arTrack();
+      if(track) track.style.transform = `translate3d(calc(-100% + ${arResistance(ddx, stageW)}px),0,0)`;
     }
   }, { passive: true });
 
@@ -1186,20 +1433,31 @@ function wireGestures(ov){
       // trascinamento vero: non è un tap, non valutarlo come doppio tocco
       if(Math.hypot(t.clientX - panX, t.clientY - panY) > 14) return;
     }
-    const dx = t.clientX - x0, dy = t.clientY - y0;
-    const moved = Math.hypot(dx, dy);
-    // Stessa regola della galleria reference: conta lo spostamento
-    // ORIZZONTALE, non la diagonale, e vale anche il colpetto secco e corto.
-    // Con la soglia di 55px sulla diagonale un flick rapido spesso non
-    // arrivava e la pagina non girava, costringendo a ripetere il gesto.
-    const adx = Math.abs(dx), ady = Math.abs(dy);
-    const isFlick = (Date.now() - lastTouchAt) < 300 && adx > 24;
-    if(swiping && _zoom <= 1.02 && (adx > 38 || isFlick) && adx > ady * 1.2){
-      swiping = false;
-      if(dx < 0) gotoPage(_idx + 1); else gotoPage(_idx - 1);
+    // ── RILASCIO DI UN TRASCINAMENTO ARMATO: conferma o molla indietro ──
+    // Si conferma per DISTANZA (oltre il 30% dello schermo) o per VELOCITÀ,
+    // misurata sugli ultimi due campioni e non sull'intero gesto — così un
+    // trascinamento lento che finisce con uno scatto conta come scatto. Il
+    // secondo controllo (durata totale breve + distanza minima) resta come rete
+    // di sicurezza per i gesti troppo rapidi da campionare bene: prima, con la
+    // sola soglia sulla diagonale, un flick corto spesso non arrivava e la
+    // pagina non girava, costringendo a ripetere il gesto.
+    if(dragArmed){
+      dragArmed = false; dragCandidate = false;
+      const dx = t.clientX - x0;
+      const adx = Math.abs(dx);
+      const vx = lastT > prevT ? (lastX - prevX) / (lastT - prevT) : 0;
+      const elapsed = Date.now() - lastTouchAt;
+      const distOk = adx > stageW * 0.3;
+      const flickOk = (Math.abs(vx) > 0.5 && Math.sign(vx) === Math.sign(dx)) || (elapsed < 300 && adx > 24);
+      const dir = dx < 0 ? 1 : -1;   // trascino a sinistra → avanti
+      const blocked = dir > 0 ? (_idx + 1 >= _pages.length) : (_idx - 1 < 0);
+      if(!blocked && (distOk || flickOk)) commitPageSwipe(dir);
+      else cancelPageSwipe();
       return;
     }
-    swiping = false;
+    dragCandidate = false;
+    const dx = t.clientX - x0, dy = t.clientY - y0;
+    const moved = Math.hypot(dx, dy);
     if(moved < 20){
       const now = Date.now();
       const closeTap = Math.hypot(t.clientX - lastTapX, t.clientY - lastTapY) < 50;
@@ -1211,6 +1469,15 @@ function wireGestures(ov){
         lastTap = now; lastTapX = t.clientX; lastTapY = t.clientY;
       }
     }
+  }, { passive: true });
+
+  // Un tocco annullato dal sistema (una notifica, un gesto di bordo) non emette
+  // touchend: senza questo il nastro resterebbe fermo dov'era il dito, a metà
+  // fra due tavole.
+  stage.addEventListener('touchcancel', ()=>{
+    pinching = false; panning = false;
+    if(dragArmed) cancelPageSwipe();
+    dragArmed = false; dragCandidate = false;
   }, { passive: true });
 
   // Desktop: rotella per ingrandire, con lo zoom centrato sul puntatore.

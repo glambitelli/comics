@@ -91,28 +91,60 @@ body.album-reading{overflow:hidden}
   position:relative;flex:1;min-height:0;overflow:hidden;
   display:flex;align-items:center;justify-content:center;touch-action:none;
 }
-/* Doppio buffer: due tavole sovrapposte, una sola visibile. Quella nascosta
-   carica e DECODIFICA la pagina successiva; si scambia la visibilità solo a
-   decodifica conclusa, così quella a schermo non sparisce mai prima che
-   l'altra sia pronta a essere dipinta. Senza questo, cambiare pagina lasciava
-   un istante di nero tanto più lungo quanto era grande la tavola. */
+/* Nastro di tre celle affiancate (precedente/corrente/successiva), gemello di
+   quello della galleria References (vedi .refs-lightbox-track in refs.css): a
+   riposo sta spostato di esattamente una cella (translateX(-100%), percentuale
+   sulla PROPRIA larghezza, quindi niente misure in px). Ognuna occupa il 100%
+   della larghezza dello stage: tre insieme sfondano il contenitore, che le
+   taglia con l'overflow:hidden qui sopra. Durante il trascinamento cambia solo
+   questo transform: mai un ricalcolo di layout dentro il gesto.
+   Il nastro sta per primo nello stage, così banner, glifo, livello di ritaglio
+   e frecce restano tutti sopra le tavole. */
+.ar-track{position:absolute;inset:0;display:flex}
+/* box-sizing:border-box + un filo di padding orizzontale: la cella resta larga
+   esattamente il 100% (l'incastro fra celle e la matematica del transform non
+   cambiano di un pixel), ma la tavola dentro si stacca dal bordo — così mentre
+   si trascina si intravede lo sfondo scuro fra una pagina e l'altra, invece di
+   due tavole incollate bordo a bordo. */
+.ar-cell{
+  flex:0 0 100%;width:100%;height:100%;box-sizing:border-box;padding:0 5px;
+  display:flex;align-items:center;justify-content:center;overflow:hidden;
+  pointer-events:none;position:relative;
+}
+/* Solo la cella CENTRALE (sempre in posizione 2: le celle riciclate si spostano
+   nel DOM, ma l'ordine visivo resta prec-corrente-succ) riceve i gesti del
+   mouse — le laterali servono a scorrere in vista, non sono cliccabili. */
+.ar-cell:nth-child(2){pointer-events:auto}
+/* Cella ancora in attesa della sua tavola: su una sorgente lenta (Drive, o un
+   .cbr da decomprimere) può capitare di scivolarci sopra prima che sia pronta.
+   Lo stesso "✦" del glifo di caricamento, in piccolo e senza fondo: dice "sto
+   arrivando" invece di lasciare un buco muto. */
+.ar-cell.pending::after{
+  content:'✦';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  font-family:'Castoro',serif;font-size:34px;color:var(--gold);
+  animation:arCellWait 1.4s ease-in-out infinite;pointer-events:none;
+}
+@keyframes arCellWait{ 0%,100%{opacity:.5} 50%{opacity:.16} }
+@media (prefers-reduced-motion:reduce){
+  .ar-cell.pending::after{animation:none;opacity:.4}
+}
 .ar-img{
   max-width:100%;max-height:100%;object-fit:contain;
   transform-origin:center center;
   user-select:none;-webkit-user-drag:none;
-  position:absolute;opacity:0;pointer-events:none;
 }
-.ar-img.active{position:relative;opacity:1;pointer-events:auto}
-/* will-change SOLO mentre si è ingranditi, non sempre. Promuove l'immagine a
-   un livello di composizione a sé, tenuto in memoria video alla sua
-   risoluzione PIENA: su tavole da 8,7 megapixel sono decine di MB per
-   ciascuno dei due buffer, occupati per tutta la lettura anche stando fermi a
-   dimensione naturale, dove non c'è nessuna trasformazione da accelerare. Su
-   un telefono quella pressione si paga in scatti; da desktop non si nota. */
-.ar-stage.zoomed .ar-img{will-change:transform}
+/* will-change SOLO mentre si è ingranditi, e solo sulla cella CENTRALE — non su
+   tutte e tre in permanenza. Promuove l'immagine a un livello di composizione a
+   sé, tenuto in memoria video alla sua risoluzione PIENA: su tavole da 8,7
+   megapixel sono decine di MB per cella, occupati per tutta la lettura anche
+   stando fermi a dimensione naturale, dove non c'è nessuna trasformazione da
+   accelerare. Su un telefono quella pressione si paga in scatti; da desktop non
+   si nota. */
+.ar-stage.zoomed .ar-cell:nth-child(2) .ar-img{will-change:transform}
 /* La manina compare solo quando c'e' davvero qualcosa da spostare */
 .ar-stage.zoomed{cursor:grab}
 .ar-stage.zoomed.grabbing{cursor:grabbing}
+.ar-stage.zoomed .ar-cell,
 .ar-stage.zoomed .ar-img{cursor:inherit}
 
 /* Banner di stato DENTRO il lettore: quello della schermata References resta
