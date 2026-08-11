@@ -55,6 +55,9 @@
      ingrandirebbe di quei pochi pixel — un sobbalzo piccolo ma fastidioso
      proprio nel momento in cui stai inquadrando un dettaglio. */
   --ar-dock-h:84px;
+  /* Altezza della barra di comandi in alto (bottoni da 34px + 10px di aria
+     sopra e sotto). La tavola comincia sotto questa quota: vedi .ar-track. */
+  --ar-top-h:54px;
 }
 .album-reader.open{display:flex}
 body.album-reading{overflow:hidden}
@@ -110,7 +113,14 @@ body.album-reading{overflow:hidden}
    questo transform: mai un ricalcolo di layout dentro il gesto.
    Il nastro sta per primo nello stage, così banner, glifo, livello di ritaglio
    e frecce restano tutti sopra le tavole. */
-.ar-track{position:absolute;inset:0;display:flex}
+/* La tavola comincia SOTTO la barra in alto, non dietro. I tre bottoni (chiudi,
+   Riprova, forbici) sono sospesi sopra lo stage senza fondo pieno — scelta
+   voluta, una fascia opaca ruberebbe una striscia di schermo — ma sopra una
+   tavola chiara restavano poco leggibili e coprivano il disegno proprio nella
+   riga in alto, dove nei fumetti c'è quasi sempre qualcosa. Abbassando il
+   nastro di --ar-top-h la tavola si rimpicciolisce di pochi punti percentuali e
+   i bottoni si stagliano sul fondo scuro del lettore, dove si leggono. */
+.ar-track{position:absolute;top:var(--ar-top-h);left:0;right:0;bottom:0;display:flex}
 /* box-sizing:border-box + un filo di padding orizzontale: la cella resta larga
    esattamente il 100% (l'incastro fra celle e la matematica del transform non
    cambiano di un pixel), ma la tavola dentro si stacca dal bordo — così mentre
@@ -275,7 +285,10 @@ body.album-reading{overflow:hidden}
 body.is-touch .ar-nav{display:none} /* su mobile si naviga con swipe/tap */
 
 /* strato di ritaglio */
-.ar-cliplayer{position:absolute;inset:0;cursor:crosshair;touch-action:none}
+/* Stessa area della tavola, non tutto lo stage: sopra la barra in alto non
+   c'è niente da ritagliare, e permettere di trascinarci un riquadro
+   significherebbe solo selezionare fondo vuoto. */
+.ar-cliplayer{position:absolute;top:var(--ar-top-h);left:0;right:0;bottom:0;cursor:crosshair;touch-action:none}
 .ar-clipbox{
   position:absolute;border:1.5px solid var(--gold);
   background:rgba(240,192,32,.14);box-shadow:0 0 0 9999px rgba(0,0,0,.35);

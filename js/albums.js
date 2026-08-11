@@ -820,6 +820,19 @@ function cancelAlbumDownload(){
 // lettore esistesse).
 function openReaderShell(title){
   const ov = _reader || buildReaderDOM();
+  // Ogni apertura riparte dal ritaglio SPENTO, sempre, senza dare per scontato
+  // che la chiusura precedente abbia fatto pulizia.
+  //
+  // È il difetto che si vedeva così: si comincia un ritaglio, si chiude
+  // l'albo col riquadro ancora in sospeso, si riapre — e toccando "Ritaglia"
+  // non succede niente. Non era il pulsante a essere rotto: _clipMode era
+  // rimasto TRUE, quindi la prima pressione lo SPEGNEVA invece di accenderlo,
+  // e spegnere qualcosa di già spento non si vede. Ne servivano due.
+  // La chiusura ha già il suo azzeramento (vedi closeReaderUI), ma basta un
+  // percorso che non ci passi — il tasto Indietro di sistema, una schermata
+  // riaperta da un'altra strada — perché lo stato sopravviva. Qui invece si
+  // passa per forza, qualunque sia l'albo e da dove lo si apra.
+  toggleClip(false);
   ov.querySelector('.ar-title').textContent = title || '';
   ov.classList.add('open');
   document.body.classList.add('album-reading');
@@ -1733,6 +1746,9 @@ function toggleClip(force){
   // ritaglio non se ne va da solo insieme al resto, va spento qui.
   const retry = _reader.querySelector('.ar-retry');
   if(retry) retry.hidden = true;
+  // Entrando o uscendo si riparte SEMPRE da foglio bianco: un riquadro
+  // lasciato in sospeso non deve sopravvivere al giro successivo.
+  if(_reader._clipReset) _reader._clipReset();
   // In ritaglio la navigazione non serve: via cursore e salti, resta l'avviso.
   const controls = _reader.querySelector('.ar-controls');
   if(controls) controls.hidden = _clipMode;
@@ -1856,6 +1872,20 @@ function wireClip(ov){
       label: f.name,
       onSelect: ()=>{ if(ov._clipConfirm) ov._clipConfirm(f.id); },
     })));
+  };
+
+  // Riporta il ritaglio a foglio bianco. Serve perché lo stato del riquadro
+  // vive QUI dentro, in variabili di chiusura (pendingSel, drawing,
+  // resizeCorner) che nessuno di fuori può azzerare: uscendo dal ritaglio
+  // restavano com'erano, e con loro la barra delle destinazioni. Riaprendo,
+  // al posto di "trascina un riquadro" ricompariva la conferma di un ritaglio
+  // che non esisteva più.
+  ov._clipReset = ()=>{
+    pendingSel = null;
+    drawing = false;
+    resizeCorner = null;
+    box.hidden = true;
+    showConfirm(false);
   };
 
   const showConfirm = (on)=>{
