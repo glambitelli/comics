@@ -300,7 +300,7 @@ export async function driveRangeFetch(fileId, start, end){
 // `onProgress(loaded, total)` (total 0 se Drive non lo dichiara). Un timer di
 // STALLO si riarma ad ogni blocco: una connessione lenta ma viva non viene
 // mai interrotta, solo una davvero bloccata per più di 25s.
-async function downloadDriveFileToCache(fileMeta, onProgress){
+async function downloadDriveFileToCache(fileMeta, onProgress, signal){
   if(!isDriveConnected()) throw new Error('Drive non collegato.');
   const url = `https://www.googleapis.com/drive/v3/files/${fileMeta.id}?alt=media`;
   const ctrl = new AbortController();
@@ -308,15 +308,33 @@ async function downloadDriveFileToCache(fileMeta, onProgress){
   const armStall = ()=>{ clearTimeout(stallTimer); stallTimer = setTimeout(()=>ctrl.abort(), 25000); };
   armStall();
 
+  // Annullamento chiesto da chi legge (il bottone "Annulla" del lettore): si
+  // propaga allo stesso controller del guardiano dello stallo, perché la
+  // fetch ne ascolta uno solo. I due esiti restano però distinti: "l'ho fermato
+  // io" e "è caduta la linea" meritano due messaggi diversi, e soprattutto il
+  // primo non è un errore da mostrare come tale.
+  let cancelled = false;
+  const onExternalAbort = ()=>{ cancelled = true; ctrl.abort(); };
+  if(signal){
+    if(signal.aborted) throw downloadCancelled();
+    signal.addEventListener('abort', onExternalAbort, { once: true });
+  }
+  const done = ()=>{
+    clearTimeout(stallTimer);
+    if(signal) signal.removeEventListener('abort', onExternalAbort);
+  };
+  const stopped = (e)=> !!e && (e.name === 'AbortError' || /aborted/i.test(e.message || ''));
+
   let res;
   try{
     res = await fetch(url, { headers: { Authorization: 'Bearer ' + _token.access_token }, signal: ctrl.signal });
   }catch(e){
-    clearTimeout(stallTimer);
-    throw e.name === 'AbortError' ? new Error('Download da Drive interrotto: connessione troppo lenta o caduta.') : e;
+    done();
+    if(cancelled) throw downloadCancelled();
+    throw stopped(e) ? new Error('Download da Drive interrotto: connessione troppo lenta o caduta.') : e;
   }
-  if(res.status === 401){ clearTimeout(stallTimer); clearToken(); throw new Error('Sessione Drive scaduta: ricollega.'); }
-  if(!res.ok){ clearTimeout(stallTimer); throw new Error('Download da Drive fallito (' + res.status + ')'); }
+  if(res.status === 401){ done(); clearToken(); throw new Error('Sessione Drive scaduta: ricollega.'); }
+  if(!res.ok){ done(); throw new Error('Download da Drive fallito (' + res.status + ')'); }
 
   const total = parseInt(res.headers.get('Content-Length') || '0', 10) || 0;
   const type = res.headers.get('Content-Type') || 'application/octet-stream';
@@ -340,18 +358,34 @@ async function downloadDriveFileToCache(fileMeta, onProgress){
   try{
     await putWithQuotaRetry(cache, key, new Response(body, { headers: { 'Content-Type': type } }));
   }catch(e){
-    clearTimeout(stallTimer);
+    done();
     try{ await cache.delete(key); }catch(_){}   // non lasciare un albo troncato
-    if(e && (e.name === 'AbortError' || /aborted/i.test(e.message||''))){
-      throw new Error('Download da Drive interrotto: connessione troppo lenta o caduta.');
-    }
+    if(cancelled) throw downloadCancelled();
+    if(stopped(e)) throw new Error('Download da Drive interrotto: connessione troppo lenta o caduta.');
     if(e && e.name === 'QuotaExceededError'){
       throw new Error('Spazio esaurito: libera memoria sul dispositivo e riprova.');
     }
     throw e;
   }
-  clearTimeout(stallTimer);
+  done();
+  // Il segnale può arrivare mentre l'ultimo blocco sta finendo di scriversi:
+  // a quel punto in cache c'è un albo completo, ma chi ha chiesto di annullare
+  // non se lo aspetta più. Si butta e si dichiara annullato, com'è stato
+  // chiesto — riscaricarlo è una scelta di chi legge, non una sorpresa.
+  if(cancelled){
+    try{ await cache.delete(key); }catch(_){}
+    throw downloadCancelled();
+  }
 }
+
+// Annullamento volontario: non è un errore, e chi chiama deve poterlo
+// riconoscere senza leggere il testo del messaggio.
+function downloadCancelled(){
+  const e = new Error('Scaricamento annullato.');
+  e.cancelled = true;
+  return e;
+}
+export function isDownloadCancelled(e){ return !!(e && e.cancelled); }
 
 // Se lo spazio è finito, libera gli albi più vecchi e riprova una volta sola:
 // con volumi da centinaia di MB la quota del browser si raggiunge in fretta.
@@ -402,10 +436,10 @@ async function trimAlbumCache(){
   }catch(e){}
 }
 
-export async function getDriveAlbumFile(fileMeta, onProgress){
+export async function getDriveAlbumFile(fileMeta, onProgress, signal){
   const cached = await readAlbumCache(fileMeta.id, fileMeta.name);
   if(cached) return { file: cached, fromCache: true };
-  await downloadDriveFileToCache(fileMeta, onProgress);
+  await downloadDriveFileToCache(fileMeta, onProgress, signal);
   await trimAlbumCache();
   // Il File torna dalla cache: è appoggiato al disco, non una copia in memoria.
   const file = await readAlbumCache(fileMeta.id, fileMeta.name);

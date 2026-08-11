@@ -31,7 +31,7 @@ import {
   clipDestinations, clipCategories, getFolderName, rememberClipDest,
 } from './refs.js';
 import { uploadToCloudinary } from './cloudinary.js';
-import { getDriveAlbumFile, ensureDriveConnected } from './drive.js';
+import { getDriveAlbumFile, ensureDriveConnected, isDownloadCancelled } from './drive.js';
 import { openRemoteZipSource, openBlobZipSource } from './zipremote.js';
 import { haptic } from './state.js';
 import { actionMenu } from './dialogs.js';
@@ -52,6 +52,11 @@ let _currentAlbumId = null;  // doc refAlbums collegato alla lettura in corso (n
 // prossimo file scelto dal picker viene confrontato con QUESTO albo atteso
 // (non con l'intero scaffale) prima di decidere se è una riapertura.
 let _pendingReopen = null;
+// Scaricamento da Drive in corso e annullabile a mano. Un volume da mezzo giga
+// su 4G sono minuti: prima l'unico modo di uscirne era chiudere il lettore, ma
+// il download proseguiva comunque in sottofondo — dati consumati per un file
+// che nessuno stava più aspettando.
+let _dlAbort = null;
 
 // ── UTIL ──────────────────────────────────────────────────────────────────
 const IMG_RE = /\.(jpe?g|png|gif|webp|avif|bmp)$/i;
@@ -603,6 +608,11 @@ export async function openAlbumFromDrive(albumId){
   // cambio pagina pagava la latenza: molto peggio di un'attesa sola all'inizio
   // e poi tutto immediato.
   let file;
+  // Il segnale di annullamento vive per tutta la durata dello scaricamento e lo
+  // rende fermabile dal bottone sotto il glifo (vedi cancelAlbumDownload).
+  _dlAbort = new AbortController();
+  const dlSignal = _dlAbort.signal;
+  showCancelDownload(true);
   try{
     // Throttle del progresso: aggiornare il banner ad ogni blocco ricevuto
     // (migliaia su un file grande) è lavoro inutile sul thread principale.
@@ -616,13 +626,21 @@ export async function openAlbumFromDrive(albumId){
         lastPaint = now;
         const mb = n => (n / 1048576).toFixed(1);
         toast('Scarico da Drive… ' + mb(loaded) + (total ? ' / ' + mb(total) + ' MB' : ' MB'), false, true);
-      }
+      },
+      dlSignal
     );
     file = r.file;
   }catch(e){
+    showCancelDownload(false);
+    if(_dlAbort && _dlAbort.signal === dlSignal) _dlAbort = null;
+    // Annullato di proposito: non è un errore, e cancelAlbumDownload ha già
+    // chiuso la vista e detto la sua. Qui non c'è altro da aggiungere.
+    if(isDownloadCancelled(e)) return;
     if(token === _openToken) toast('Impossibile scaricare da Drive: '+e.message, true);
     return;
   }
+  showCancelDownload(false);
+  if(_dlAbort && _dlAbort.signal === dlSignal) _dlAbort = null;
   if(token !== _openToken) return;
 
   toast('', false, true); // solo il glifo, come sopra
@@ -676,6 +694,7 @@ function buildReaderDOM(){
           <text x="50" y="58" text-anchor="middle" font-size="90" class="star-fill" clip-path="url(#ar-loading-fill-clip)">✦</text>
         </svg>
       </div>
+      <button class="ar-cancel-dl" type="button" data-act="canceldl" hidden>Annulla scaricamento</button>
       <div class="ar-cliplayer" hidden>
         <div class="ar-clipbox" hidden>
           <div class="ar-clip-handle" data-corner="nw"></div>
@@ -741,6 +760,7 @@ function buildReaderDOM(){
     // "conferma" e poi "scegli dove".
     else if(act === 'confirmclip'){ if(ov._clipConfirm) ov._clipConfirm(b.dataset.dest || null); }
     else if(act === 'catdest'){ e.stopPropagation(); if(ov._clipCatDests) ov._clipCatDests(b, +b.dataset.cat); }
+    else if(act === 'canceldl') cancelAlbumDownload();
   });
 
   // Tap sul centro dell'immagine (fuori clip) = avanti; bordo sinistro = indietro.
@@ -757,6 +777,36 @@ function buildReaderDOM(){
   wireClip(ov);
   _reader = ov;
   return ov;
+}
+
+// Il bottone "Annulla scaricamento" compare sotto il glifo di attesa, e solo
+// mentre c'è davvero un download da fermare: aprendo un albo già in cache non
+// si vede nemmeno, perché non c'è niente da annullare.
+function showCancelDownload(on){
+  if(!_reader) return;
+  const b = _reader.querySelector('.ar-cancel-dl');
+  if(b) b.hidden = !on;
+}
+
+// Annullamento chiesto a mano. Si ferma la rete (il controller arriva fino
+// alla fetch, vedi downloadDriveFileToCache in drive.js: il file a metà viene
+// buttato, non resta un albo troncato in cache), si scarta qualunque lavoro
+// ancora in sospeso su questa apertura, e si torna allo scaffale da cui si era
+// partiti — un lettore aperto e vuoto sarebbe un vicolo cieco.
+function cancelAlbumDownload(){
+  if(!_dlAbort) return;
+  _dlAbort.abort();
+  _dlAbort = null;
+  showCancelDownload(false);
+  ++_openToken;
+  toast('');
+  // La vista si chiude SUBITO e poi si allinea la cronologia: così il messaggio
+  // qui sotto trova il lettore già chiuso e va a finire sulla schermata
+  // References, dove l'utente sta per tornare, invece che su un banner che
+  // sparisce nello stesso istante.
+  closeReaderUI();
+  try{ if(history.state && history.state.view === 'albumreader') history.back(); }catch(e){}
+  toast('Scaricamento annullato.');
 }
 
 // Apre solo il guscio del lettore (chrome + overlay), senza disegnare
@@ -808,6 +858,7 @@ export function closeReaderUI(){
   // buffer: finché tengono una src, il browser conserva il bitmap decodificato
   // (decine di MB su una scansione grande) anche a lettore chiuso.
   cancelIdle(_prefetchT); _prefetchT = null;
+  showCancelDownload(false);
   clearReaderCells();
   // Le pagine restano in memoria finché non apri un altro albo: riaprire lo
   // stesso file dal picker le ricrea comunque. Le liberiamo alla prossima apertura.
