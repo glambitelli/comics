@@ -722,8 +722,8 @@ function buildReaderDOM(){
     if(!b) return;
     const act = b.dataset.act;
     if(act === 'close') closeReader();
-    else if(act === 'prev') gotoPage(_idx - 1);
-    else if(act === 'next') gotoPage(_idx + 1);
+    else if(act === 'prev') stepPage(-1);
+    else if(act === 'next') stepPage(1);
     else if(act === 'clip') toggleClip();
     else if(act === 'first') gotoPage(0);
     else if(act === 'last') gotoPage(_pages.length - 1);
@@ -739,8 +739,8 @@ function buildReaderDOM(){
   // Gestito dai bottoni ar-nav; qui aggiungiamo tastiera e swipe.
   document.addEventListener('keydown', e=>{
     if(!ov.classList.contains('open')) return;
-    if(e.key === 'ArrowRight' || e.key === ' ') gotoPage(_idx + 1);
-    else if(e.key === 'ArrowLeft') gotoPage(_idx - 1);
+    if(e.key === 'ArrowRight' || e.key === ' ') stepPage(1);
+    else if(e.key === 'ArrowLeft') stepPage(-1);
     else if(e.key === 'Escape'){ if(_clipMode) toggleClip(false); else closeReader(); }
   });
 
@@ -902,7 +902,13 @@ function ensureArCells(){
 }
 
 // Riporta il nastro a riposo senza animazione: cella centrale al centro.
+// Quanto il nastro è spostato, in px, rispetto alla sua posizione di riposo.
+// Serve a dosare la durata dell'animazione su quanto resta DAVVERO da
+// percorrere (vedi commitPageSwipe): a nastro fermo è zero.
+let _arOffsetPx = 0;
+
 function restArTrack(){
+  _arOffsetPx = 0;
   const track = arTrack();
   if(!track) return;
   track.style.transition = 'none';
@@ -1071,8 +1077,18 @@ async function loadCenterPage(){
 // il lavoro già fatto.
 function primeNeighbours(idx, token){
   if(!_arCells) return;
-  loadArCell(_arCells[0], idx - 1, token);
-  loadArCell(_arCells[2], idx + 1, token);
+  // Un fotogramma di ritardo, non di più. Estrarre una tavola da un .cbz è
+  // lavoro SINCRONO e bloccante (~13ms l'una, vedi il commento su unzipSync):
+  // partendo nello stesso istante in cui la pagina si posa — che è anche
+  // l'istante in cui spesso il dito si appoggia per lo swipe successivo — quei
+  // due lavori cadono dentro il primo fotogramma del gesto e si sentono come
+  // una partenza impastata. Un rAF li sposta fuori, e per un precarico
+  // sedici millisecondi non cambiano niente.
+  requestAnimationFrame(()=>{
+    if(token !== _openToken || !_arCells || _idx !== idx) return;
+    loadArCell(_arCells[0], idx - 1, token);
+    loadArCell(_arCells[2], idx + 1, token);
+  });
   // Il resto della finestra (due tavole nel verso di lettura, una alle spalle)
   // resta rinviato a thread libero e si limita a ESTRARRE i byte, senza
   // decodificarli: così saltando avanti o tornando indietro non si ripaga la
@@ -1097,18 +1113,51 @@ function primeNeighbours(idx, token){
   });
 }
 
-const AR_TRANSITION = 'transform .22s cubic-bezier(.22,.61,.36,1)';
+// La durata si commisura a quanto resta DAVVERO da percorrere, non è più fissa.
+// Con una durata fissa gli ultimi centimetri dopo un trascinamento lungo si
+// prendevano gli stessi 220ms di una pagina girata da ferma: il dito aveva già
+// fatto quasi tutto il lavoro e il nastro sembrava frenare sul più bello. Il
+// minimo esiste perché sotto una certa soglia un movimento non si legge più
+// come movimento, ma come uno scatto.
+const AR_DUR_MAX = 220, AR_DUR_MIN = 90;
+const AR_EASE = 'cubic-bezier(.22,.61,.36,1)';
+function arDuration(distanza, larghezza){
+  if(!larghezza) return AR_DUR_MAX;
+  const quota = Math.min(1, Math.max(0, distanza / larghezza));
+  return Math.round(Math.max(AR_DUR_MIN, AR_DUR_MAX * quota));
+}
 
 // Rete di sicurezza sotto transitionend: se il nastro è già esattamente al
 // valore d'arrivo (un trascinamento uscito e rientrato allo stesso punto prima
 // del rilascio) la proprietà non cambia e transitionend non scatta mai — senza
 // questa rete _arAnimating resterebbe bloccato a true per sempre.
-function afterArTransition(track, cb){
+let _arFinish = null;   // conclusione dell'animazione in corso, per poterla anticipare
+function afterArTransition(track, ms, cb){
   let done = false;
-  const finish = ()=>{ if(done) return; done = true; track.removeEventListener('transitionend', onEnd); cb(); };
+  const finish = ()=>{
+    if(done) return;
+    done = true;
+    track.removeEventListener('transitionend', onEnd);
+    clearTimeout(timer);
+    if(_arFinish === finish) _arFinish = null;
+    cb();
+  };
   const onEnd = e=>{ if(e.target === track && e.propertyName === 'transform') finish(); };
   track.addEventListener('transitionend', onEnd);
-  setTimeout(finish, 260);
+  const timer = setTimeout(finish, ms + 40);
+  _arFinish = finish;
+}
+
+// Chiude SUBITO l'animazione in corso, invece di ignorare il gesto che arriva
+// mentre il nastro sta ancora scorrendo.
+//
+// È il motivo per cui a volte serviva un doppio swipe. Fra una pagina e l'altra
+// passano ~220ms di scorrimento, e in quella finestra il tocco successivo non
+// veniva rallentato: veniva buttato via del tutto, perché il trascinamento
+// nemmeno si armava. Sfogliando di lena si finisce in quella finestra di
+// continuo, e la sensazione è "il primo swipe non l'ha preso".
+function flushArTransition(){
+  if(_arFinish) _arFinish();
 }
 
 // Anima il nastro di una cella intera e, a fine corsa, ricicla le celle e
@@ -1117,7 +1166,11 @@ function afterArTransition(track, cb){
 // l'ha lasciato (la transizione interpola dal valore ATTUALE), partendo a
 // freddo il nastro è già a riposo e scorre uguale.
 function commitPageSwipe(dir){
-  if(_arAnimating) return;
+  // Comando arrivato mentre il nastro scorre ancora (frecce premute in rapida
+  // successione, swipe incalzanti): si chiude subito quello in corso e si
+  // riparte da lì, invece di lasciar cadere il comando.
+  if(_arAnimating) flushArTransition();
+  if(_arAnimating) return;   // non si è chiusa: meglio perdere un passo che accavallarne due
   const target = _idx + dir;
   if(target < 0 || target >= _pages.length) return;
   const track = arTrack();
@@ -1129,10 +1182,14 @@ function commitPageSwipe(dir){
   // un salto che ha scavalcato il prefetch) la si avvia adesso: arriverà col
   // suo segno di attesa invece che come un buco muto.
   loadArCell(dir > 0 ? cells[2] : cells[0], target, _openToken);
+  // Quanta strada resta: una cella intera partendo da fermo (freccia,
+  // tastiera), molto meno se il dito ha già trascinato quasi tutto.
+  const w = track.clientWidth || 0;
+  const ms = arDuration(w - Math.min(w, Math.abs(_arOffsetPx)), w);
   track.style.willChange = 'transform';
-  track.style.transition = AR_TRANSITION;
+  track.style.transition = `transform ${ms}ms ${AR_EASE}`;
   track.style.transform = dir > 0 ? 'translate3d(-200%,0,0)' : 'translate3d(0%,0,0)';
-  afterArTransition(track, onPageSettled);
+  afterArTransition(track, ms, onPageSettled);
 }
 
 function onPageSettled(){
@@ -1160,10 +1217,16 @@ function cancelPageSwipe(){
   const track = arTrack();
   if(!track) return;
   _arAnimating = true;
+  // Anche il rientro dura quanto la strada da rifare: se il dito si era mosso
+  // di poco, il nastro torna a posto subito invece di prendersi tutto il tempo
+  // di una pagina intera.
+  const w = track.clientWidth || 0;
+  const ms = arDuration(Math.abs(_arOffsetPx), w);
   track.style.willChange = 'transform';
-  track.style.transition = AR_TRANSITION;
+  track.style.transition = `transform ${ms}ms ${AR_EASE}`;
   track.style.transform = 'translate3d(-100%,0,0)';
-  afterArTransition(track, ()=>{
+  afterArTransition(track, ms, ()=>{
+    _arOffsetPx = 0;
     track.style.transition = '';
     track.style.willChange = '';
     _arAnimating = false;
@@ -1182,8 +1245,23 @@ function arResistance(dx, w){
   return goingNext ? -rb : rb;
 }
 
+// Un passo avanti o indietro rispetto a dove siamo ADESSO. Va chiesto come
+// DIREZIONE, mai come indice calcolato da fuori: se il nastro sta ancora
+// scorrendo, quell'indice è quello di PRIMA, e dopo la chiusura anticipata
+// dell'animazione (vedi flushArTransition) coincide con la pagina in cui siamo
+// appena arrivati — il comando verrebbe scartato come "sei già lì". È il
+// motivo per cui premendo le frecce di lena ne passava sì e no una su due.
+function stepPage(dir){
+  if(_clipMode) return;
+  if(_arAnimating) flushArTransition();
+  gotoPage(_idx + dir);
+}
+
 function gotoPage(i){
   if(_clipMode) return; // in ritaglio la navigazione è disattivata
+  // Un salto richiesto mentre il nastro scorre chiude prima quello in corso:
+  // così _idx è già quello giusto quando si decide se è un passo o un salto.
+  if(_arAnimating) flushArTransition();
   if(i < 0 || i >= _pages.length || i === _idx) return;
   if(_arAnimating) return;
   // Un passo solo: lo fa scorrere il nastro, riciclando celle già pronte invece
@@ -1377,11 +1455,22 @@ function wireGestures(ov){
         panX = x0; panY = y0; origX = _zx; origY = _zy;
       } else {
         panning = false;
-        dragCandidate = !_arAnimating && _pages.length > 0;
+        // Il dito è arrivato mentre il nastro scorreva ancora: si chiude subito
+        // l'animazione e questo gesto parte da pagina ferma, invece di essere
+        // scartato (vedi flushArTransition — è la causa del "doppio swipe").
+        if(_arAnimating) flushArTransition();
+        dragCandidate = _pages.length > 0;
         dragArmed = false;
         stageW = stage.clientWidth;
         lastX = prevX = x0;
         lastT = prevT = performance.now();
+        // Il livello di composizione si prepara già ORA, non alla prima
+        // frazione di movimento: promuovere un nastro di tre tavole grandi
+        // costa una passata di raster, e pagarla dentro il primo fotogramma
+        // del trascinamento è esattamente ciò che si sente come partenza
+        // impastata. Si spegne da sé a fine gesto (vedi restArTrack).
+        const track = arTrack();
+        if(track) track.style.willChange = 'transform';
       }
     }
   }, { passive: true });
@@ -1406,17 +1495,30 @@ function wireGestures(ov){
           dragArmed = true;
           const track = arTrack();
           if(track){ track.style.transition = 'none'; track.style.willChange = 'transform'; }
-        } else if(Math.abs(ddy) > ARM_PX){
-          dragCandidate = false;   // gesto verticale: non è il nostro
+        } else if(Math.abs(ddy) > ARM_PX * 3 && Math.abs(ddy) > Math.abs(ddx) * 2){
+          // Si rinuncia solo davanti a un gesto LUNGO e chiaramente verticale.
+          // Prima bastavano 8px in verticale per spegnere il candidato PER
+          // SEMPRE: un pollice non si muove mai in orizzontale puro, quindi i
+          // primi campioni di uno swipe normale sono spesso più verticali che
+          // orizzontali (6px di lato, 12 in giù) — roba da rumore, non da
+          // intenzione. Quello swipe restava morto anche quando il dito
+          // proseguiva dritto di traverso allo schermo, e bisognava rifare il
+          // gesto da capo. Sotto questa soglia non si decide: si aspetta il
+          // campione dopo.
+          // Nel lettore non esiste nessun gesto verticale da proteggere (lo
+          // stage ha touch-action:none), quindi rinunciare tardi non toglie
+          // niente a nessuno.
+          dragCandidate = false;
           return;
         } else {
-          return;   // ancora sotto soglia, si aspetta
+          return;   // ancora ambiguo: si aspetta il campione successivo
         }
       }
       prevX = lastX; prevT = lastT;
       lastX = x; lastT = performance.now();
+      _arOffsetPx = arResistance(ddx, stageW);
       const track = arTrack();
-      if(track) track.style.transform = `translate3d(calc(-100% + ${arResistance(ddx, stageW)}px),0,0)`;
+      if(track) track.style.transform = `translate3d(calc(-100% + ${_arOffsetPx}px),0,0)`;
     }
   }, { passive: true });
 
@@ -1455,7 +1557,10 @@ function wireGestures(ov){
       else cancelPageSwipe();
       return;
     }
+    // Gesto finito senza mai armarsi (un tap, o un movimento verticale): il
+    // livello di composizione preparato al touchstart non serve più.
     dragCandidate = false;
+    if(!_arAnimating){ const tk = arTrack(); if(tk) tk.style.willChange = ''; }
     const dx = t.clientX - x0, dy = t.clientY - y0;
     const moved = Math.hypot(dx, dy);
     if(moved < 20){
@@ -1477,6 +1582,7 @@ function wireGestures(ov){
   stage.addEventListener('touchcancel', ()=>{
     pinching = false; panning = false;
     if(dragArmed) cancelPageSwipe();
+    else if(!_arAnimating){ const tk = arTrack(); if(tk) tk.style.willChange = ''; }
     dragArmed = false; dragCandidate = false;
   }, { passive: true });
 

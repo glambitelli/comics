@@ -1260,6 +1260,7 @@ async function renderLightboxAt(index){
   _lightboxIndex = index;
   ensureLbCells();
   const track = document.getElementById('refs-lightbox-track');
+  _lbOffsetPx = 0;
   if(track){ track.style.transition='none'; track.style.willChange=''; track.style.transform='translate3d(-100%,0,0)'; }
   updateLightboxChrome(_lightboxList[index], index);
   resetImageZoom();
@@ -1299,15 +1300,50 @@ function rotateCellsBackward(){  // si è confermato "indietro"
 // valore di arrivo (es. un trascinamento uscito e rientrato allo stesso punto
 // prima del rilascio) la proprietà non cambia e transitionend non scatta mai
 // — senza questa rete _lbAnimating resterebbe bloccato a true per sempre.
-function afterLbTransition(track, cb){
+let _lbFinish = null;   // conclusione dell'animazione in corso, per poterla anticipare
+function afterLbTransition(track, ms, cb){
   let done = false;
-  const finish = () => { if(done) return; done = true; track.removeEventListener('transitionend', onEnd); cb(); };
+  const finish = () => {
+    if(done) return;
+    done = true;
+    track.removeEventListener('transitionend', onEnd);
+    clearTimeout(timer);
+    if(_lbFinish === finish) _lbFinish = null;
+    cb();
+  };
   const onEnd = e => { if(e.target === track && e.propertyName === 'transform') finish(); };
   track.addEventListener('transitionend', onEnd);
-  setTimeout(finish, 260);
+  const timer = setTimeout(finish, ms + 40);
+  _lbFinish = finish;
 }
 
-const LB_TRANSITION = 'transform .22s cubic-bezier(.22,.61,.36,1)';
+// Chiude SUBITO l'animazione in corso, invece di ignorare il gesto che arriva
+// mentre il nastro sta ancora scorrendo.
+//
+// È il motivo per cui a volte serviva un doppio swipe: fra una foto e l'altra
+// passano ~220ms di scorrimento, e in quella finestra il tocco successivo non
+// veniva rallentato ma buttato via del tutto — il trascinamento nemmeno si
+// armava. Sfogliando di lena ci si finisce dentro di continuo, e la sensazione
+// è "il primo swipe non l'ha preso".
+function flushLbTransition(){
+  if(_lbFinish) _lbFinish();
+}
+
+// La durata si commisura a quanto resta DAVVERO da percorrere, non è più fissa.
+// Con una durata fissa gli ultimi centimetri dopo un trascinamento lungo si
+// prendevano gli stessi 220ms di una foto girata da ferma: il dito aveva già
+// fatto quasi tutto il lavoro e il nastro sembrava frenare sul più bello. Il
+// minimo esiste perché sotto una certa soglia un movimento non si legge più
+// come movimento, ma come uno scatto.
+const LB_DUR_MAX = 220, LB_DUR_MIN = 90;
+const LB_EASE = 'cubic-bezier(.22,.61,.36,1)';
+function lbDuration(distanza, larghezza){
+  if(!larghezza) return LB_DUR_MAX;
+  const quota = Math.min(1, Math.max(0, distanza / larghezza));
+  return Math.round(Math.max(LB_DUR_MIN, LB_DUR_MAX * quota));
+}
+// Quanto il nastro è spostato, in px, rispetto alla posizione di riposo.
+let _lbOffsetPx = 0;
 let _lbPendingDir = 0;
 
 // Anima il nastro di una cella intera nella direzione data (+1 avanti,
@@ -1317,23 +1353,32 @@ let _lbPendingDir = 0;
 // l'ha lasciato (la transizione interpola dal valore ATTUALE), quando parte
 // "a freddo" (freccia, tastiera) il nastro è già a riposo e scorre uguale.
 function commitSwipe(dir){
-  if(_lbAnimating) return;
+  // Comando arrivato mentre il nastro scorre ancora (frecce o tastiera in
+  // rapida successione, swipe incalzanti): si chiude subito quello in corso e
+  // si riparte da lì, invece di lasciar cadere il comando.
+  if(_lbAnimating) flushLbTransition();
+  if(_lbAnimating) return;   // non si è chiusa: meglio perdere un passo che accavallarne due
   const target = _lightboxIndex + dir;
   if(target < 0 || target >= _lightboxList.length) return;
   const track = document.getElementById('refs-lightbox-track');
   if(!track) return;
   _lbAnimating = true;
   _lbPendingDir = dir;
+  // Quanta strada resta: una cella intera partendo da fermo (freccia,
+  // tastiera), molto meno se il dito ha già trascinato quasi tutto.
+  const w = track.clientWidth || 0;
+  const ms = lbDuration(w - Math.min(w, Math.abs(_lbOffsetPx)), w);
   track.style.willChange = 'transform';
-  track.style.transition = LB_TRANSITION;
+  track.style.transition = `transform ${ms}ms ${LB_EASE}`;
   track.style.transform = dir > 0 ? 'translate3d(-200%,0,0)' : 'translate3d(0%,0,0)';
-  afterLbTransition(track, onSwipeSettled);
+  afterLbTransition(track, ms, onSwipeSettled);
 }
 
 function onSwipeSettled(){
   const dir = _lbPendingDir;
   const track = document.getElementById('refs-lightbox-track');
   if(dir > 0) rotateCellsForward(); else rotateCellsBackward();
+  _lbOffsetPx = 0;
   if(track){
     track.style.transition = 'none';
     track.style.transform = 'translate3d(-100%,0,0)';
@@ -1357,10 +1402,16 @@ function cancelSwipe(){
   const track = document.getElementById('refs-lightbox-track');
   if(!track) return;
   _lbAnimating = true;
+  // Anche il rientro dura quanto la strada da rifare: se il dito si era mosso
+  // di poco, il nastro torna a posto subito invece di prendersi tutto il tempo
+  // di una foto intera.
+  const w = track.clientWidth || 0;
+  const ms = lbDuration(Math.abs(_lbOffsetPx), w);
   track.style.willChange = 'transform';
-  track.style.transition = LB_TRANSITION;
+  track.style.transition = `transform ${ms}ms ${LB_EASE}`;
   track.style.transform = 'translate3d(-100%,0,0)';
-  afterLbTransition(track, ()=>{
+  afterLbTransition(track, ms, ()=>{
+    _lbOffsetPx = 0;
     track.style.transition = '';
     track.style.willChange = '';
     _lbAnimating = false;
@@ -1596,11 +1647,20 @@ function applyLbResistance(dx, w){
           panOrigX = _zoomX; panOrigY = _zoomY;
         } else {
           isPanning = false;
-          lbDragCandidate = !_lbAnimating;
+          // Il dito è arrivato mentre il nastro scorreva ancora: si chiude
+          // subito l'animazione e questo gesto parte da foto ferma, invece di
+          // essere scartato (vedi flushLbTransition — è il "doppio swipe").
+          if(_lbAnimating) flushLbTransition();
+          lbDragCandidate = true;
           lbArmed = false;
           lbBodyW = body.clientWidth;
           lbLastX = lbPrevX = touches[0].clientX;
           lbLastT = lbPrevT = performance.now();
+          // Il livello di composizione si prepara già ORA, non alla prima
+          // frazione di movimento: pagare la promozione dentro il primo
+          // fotogramma del trascinamento si sente come partenza impastata.
+          const track = document.getElementById('refs-lightbox-track');
+          if(track) track.style.willChange = 'transform';
         }
       }
     }, {passive:true});
@@ -1629,18 +1689,30 @@ function applyLbResistance(dx, w){
             lbArmed = true;
             const track = document.getElementById('refs-lightbox-track');
             if(track){ track.style.transition = 'none'; track.style.willChange = 'transform'; }
-          } else if(Math.abs(ddy) > LB_ARM_PX){
-            lbDragCandidate = false;   // gesto verticale: non è il nostro
+          } else if(Math.abs(ddy) > LB_ARM_PX * 3 && Math.abs(ddy) > Math.abs(ddx) * 2){
+            // Si rinuncia solo davanti a un gesto LUNGO e chiaramente
+            // verticale. Prima bastavano 8px in verticale per spegnere il
+            // candidato PER SEMPRE: un pollice non si muove mai in orizzontale
+            // puro, quindi i primi campioni di uno swipe normale sono spesso
+            // più verticali che orizzontali (6px di lato, 12 in giù) — roba da
+            // rumore, non da intenzione. Quello swipe restava morto anche
+            // quando il dito proseguiva dritto di traverso allo schermo, e
+            // bisognava rifare il gesto da capo. Qui sotto quella soglia non si
+            // decide: si aspetta il campione dopo.
+            // Nella galleria non esiste nessun gesto verticale da proteggere
+            // (il corpo ha touch-action:none), quindi rinunciare tardi non
+            // toglie niente a nessuno.
+            lbDragCandidate = false;
             return;
           } else {
-            return;   // ancora sotto soglia, si aspetta
+            return;   // ancora ambiguo: si aspetta il campione successivo
           }
         }
         lbPrevX = lbLastX; lbPrevT = lbLastT;
         lbLastX = x; lbLastT = performance.now();
-        const dx = applyLbResistance(ddx, lbBodyW);
+        _lbOffsetPx = applyLbResistance(ddx, lbBodyW);
         const track = document.getElementById('refs-lightbox-track');
-        if(track) track.style.transform = `translate3d(calc(-100% + ${dx}px),0,0)`;
+        if(track) track.style.transform = `translate3d(calc(-100% + ${_lbOffsetPx}px),0,0)`;
       }
     }, {passive:true});
 
@@ -1683,7 +1755,13 @@ function applyLbResistance(dx, w){
         else cancelSwipe();
         return;
       }
+      // Gesto finito senza mai armarsi (un tap, o un movimento verticale): il
+      // livello di composizione preparato al touchstart non serve più.
       lbDragCandidate = false;
+      if(!_lbAnimating){
+        const tk = document.getElementById('refs-lightbox-track');
+        if(tk) tk.style.willChange = '';
+      }
       // tap / doppio tap (solo se non si è mai armato un trascinamento)
       const t = e.changedTouches[0];
       const dx = t.clientX - swipeStartX, dy = t.clientY - swipeStartY;
@@ -1707,6 +1785,19 @@ function applyLbResistance(dx, w){
           }, 340);
         }
       }
+    }, {passive:true});
+
+    // Un tocco annullato dal sistema (una notifica, un gesto di bordo) non
+    // emette touchend: senza questo il nastro resterebbe fermo dov'era il dito,
+    // a metà fra due foto, e da lì non si sbloccherebbe più.
+    body.addEventListener('touchcancel', ()=>{
+      isPinching = false; isPanning = false;
+      if(lbArmed) cancelSwipe();
+      else if(!_lbAnimating){
+        const tk = document.getElementById('refs-lightbox-track');
+        if(tk) tk.style.willChange = '';
+      }
+      lbArmed = false; lbDragCandidate = false;
     }, {passive:true});
 
     // Desktop: doppio clic per zoomare/dezoomare. I browser mobile generano
