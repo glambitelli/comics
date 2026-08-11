@@ -71,62 +71,50 @@ jobs:
           touch _site/.nojekyll
           ls -la _site
 
-      - name: Sposta la sorgente di Pages su "GitHub Actions" (e verificalo)
+      - name: Controlla che a pubblicare sia UN impianto solo
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -uo pipefail
-          # PERCHÉ A MANO, E NON AFFIDANDOSI A configure-pages QUI SOTTO.
+          # A COSA SERVE QUESTO CONTROLLO.
           #
-          # `enablement: true` promette di spostare la sorgente, ma sul
-          # repository è rimasta "Deploy from a branch". Finché sta lì, ad ogni
-          # push GitHub lancia DA SOLO anche il suo workflow "pages build and
-          # deployment" — il builder Jekyll — che pubblica lo stesso sito per
-          # conto proprio. Due impianti che deployano nello stesso posto prima o
-          # poi si pestano i piedi, e l'11 agosto è successo: quello automatico
-          # ha provato a pubblicare d552967 mentre il nostro aveva già a42145c
-          # in corso, e l'API ha risposto
+          # Se la sorgente di Pages nelle impostazioni del repository è rimasta
+          # "Deploy from a branch", ad ogni push GitHub lancia DA SOLO anche il
+          # suo workflow "pages build and deployment" — il builder Jekyll — che
+          # pubblica lo stesso sito per conto proprio. Due impianti che
+          # deployano nello stesso posto prima o poi si pestano i piedi, e l'11
+          # agosto è successo: quello automatico ha provato a pubblicare
+          # d552967 mentre questo aveva già a42145c in corso, e l'API ha
+          # risposto
           #   400 — due to in progress deployment. Please cancel a42145c first.
-          # Da lì la mail di "Run failed". Il sito era aggiornato lo stesso, a
-          # pubblicarlo era stato il workflow che ha vinto la corsa: il fallimento
-          # riguardava solo il doppione che l'aveva persa.
+          # Da lì la mail "Run failed: pages build and deployment". Il sito era
+          # aggiornato lo stesso: a pubblicarlo era stato il workflow che aveva
+          # vinto la corsa, e il fallimento riguardava il doppione che l'aveva
+          # persa. Stessa cosa in forma più silenziosa su 79b3f27, dove il
+          # doppione era finito "cancelled" invece che "failure".
           #
-          # Spostata la sorgente, il workflow automatico non parte più e la corsa
-          # non esiste. Se qualcosa qui non riesce NON si fallisce la
-          # pubblicazione: è manutenzione, non il deploy — e il deploy sa
-          # arrivare in fondo anche con la sorgente vecchia.
-          CODE=$(curl -sS -o /tmp/pages.json -w '%{http_code}' \
+          # PERCHÉ QUI NON SI PUÒ RIMEDIARE DA SOLI.
+          #
+          # Spostare la sorgente vuol dire PUT /repos/{owner}/{repo}/pages, che
+          # richiede i permessi di AMMINISTRATORE del repository. Il token di
+          # Actions ha `pages: write`, che basta a creare deployment ma non a
+          # toccare le impostazioni: provato, risponde 403. È anche il motivo
+          # per cui `actions/configure-pages` con `enablement: true` (qui sotto)
+          # non l'ha mai spostata davvero — fallisce in silenzio. Quindi qui ci
+          # si limita a dirlo, una riga sola e solo quando serve: il rimedio è
+          # un clic umano, non qualcosa che si possa automatizzare da dentro.
+          TIPO=$(curl -sS \
             -H "Authorization: Bearer $GH_TOKEN" \
             -H "Accept: application/vnd.github+json" \
-            "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/pages")
-          if [ "$CODE" != "200" ]; then
-            echo "::notice::Pages non ancora configurato (HTTP $CODE): ci pensa configure-pages."
-          else
-            TIPO=$(jq -r '.build_type // "legacy"' /tmp/pages.json)
-            echo "sorgente attuale: $TIPO"
-            if [ "$TIPO" = "workflow" ]; then
-              echo "già su GitHub Actions: niente da fare."
-            else
-              PUTC=$(curl -sS -o /tmp/put.json -w '%{http_code}' -X PUT \
-                -H "Authorization: Bearer $GH_TOKEN" \
-                -H "Accept: application/vnd.github+json" \
-                "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/pages" \
-                -d '{"build_type":"workflow"}')
-              # 204 = fatto. Si rilegge comunque, invece di fidarsi del codice:
-              # è proprio il "sembrava impostato e non lo era" che ci ha portati qui.
-              curl -sS -H "Authorization: Bearer $GH_TOKEN" \
-                -H "Accept: application/vnd.github+json" \
-                "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/pages" -o /tmp/pages2.json
-              DOPO=$(jq -r '.build_type // "legacy"' /tmp/pages2.json)
-              echo "PUT ha risposto $PUTC — sorgente ora: $DOPO"
-              if [ "$DOPO" = "workflow" ]; then
-                echo "::notice::Sorgente spostata su GitHub Actions: da ora pubblica solo questo workflow."
-              else
-                echo "::warning::Non sono riuscito a spostare la sorgente (ancora '$DOPO')." \
-                     "Va cambiata a mano in Impostazioni → Pages → Source → GitHub Actions," \
-                     "altrimenti ogni tanto tornerà una mail di run fallita per doppia pubblicazione."
-              fi
-            fi
+            "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/pages" \
+            | jq -r '.build_type // "sconosciuta"')
+          echo "sorgente di Pages: $TIPO"
+          if [ "$TIPO" != "workflow" ]; then
+            echo "::warning::A pubblicare sono in due: oltre a questo workflow gira anche" \
+                 "'pages build and deployment' di GitHub, e ogni tanto si scontrano (mail di run" \
+                 "fallita, sito comunque aggiornato). Si spegne cambiando Impostazioni → Pages →" \
+                 "Build and deployment → Source in 'GitHub Actions'. Serve un permesso da" \
+                 "amministratore: da qui non si può fare."
           fi
 
       - uses: actions/configure-pages@v5
