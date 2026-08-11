@@ -693,26 +693,34 @@ function buildReaderDOM(){
     </div>
     <div class="ar-bottombar">
       <div class="ar-controls">
-        <input class="ar-seek" type="range" min="0" value="0" step="1" aria-label="Vai alla pagina">
+        <div class="ar-seek-row">
+          <button class="ar-jump" data-act="first" aria-label="Prima pagina" title="Prima pagina">
+            <svg viewBox="0 0 24 24" width="20" height="20"><path d="M18 5 L10 12 L18 19" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/><path d="M7 5.5v13" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"/></svg>
+          </button>
+          <input class="ar-seek" type="range" min="0" value="0" step="1" aria-label="Vai alla pagina">
+          <button class="ar-jump" data-act="last" aria-label="Ultima pagina" title="Ultima pagina">
+            <svg viewBox="0 0 24 24" width="20" height="20"><path d="M6 5 L14 12 L6 19" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/><path d="M17 5.5v13" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"/></svg>
+          </button>
+        </div>
         <div class="ar-controls-row">
           <span class="ar-counter"></span>
           <span class="ar-divider" aria-hidden="true"></span>
           <span class="ar-title"></span>
-          <button class="ar-jump" data-act="first" aria-label="Prima pagina" title="Prima pagina">
-            <svg viewBox="0 0 24 24" width="17" height="17"><path d="M18 5 L10 12 L18 19" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/><path d="M7 5.5v13" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"/></svg>
-          </button>
-          <button class="ar-jump" data-act="last" aria-label="Ultima pagina" title="Ultima pagina">
-            <svg viewBox="0 0 24 24" width="17" height="17"><path d="M6 5 L14 12 L6 19" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/><path d="M17 5.5v13" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"/></svg>
-          </button>
         </div>
       </div>
       <div class="ar-clip-hint" hidden>
         <span class="ar-clip-hint-instruct">Trascina un riquadro sulla pagina · <button class="ar-cancelclip" data-act="cancelclip">annulla</button></span>
-        <span class="ar-clip-hint-confirm" hidden>
-          <button class="ar-cancelclip" data-act="retryclip">Riprova</button>
-          <span class="ar-clip-dests"></span>
-          <span class="ar-clip-more-wrap"></span>
-        </span>
+        <div class="ar-clip-hint-confirm" hidden>
+          <div class="ar-clip-row">
+            <span class="ar-clip-label" data-label="recenti">Recenti</span>
+            <span class="ar-clip-dests"></span>
+          </div>
+          <div class="ar-clip-row ar-clip-row-browse">
+            <span class="ar-clip-label" data-label="sfoglia">Sfoglia</span>
+            <span class="ar-clip-more-wrap"></span>
+            <button class="ar-cancelclip" data-act="retryclip">Riprova</button>
+          </div>
+        </div>
       </div>
     </div>`;
   document.body.appendChild(ov);
@@ -1708,6 +1716,7 @@ function wireClip(ov){
   const hintConfirm = ov.querySelector('.ar-clip-hint-confirm');
   const dests = ov.querySelector('.ar-clip-dests');
   const moreWrap = ov.querySelector('.ar-clip-more-wrap');
+  const browseRow = ov.querySelector('.ar-clip-row-browse');
   const handles = Array.from(box.querySelectorAll('.ar-clip-handle'));
   const MIN_SIZE = 24; // dimensione minima del riquadro in px CSS, ridimensionando
   let sx = 0, sy = 0, drawing = false;
@@ -1725,14 +1734,22 @@ function wireClip(ov){
   // (i Ritagli dell'artista), poi le cartelle di Studio. Toccarne una salva
   // il ritaglio lì dentro. Si ricostruiscono ad ogni riquadro perché nel
   // frattempo puoi aver creato una nuova cartella di studio.
-  // Quante scorciatoie stanno in una riga su un telefono accanto a "Riprova"
-  // e alle categorie. Oltre questo numero le ultime usate scorrono, ma le
-  // categorie restano comunque ferme al loro posto.
-  const DEST_CHIPS_MAX = 3;
+  // Quante scorciatoie stanno nella riga "Recenti". Da quando le categorie
+  // hanno una riga tutta loro (vedi .ar-clip-row nel CSS) questa riga è larga
+  // quanto la barra, non più il ritaglio di spazio fra "Riprova" e le
+  // categorie: ce ne sta una in più. Oltre questo numero le ultime usate
+  // scorrono, e la sfumatura di taglio cade sul bordo della capsula invece che
+  // addosso alle categorie.
+  const DEST_CHIPS_MAX = 4;
   const renderDests = ()=>{
     if(!dests) return;
     const shortcuts = clipDestinations();
     const cats = clipCategories();
+    // Le due righe hanno senso solo se c'è davvero qualcosa da distinguere:
+    // senza cartelle è un pulsante e basta, e un'etichetta "Recenti" sopra un
+    // solo bottone di conferma sarebbe una didascalia che mente.
+    if(hintConfirm) hintConfirm.classList.toggle('no-folders', !shortcuts.length && !cats.length);
+    if(browseRow) browseRow.classList.toggle('no-cats', !cats.length);
     if(!shortcuts.length && !cats.length){
       // Nessuna cartella: il ritaglio resta non archiviato, come oggi.
       dests.innerHTML = '<button class="ar-clip-confirm-btn" data-act="confirmclip">✓ Salva ritaglio</button>';
@@ -1760,11 +1777,15 @@ function wireClip(ov){
       moreWrap._cats = cats;
     }
     // Se le scorciatoie non ci stanno tutte, l'ultima viene tagliata di netto
-    // dallo scroll — un bordo dritto appiccicato alle categorie fisse accanto,
-    // che a colpo d'occhio sembra un pasticcio/sovrapposizione. Una sfumatura
-    // sul bordo (solo quando c'è davvero altro da scorrere) lo fa leggere
-    // come "continua qui", non come un difetto.
+    // dallo scroll. Una sfumatura sul bordo (solo quando c'è davvero altro da
+    // scorrere) la fa leggere come "continua qui" invece che come un difetto.
+    // Prima quel taglio cadeva a filo delle categorie, che stavano sulla stessa
+    // riga: sfumatura e pastiglie tratteggiate si accavallavano, e non si
+    // capiva più dove finivano le cartelle recenti e dove cominciavano le
+    // categorie. Ora le due file stanno su righe distinte e la sfumatura muore
+    // sul bordo della capsula, dove non tocca niente.
     dests.classList.toggle('has-more', dests.scrollWidth > dests.clientWidth + 1);
+    if(moreWrap) moreWrap.classList.toggle('has-more', moreWrap.scrollWidth > moreWrap.clientWidth + 1);
   };
 
   // Sottocartelle di una categoria, per raggiungerne una qualunque.

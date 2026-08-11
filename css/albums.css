@@ -54,7 +54,7 @@
      stage sopra prende lo spazio restante (flex:1) la tavola si
      ingrandirebbe di quei pochi pixel — un sobbalzo piccolo ma fastidioso
      proprio nel momento in cui stai inquadrando un dettaglio. */
-  --ar-dock-h:64px;
+  --ar-dock-h:70px;
 }
 .album-reader.open{display:flex}
 body.album-reading{overflow:hidden}
@@ -303,8 +303,8 @@ body.is-touch .ar-nav{display:none} /* su mobile si naviga con swipe/tap */
    il cursore restava incollato al bordo inferiore dello schermo, staccato
    dai comandi e appoggiato sul nulla. */
 .ar-controls{
-  width:100%;height:var(--ar-dock-h);
-  display:flex;flex-direction:column;align-items:stretch;justify-content:center;gap:2px;
+  width:100%;min-height:var(--ar-dock-h);
+  display:flex;flex-direction:column;align-items:stretch;justify-content:center;gap:0;
   padding:0 14px;border-radius:24px;
   background:rgba(30,22,10,.46);border:1px solid rgba(232,200,120,.2);
   backdrop-filter:blur(8px) saturate(1.15);-webkit-backdrop-filter:blur(8px) saturate(1.15);
@@ -314,6 +314,14 @@ body.is-touch .ar-nav{display:none} /* su mobile si naviga con swipe/tap */
    reference (.refs-lightbox-pill). Il titolo si stringe con l'ellissi, i
    bottoni in fondo non si muovono mai. */
 .ar-controls-row{display:flex;align-items:center;gap:8px;min-width:0}
+/* Il cursore e i due salti stanno sulla STESSA riga, uno per lato. Prima i due
+   salti erano in fondo alla riga del titolo: un posto che non racconta niente
+   (che c'entra "vai in fondo al volume" con il nome dell'albo?) e per giunta
+   stretto, perché il titolo con l'ellissi si prendeva tutto lo spazio e li
+   spingeva contro il bordo. Ai lati del cursore invece si leggono da soli —
+   sono i due estremi della stessa corsa — e hanno intorno lo spazio per un
+   dito. */
+.ar-seek-row{display:flex;align-items:center;gap:4px;min-width:0}
 .ar-divider{width:1px;height:16px;background:rgba(232,200,120,.22);flex-shrink:0}
 .ar-title{
   flex:1;min-width:0;color:#b8ab95;font-family:'Nunito',sans-serif;
@@ -322,9 +330,12 @@ body.is-touch .ar-nav{display:none} /* su mobile si naviga con swipe/tap */
 }
 
 /* Salto a inizio/fine: dentro la capsula bastano i glifi, il contorno che
-   avevano prima raddoppiava un bordo che c'è già intorno a tutta la riga. */
+   avevano prima raddoppiava un bordo che c'è già intorno a tutta la riga.
+   42px e non più 34: erano sotto la misura minima di un bersaglio da pollice,
+   e si sbagliava mira proprio verso il bordo dello schermo, dove il dito
+   arriva più storto. Il glifo resta piccolo, cresce l'area toccabile. */
 .ar-jump{
-  width:34px;height:34px;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  width:42px;height:42px;flex-shrink:0;display:flex;align-items:center;justify-content:center;
   background:none;border:none;border-radius:50%;
   color:#c8bca4;cursor:pointer;padding:0;transition:background .15s,color .15s,opacity .15s,transform .1s;
 }
@@ -335,7 +346,7 @@ body.is-touch .ar-nav{display:none} /* su mobile si naviga con swipe/tap */
 /* Cursore di scorrimento: raggiungere una tavola precisa in un volume da
    centinaia di pagine senza sfogliare all'infinito. */
 .ar-seek{
-  -webkit-appearance:none;appearance:none;width:100%;height:16px;
+  -webkit-appearance:none;appearance:none;flex:1;min-width:0;height:22px;
   background:transparent;cursor:pointer;margin:0;
 }
 .ar-seek::-webkit-slider-runnable-track{height:3px;border-radius:2px;background:rgba(245,240,232,.2)}
@@ -362,37 +373,61 @@ body.is-touch .ar-nav{display:none} /* su mobile si naviga con swipe/tap */
 }
 /* Anche la riga del ritaglio è una capsula in vetro: da quando la barra in
    basso non ha più un fondo pieno, senza questa le pastiglie galleggerebbero
-   direttamente sopra la tavola. */
+   direttamente sopra la tavola. Larga quanto la capsula dei comandi che
+   sostituisce, e ALTA UGUALE (--ar-dock-h): se le due altezze divergessero la
+   barra si accorcerebbe entrando in ritaglio, e siccome lo stage prende lo
+   spazio restante la tavola sobbalzerebbe proprio mentre stai inquadrando un
+   dettaglio. */
 .ar-clip-hint{
-  display:flex;align-items:center;gap:8px;
+  display:flex;flex-direction:column;justify-content:center;
+  width:100%;height:var(--ar-dock-h);padding:0 12px;border-radius:24px;
+  box-sizing:border-box;
   font-family:'Nunito',sans-serif;font-size:10.5px;font-weight:700;
   letter-spacing:.08em;color:var(--gold-pale);
-  /* Stessa altezza dei comandi che sostituisce: vedi --ar-dock-h sopra. */
-  height:var(--ar-dock-h);padding:0 12px;border-radius:24px;
   background:rgba(30,22,10,.46);border:1px solid rgba(232,200,120,.2);
   backdrop-filter:blur(8px) saturate(1.15);-webkit-backdrop-filter:blur(8px) saturate(1.15);
-  /* Senza questi la riga delle destinazioni sfonda la barra: il lettore la
-     centra, quindi l'eccedenza veniva tagliata da entrambi i lati e
-     "Riprova" finiva mezzo fuori dallo schermo. */
-  max-width:100%;min-width:0;
+  min-width:0;
 }
 /* Il "display:flex" sopra ha più peso della proprietà nativa che dovrebbe
-   nascondere l'elemento: senza questa riga la scritta restava visibile
+   nascondere l'elemento: senza questa riga la scritta resterebbe visibile
    SEMPRE, anche fuori dalla modalità ritaglio, qualunque cosa facesse il JS. */
 .ar-clip-hint[hidden]{display:none}
-/* min-width:0 e max-width:100% sono ciò che tiene "Riprova" e l'ultima
-   pastiglia dentro lo schermo: la barra centra il contenuto, quindi senza
-   questi il contenuto più largo del lettore veniva tagliato da ENTRAMBI i
-   lati. Così invece la fila delle destinazioni si stringe e scorre al suo
-   interno, e i bordi restano sempre raggiungibili. */
-.ar-clip-hint-confirm{display:flex;align-items:center;gap:10px;max-width:100%;min-width:0}
+.ar-clip-hint-instruct{align-self:center;text-align:center}
+
+/* DUE RIGHE, non più una sola.
+   Prima le cartelle recenti e le macro-categorie stavano affiancate sulla
+   stessa riga, con "Riprova" incastrato a sinistra: le recenti scorrevano in
+   una fessura di pochi centimetri e la sfumatura del taglio moriva ADDOSSO
+   alle pastiglie tratteggiate delle categorie. A colpo d'occhio sembravano
+   sovrapposte, e soprattutto non si capiva più dove finivano le cartelle e
+   dove cominciavano le categorie.
+   Ora ogni famiglia ha la sua riga e la sua etichetta, le pastiglie delle due
+   righe sono incolonnate (l'etichetta ha larghezza fissa), e la sfumatura di
+   scorrimento muore sul bordo della capsula, dove non tocca niente. */
+.ar-clip-hint-confirm{display:flex;flex-direction:column;gap:7px;width:100%;min-width:0}
 .ar-clip-hint-confirm[hidden]{display:none}
-/* I due estremi non si comprimono e non scorrono: "Riprova" a sinistra e
-   "Altre…" a destra restano sempre raggiungibili, scorre solo la fila di
-   destinazioni in mezzo. */
+.ar-clip-row{display:flex;align-items:center;gap:8px;min-width:0}
+/* Etichetta di famiglia: minuscola e smorzata, deve orientare senza chiedere
+   di essere letta. Larghezza fissa apposta — è ciò che incolonna le pastiglie
+   delle due righe e fa leggere la barra come una tabella a due voci invece che
+   come due file di bottoni capitate lì. */
+.ar-clip-label{
+  flex-shrink:0;width:50px;line-height:1;
+  font-family:'Nunito',sans-serif;font-size:8.5px;font-weight:800;
+  letter-spacing:.14em;text-transform:uppercase;color:rgba(232,200,120,.5);
+}
+/* Senza categorie la seconda riga ha solo "Riprova": l'etichetta "Sfoglia"
+   sarebbe una didascalia che non descrive niente. */
+.ar-clip-row-browse.no-cats .ar-clip-label{display:none}
+.ar-clip-row-browse.no-cats{justify-content:flex-end}
+/* Nessuna cartella affatto: non c'è niente da distinguere, quindi niente
+   etichette e niente due righe — restano il bottone di conferma e "Riprova",
+   affiancati e centrati come una coppia di azioni qualunque. Impilati su due
+   righe sembravano due sezioni vuote di una tabella che non esiste. */
+.ar-clip-hint-confirm.no-folders{flex-direction:row;align-items:center;justify-content:center;gap:18px}
+.ar-clip-hint-confirm.no-folders .ar-clip-label{display:none}
+.ar-clip-hint-confirm.no-folders .ar-clip-dests{flex:0 1 auto}
 .ar-clip-hint-confirm .ar-cancelclip{flex-shrink:0}
-.ar-clip-more-wrap{flex-shrink:0;display:flex;align-items:center}
-.ar-clip-more-wrap:empty{display:none}
 .ar-clip-hint .ar-cancelclip{
   background:none;border:none;color:var(--gold);cursor:pointer;padding:0;
   font-family:'Nunito',sans-serif;font-size:10.5px;font-weight:700;letter-spacing:.08em;
@@ -407,45 +442,49 @@ body.is-touch .ar-nav{display:none} /* su mobile si naviga con swipe/tap */
 }
 .ar-clip-confirm-btn:active{transform:scale(.94)}
 
-/* Pastiglie di destinazione: dove finisce il ritaglio. La prima (piena, oro)
-   è la cartella da cui stai leggendo — l'artista, comportamento predefinito.
-   Le altre (contorno soltanto) sono le cartelle di studio: si distinguono a
-   colpo d'occhio senza bisogno di leggere, perché la scelta di default deve
-   restare quella ovvia anche mentre si sfoglia in fretta.
-   Scorrono in orizzontale: con parecchie cartelle di studio la riga non deve
-   mandare a capo la barra né allargare il lettore. */
-.ar-clip-dests{
+/* Le due file scorrono in orizzontale ciascuna per conto suo: con parecchie
+   cartelle (o parecchie categorie) la riga non manda a capo la barra né
+   allarga il lettore. */
+.ar-clip-dests,
+.ar-clip-more-wrap{
   display:flex;align-items:center;gap:7px;
   flex:1;min-width:0;overflow-x:auto;
   scrollbar-width:none;-ms-overflow-style:none;
   padding:1px 0;
 }
-.ar-clip-dests::-webkit-scrollbar{display:none}
-/* Quando le scorciatoie non ci stanno tutte, l'ultima viene tagliata dallo
-   scroll: senza sfumatura è un bordo dritto appiccicato alle categorie fisse
-   accanto (Artisti/Studio), a colpo d'occhio indistinguibile da una vera
-   sovrapposizione. La sfumatura compare SOLO quando c'è davvero altro da
-   scorrere (classe aggiunta da JS confrontando scrollWidth/clientWidth). */
-.ar-clip-dests.has-more{
+.ar-clip-dests::-webkit-scrollbar,
+.ar-clip-more-wrap::-webkit-scrollbar{display:none}
+.ar-clip-more-wrap:empty{display:none}
+/* Quando le pastiglie non ci stanno tutte, l'ultima viene tagliata dallo
+   scroll: senza sfumatura è un bordo dritto che sembra un difetto. Compare
+   SOLO quando c'è davvero altro da scorrere (classe aggiunta da JS
+   confrontando scrollWidth/clientWidth). */
+.ar-clip-dests.has-more,
+.ar-clip-more-wrap.has-more{
   -webkit-mask-image:linear-gradient(to right, #000 calc(100% - 22px), transparent 100%);
   mask-image:linear-gradient(to right, #000 calc(100% - 22px), transparent 100%);
 }
+
+/* Pastiglie di destinazione: dove finisce il ritaglio. La prima (piena, oro)
+   è la cartella da cui stai leggendo — l'artista, comportamento predefinito.
+   Le altre (contorno soltanto) sono le cartelle già usate: si distinguono a
+   colpo d'occhio senza bisogno di leggere, perché la scelta di default deve
+   restare quella ovvia anche mentre si sfoglia in fretta. */
 .ar-clip-dest{
   flex-shrink:0;cursor:pointer;
-  font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;letter-spacing:.03em;
-  padding:7px 13px;border-radius:20px;transition:transform .1s,background .15s;
-  max-width:34vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  font-family:'Nunito',sans-serif;font-size:10.5px;font-weight:800;letter-spacing:.03em;
+  padding:6px 12px;border-radius:20px;transition:transform .1s,background .15s;
+  max-width:38vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
   background:transparent;border:1.5px solid rgba(240,200,90,.45);color:#f0c84e;
 }
 .ar-clip-dest.is-current{background:var(--gold);border-color:var(--gold);color:var(--ink)}
 .ar-clip-dest:active{transform:scale(.94)}
 .ar-clip-dest:not(.is-current):hover{background:rgba(240,200,90,.14)}
 /* Le categorie non sono destinazioni ma aperture (portano a un elenco):
-   tratteggio e colore smorzato, così non si confondono con le cartelle
-   vere e proprie accanto. */
+   tratteggio e colore smorzato, così non si confondono con le cartelle vere e
+   proprie della riga sopra. */
 .ar-clip-cat{
   border-style:dashed;border-color:rgba(245,240,232,.32);color:var(--sand3);
   font-weight:700;
 }
 .ar-clip-cat:hover{background:rgba(245,240,232,.08)}
-.ar-clip-more-wrap{gap:6px}
