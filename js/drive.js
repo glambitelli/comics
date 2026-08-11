@@ -300,37 +300,34 @@ export async function driveRangeFetch(fileId, start, end){
 // `onProgress(loaded, total)` (total 0 se Drive non lo dichiara). Un timer di
 // STALLO si riarma ad ogni blocco: una connessione lenta ma viva non viene
 // mai interrotta, solo una davvero bloccata per più di 25s.
-async function downloadDriveFileToCache(fileMeta, onProgress, signal){
+async function downloadDriveFileToCache(fileMeta, onProgress, ctrl){
   if(!isDriveConnected()) throw new Error('Drive non collegato.');
   const url = `https://www.googleapis.com/drive/v3/files/${fileMeta.id}?alt=media`;
-  const ctrl = new AbortController();
+  // Il controller arriva da fuori (vedi startDownload): è lo stesso su cui si
+  // aggancia il pulsante "Annulla" di chi sta guardando, e su cui batte il
+  // guardiano dello stallo qui sotto — la fetch ne ascolta uno solo.
+  ctrl = ctrl || new AbortController();
   let stallTimer;
-  const armStall = ()=>{ clearTimeout(stallTimer); stallTimer = setTimeout(()=>ctrl.abort(), 25000); };
-  armStall();
-
-  // Annullamento chiesto da chi legge (il bottone "Annulla" del lettore): si
-  // propaga allo stesso controller del guardiano dello stallo, perché la
-  // fetch ne ascolta uno solo. I due esiti restano però distinti: "l'ho fermato
-  // io" e "è caduta la linea" meritano due messaggi diversi, e soprattutto il
-  // primo non è un errore da mostrare come tale.
-  let cancelled = false;
-  const onExternalAbort = ()=>{ cancelled = true; ctrl.abort(); };
-  if(signal){
-    if(signal.aborted) throw downloadCancelled();
-    signal.addEventListener('abort', onExternalAbort, { once: true });
-  }
-  const done = ()=>{
+  // Chi ha fermato la corsa? "L'ho fermato io" e "è caduta la linea" meritano
+  // due messaggi diversi, e soprattutto il primo non è un errore da mostrare
+  // come tale. Lo distingue chi ha chiamato abort(): lo stallo passa di qui.
+  let perStallo = false;
+  const armStall = ()=>{
     clearTimeout(stallTimer);
-    if(signal) signal.removeEventListener('abort', onExternalAbort);
+    stallTimer = setTimeout(()=>{ perStallo = true; ctrl.abort(); }, 25000);
   };
+  armStall();
+  if(ctrl.signal.aborted) throw downloadCancelled();
+  const done = ()=> clearTimeout(stallTimer);
   const stopped = (e)=> !!e && (e.name === 'AbortError' || /aborted/i.test(e.message || ''));
+  const cancelledByUser = ()=> ctrl.signal.aborted && !perStallo;
 
   let res;
   try{
     res = await fetch(url, { headers: { Authorization: 'Bearer ' + _token.access_token }, signal: ctrl.signal });
   }catch(e){
     done();
-    if(cancelled) throw downloadCancelled();
+    if(cancelledByUser()) throw downloadCancelled();
     throw stopped(e) ? new Error('Download da Drive interrotto: connessione troppo lenta o caduta.') : e;
   }
   if(res.status === 401){ done(); clearToken(); throw new Error('Sessione Drive scaduta: ricollega.'); }
@@ -360,7 +357,7 @@ async function downloadDriveFileToCache(fileMeta, onProgress, signal){
   }catch(e){
     done();
     try{ await cache.delete(key); }catch(_){}   // non lasciare un albo troncato
-    if(cancelled) throw downloadCancelled();
+    if(cancelledByUser()) throw downloadCancelled();
     if(stopped(e)) throw new Error('Download da Drive interrotto: connessione troppo lenta o caduta.');
     if(e && e.name === 'QuotaExceededError'){
       throw new Error('Spazio esaurito: libera memoria sul dispositivo e riprova.');
@@ -372,7 +369,7 @@ async function downloadDriveFileToCache(fileMeta, onProgress, signal){
   // a quel punto in cache c'è un albo completo, ma chi ha chiesto di annullare
   // non se lo aspetta più. Si butta e si dichiara annullato, com'è stato
   // chiesto — riscaricarlo è una scelta di chi legge, non una sorpresa.
-  if(cancelled){
+  if(cancelledByUser()){
     try{ await cache.delete(key); }catch(_){}
     throw downloadCancelled();
   }
@@ -436,10 +433,55 @@ async function trimAlbumCache(){
   }catch(e){}
 }
 
+// Scaricamenti in corso, per id di file Drive.
+//
+// Toccare di nuovo lo stesso albo mentre sta arrivando non deve far ripartire
+// niente da zero. Prima succedeva proprio questo: ogni apertura avviava una
+// fetch sua, quindi due tocchi diventavano DUE scaricamenti in parallelo dello
+// stesso file, che si scrivevano pure sulla stessa chiave di cache — il doppio
+// dei dati consumati e la barra che tornava a 0 MB davanti agli occhi. Ora il
+// secondo tocco si aggancia a quello che sta già scaricando e ne eredita
+// l'avanzamento.
+const _inFlight = new Map();
+
+// Prende in mano uno scaricamento già in corso: l'avanzamento va a chi guarda
+// ADESSO, e il pulsante "annulla" di chi guarda adesso è quello che lo ferma.
+// Solo un lettore per volta è aperto, quindi l'ultimo arrivato è quello giusto.
+function adoptDownload(entry, onProgress, signal){
+  entry.onProgress = onProgress || entry.onProgress;
+  if(entry.offAbort){ entry.offAbort(); entry.offAbort = null; }
+  if(!signal) return;
+  if(signal.aborted){ entry.ctrl.abort(); return; }
+  const h = ()=> entry.ctrl.abort();
+  signal.addEventListener('abort', h, { once:true });
+  entry.offAbort = ()=> signal.removeEventListener('abort', h);
+}
+
+function startDownload(fileMeta, onProgress, signal){
+  const entry = { ctrl: new AbortController(), onProgress: null, offAbort: null };
+  adoptDownload(entry, onProgress, signal);
+  entry.promise = downloadDriveFileToCache(
+    fileMeta,
+    (loaded, total)=>{ if(entry.onProgress) entry.onProgress(loaded, total); },
+    entry.ctrl
+  ).finally(()=>{ if(entry.offAbort){ entry.offAbort(); entry.offAbort = null; } });
+  return entry;
+}
+
 export async function getDriveAlbumFile(fileMeta, onProgress, signal){
   const cached = await readAlbumCache(fileMeta.id, fileMeta.name);
   if(cached) return { file: cached, fromCache: true };
-  await downloadDriveFileToCache(fileMeta, onProgress, signal);
+
+  let entry = _inFlight.get(fileMeta.id);
+  if(entry){
+    adoptDownload(entry, onProgress, signal);
+    await entry.promise;          // stesso scaricamento, nessuna seconda fetch
+  } else {
+    entry = startDownload(fileMeta, onProgress, signal);
+    _inFlight.set(fileMeta.id, entry);
+    try{ await entry.promise; }
+    finally{ if(_inFlight.get(fileMeta.id) === entry) _inFlight.delete(fileMeta.id); }
+  }
   await trimAlbumCache();
   // Il File torna dalla cache: è appoggiato al disco, non una copia in memoria.
   const file = await readAlbumCache(fileMeta.id, fileMeta.name);
