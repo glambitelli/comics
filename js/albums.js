@@ -1448,6 +1448,17 @@ function measureBaseSize(){
   else img.addEventListener('load', apply, { once: true });
 }
 
+// Quanto la tavola segue il dito, da ingranditi. Non 1:1: più si è ingranditi,
+// più piccola è la porzione visibile e più lungo il tragitto da fare, quindi a
+// 1:1 servivano tre o quattro passate di dito per attraversare una tavola —
+// leggere ingranditi era più faticoso che leggere a pagina intera. Il tetto
+// esiste perché oltre una certa soglia la tavola "scappa" e non si riesce più
+// a fermarsi sul dettaglio che si voleva guardare.
+const PAN_GAIN_MAX = 2.2;
+function panGain(z){
+  return Math.min(PAN_GAIN_MAX, Math.max(1, 1 + (z - 1) * 0.55));
+}
+
 // Limita lo spostamento ai bordi della tavola: non si "perde" mai l'immagine
 // fuori dallo schermo trascinando troppo.
 function clampPan(scale, x, y){
@@ -1510,6 +1521,16 @@ function wireGestures(ov){
   let dragCandidate = false, dragArmed = false, stageW = 0;
   let lastX = 0, lastT = 0, prevX = 0, prevT = 0;
   const ARM_PX = 8;
+  // Da dove si conta lo spostamento del nastro. Di solito è il punto in cui il
+  // dito si è appoggiato, ma quando si passa dallo spostare la tavola allo
+  // sfogliare (vedi il passaggio di consegne più sotto) diventa il punto in cui
+  // la tavola è finita: altrimenti il nastro partirebbe già spostato di tutto
+  // il tragitto fatto per attraversare la pagina ingrandita.
+  let dragOriginX = 0;
+  // Quanto bisogna insistere OLTRE il bordo della tavola prima che il gesto
+  // smetta di spostarla e cominci a girare pagina. Abbastanza da non scattare
+  // per il rimbalzo di un dito che si ferma, poco da doverlo cercare.
+  const EDGE_HANDOFF = 16;
 
   const dist = (a, b) => Math.hypot(b.clientX - a.clientX, b.clientY - a.clientY);
 
@@ -1528,6 +1549,7 @@ function wireGestures(ov){
       if(_zoom > 1.02){
         panning = true; dragCandidate = false; dragArmed = false;
         panX = x0; panY = y0; origX = _zx; origY = _zy;
+        stageW = stage.clientWidth;
       } else {
         panning = false;
         // Il dito è arrivato mentre il nastro scorreva ancora: si chiude subito
@@ -1537,6 +1559,7 @@ function wireGestures(ov){
         dragCandidate = _pages.length > 0;
         dragArmed = false;
         stageW = stage.clientWidth;
+        dragOriginX = x0;
         lastX = prevX = x0;
         lastT = prevT = performance.now();
         // Il livello di composizione si prepara già ORA, non alla prima
@@ -1559,12 +1582,36 @@ function wireGestures(ov){
       const c = clampPan(_zoom, _zx, _zy); _zx = c.x; _zy = c.y;
       applyZoom();
     } else if(panning && t.length === 1){
-      const c = clampPan(_zoom, origX + (t[0].clientX - panX), origY + (t[0].clientY - panY));
+      const x = t[0].clientX, y = t[0].clientY;
+      // Il dito porta PIÙ di quanto si muove (vedi panGain): a 1:1 attraversare
+      // una tavola ingrandita voleva dire ripassare il dito tre o quattro
+      // volte da bordo a bordo, e leggere ingranditi risultava più scomodo
+      // che leggere a pagina intera.
+      const g = panGain(_zoom);
+      const vogliaX = origX + (x - panX) * g;
+      const vogliaY = origY + (y - panY) * g;
+      const c = clampPan(_zoom, vogliaX, vogliaY);
+      const oltre = vogliaX - c.x;   // quanto si è chiesto OLTRE il bordo
       _zx = c.x; _zy = c.y;
       applyZoom();
+      // PASSAGGIO DI CONSEGNE: la tavola è finita e il dito continua a
+      // spingere da quella parte. Non c'è più niente da mostrare lì, quindi da
+      // qui in poi il gesto muove il NASTRO e gira pagina — senza dover prima
+      // uscire dall'ingrandimento, tornare indietro e ripartire.
+      // Il verso torna da solo: fermi sul bordo sinistro della tavola si sta
+      // spingendo verso destra, che è la pagina precedente; sul bordo destro
+      // verso sinistra, che è la successiva.
+      if(Math.abs(oltre) > EDGE_HANDOFF && Math.abs(x - panX) > Math.abs(y - panY)){
+        panning = false;
+        dragCandidate = true; dragArmed = true;
+        dragOriginX = x;
+        lastX = prevX = x; lastT = prevT = performance.now();
+        const track = arTrack();
+        if(track){ track.style.transition = 'none'; track.style.willChange = 'transform'; }
+      }
     } else if(dragCandidate && t.length === 1){
       const x = t[0].clientX, y = t[0].clientY;
-      const ddx = x - x0, ddy = y - y0;
+      const ddx = x - dragOriginX, ddy = y - y0;
       if(!dragArmed){
         if(Math.abs(ddx) > ARM_PX && Math.abs(ddx) > Math.abs(ddy)){
           dragArmed = true;
@@ -1620,7 +1667,7 @@ function wireGestures(ov){
     // pagina non girava, costringendo a ripetere il gesto.
     if(dragArmed){
       dragArmed = false; dragCandidate = false;
-      const dx = t.clientX - x0;
+      const dx = t.clientX - dragOriginX;
       const adx = Math.abs(dx);
       const vx = lastT > prevT ? (lastX - prevX) / (lastT - prevT) : 0;
       const elapsed = Date.now() - lastTouchAt;

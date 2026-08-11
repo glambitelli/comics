@@ -1565,6 +1565,17 @@ export function resetImageZoom(){
   if(img){ img.style.transition = 'none'; applyZoomTransform(img); }
 }
 
+// Quanto la foto segue il dito, da ingranditi. Non 1:1: più si è ingranditi,
+// più piccola è la porzione visibile e più lungo il tragitto da fare, quindi a
+// 1:1 servivano tre o quattro passate di dito per attraversarla. Il tetto
+// esiste perché oltre una certa soglia l'immagine "scappa" e non ci si riesce
+// più a fermare sul dettaglio che si voleva guardare. Gemella di panGain nel
+// lettore (js/albums.js): stesso gesto, stessa risposta.
+const PAN_GAIN_MAX = 2.2;
+function panGain(z){
+  return Math.min(PAN_GAIN_MAX, Math.max(1, 1 + (z - 1) * 0.55));
+}
+
 function clampPan(scale, x, y){
   const img = curImg();
   if(!img) return {x, y};
@@ -1639,6 +1650,13 @@ function applyLbResistance(dx, w){
     let lbDragCandidate = false, lbArmed = false, lbBodyW = 0;
     let lbLastX = 0, lbLastT = 0, lbPrevX = 0, lbPrevT = 0;
     const LB_ARM_PX = 8;
+    // Da dove si conta lo spostamento del nastro: di solito il punto in cui il
+    // dito si è appoggiato, ma passando dallo spostare la foto al cambiarla
+    // diventa il punto in cui la foto è finita — altrimenti il nastro
+    // partirebbe già spostato di tutto il tragitto fatto sull'immagine.
+    let lbDragOriginX = 0;
+    // Quanto insistere oltre il bordo prima che il gesto cambi mestiere.
+    const EDGE_HANDOFF = 16;
 
     function dist(t0, t1){ return Math.hypot(t1.clientX-t0.clientX, t1.clientY-t0.clientY); }
 
@@ -1668,6 +1686,7 @@ function applyLbResistance(dx, w){
           lbDragCandidate = true;
           lbArmed = false;
           lbBodyW = body.clientWidth;
+          lbDragOriginX = touches[0].clientX;
           lbLastX = lbPrevX = touches[0].clientX;
           lbLastT = lbPrevT = performance.now();
           // Il livello di composizione si prepara già ORA, non alla prima
@@ -1690,14 +1709,29 @@ function applyLbResistance(dx, w){
         applyZoomTransform(img);
       } else if(isPanning && touches.length === 1){
         const img = curImg(); if(!img) return;
-        const dx = touches[0].clientX - panStartX;
-        const dy = touches[0].clientY - panStartY;
-        const c = clampPan(_zoomScale, panOrigX+dx, panOrigY+dy);
+        const x = touches[0].clientX, y = touches[0].clientY;
+        const g = panGain(_zoomScale);
+        const vogliaX = panOrigX + (x - panStartX) * g;
+        const vogliaY = panOrigY + (y - panStartY) * g;
+        const c = clampPan(_zoomScale, vogliaX, vogliaY);
+        const oltre = vogliaX - c.x;   // quanto si è chiesto OLTRE il bordo
         _zoomX = c.x; _zoomY = c.y;
         applyZoomTransform(img);
+        // PASSAGGIO DI CONSEGNE: la foto è finita e il dito continua a spingere
+        // da quella parte. Non c'è più niente da mostrare lì, quindi da qui in
+        // poi il gesto muove il NASTRO e cambia immagine, senza dover prima
+        // uscire dall'ingrandimento e ripartire da capo.
+        if(Math.abs(oltre) > EDGE_HANDOFF && Math.abs(x - panStartX) > Math.abs(y - panStartY)){
+          isPanning = false;
+          lbDragCandidate = true; lbArmed = true;
+          lbDragOriginX = x; lbBodyW = body.clientWidth;
+          lbLastX = lbPrevX = x; lbLastT = lbPrevT = performance.now();
+          const track = document.getElementById('refs-lightbox-track');
+          if(track){ track.style.transition = 'none'; track.style.willChange = 'transform'; }
+        }
       } else if(lbDragCandidate && touches.length === 1){
         const x = touches[0].clientX, y = touches[0].clientY;
-        const ddx = x - swipeStartX, ddy = y - swipeStartY;
+        const ddx = x - lbDragOriginX, ddy = y - swipeStartY;
         if(!lbArmed){
           if(Math.abs(ddx) > LB_ARM_PX && Math.abs(ddx) > Math.abs(ddy)){
             lbArmed = true;
@@ -1757,7 +1791,7 @@ function applyLbResistance(dx, w){
       if(lbArmed){
         lbArmed = false; lbDragCandidate = false;
         const t = e.changedTouches[0];
-        const dx = t.clientX - swipeStartX;
+        const dx = t.clientX - lbDragOriginX;
         const adx = Math.abs(dx);
         const vx = lbLastT > lbPrevT ? (lbLastX - lbPrevX) / (lbLastT - lbPrevT) : 0;
         const elapsed = Date.now() - lastTouchAt;
