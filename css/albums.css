@@ -86,6 +86,16 @@ body.album-reading{overflow:hidden}
 .ar-close{margin-right:2px}
 /* Ritaglio attivo: qui l'oro pieno ci sta, è uno STATO acceso e deve gridare. */
 .ar-clip.active{background:var(--gold);color:var(--ink)}
+/* "Riprova" vive quassù con le forbici, non in mezzo alle destinazioni:
+   ridisegnare il riquadro è un comando SUL RITAGLIO, mentre la capsula in basso
+   risponde a una domanda sola — dove finisce. Infilato in coda alle categorie
+   sembrava una pastiglia avanzata, e per giunta rubava larghezza proprio alla
+   fila che ne ha più bisogno.
+   Pillola invece di disco perché porta una parola: un'icona sola, per
+   "ridisegna il riquadro", si presterebbe a troppe letture. */
+.ar-retry{width:auto;padding:0 12px 0 10px;gap:6px;border-radius:17px}
+.ar-retry[hidden]{display:none}
+.ar-retry span{font-family:'Nunito',sans-serif;font-size:11px;font-weight:700;letter-spacing:.03em;line-height:1}
 
 .ar-stage{
   position:relative;flex:1;min-height:0;overflow:hidden;
@@ -433,16 +443,14 @@ body.is-touch .ar-nav{display:none} /* su mobile si naviga con swipe/tap */
   font-family:'Nunito',sans-serif;font-size:8px;font-weight:700;
   letter-spacing:.13em;text-transform:uppercase;color:rgba(232,200,120,.38);
 }
-/* Senza categorie la seconda riga ha solo "Riprova": l'etichetta "Sfoglia"
-   sarebbe una didascalia che non descrive niente. */
-.ar-clip-row-browse.no-cats .ar-clip-label{display:none}
-.ar-clip-row-browse.no-cats{justify-content:flex-end}
+/* Senza categorie la seconda riga non ha più niente da mostrare (da quando
+   "Riprova" è salito nella barra in alto): sparisce del tutto invece di
+   lasciare un'etichetta appesa sopra il vuoto. */
+.ar-clip-row-browse.no-cats{display:none}
 /* Nessuna cartella affatto: non c'è niente da distinguere, quindi niente
-   etichette e niente due righe — restano il bottone di conferma e "Riprova",
-   affiancati e centrati come una coppia di azioni qualunque. Impilati su due
-   righe sembravano due sezioni vuote di una tabella che non esiste. */
-.ar-clip-hint-confirm.no-folders{flex-direction:row;align-items:center;justify-content:center;gap:18px}
+   etichette e niente tabella — resta il solo bottone di conferma, centrato. */
 .ar-clip-hint-confirm.no-folders .ar-clip-label{display:none}
+.ar-clip-hint-confirm.no-folders .ar-clip-row{justify-content:center}
 .ar-clip-hint-confirm.no-folders .ar-clip-dests{flex:0 1 auto}
 .ar-clip-hint-confirm .ar-cancelclip{flex-shrink:0}
 .ar-clip-hint .ar-cancelclip{

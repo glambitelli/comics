@@ -673,6 +673,10 @@ function buildReaderDOM(){
         <svg viewBox="0 0 24 24" width="17" height="17"><path d="M6.5 6.5 17.5 17.5 M17.5 6.5 6.5 17.5" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"/></svg>
       </button>
       <div class="ar-top-actions">
+        <button class="ar-btn ar-retry" data-act="retryclip" title="Ridisegna il riquadro" hidden>
+          <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.6-5.9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M20 4v4.6h-4.6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span>Riprova</span>
+        </button>
         <button class="ar-btn ar-clip" aria-label="Ritaglia" data-act="clip">
           <svg viewBox="0 0 24 24" width="20" height="20"><circle cx="6.5" cy="6.5" r="2.4" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="6.5" cy="17.5" r="2.4" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8.6 8.2 20 18 M8.6 15.8 20 6" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg>
         </button>
@@ -737,7 +741,6 @@ function buildReaderDOM(){
           <div class="ar-clip-row ar-clip-row-browse">
             <span class="ar-clip-label" data-label="sfoglia">Sfoglia</span>
             <span class="ar-clip-more-wrap"></span>
-            <button class="ar-cancelclip" data-act="retryclip">Riprova</button>
           </div>
         </div>
       </div>
@@ -1726,6 +1729,10 @@ function toggleClip(force){
   layer.hidden = !_clipMode;
   hint.hidden = !_clipMode;
   box.hidden = true;
+  // "Riprova" sta nella barra in alto, fuori da .ar-clip-hint: uscendo dal
+  // ritaglio non se ne va da solo insieme al resto, va spento qui.
+  const retry = _reader.querySelector('.ar-retry');
+  if(retry) retry.hidden = true;
   // In ritaglio la navigazione non serve: via cursore e salti, resta l'avviso.
   const controls = _reader.querySelector('.ar-controls');
   if(controls) controls.hidden = _clipMode;
@@ -1768,6 +1775,7 @@ function wireClip(ov){
   const dests = ov.querySelector('.ar-clip-dests');
   const moreWrap = ov.querySelector('.ar-clip-more-wrap');
   const browseRow = ov.querySelector('.ar-clip-row-browse');
+  const retryBtn = ov.querySelector('.ar-retry');
   const handles = Array.from(box.querySelectorAll('.ar-clip-handle'));
   const MIN_SIZE = 24; // dimensione minima del riquadro in px CSS, ridimensionando
   let sx = 0, sy = 0, drawing = false;
@@ -1853,6 +1861,12 @@ function wireClip(ov){
   const showConfirm = (on)=>{
     if(hintInstruct) hintInstruct.hidden = on;
     if(hintConfirm) hintConfirm.hidden = !on;
+    // "Riprova" sta in alto insieme alle forbici, non in mezzo alle
+    // destinazioni: ridisegnare il riquadro è un comando SUL RITAGLIO, mentre
+    // la capsula in basso risponde a una domanda sola — dove finisce. Infilato
+    // in coda alle categorie sembrava una pastiglia avanzata, e per giunta
+    // rubava larghezza proprio alla fila che ne ha più bisogno.
+    if(retryBtn) retryBtn.hidden = !on;
     if(on) renderDests();
     // Le maniglie di resize hanno senso SOLO nello stato "in attesa di
     // conferma": durante il disegno iniziale coprirebbero il gesto sulla
