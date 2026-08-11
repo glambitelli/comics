@@ -114,7 +114,10 @@ export async function addRefImage(file, source='file', folderId=null){
     warmDerived(url);
     const data = {
       url, source,
-      projectId: null,
+      // Nessun progetto all'inizio. I due campi convivono: `projectIds` è
+      // quello vero, `projectId` resta scritto col primo dell'elenco per non
+      // lasciare indietro i ritagli creati prima (vedi projectIdsOf).
+      projectIds: [], projectId: null,
       folderId: folderId || null,
       addedAt: serverTimestamp(),
       w, h, bytes: blob.size,
@@ -142,7 +145,10 @@ export async function addRefBlob(blob, opts={}){
     warmDerived(url);
     const data = {
       url, source,
-      projectId: null,
+      // Nessun progetto all'inizio. I due campi convivono: `projectIds` è
+      // quello vero, `projectId` resta scritto col primo dell'elenco per non
+      // lasciare indietro i ritagli creati prima (vedi projectIdsOf).
+      projectIds: [], projectId: null,
       folderId: folderId || null,
       addedAt: serverTimestamp(),
       w, h, bytes: blob.size,
@@ -1088,10 +1094,11 @@ export function renderRefsGrid(){
   // di un campo che qui non si vede: ricostruire l'HTML rifà da capo tutte le
   // miniature (nuovi <img>, decodifica, sfarfallio). Se il contenuto mostrato
   // è identico non tocchiamo niente.
-  // `projectId` entra nella firma apposta: è invisibile in griglia (il
-  // puntino sotto lo mostra) ma cambia con "Collega a un progetto", e senza
-  // di lui in coda quel cambiamento non farebbe mai ridisegnare la griglia.
-  const sig = list.map(r=>r.id+':'+r.url+':'+(r.projectId||'')).join('|');
+  // I progetti collegati entrano nella firma apposta: sono invisibili in
+  // griglia (il puntino sotto li riassume) ma cambiano con "Collega a un
+  // progetto", e senza di loro in coda quel cambiamento non farebbe mai
+  // ridisegnare la griglia.
+  const sig = list.map(r=>r.id+':'+r.url+':'+projectIdsOf(r).join(',')).join('|');
   if(grid.dataset.sig === sig) return;
   grid.dataset.sig = sig;
 
@@ -1099,8 +1106,12 @@ export function renderRefsGrid(){
     // Puntino nell'angolo, colorato come il progetto a cui il ritaglio è
     // agganciato: un promemoria muto mentre scorri la griglia, senza dover
     // aprire ogni immagine per saperlo.
-    const proj = r.projectId ? projects.find(p=>p.id===r.projectId) : null;
-    const dot = proj ? `<span class="refs-thumb-linkdot" style="background:${proj.color||'#4ab8d8'}" title="${esc(proj.title||'')}"></span>` : '';
+    // Con più progetti il puntino prende il colore del primo e li elenca
+    // tutti nel titolo: un pallino solo resta leggibile a colpo d'occhio,
+    // due o tre puntini accanto diventerebbero coriandoli.
+    const suoi = projectIdsOf(r).map(pid => projects.find(p=>p.id===pid)).filter(Boolean);
+    const proj = suoi[0] || null;
+    const dot = proj ? `<span class="refs-thumb-linkdot" style="background:${proj.color||'#4ab8d8'}" title="${esc(suoi.map(p=>p.title||'').join(' · '))}"></span>` : '';
     return `
     <div class="refs-thumb" data-id="${r.id}">
       <img src="${cldResize(r.url, THUMB_W)}" loading="lazy" decoding="async" alt=""/>
@@ -1201,11 +1212,14 @@ export function openRefLightbox(id){
 function refreshLightboxLinkBtn(item){
   const linkBtn = document.getElementById('refs-lightbox-link');
   if(!linkBtn || !item) return;
-  const proj = item.projectId ? projects.find(p=>p.id===item.projectId) : null;
+  const suoi = projectIdsOf(item).map(pid => projects.find(p=>p.id===pid)).filter(Boolean);
+  const proj = suoi[0] || null;
   const path = linkBtn.querySelector('path');
   if(path) path.style.fill = proj ? (proj.color||'#4ab8d8') : 'none';
   linkBtn.classList.toggle('linked', !!proj);
-  linkBtn.setAttribute('aria-label', proj ? `Collegato a "${proj.title}" — cambia` : 'Collega a un progetto');
+  linkBtn.setAttribute('aria-label', suoi.length
+    ? `Collegato a ${suoi.map(p=>'"'+(p.title||'')+'"').join(', ')} — cambia`
+    : 'Collega a un progetto');
 }
 
 // Interfaccia intorno alla foto (contatore, frecce, provenienza, segnalibro):
@@ -1449,7 +1463,7 @@ export function prevRefImage(){ commitSwipe(-1); }
 // serve lasciare la schermata Progetto per aprirla, né tornarci esplicitamente
 // alla chiusura: quella sotto è già lì, invariata.
 export function openProjectRefGallery(projectId, startIndex=0){
-  const list = _refs.filter(r => r.projectId === projectId);
+  const list = _refs.filter(r => projectIdsOf(r).includes(projectId));
   if(!list.length) return;
   _lightboxList = list;
   _lightboxIndex = Math.min(Math.max(0, startIndex), list.length-1);
@@ -1472,7 +1486,7 @@ export function renderProjectRefPanel(projectId){
   const grid = document.getElementById('ref-panel-grid');
   const countEl = document.getElementById('ref-panel-count');
   if(!section || !grid) return;
-  const list = _refs.filter(r => r.projectId === projectId);
+  const list = _refs.filter(r => projectIdsOf(r).includes(projectId));
   if(!list.length){
     section.style.display = 'none';
     grid.dataset.sig = '';
@@ -1790,6 +1804,24 @@ function applyLbResistance(dx, w){
     // Un tocco annullato dal sistema (una notifica, un gesto di bordo) non
     // emette touchend: senza questo il nastro resterebbe fermo dov'era il dito,
     // a metà fra due foto, e da lì non si sbloccherebbe più.
+    // Con l'interfaccia nascosta (un tocco sulla foto la fa sparire) le due
+    // fasce sopra e sotto diventano pointer-events:none, quindi un tocco lì
+    // non arrivava a NESSUNO: né al pulsante invisibile, né al gestore del tap
+    // sulla foto, che copre solo il corpo centrale. Il risultato era una
+    // striscia di schermo morta — si toccava il pulsante "collega", non
+    // succedeva niente, e non si capiva perché.
+    // Ora un tocco ovunque nella galleria richiama l'interfaccia, e da lì il
+    // pulsante è di nuovo lì dov'era.
+    const ov = document.getElementById('refs-lightbox');
+    if(ov && !ov._chromeWake){
+      ov._chromeWake = true;
+      ov.addEventListener('pointerdown', e=>{
+        if(!ov.classList.contains('chrome-hidden')) return;
+        if(e.target.closest('.refs-lightbox-body')) return;   // lì ci pensa già il tap sulla foto
+        ov.classList.remove('chrome-hidden');
+      }, true);
+    }
+
     body.addEventListener('touchcancel', ()=>{
       isPinching = false; isPanning = false;
       if(lbArmed) cancelSwipe();
@@ -1901,34 +1933,67 @@ function promptMoveImage(id, anchorEl){
   actionMenu(anchorEl, actions);
 }
 
-// ── COLLEGAMENTO A UN PROGETTO ──────────────────────────────────────────────
-// Il campo `projectId` esisteva già nello schema di ogni ritaglio — scritto a
-// null alla creazione, mai letto né mai impostato da nessuna parte. Qui
-// diventa il collegamento vero fra un ritaglio e il progetto per cui serve da
-// riferimento: stesso identico meccanismo di "Sposta in cartella" (menu ad
-// azioni, "Nessun progetto" per scollegare), così chi ha già imparato l'uno
-// sa già usare l'altro.
-export function linkRefToProject(id, projectId){
-  setDoc(doc(db, REFS_COL, id), {projectId: projectId||null}, {merge:true});
+// ── COLLEGAMENTO AI PROGETTI ────────────────────────────────────────────────
+// Un ritaglio può servire a PIÙ progetti: la stessa mano ben disegnata è
+// riferimento per due storie diverse, e doverla ritagliare due volte per
+// tenerla in entrambe è lavoro inventato. All'inizio il campo era uno solo
+// (`projectId`), quindi scegliere il secondo progetto scollegava il primo
+// senza dirlo — sembrava che il collegamento non funzionasse, mentre stava
+// facendo esattamente quello che sapeva fare.
+//
+// Ora l'elenco sta in `projectIds`. I ritagli scritti prima hanno solo il
+// vecchio campo: projectIdsOf li legge lo stesso, così non serve nessuna
+// migrazione e niente si perde. Il vecchio campo continua a essere scritto
+// col PRIMO della lista, per non lasciare indietro eventuali dati altrove.
+export function projectIdsOf(item){
+  if(!item) return [];
+  if(Array.isArray(item.projectIds)) return item.projectIds.filter(Boolean);
+  return item.projectId ? [item.projectId] : [];
+}
+
+function writeProjectLinks(id, ids){
+  const lista = Array.from(new Set(ids.filter(Boolean)));
+  setDoc(doc(db, REFS_COL, id), { projectIds: lista, projectId: lista[0] || null }, {merge:true});
   // Riflette subito il cambio in locale: aspettare il giro di andata e
   // ritorno da Firestore per aggiornare il pulsante nel lightbox si sente,
   // anche se dura poco — e qui serve fluido "nel minor numero di passi".
   const item = _refs.find(r=>r.id===id);
   if(item){
-    item.projectId = projectId||null;
+    item.projectIds = lista;
+    item.projectId = lista[0] || null;
     const ov = document.getElementById('refs-lightbox');
     if(ov && ov.dataset.id === id) refreshLightboxLinkBtn(item);
   }
 }
 
+// Aggiunge o toglie UN progetto, lasciando stare gli altri.
+export function toggleRefProject(id, projectId){
+  const item = _refs.find(r=>r.id===id);
+  const attuali = projectIdsOf(item);
+  const dopo = attuali.includes(projectId)
+    ? attuali.filter(p => p !== projectId)
+    : attuali.concat(projectId);
+  writeProjectLinks(id, dopo);
+}
+
+export function linkRefToProject(id, projectId){
+  writeProjectLinks(id, projectId ? [projectId] : []);
+}
+
 function promptLinkProject(id, anchorEl){
   const item = _refs.find(r=>r.id===id);
-  const current = item?.projectId || null;
+  const collegati = projectIdsOf(item);
+  // Ogni voce ACCENDE o SPEGNE quel progetto: la spunta dice quali sono già
+  // collegati, e sceglierne un altro non scollega più il primo. Il menu si
+  // chiude ad ogni scelta come tutti gli altri dell'app — per collegarne due
+  // lo si riapre, e la seconda volta si vede la spunta comparsa.
   const actions = projects.map(p => ({
-    label: (p.id===current ? '✓ ' : '') + (p.title||'Senza titolo'),
-    onSelect: ()=>{ linkRefToProject(id, p.id); haptic('tap'); },
+    label: (collegati.includes(p.id) ? '✓ ' : '') + (p.title||'Senza titolo'),
+    onSelect: ()=>{ toggleRefProject(id, p.id); haptic('tap'); },
   }));
-  actions.push({ label:'Nessun progetto', onSelect:()=>{ linkRefToProject(id, null); haptic('tap'); } });
+  if(collegati.length){
+    actions.push({ label:'Scollega da tutti', onSelect:()=>{ writeProjectLinks(id, []); haptic('tap'); } });
+  }
   if(!actions.length) return;
   actionMenu(anchorEl, actions);
 }
@@ -1953,7 +2018,8 @@ export function deleteRefImageWithUndo(id){
   showUndoToast('Immagine eliminata', ()=>{
     if(!item) return;
     setDoc(doc(db, REFS_COL, id), {
-      url: item.url, source: item.source||'file', projectId: item.projectId||null,
+      url: item.url, source: item.source||'file',
+      projectIds: projectIdsOf(item), projectId: projectIdsOf(item)[0] || null,
       folderId: item.folderId||null, bytes: item.bytes||null,
       addedAt: serverTimestamp(), w: item.w||null, h: item.h||null,
     });

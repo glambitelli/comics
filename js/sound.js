@@ -16,7 +16,18 @@ const PREF_KEY = 'inkflow-sfx-enabled';
 // Volume per intento: il tick di navigazione resta discreto, conferma e
 // ricompensa un po' più presenti perché sono momenti, non accompagnamento.
 const VOLUME = { tap: 0.38, done: 0.6, reward: 0.72, cancel: 0.5 };
-const NAV_MIN_GAP = 70;            // ms: fonde il tick diffuso con l'eventuale haptic('tap') dello stesso gesto ed evita raffiche
+// ms: distanza minima fra due tick fuori da un gesto puntatore (tastiera,
+// azioni a catena). Dentro un gesto vale la regola migliore qui sotto — un
+// suono per GESTO, non per finestra di tempo.
+const NAV_MIN_GAP = 70;
+// Quanto si aspetta prima di far partire il tick diffuso, per dare tempo al
+// click di dichiarare un intento più significativo (vedi playSfx). 45ms sono
+// sotto la soglia in cui un suono d'interfaccia si percepisce in ritardo.
+const NAV_DEFER = 45;
+// Oltre questo tempo dall'ultimo pointerdown non si e' piu' dentro un gesto:
+// un tick che arriva dopo viene da tastiera o da una catena di azioni, e
+// torna a valere la sola distanza minima.
+const GESTURE_WINDOW = 1000;
 
 // Un file per ciascun intento di haptic(): 'tap' navigazione, 'done' conferma,
 // 'reward' il momento clou (serata completata). 'cancel' è pronto per un
@@ -32,6 +43,24 @@ let _ctx = null;
 const _buffers = {};        // intento -> AudioBuffer decodificato
 let _loading = null;
 let _lastNavAt = 0;
+// UN SUONO SOLO PER GESTO, e vince quello che porta il significato.
+//
+// Il tick diffuso scatta al pointerup; l'azione vera — haptic('done') di una
+// conferma, o l'haptic('tap') scritto dentro un onclick — arriva col click,
+// qualche millisecondo dopo. Con la sola soglia di 70ms i due finivano spesso
+// per suonare entrambi, ed e' esattamente il "sembra che abbia cliccato piu'
+// volte" segnalato: due nav.wav a distanza di un soffio suonano come un
+// doppio clic, e un nav.wav sopra un done.wav suona come un pasticcio.
+//
+// Il conto dei gesti risolve alla radice: ogni pointerdown ne apre uno nuovo,
+// e dentro un gesto passa un suono e uno solo. Il tick diffuso inoltre non
+// parte subito ma dopo NAV_DEFER: se in quella finestra arriva un intento
+// dichiarato lo si annulla e suona quello, che e' quello che significa
+// qualcosa.
+let _gesture = 0;          // gesto puntatore in corso
+let _gestureAt = 0;        // quando e' cominciato
+let _soundedGesture = -1;  // ultimo gesto che ha gia' emesso un suono
+let _pendingNav = null;    // tick diffuso in attesa di partire
 
 export function isSoundEnabled(){
   const v = localStorage.getItem(PREF_KEY);
@@ -80,8 +109,8 @@ function unlockAudio(){
 
 // Tick di navigazione DIFFUSO: un tocco su un elemento interattivo fa il suono
 // di menu, come nelle UI da console. Prima suonavano solo i ~16 punti che
-// chiamano haptic(), cioè quasi nulla navigando. La soglia NAV_MIN_GAP fonde
-// questo tick con l'eventuale haptic('tap') dello stesso gesto: niente doppio.
+// chiamano haptic(), cioè quasi nulla navigando. A non farlo raddoppiare con
+// l'haptic dello stesso tocco ci pensa il conto dei gesti (vedi playSfx).
 // Escludiamo i campi di testo (un tocco per scrivere non deve ticchettare).
 function isInteractive(el){
   if(!el || el.nodeType !== 1) return false;
@@ -100,13 +129,25 @@ const TAP_SLOP = 10;
 let _padX = 0, _padY = 0, _padId = null, _padTarget = null;
 document.addEventListener('pointerdown', e=>{
   _padX = e.clientX; _padY = e.clientY; _padId = e.pointerId; _padTarget = e.target;
+  // Comincia un gesto nuovo: quello di prima non ha piu' voce in capitolo.
+  _gesture++; _gestureAt = Date.now();
+  if(_pendingNav){ clearTimeout(_pendingNav); _pendingNav = null; }
 }, { passive:true });
 document.addEventListener('pointerup', e=>{
   if(e.pointerId !== _padId || !_padTarget) return;
   const target = _padTarget; _padTarget = null;
   const moved = Math.hypot(e.clientX - _padX, e.clientY - _padY);
   if(moved > TAP_SLOP) return; // scroll/trascinamento, non un tocco
-  if(isInteractive(target)) playSfx('tap');
+  if(!isInteractive(target)) return;
+  if(_soundedGesture === _gesture) return;   // questo gesto ha gia' suonato
+  const g = _gesture;
+  _pendingNav = setTimeout(()=>{
+    _pendingNav = null;
+    if(_soundedGesture === g) return;        // nel frattempo ha parlato l'azione
+    _soundedGesture = g;
+    _lastNavAt = Date.now();
+    emit('tap');
+  }, NAV_DEFER);
 }, { passive:true });
 
 // Riproduce il suono di un intento, se i suoni sono accesi. Fire-and-forget:
@@ -115,13 +156,33 @@ export function playSfx(intent){
   if(!isSoundEnabled()) return;
   const key = FILES[intent] ? intent : null;
   if(!key) return;
-  // Il tick di navigazione può partire a raffica (liste, scorrimenti): lo
-  // limitiamo, altrimenti diventa un ronzio invece che un accento.
+  const now = Date.now();
+  const dentroUnGesto = (now - _gestureAt) < GESTURE_WINDOW;
   if(key === 'tap'){
-    const now = Date.now();
-    if(now - _lastNavAt < NAV_MIN_GAP) return;
+    if(dentroUnGesto){
+      // Stesso tocco visto da un'altra parte del codice (il tick diffuso, o
+      // l'haptic('tap') scritto nell'onclick): non e' un secondo tocco.
+      if(_pendingNav || _soundedGesture === _gesture) return;
+      _soundedGesture = _gesture;
+    } else {
+      // Fuori da un gesto (tastiera, azioni a catena) resta la vecchia rete
+      // contro le raffiche.
+      if(now - _lastNavAt < NAV_MIN_GAP) return;
+    }
     _lastNavAt = now;
+  } else if(dentroUnGesto){
+    // Conferma, ricompensa, annullo: hanno la precedenza sul tick generico
+    // dello stesso gesto. Se il tick e' ancora in attesa lo si annulla, cosi'
+    // non si accavallano due suoni per un tocco solo.
+    if(_pendingNav){ clearTimeout(_pendingNav); _pendingNav = null; }
+    _soundedGesture = _gesture;
   }
+  emit(key);
+}
+
+// Manda davvero il suono in uscita. Separata da playSfx perche' la decide
+// anche il tick differito qui sopra, che le regole le ha gia' applicate.
+function emit(key){
   const ctx = getCtx();
   if(!ctx) return;
   const play = ()=>{
