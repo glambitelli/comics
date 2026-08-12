@@ -1474,12 +1474,16 @@ function panGain(z){
   return Math.min(PAN_GAIN_MAX, Math.max(1, 1 + (z - 1) * 0.55));
 }
 
-// Limita lo spostamento ai bordi della tavola: non si "perde" mai l'immagine
-// fuori dallo schermo trascinando troppo.
-function clampPan(scale, x, y){
+// Fin dove si può spostare la tavola prima di "perderla" fuori dallo schermo.
+function panLimits(scale){
   if(!_baseW || !_baseH) measureBaseSize();
-  const maxX = Math.max(0, (_baseW * scale - _baseW) / 2);
-  const maxY = Math.max(0, (_baseH * scale - _baseH) / 2);
+  return {
+    maxX: Math.max(0, (_baseW * scale - _baseW) / 2),
+    maxY: Math.max(0, (_baseH * scale - _baseH) / 2),
+  };
+}
+function clampPan(scale, x, y){
+  const { maxX, maxY } = panLimits(scale);
   return { x: Math.min(maxX, Math.max(-maxX, x)), y: Math.min(maxY, Math.max(-maxY, y)) };
 }
 
@@ -1547,6 +1551,9 @@ function wireGestures(ov){
   // pagina non deve MAI capitare per sbaglio, quindi il nastro si comporta
   // come una molla e non accetta scorciatoie (vedi il rilascio più sotto).
   let dragFromEdge = false;
+  // Questo gesto ha il permesso di girare pagina? Lo prende al touchstart e
+  // non cambia più fino al rilascio (vedi il commento lì).
+  let edgeReady = false;
   // Dove stava il dito quando la tavola ha finito di scorrere. Da lì si conta
   // l'insistenza, in pixel di DITO: contarla sullo spostamento della tavola
   // sarebbe falsato dal guadagno di panGain.
@@ -1573,9 +1580,25 @@ function wireGestures(ov){
         dragFromEdge = false; pinnedAtX = null;
         panX = x0; panY = y0; origX = _zx; origY = _zy;
         stageW = stage.clientWidth;
+        // SI PUÒ GIRARE PAGINA SOLO SE IL DITO SI APPOGGIA QUANDO LA TAVOLA È
+        // GIÀ A FINE CORSA.
+        //
+        // È la regola che mancava. Su una tavola ingrandita il bordo
+        // orizzontale è vicinissimo — bastano un paio di centimetri di dito
+        // per arrivarci — quindi muovendosi dentro la tavola ci si sbatte
+        // contro di continuo, e ogni volta il gesto rischiava di trasformarsi
+        // in uno sfoglio: si voleva guardare una vignetta e si cambiava
+        // pagina. Ora l'esplorazione e lo sfoglio sono due gesti DIVERSI:
+        // arrivare al bordo trascinando non gira mai pagina, per quanto si
+        // insista. Si stacca il dito, lo si riappoggia — adesso la tavola è a
+        // fine corsa — e da lì si sfoglia.
+        // Se poi la tavola ingrandita è comunque più stretta dello schermo non
+        // c'è nessuna corsa orizzontale da fare: maxX vale 0, la condizione è
+        // vera da subito, e lo sfoglio funziona come a dimensione naturale.
+        edgeReady = Math.abs(_zx) >= panLimits(_zoom).maxX - 1;
       } else {
         panning = false;
-        dragFromEdge = false; pinnedAtX = null;
+        dragFromEdge = false; pinnedAtX = null; edgeReady = true;
         // Il dito è arrivato mentre il nastro scorreva ancora: si chiude subito
         // l'animazione e questo gesto parte da pagina ferma, invece di essere
         // scartato (vedi flushArTransition — è la causa del "doppio swipe").
@@ -1632,7 +1655,7 @@ function wireGestures(ov){
       // si aspettasse.
       if(Math.abs(oltre) < 0.5) pinnedAtX = null;         // rientrati nella tavola
       else if(pinnedAtX === null) pinnedAtX = x;          // appena arrivati al bordo
-      if(pinnedAtX !== null && Math.abs(x - pinnedAtX) > EDGE_HANDOFF
+      if(edgeReady && pinnedAtX !== null && Math.abs(x - pinnedAtX) > EDGE_HANDOFF
          && Math.abs(x - panX) > Math.abs(y - panY)){
         panning = false;
         dragCandidate = true; dragArmed = true; dragFromEdge = true;

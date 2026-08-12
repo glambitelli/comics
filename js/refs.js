@@ -1576,14 +1576,21 @@ function panGain(z){
   return Math.min(PAN_GAIN_MAX, Math.max(1, 1 + (z - 1) * 0.55));
 }
 
-function clampPan(scale, x, y){
+// Fin dove si può spostare la foto prima di "perderla" fuori dallo schermo.
+function panLimits(scale){
   const img = curImg();
-  if(!img) return {x, y};
+  if(!img) return null;
   const r = img.getBoundingClientRect();
   const baseW = r.width / scale, baseH = r.height / scale;
-  const maxX = Math.max(0, (baseW*scale - baseW)/2);
-  const maxY = Math.max(0, (baseH*scale - baseH)/2);
-  return { x: Math.min(maxX, Math.max(-maxX, x)), y: Math.min(maxY, Math.max(-maxY, y)) };
+  return {
+    maxX: Math.max(0, (baseW*scale - baseW)/2),
+    maxY: Math.max(0, (baseH*scale - baseH)/2),
+  };
+}
+function clampPan(scale, x, y){
+  const lim = panLimits(scale);
+  if(!lim) return {x, y};
+  return { x: Math.min(lim.maxX, Math.max(-lim.maxX, x)), y: Math.min(lim.maxY, Math.max(-lim.maxY, y)) };
 }
 
 function applyZoomTransform(img){
@@ -1659,6 +1666,8 @@ function applyLbResistance(dx, w){
     // il cambio immagine non deve MAI capitare per sbaglio: il nastro si
     // comporta come una molla e non accetta scorciatoie (vedi il rilascio).
     let lbFromEdge = false;
+    // Questo gesto ha il permesso di cambiare foto? Lo prende al touchstart.
+    let lbEdgeReady = false;
     // Dove stava il dito quando la foto ha finito di scorrere. L'insistenza si
     // conta da lì in pixel di DITO: contarla sullo spostamento della foto
     // sarebbe falsata dal guadagno di panGain.
@@ -1694,6 +1703,16 @@ function applyLbResistance(dx, w){
         if(_zoomScale > 1.02){
           isPanning = true; lbDragCandidate = false; lbArmed = false;
           lbFromEdge = false; lbPinnedAtX = null;
+          // SI CAMBIA FOTO SOLO SE IL DITO SI APPOGGIA QUANDO L'IMMAGINE È GIÀ
+          // A FINE CORSA. Su una foto ingrandita il bordo orizzontale è
+          // vicinissimo: muovendosi dentro ci si sbatte contro di continuo, e
+          // ogni volta il gesto rischiava di diventare un cambio immagine.
+          // Esplorare e sfogliare restano così due gesti distinti: si stacca
+          // il dito, lo si riappoggia a fine corsa, e da lì si sfoglia.
+          {
+            const lim = panLimits(_zoomScale);
+            lbEdgeReady = !lim || Math.abs(_zoomX) >= lim.maxX - 1;
+          }
           panStartX = touches[0].clientX; panStartY = touches[0].clientY;
           panOrigX = _zoomX; panOrigY = _zoomY;
         } else {
@@ -1704,7 +1723,7 @@ function applyLbResistance(dx, w){
           if(_lbAnimating) flushLbTransition();
           lbDragCandidate = true;
           lbArmed = false;
-          lbFromEdge = false; lbPinnedAtX = null;
+          lbFromEdge = false; lbPinnedAtX = null; lbEdgeReady = true;
           lbBodyW = body.clientWidth;
           lbDragOriginX = touches[0].clientX;
           lbLastX = lbPrevX = touches[0].clientX;
@@ -1747,7 +1766,7 @@ function applyLbResistance(dx, w){
         // mano si aspettasse.
         if(Math.abs(oltre) < 0.5) lbPinnedAtX = null;
         else if(lbPinnedAtX === null) lbPinnedAtX = x;
-        if(lbPinnedAtX !== null && Math.abs(x - lbPinnedAtX) > EDGE_HANDOFF
+        if(lbEdgeReady && lbPinnedAtX !== null && Math.abs(x - lbPinnedAtX) > EDGE_HANDOFF
            && Math.abs(x - panStartX) > Math.abs(y - panStartY)){
           isPanning = false;
           lbDragCandidate = true; lbArmed = true; lbFromEdge = true;
