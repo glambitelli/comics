@@ -142,14 +142,14 @@ export async function addRefImage(file, source='file', folderId=null){
 // così il frammento sa da dove viene.
 export async function addRefBlob(blob, opts={}){
   if(!blob) return null;
-  const { folderId=null, source='clip', provenance=null, w=null, h=null } = opts;
+  const { folderId=null, source='clip', provenance=null, w=null, h=null, onProgress=null } = opts;
   const id = genId();
   try{
     // L'estensione segue il formato vero del blob: da quando i ritagli
     // viaggiano in WebP (vedi exportCropAndSave in albums.js) chiamarli tutti
     // .jpg sarebbe una bugia scritta nel nome del file.
     const est = (blob.type && blob.type.split('/')[1]) || 'jpg';
-    const { url } = await uploadToCloudinary(blob, id+'.'+est);
+    const { url } = await uploadToCloudinary(blob, id+'.'+est, onProgress);
     warmDerived(url);
     const data = {
       url, source,

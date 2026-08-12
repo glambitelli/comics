@@ -2,7 +2,23 @@
 // funzioni (cartella attiva, destinazioni del ritaglio, schede degli albi) che
 // nel banco non devono parlare con Firestore. Quello che serve pilotarlo dalla
 // prova si legge da window, così ogni suite decide il suo scenario.
-export function addRefBlob(){ return Promise.resolve('id'); }
+// Il caricamento vero non c'è, ma l'AVANZAMENTO sì: window.__salita dice a
+// quanti passi farlo salire, così la prova può guardare cosa scrive il lettore
+// nel banner mentre spedisce. Ogni chiamata lascia traccia in window.__salvati.
+export function addRefBlob(blob, opts = {}){
+  window.__salvati = (window.__salvati || 0) + 1;
+  const passi = window.__salita || 0;
+  if(!passi || !opts.onProgress) return Promise.resolve('id');
+  const totale = 1000;
+  return new Promise(risolvi=>{
+    let i = 0;
+    const t = setInterval(()=>{
+      i++;
+      opts.onProgress(Math.round(totale * i / passi), totale);
+      if(i >= passi){ clearInterval(t); risolvi('id'); }
+    }, 30);
+  });
+}
 export function getActiveFolderId(){ return window.__folderId || null; }
 export function findExactAlbumMatch(){ return null; }
 export function createAlbumDoc(){ return Promise.resolve(null); }

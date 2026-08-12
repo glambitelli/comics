@@ -71,49 +71,76 @@ module.exports = () => suite("Ritaglio — maniglie del riquadro e peso del file
     .filter(h=> h.getBoundingClientRect().width > 0).map(h=>h.dataset.corner).sort());
   ok('restano i soli angoli', piccole.join(',') === 'ne,nw,se,sw', piccole);
 
-  console.log('\n── quanto pesa il ritaglio ──');
-  const peso = await page.evaluate(async ()=>{
-    // Una tavola vera, ritagliata a 2000px: e' il caso che si spedisce.
-    const im = document.querySelectorAll('.ar-cell')[1].querySelector('.ar-img');
-    const c = document.createElement('canvas'); c.width = 2000; c.height = 1400;
-    c.getContext('2d').drawImage(im, 0, 0, im.naturalWidth, im.naturalHeight, 0, 0, 2000, 1400);
-    const cod = (t,q)=> new Promise(r=> c.toBlob(b=>r(b), t, q));
-    const j = await cod('image/jpeg', 0.88);
-    const w = await cod('image/webp', 0.82);
-    return { jpeg: j.size, webp: w.size, tipoWebp: w.type };
+  console.log('\n── quanto costa un ritaglio, in byte e in tempo ──');
+  // Tratto nero su bianco, retini, campiture: il profilo di una scansione a
+  // fumetti, che e' il caso che conta davvero. Le tavole del banco sono a
+  // tinta unita e comprimerebbero in modo irreale, dicendo un numero che non
+  // vale per niente.
+  const misura = await page.evaluate(async ()=>{
+    const tavola = (w,h)=>{
+      const c = document.createElement('canvas'); c.width=w; c.height=h;
+      const x = c.getContext('2d');
+      x.fillStyle='#fff'; x.fillRect(0,0,w,h);
+      x.strokeStyle='#111'; x.fillStyle='#111';
+      const n = Math.round(220*(w*h)/(2000*1400));
+      for(let i=0;i<n;i++){
+        x.lineWidth = 1+(i%7);
+        x.beginPath(); x.moveTo((i*137)%w,(i*271)%h);
+        x.bezierCurveTo((i*53)%w,(i*97)%h,(i*311)%w,(i*17)%h,(i*89)%w,(i*199)%h);
+        x.stroke();
+      }
+      for(let i=0;i<40;i++){ x.beginPath(); x.arc((i*211)%w,(i*163)%h,30+(i%50),0,6.284); x.fill(); }
+      for(let y=0;y<h;y+=4) for(let px=(y/4%2)*2;px<w;px+=4) x.fillRect(px,y,1.5,1.5);
+      return c;
+    };
+    const CAP = 1400000;                       // CLIP_MAX_BYTES in albums.js
+    const src = tavola(2480, 3508);            // una scansione, come esce da un CBR
+    const prova = async (dim)=>{
+      let w = 1800, h = 2400;                  // si ritaglia circa mezza tavola
+      if(w>dim||h>dim){ if(w>=h){h=Math.round(h*dim/w);w=dim;} else {w=Math.round(w*dim/h);h=dim;} }
+      const t0 = performance.now();
+      const cv = document.createElement('canvas'); cv.width=w; cv.height=h;
+      cv.getContext('2d').drawImage(src, 300, 400, 1800, 2400, 0, 0, w, h);
+      const cod = (t,q)=> new Promise(r=> cv.toBlob(r, t, q));
+      let q = 0.82, bl = await cod('image/webp', q), giri = 1;
+      while(bl && bl.size > CAP && q > 0.5){ q = Math.max(0.5, q-0.1); bl = await cod('image/webp', q); giri++; }
+      const jp = await cod('image/jpeg', 0.88);
+      return { ms: Math.round(performance.now()-t0), byte: bl.size, giri, jpeg: jp.size, tipo: bl.type };
+    };
+    return { vecchio: await prova(2000), nuovo: await prova(1600) };
   });
-  ok('il browser produce davvero WebP', peso.tipoWebp === 'image/webp', peso);
-  ok('e pesa meno del JPEG di prima', peso.webp < peso.jpeg, peso);
-  // La tavola del banco e' a tinta unita, quindi comprime in modo irreale:
-  // il RAPPORTO qui non vale come misura, vale solo il verso.
-  console.log('   (tavola di prova a tinta unita) JPEG ' + (peso.jpeg/1024).toFixed(0) +
-              ' KB · WebP ' + (peso.webp/1024).toFixed(0) + ' KB');
+  const kb = n => (n/1024).toFixed(0) + ' KB';
+  ok('il browser produce davvero WebP', misura.nuovo.tipo === 'image/webp', misura.nuovo);
+  ok('e su tratto e retini pesa meno del JPEG di prima',
+     misura.nuovo.byte < misura.nuovo.jpeg, misura.nuovo);
+  ok('a 1600 il ritaglio sta sotto il tetto AL PRIMO COLPO (niente seconda codifica)',
+     misura.nuovo.giri === 1, misura.nuovo);
+  ok('e pesa molto meno di quello che si spediva a 2000',
+     misura.nuovo.byte < misura.vecchio.byte * 0.8, misura);
+  console.log('   2000px → ' + kb(misura.vecchio.byte) + ' in ' + misura.vecchio.ms + ' ms'
+    + (misura.vecchio.giri > 1 ? ' (' + misura.vecchio.giri + ' codifiche)' : ''));
+  console.log('   1600px → ' + kb(misura.nuovo.byte) + ' in ' + misura.nuovo.ms + ' ms'
+    + '   ·   ' + Math.round(100 - misura.nuovo.byte/misura.vecchio.byte*100) + '% di byte in meno');
 
-  console.log('\n── e su qualcosa che somiglia a una tavola vera ──');
-  const vero = await page.evaluate(async ()=>{
-    // Tratto nero su bianco, retini, campiture: il profilo di una scansione a
-    // fumetti, che e' il caso che conta. Una tinta unita comprimerebbe in modo
-    // irreale e direbbe un numero che non vale per niente.
-    const c = document.createElement('canvas'); c.width = 2000; c.height = 1400;
-    const x = c.getContext('2d');
-    x.fillStyle = '#fff'; x.fillRect(0,0,2000,1400);
-    x.strokeStyle = '#111'; x.fillStyle = '#111';
-    for(let i=0;i<220;i++){
-      x.lineWidth = 1 + (i % 7);
-      x.beginPath();
-      x.moveTo((i*137)%2000, (i*271)%1400);
-      x.bezierCurveTo((i*53)%2000,(i*97)%1400,(i*311)%2000,(i*17)%1400,(i*89)%2000,(i*199)%1400);
-      x.stroke();
-    }
-    for(let i=0;i<40;i++){ x.beginPath(); x.arc((i*211)%2000,(i*163)%1400, 30+(i%50), 0, 6.284); x.fill(); }
-    // retino a puntini, il grande nemico del JPEG
-    for(let y=0;y<1400;y+=4) for(let px=(y/4%2)*2; px<2000; px+=4) x.fillRect(px,y,1.5,1.5);
-    const cod = (t,q)=> new Promise(r=> c.toBlob(b=>r(b), t, q));
-    const j = await cod('image/jpeg', 0.88);
-    const w = await cod('image/webp', 0.82);
-    return { jpeg: j.size, webp: w.size };
+  console.log('\n── il banner dice a che punto e\' il caricamento ──');
+  // Chi ritaglia vede "Ritaglio in corso…" e basta, per tutti i secondi che
+  // la rete si prende: un banner fermo fa sembrare l'app piantata. Qui si
+  // guarda che la percentuale ci sia e che salga davvero.
+  await page.evaluate(()=>{ window.__salita = 8; window.__scritte = []; });
+  await page.evaluate(()=>{
+    const el = document.querySelector('.ar-toast');
+    new MutationObserver(()=>{ window.__scritte.push(el.textContent); })
+      .observe(el, { childList:true, characterData:true, subtree:true });
   });
-  ok('anche su tratto e retini il WebP pesa meno', vero.webp < vero.jpeg, vero);
-  console.log('   JPEG 0.88: ' + (vero.jpeg/1024).toFixed(0) + ' KB   ·   WebP 0.82: ' + (vero.webp/1024).toFixed(0) +
-              ' KB   ·   ' + Math.round(100 - vero.webp/vero.jpeg*100) + '% in meno');
+  await page.evaluate(()=> document.querySelector('[data-act="retryclip"]').dispatchEvent(new MouseEvent('click',{bubbles:true})));
+  await page.waitForTimeout(200);
+  await disegna(60, 120, 340, 460);
+  await page.evaluate(()=> document.querySelector('[data-act="confirmclip"]').dispatchEvent(new MouseEvent('click',{bubbles:true})));
+  await page.waitForTimeout(1200);
+  const scritte = await page.evaluate(()=> window.__scritte);
+  const perc = scritte.map(t=>{ const m = /(\d+)%/.exec(t); return m ? +m[1] : null; }).filter(n=>n!==null);
+  ok('durante il caricamento compare una percentuale', perc.length >= 3, scritte);
+  ok('e sale, non scende mai', perc.every((n,i)=> i===0 || n >= perc[i-1]), perc);
+  ok('non arriva a 100 prima di essere davvero salvato', perc.every(n=> n < 100), perc);
+  ok('e alla fine lo dice', /salvat/i.test(scritte[scritte.length-1] || ''), scritte.slice(-3));
 });

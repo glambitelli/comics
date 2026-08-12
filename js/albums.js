@@ -2241,7 +2241,26 @@ function blobToImage(blob){
   });
 }
 
-const CLIP_MAX_DIM = 2000;
+// Il lato lungo del ritaglio che viene salvato.
+//
+// Era 2000, ed è sceso a 1600 dopo aver misurato dove se ne va il tempo di un
+// ritaglio. Su una tavola scansionata (tratto + retini, il caso peggiore per
+// la compressione), ritagliandone circa metà:
+//
+//   2000px → codifica ~800-1000 ms, 1038 KB da spedire
+//   1600px → codifica ~300-480 ms,   728 KB da spedire
+//
+// Cioè meno della metà del tempo di codifica e un terzo di byte in meno sulla
+// rete, che su 4G è la parte più lunga di tutte. C'è anche un effetto
+// nascosto: a 2000px il primo tentativo sfondava spesso CLIP_MAX_BYTES e
+// faceva scattare la ricodifica qui sotto — una seconda codifica intera, da
+// capo. A 1600 non succede mai, quindi il giro è sempre uno solo.
+//
+// Cosa si perde: niente di visibile. Il ritaglio si guarda in galleria, dove
+// Cloudinary lo riserve comunque ridimensionato e ricompresso (cldResize con
+// q_auto/f_auto); 1600px sul lato lungo restano più di quanti pixel abbia lo
+// schermo su cui lo si guarda, anche ingrandendolo.
+const CLIP_MAX_DIM = 1600;
 const CLIP_MAX_BYTES = 1400000;
 
 // Il tempo di un ritaglio è quasi tutto CARICAMENTO: disegnare e comprimere
@@ -2315,14 +2334,28 @@ async function exportCropAndSave(sourceImg, cx, cy, cw, ch, destFolderId){
   // await: la provenienza viaggia SEMPRE col ritaglio, anche quando finisce
   // in una cartella di studio, così le mani archiviate in "Hands" continuano
   // a sapere di essere di Satoshi Kon, pagina 88.
-  let id = await addRefBlob(blob, { folderId, source: 'clip', provenance, w, h });
+  // Da qui in poi comanda la rete, ed è la parte lunga. Un banner fermo che
+  // dice "Ritaglio in corso…" per qualche secondo fa sembrare l'app piantata:
+  // con la percentuale che sale il tempo è lo stesso, ma si vede che sta
+  // andando. Si arrotonda a multipli di 5 per non far tremolare la scritta ad
+  // ogni pacchetto.
+  let ultimo = -1;
+  const avanzamento = (fatti, totale)=>{
+    if(!totale) return;
+    const pct = Math.min(99, Math.round(fatti / totale * 20) * 5);
+    if(pct === ultimo) return;
+    ultimo = pct;
+    toast('Ritaglio in corso… ' + pct + '%', false, true);
+  };
+
+  let id = await addRefBlob(blob, { folderId, source: 'clip', provenance, w, h, onProgress: avanzamento });
   // Rete di sicurezza sul formato: se il caricamento non riesce col WebP si
   // riprova UNA volta in JPEG. Il preset di Cloudinary è fuori da questo
   // repository e potrebbe non accettarlo: meglio un ritaglio più pesante che
   // un ritaglio perso, e senza doverlo scoprire dall'utente.
   if(!id && webp){
     const ripiego = await encode('image/jpeg', 0.88);
-    if(ripiego) id = await addRefBlob(ripiego, { folderId, source: 'clip', provenance, w, h });
+    if(ripiego) id = await addRefBlob(ripiego, { folderId, source: 'clip', provenance, w, h, onProgress: avanzamento });
   }
   if(id){
     haptic('done');
