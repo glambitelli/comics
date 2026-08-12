@@ -179,24 +179,31 @@
   color:#b8ab95;letter-spacing:.02em;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
-.refs-lightbox-more{
-  background:rgba(255,248,232,.1);border:none;color:#e8c878;cursor:pointer;padding:0;
-  flex-shrink:0;width:34px;height:34px;border-radius:50%;
-  display:flex;align-items:center;justify-content:center;
-  transition:background .12s,transform .1s;
-}
-.refs-lightbox-more:active{transform:scale(.92);background:rgba(255,248,232,.18)}
-/* Segnalibro "collega a un progetto": gemello del pulsante "⋯" per costruzione,
-   ma con un secondo stato — pieno e colorato come il progetto agganciato
-   (impostato via JS in renderLightboxAt, non qui: il colore è per-progetto,
-   non un valore fisso da scrivere in un foglio di stile). */
+/* I due comandi della capsula. Il fondo era rgba(...,.10): sopra una foto
+   chiara il disco spariva e restavano tre puntini d'oro sospesi nel nulla,
+   che non si leggevano come un pulsante. Ora il disco ha un fondo più deciso
+   e un filo di contorno, così si stacca da qualunque immagine ci sia sotto. */
+.refs-lightbox-more,
 .refs-lightbox-link{
-  background:rgba(255,248,232,.1);border:none;color:#e8c878;cursor:pointer;padding:0;
-  flex-shrink:0;width:34px;height:34px;border-radius:50%;
+  background:rgba(255,248,232,.18);border:1px solid rgba(232,200,120,.28);
+  color:#f0d9a0;cursor:pointer;padding:0;
+  flex-shrink:0;width:36px;height:36px;border-radius:50%;
   display:flex;align-items:center;justify-content:center;
-  transition:background .12s,transform .1s;
+  transition:background .12s,transform .1s,color .12s;
 }
-.refs-lightbox-link:active{transform:scale(.92);background:rgba(255,248,232,.18)}
+.refs-lightbox-more:active,
+.refs-lightbox-link:active{transform:scale(.92);background:rgba(255,248,232,.3)}
+.refs-lightbox-more svg{fill:currentColor}
+/* "Collega a un progetto" era un SEGNALIBRO, e un segnalibro vuol dire
+   "metti da parte questo" — un'altra cosa. Ora è una catena, che è il segno
+   universale del collegamento fra due cose.
+   Collegato: il disco si riempie del colore del progetto (--proj, scritto da
+   refreshLightboxLinkBtn: il colore è per-progetto, non un valore fisso da
+   mettere in un foglio di stile) e la catena diventa scura. Si legge a colpo
+   d'occhio se quel ritaglio è agganciato a qualcosa, senza aprire il menu. */
+.refs-lightbox-link.linked{
+  background:var(--proj,#4ab8d8);border-color:transparent;color:#1a1410;
+}
 
 /* Frecce avanti/indietro (solo desktop, il touch scorre col dito): nessun
    disco — nella galleria è l'immagine che deve avere peso, non il suo chrome. */

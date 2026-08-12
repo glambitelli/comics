@@ -1214,8 +1214,9 @@ function refreshLightboxLinkBtn(item){
   if(!linkBtn || !item) return;
   const suoi = projectIdsOf(item).map(pid => projects.find(p=>p.id===pid)).filter(Boolean);
   const proj = suoi[0] || null;
-  const path = linkBtn.querySelector('path');
-  if(path) path.style.fill = proj ? (proj.color||'#4ab8d8') : 'none';
+  // Il colore va sul PULSANTE, non riempiendo un tracciato: la catena è
+  // disegnata a linea, riempirla la impasterebbe in una macchia.
+  linkBtn.style.setProperty('--proj', proj ? (proj.color||'#4ab8d8') : '');
   linkBtn.classList.toggle('linked', !!proj);
   linkBtn.setAttribute('aria-label', suoi.length
     ? `Collegato a ${suoi.map(p=>'"'+(p.title||'')+'"').join(', ')} — cambia`
@@ -1673,12 +1674,12 @@ function applyLbResistance(dx, w){
     // sarebbe falsata dal guadagno di panGain.
     let lbPinnedAtX = null;
     // Quanto insistere, dito alla mano, prima che il nastro accenni a muoversi.
-    const EDGE_HANDOFF = 30;
+    const EDGE_HANDOFF = 14;
     // Quanto va tirata la molla, in frazione di schermo, perche' si cambi foto.
-    const EDGE_COMMIT = 0.22;
+    const EDGE_COMMIT = 0.2;
     // Con questa costante servono circa 165px di dito per arrivarci, piu' i 30
     // di innesco: una spinta decisa, non un colpetto che scappa.
-    const SPRING_C = 0.7;
+    const SPRING_C = 1.0;
     const edgeSpring = (dx, w)=>{
       if(!w) return dx;
       const rb = (1 - 1/((Math.abs(dx)*SPRING_C/w)+1)) * w;

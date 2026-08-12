@@ -35,6 +35,12 @@ const DRIVE_ROOT_FOLDER_ID = '1CY6IGLbsd_M5pX8APCiOmLxssWCjWtaE';
 
 const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/userinfo.email';
 const TOKEN_KEY = 'inkflow-drive-token';
+// "Questo dispositivo ha collegato Drive almeno una volta". Sopravvive alla
+// scadenza del token — che dura un'ora — e sparisce solo scollegando a mano.
+// Serve a distinguere due situazioni che il token da solo non distingue: chi
+// era collegato e va semplicemente rinnovato, e chi non ha mai collegato
+// niente e a cui non si deve aprire nessuna finestra senza che l'abbia chiesto.
+const LINKED_KEY = 'inkflow-drive-linked';
 const ALBUM_EXT_RE = /\.(cbz|cbr)$/i;
 
 let _token = null;             // { access_token, expiresAt, email }
@@ -58,9 +64,23 @@ function loadCachedToken(){
   }catch(e){}
   return null;
 }
+function wasLinked(){
+  try{
+    if(localStorage.getItem(LINKED_KEY) === '1') return true;
+    // Chi era già collegato prima che questo segno esistesse non ce l'ha, ma
+    // ha comunque un token in cache — anche scaduto: vale come collegamento,
+    // e glielo si scrive ora. Senza questo si sarebbe ritrovato Drive spento
+    // dopo un aggiornamento, con l'unica spiegazione "ricollegalo".
+    if(localStorage.getItem(TOKEN_KEY)){
+      localStorage.setItem(LINKED_KEY, '1');
+      return true;
+    }
+  }catch(e){}
+  return false;
+}
 function saveToken(t){
   _token = t;
-  try{ localStorage.setItem(TOKEN_KEY, JSON.stringify(t)); }catch(e){}
+  try{ localStorage.setItem(TOKEN_KEY, JSON.stringify(t)); localStorage.setItem(LINKED_KEY, '1'); }catch(e){}
   _listeners.forEach(fn=>{ try{ fn(); }catch(e){} });
 }
 function clearToken(){
@@ -173,9 +193,19 @@ export async function connectDrive(){
 // chiamate concorrenti condividono lo stesso tentativo. È il punto d'ingresso
 // che refs.js/albums.js usano prima di leggere o scaricare da Drive.
 let _silentPromise = null;
-export function ensureDriveConnected(){
+export function ensureDriveConnected(richiesto = false){
   if(isDriveConnected()) return Promise.resolve(true);
   if(!isDriveConfigured()) return Promise.resolve(false);
+  // SENZA UN COLLEGAMENTO PRECEDENTE NON SI APRE NIENTE DA SOLI.
+  //
+  // requestToken('') si chiama "rinnovo silenzioso" e lo è davvero finché
+  // esiste una sessione Google con il consenso già dato. Quando quella
+  // sessione non c'è — primo avvio, consenso mai dato, cronologia pulita —
+  // Google apre la sua finestra di accesso, e per chi entra in References si
+  // traduce in una schermata di login piombata addosso senza averla chiesta.
+  // Chi ha già collegato una volta invece lo rinnova per davvero in silenzio,
+  // ed è il caso per cui questa funzione esiste.
+  if(!richiesto && !wasLinked()) return Promise.resolve(false);
   if(!_silentPromise){
     _silentPromise = requestToken('')
       .then(()=> true)
@@ -189,11 +219,19 @@ export function ensureDriveConnected(){
 // rinnovo silenzioso in sottofondo, così ci si ritrova collegati senza
 // toccare nulla.
 export function initDriveAuth(){
-  if(isDriveConfigured() && !isDriveConnected()) ensureDriveConnected();
+  if(!isDriveConfigured() || isDriveConnected() || !wasLinked()) return;
+  // Non nello stesso istante in cui la schermata si apre: il rinnovo può
+  // comunque far comparire qualcosa, e vederlo arrivare addosso mentre
+  // References sta ancora disegnandosi è la parte che si sente invadente.
+  // Mezzo secondo dopo, a schermata ferma, è un'altra cosa.
+  setTimeout(()=>{ if(!isDriveConnected()) ensureDriveConnected(); }, 500);
 }
 
 export function disconnectDrive(){
   clearToken();
+  // Scollegare vuol dire anche "non riprovarci da solo": si torna a chi non ha
+  // mai collegato niente, e la prossima connessione la si chiede a mano.
+  try{ localStorage.removeItem(LINKED_KEY); }catch(e){}
   _folderCache.clear();
 }
 

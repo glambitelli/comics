@@ -1312,13 +1312,14 @@ function cancelPageSwipe(){
 // a fondo corsa da solo. Serve ai due estremi dell'albo (dove oltre non c'è
 // niente) e al bordo di una tavola ingrandita, dove il cambio pagina non deve
 // mai capitare per sbaglio.
-// Con questa costante servono circa 165px di dito perché la molla arrivi alla
-// soglia che fa scattare il cambio — piu' i 30 di innesco, cioè una spinta
-// decisa di circa mezzo schermo DOPO che la tavola si è fermata. Un gesto che
-// si fa apposta, non un colpetto che scappa.
-const SPRING_C = 0.7;
+// A 1.0 la molla parte 1:1 col dito e si irrigidisce strada facendo: il nastro
+// risponde SUBITO — è quello che mancava, prima cedeva già frenato dal primo
+// pixel e il gesto si sentiva legnoso — e la resistenza cresce dove serve, cioè
+// vicino alla decisione. Con questi numeri la pagina gira dopo circa 115px di
+// dito in tutto: poco più di un quarto di schermo, un gesto deciso ma breve.
+const SPRING_C = 1.0;
 // Quanto va tirata la molla, in frazione di schermo, perché la pagina giri.
-const EDGE_COMMIT = 0.22;
+const EDGE_COMMIT = 0.2;
 function edgeSpring(dx, w){
   if(!w) return dx;
   const rb = (1 - 1/((Math.abs(dx)*SPRING_C/w)+1)) * w;
@@ -1559,7 +1560,11 @@ function wireGestures(ov){
   // sarebbe falsato dal guadagno di panGain.
   let pinnedAtX = null;
   // Quanto insistere, dito alla mano, prima che il nastro accenni a muoversi.
-  const EDGE_HANDOFF = 30;
+  // Basso apposta: da quando esplorare e sfogliare sono gesti distinti (vedi
+  // edgeReady) qui non c'è più niente da cui difendersi, e un innesco lungo si
+  // sentiva solo come un tratto morto in cui il dito spinge e non succede
+  // niente — la parte "grezza" del gesto.
+  const EDGE_HANDOFF = 14;
 
   const dist = (a, b) => Math.hypot(b.clientX - a.clientX, b.clientY - a.clientY);
 
