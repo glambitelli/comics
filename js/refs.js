@@ -141,7 +141,11 @@ export async function addRefBlob(blob, opts={}){
   const { folderId=null, source='clip', provenance=null, w=null, h=null } = opts;
   const id = genId();
   try{
-    const { url } = await uploadToCloudinary(blob, id+'.jpg');
+    // L'estensione segue il formato vero del blob: da quando i ritagli
+    // viaggiano in WebP (vedi exportCropAndSave in albums.js) chiamarli tutti
+    // .jpg sarebbe una bugia scritta nel nome del file.
+    const est = (blob.type && blob.type.split('/')[1]) || 'jpg';
+    const { url } = await uploadToCloudinary(blob, id+'.'+est);
     warmDerived(url);
     const data = {
       url, source,

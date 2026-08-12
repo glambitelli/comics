@@ -705,6 +705,10 @@ function buildReaderDOM(){
           <div class="ar-clip-handle" data-corner="ne"></div>
           <div class="ar-clip-handle" data-corner="se"></div>
           <div class="ar-clip-handle" data-corner="sw"></div>
+          <div class="ar-clip-handle ar-clip-mid" data-corner="n"></div>
+          <div class="ar-clip-handle ar-clip-mid" data-corner="s"></div>
+          <div class="ar-clip-handle ar-clip-mid" data-corner="w"></div>
+          <div class="ar-clip-handle ar-clip-mid" data-corner="e"></div>
         </div>
       </div>
       <button class="ar-nav ar-prev" aria-label="Precedente" data-act="prev">
@@ -2020,7 +2024,7 @@ function wireClip(ov){
     // in coda alle categorie sembrava una pastiglia avanzata, e per giunta
     // rubava larghezza proprio alla fila che ne ha più bisogno.
     if(retryBtn) retryBtn.hidden = !on;
-    if(on) renderDests();
+    if(on){ renderDests(); aggiornaManiglie(); }
     // Le maniglie di resize hanno senso SOLO nello stato "in attesa di
     // conferma": durante il disegno iniziale coprirebbero il gesto sulla
     // superficie, e a riquadro chiuso non c'è nulla da ridimensionare.
@@ -2066,9 +2070,16 @@ function wireClip(ov){
   };
 
   // ── RIDIMENSIONAMENTO (dopo il rilascio, prima della conferma) ──
-  // Ogni angolo trascina SÉ STESSO tenendo fermo l'angolo opposto: è quello
-  // il punto di ancoraggio, non il centro — così si può sia allargare che
-  // restringere il riquadro da qualunque lato senza che "salti".
+  // Ogni maniglia trascina SÉ STESSA tenendo fermo il lato (o l'angolo)
+  // opposto: è quello il punto di ancoraggio, non il centro — così si può sia
+  // allargare che restringere da qualunque parte senza che il riquadro
+  // "salti".
+  //
+  // Gli ANGOLI muovono due lati insieme, le MEDIANE uno solo: tirare il lato
+  // destro non deve toccare l'altezza. Il nome della maniglia dice già quali
+  // assi controlla — 'nw' entrambi, 'e' solo l'orizzontale, 'n' solo il
+  // verticale — quindi basta chiederglielo invece di rifare sempre tutti e due
+  // i conti come prima, quando le maniglie erano solo agli angoli.
   const resizeMove = (px, py)=>{
     if(!resizeCorner) return;
     const r = lr || (lr = layer.getBoundingClientRect());
@@ -2076,13 +2087,21 @@ function wireClip(ov){
     const cy = Math.max(0, Math.min(py - r.top, r.height));
     const curLeft = parseFloat(box.style.left), curTop = parseFloat(box.style.top);
     const curW = parseFloat(box.style.width), curH = parseFloat(box.style.height);
-    const anchorX = resizeCorner.includes('w') ? curLeft + curW : curLeft;
-    const anchorY = resizeCorner.includes('n') ? curTop + curH : curTop;
+    const muoveX = resizeCorner.includes('e') || resizeCorner.includes('w');
+    const muoveY = resizeCorner.includes('n') || resizeCorner.includes('s');
 
-    let left = Math.min(anchorX, cx), width = Math.abs(cx - anchorX);
-    if(width < MIN_SIZE){ width = MIN_SIZE; left = cx <= anchorX ? anchorX - MIN_SIZE : anchorX; }
-    let top = Math.min(anchorY, cy), height = Math.abs(cy - anchorY);
-    if(height < MIN_SIZE){ height = MIN_SIZE; top = cy <= anchorY ? anchorY - MIN_SIZE : anchorY; }
+    let left = curLeft, width = curW;
+    if(muoveX){
+      const anchorX = resizeCorner.includes('w') ? curLeft + curW : curLeft;
+      left = Math.min(anchorX, cx); width = Math.abs(cx - anchorX);
+      if(width < MIN_SIZE){ width = MIN_SIZE; left = cx <= anchorX ? anchorX - MIN_SIZE : anchorX; }
+    }
+    let top = curTop, height = curH;
+    if(muoveY){
+      const anchorY = resizeCorner.includes('n') ? curTop + curH : curTop;
+      top = Math.min(anchorY, cy); height = Math.abs(cy - anchorY);
+      if(height < MIN_SIZE){ height = MIN_SIZE; top = cy <= anchorY ? anchorY - MIN_SIZE : anchorY; }
+    }
     // Clamp finale: se il minimo sconfina fuori dal layer, rientra senza
     // cambiare le dimensioni (l'ancora resta comunque il vincolo primario).
     left = Math.max(0, Math.min(left, r.width - width));
@@ -2090,6 +2109,17 @@ function wireClip(ov){
 
     box.style.left = left + 'px'; box.style.top = top + 'px';
     box.style.width = width + 'px'; box.style.height = height + 'px';
+    aggiornaManiglie();
+  };
+
+  // Su un lato corto la mediana finirebbe addosso ai due angoli, e tre
+  // bersagli sovrapposti in venti pixel non li centra nessuno: sotto una certa
+  // lunghezza quella mediana sparisce e restano gli angoli.
+  const LATO_MIN_MEDIANA = 76;
+  const aggiornaManiglie = ()=>{
+    const w = parseFloat(box.style.width) || 0, h = parseFloat(box.style.height) || 0;
+    box.classList.toggle('senza-mediane-h', w < LATO_MIN_MEDIANA);
+    box.classList.toggle('senza-mediane-v', h < LATO_MIN_MEDIANA);
   };
   const resizeEnd = ()=>{
     if(!resizeCorner) return;
@@ -2142,6 +2172,7 @@ function wireClip(ov){
     const top  = Math.max(0, Math.min((py - r.top) - mvDY, r.height - h));
     box.style.left = left + 'px';
     box.style.top = top + 'px';
+    aggiornaManiglie();
   };
   const moveEnd = ()=>{
     if(!moving) return;
@@ -2247,9 +2278,32 @@ function blobToImage(blob){
 const CLIP_MAX_DIM = 2000;
 const CLIP_MAX_BYTES = 1400000;
 
-// Disegna il crop su canvas (con cap dimensionale), comprime in JPEG e lo
-// consegna a refs.js che lo carica su Cloudinary e scrive il Frammento con
-// provenienza { opera, pagina }.
+// Il tempo di un ritaglio è quasi tutto CARICAMENTO: disegnare e comprimere
+// sono decimi di secondo, spedire un megabyte e mezzo su 4G sono secondi. Il
+// solo modo di accorciarlo davvero è spedire meno byte, ed è quello che fa il
+// WebP: a parità di resa pesa il 30-40% in meno del JPEG, quindi mezzo mega
+// invece di uno e mezzo. Il formato con cui i ritagli vengono poi SERVITI non
+// cambia di niente — ci pensa f_auto di Cloudinary (vedi cldResize in
+// refs.js), che consegna a ciascun browser il formato più leggero che sa
+// leggere, qualunque cosa gli abbiamo caricato.
+//
+// Il controllo si fa su un canvas di UN pixel e una volta sola: farlo sul
+// canvas del ritaglio significherebbe codificare due volte un'immagine da due
+// megapixel per scoprire una cosa che non cambia mai.
+let _webpOk = null;
+function supportaWebp(){
+  if(_webpOk !== null) return _webpOk;
+  try{
+    const c = document.createElement('canvas');
+    c.width = c.height = 1;
+    _webpOk = c.toDataURL('image/webp').startsWith('data:image/webp');
+  }catch(e){ _webpOk = false; }
+  return _webpOk;
+}
+
+// Disegna il crop su canvas (con cap dimensionale), comprime e lo consegna a
+// refs.js, che lo carica su Cloudinary e scrive il Frammento con provenienza
+// { opera, pagina }.
 async function exportCropAndSave(sourceImg, cx, cy, cw, ch, destFolderId){
   toast('Ritaglio in corso…', false, true);
   const im = sourceImg;
@@ -2279,12 +2333,15 @@ async function exportCropAndSave(sourceImg, cx, cy, cw, ch, destFolderId){
   // una copia usa-e-getta. Revocarla la farebbe sparire dallo schermo.
   ctx.drawImage(im, cx, cy, cw, ch, 0, 0, w, h);
 
-  let quality = 0.88;
-  const encode = ()=> new Promise(res=> canvas.toBlob(res, 'image/jpeg', quality));
-  let blob = await encode();
+  const webp = supportaWebp();
+  const tipo = webp ? 'image/webp' : 'image/jpeg';
+  // 0.82 in WebP rende quanto 0.88 in JPEG, pesando molto meno.
+  let quality = webp ? 0.82 : 0.88;
+  const encode = (t, q)=> new Promise(res=> canvas.toBlob(res, t, q));
+  let blob = await encode(tipo, quality);
   while(blob && blob.size > CLIP_MAX_BYTES && quality > 0.5){
     quality = Math.max(0.5, quality - 0.1);
-    blob = await encode();
+    blob = await encode(tipo, quality);
   }
   if(!blob){ toast('Ritaglio fallito.', true); return; }
 
@@ -2292,7 +2349,15 @@ async function exportCropAndSave(sourceImg, cx, cy, cw, ch, destFolderId){
   // await: la provenienza viaggia SEMPRE col ritaglio, anche quando finisce
   // in una cartella di studio, così le mani archiviate in "Hands" continuano
   // a sapere di essere di Satoshi Kon, pagina 88.
-  const id = await addRefBlob(blob, { folderId, source: 'clip', provenance, w, h });
+  let id = await addRefBlob(blob, { folderId, source: 'clip', provenance, w, h });
+  // Rete di sicurezza sul formato: se il caricamento non riesce col WebP si
+  // riprova UNA volta in JPEG. Il preset di Cloudinary è fuori da questo
+  // repository e potrebbe non accettarlo: meglio un ritaglio più pesante che
+  // un ritaglio perso, e senza doverlo scoprire dall'utente.
+  if(!id && webp){
+    const ripiego = await encode('image/jpeg', 0.88);
+    if(ripiego) id = await addRefBlob(ripiego, { folderId, source: 'clip', provenance, w, h });
+  }
   if(id){
     haptic('done');
     // Solo le destinazioni scelte a mano: la cartella corrente è già in cima

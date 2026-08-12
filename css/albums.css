@@ -331,6 +331,31 @@ body.is-touch .ar-nav{display:none} /* su mobile si naviga con swipe/tap */
 .ar-clip-handle[data-corner="sw"]{top:100%;left:0;cursor:nesw-resize}
 .ar-clip-handle[data-corner="sw"]::after{bottom:50%;left:50%;border-right:none;border-top:none;margin:0 0 -1.5px -1.5px}
 
+/* MEDIANE: una maniglia al centro di ogni lato, per tirare UN lato solo senza
+   toccare l'altra dimensione. Con i soli angoli, allargare un riquadro di due
+   dita a destra voleva dire rifarlo da capo o inseguire l'altezza a mano.
+   Il segno è una barretta parallela al lato che muovono — non uno spigolo,
+   che direbbe "qui si muovono due lati". */
+.ar-clip-handle[data-corner="n"]{top:0;left:50%;cursor:ns-resize}
+.ar-clip-handle[data-corner="s"]{top:100%;left:50%;cursor:ns-resize}
+.ar-clip-handle[data-corner="w"]{top:50%;left:0;cursor:ew-resize}
+.ar-clip-handle[data-corner="e"]{top:50%;left:100%;cursor:ew-resize}
+.ar-clip-mid::after{
+  width:0;height:0;border:none;margin:0;
+  top:50%;left:50%;transform:translate(-50%,-50%);
+}
+.ar-clip-handle[data-corner="n"]::after,
+.ar-clip-handle[data-corner="s"]::after{width:20px;border-top:3px solid var(--gold)}
+.ar-clip-handle[data-corner="w"]::after,
+.ar-clip-handle[data-corner="e"]::after{height:20px;border-left:3px solid var(--gold)}
+/* Su un lato corto la mediana starebbe addosso ai due angoli: tre bersagli
+   sovrapposti in venti pixel non li centra nessuno. Le classi le mette il JS
+   misurando il riquadro (vedi aggiornaManiglie in albums.js). */
+.ar-clipbox.senza-mediane-h .ar-clip-handle[data-corner="n"],
+.ar-clipbox.senza-mediane-h .ar-clip-handle[data-corner="s"],
+.ar-clipbox.senza-mediane-v .ar-clip-handle[data-corner="w"],
+.ar-clipbox.senza-mediane-v .ar-clip-handle[data-corner="e"]{display:none}
+
 /* La barra sparisce come fondo: i comandi vivono in una capsula flottante in
    vetro smerigliato, la stessa della barra-duna serale e del visualizzatore
    reference. Prima era una fascia piena da bordo a bordo che tagliava lo
