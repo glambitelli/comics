@@ -35,6 +35,10 @@ import { getDriveAlbumFile, ensureDriveConnected, isDownloadCancelled } from './
 import { openRemoteZipSource, openBlobZipSource } from './zipremote.js';
 import { haptic } from './state.js';
 import { actionMenu } from './dialogs.js';
+import {
+  ZOOM_IN, ZOOM_MAX, panGain, edgeSpring, EDGE_COMMIT, EDGE_HANDOFF,
+  panLimits as limitiPan, clampTo,
+} from './gesti.js';
 
 // Stato dell'albo attualmente aperto
 let _pages = [];        // [{ name, url (objectURL|null), blob (Blob|null) }]
@@ -1312,24 +1316,6 @@ function cancelPageSwipe(){
   });
 }
 
-// La molla: il nastro cede sempre meno man mano che si tira, e non arriva mai
-// a fondo corsa da solo. Serve ai due estremi dell'albo (dove oltre non c'è
-// niente) e al bordo di una tavola ingrandita, dove il cambio pagina non deve
-// mai capitare per sbaglio.
-// A 1.0 la molla parte 1:1 col dito e si irrigidisce strada facendo: il nastro
-// risponde SUBITO — è quello che mancava, prima cedeva già frenato dal primo
-// pixel e il gesto si sentiva legnoso — e la resistenza cresce dove serve, cioè
-// vicino alla decisione. Con questi numeri la pagina gira dopo circa 115px di
-// dito in tutto: poco più di un quarto di schermo, un gesto deciso ma breve.
-const SPRING_C = 1.0;
-// Quanto va tirata la molla, in frazione di schermo, perché la pagina giri.
-const EDGE_COMMIT = 0.2;
-function edgeSpring(dx, w){
-  if(!w) return dx;
-  const rb = (1 - 1/((Math.abs(dx)*SPRING_C/w)+1)) * w;
-  return dx < 0 ? -rb : rb;
-}
-
 // Ai due estremi dell'albo non c'è niente da mostrare oltre: il nastro cede
 // sempre meno, come una molla, invece di scorrere su una cella vuota.
 function arResistance(dx, w){
@@ -1385,7 +1371,6 @@ function gotoPage(i){
 // quello stesso gesto serve a spostarsi, quindi il cambio pagina si disattiva.
 // In modalità ritaglio lo zoom è azzerato e inerte: il crop calcola le
 // coordinate sull'immagine non trasformata, quindi si ritaglia a pagina intera.
-const ZOOM_IN = 2.6, ZOOM_MAX = 4;
 
 // L'immagine a schermo è quella della cella CENTRALE, e le celle si riciclano
 // a ogni pagina: va sempre risolta al momento dell'uso, mai memorizzata in una
@@ -1468,28 +1453,15 @@ function measureBaseSize(){
   else img.addEventListener('load', apply, { once: true });
 }
 
-// Quanto la tavola segue il dito, da ingranditi. Non 1:1: più si è ingranditi,
-// più piccola è la porzione visibile e più lungo il tragitto da fare, quindi a
-// 1:1 servivano tre o quattro passate di dito per attraversare una tavola —
-// leggere ingranditi era più faticoso che leggere a pagina intera. Il tetto
-// esiste perché oltre una certa soglia la tavola "scappa" e non si riesce più
-// a fermarsi sul dettaglio che si voleva guardare.
-const PAN_GAIN_MAX = 2.2;
-function panGain(z){
-  return Math.min(PAN_GAIN_MAX, Math.max(1, 1 + (z - 1) * 0.55));
-}
-
 // Fin dove si può spostare la tavola prima di "perderla" fuori dallo schermo.
+// Le dimensioni base sono in cache (measureBaseSize): il limite si calcola a
+// memoria, senza toccare il layout ad ogni movimento del dito.
 function panLimits(scale){
   if(!_baseW || !_baseH) measureBaseSize();
-  return {
-    maxX: Math.max(0, (_baseW * scale - _baseW) / 2),
-    maxY: Math.max(0, (_baseH * scale - _baseH) / 2),
-  };
+  return limitiPan(_baseW, _baseH, scale);
 }
 function clampPan(scale, x, y){
-  const { maxX, maxY } = panLimits(scale);
-  return { x: Math.min(maxX, Math.max(-maxX, x)), y: Math.min(maxY, Math.max(-maxY, y)) };
+  return clampTo(panLimits(scale), x, y);
 }
 
 // Alterna 1x ↔ ZOOM_IN centrando sul punto toccato/cliccato.
@@ -1563,12 +1535,6 @@ function wireGestures(ov){
   // l'insistenza, in pixel di DITO: contarla sullo spostamento della tavola
   // sarebbe falsato dal guadagno di panGain.
   let pinnedAtX = null;
-  // Quanto insistere, dito alla mano, prima che il nastro accenni a muoversi.
-  // Basso apposta: da quando esplorare e sfogliare sono gesti distinti (vedi
-  // edgeReady) qui non c'è più niente da cui difendersi, e un innesco lungo si
-  // sentiva solo come un tratto morto in cui il dito spinge e non succede
-  // niente — la parte "grezza" del gesto.
-  const EDGE_HANDOFF = 14;
 
   const dist = (a, b) => Math.hypot(b.clientX - a.clientX, b.clientY - a.clientY);
 

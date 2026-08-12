@@ -13,6 +13,10 @@ import {
   driveAccountEmail, onDriveAuthChange, listDriveAlbumsForFolder,
   ensureDriveConnected, initDriveAuth,
 } from './drive.js';
+import {
+  ZOOM_IN, ZOOM_MAX, panGain, edgeSpring, EDGE_COMMIT, EDGE_HANDOFF,
+  panLimits as limitiPan, clampTo,
+} from './gesti.js';
 
 const REFS_COL = 'refs';
 const FOLDERS_COL = 'refFolders';
@@ -1562,7 +1566,6 @@ document.addEventListener('keydown', e=>{
 // altrimenti trascinare per zoomare e trascinare per sfogliare si
 // confonderebbero. ──
 let _zoomScale = 1, _zoomX = 0, _zoomY = 0;
-const ZOOM_IN = 2.6, ZOOM_MAX = 4;
 
 export function resetImageZoom(){
   _zoomScale = 1; _zoomX = 0; _zoomY = 0;
@@ -1570,32 +1573,17 @@ export function resetImageZoom(){
   if(img){ img.style.transition = 'none'; applyZoomTransform(img); }
 }
 
-// Quanto la foto segue il dito, da ingranditi. Non 1:1: più si è ingranditi,
-// più piccola è la porzione visibile e più lungo il tragitto da fare, quindi a
-// 1:1 servivano tre o quattro passate di dito per attraversarla. Il tetto
-// esiste perché oltre una certa soglia l'immagine "scappa" e non ci si riesce
-// più a fermare sul dettaglio che si voleva guardare. Gemella di panGain nel
-// lettore (js/albums.js): stesso gesto, stessa risposta.
-const PAN_GAIN_MAX = 2.2;
-function panGain(z){
-  return Math.min(PAN_GAIN_MAX, Math.max(1, 1 + (z - 1) * 0.55));
-}
-
 // Fin dove si può spostare la foto prima di "perderla" fuori dallo schermo.
 function panLimits(scale){
   const img = curImg();
   if(!img) return null;
   const r = img.getBoundingClientRect();
-  const baseW = r.width / scale, baseH = r.height / scale;
-  return {
-    maxX: Math.max(0, (baseW*scale - baseW)/2),
-    maxY: Math.max(0, (baseH*scale - baseH)/2),
-  };
+  return limitiPan(r.width / scale, r.height / scale, scale);
 }
 function clampPan(scale, x, y){
   const lim = panLimits(scale);
   if(!lim) return {x, y};
-  return { x: Math.min(lim.maxX, Math.max(-lim.maxX, x)), y: Math.min(lim.maxY, Math.max(-lim.maxY, y)) };
+  return clampTo(lim, x, y);
 }
 
 function applyZoomTransform(img){
@@ -1677,18 +1665,6 @@ function applyLbResistance(dx, w){
     // conta da lì in pixel di DITO: contarla sullo spostamento della foto
     // sarebbe falsata dal guadagno di panGain.
     let lbPinnedAtX = null;
-    // Quanto insistere, dito alla mano, prima che il nastro accenni a muoversi.
-    const EDGE_HANDOFF = 14;
-    // Quanto va tirata la molla, in frazione di schermo, perche' si cambi foto.
-    const EDGE_COMMIT = 0.2;
-    // Con questa costante servono circa 165px di dito per arrivarci, piu' i 30
-    // di innesco: una spinta decisa, non un colpetto che scappa.
-    const SPRING_C = 1.0;
-    const edgeSpring = (dx, w)=>{
-      if(!w) return dx;
-      const rb = (1 - 1/((Math.abs(dx)*SPRING_C/w)+1)) * w;
-      return dx < 0 ? -rb : rb;
-    };
 
     function dist(t0, t1){ return Math.hypot(t1.clientX-t0.clientX, t1.clientY-t0.clientY); }
 
