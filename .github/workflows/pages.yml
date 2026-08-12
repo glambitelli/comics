@@ -62,8 +62,15 @@ jobs:
           # `*` non espande le voci che iniziano con punto: è proprio il
           # comportamento voluto, e coincide con quello che Jekyll faceva
           # prima. Niente extglob, che nei blocchi `run` non è affidabile.
+          #
+          # Fuori anche le prove automatiche e ciò che le fa girare: sono
+          # megabyte di banco di lavoro (albi .cbz generati, un Chromium
+          # pilotato) che il telefono scaricherebbe senza motivo, e il service
+          # worker mette in cache tutto quello che trova.
           for f in *; do
-            [ "$f" = "_site" ] && continue
+            case "$f" in
+              _site|test|package.json|package-lock.json|node_modules) continue ;;
+            esac
             cp -R "$f" _site/
           done
           # Dice a Pages di servire i file così come sono, senza passarli per

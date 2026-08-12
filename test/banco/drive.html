@@ -1,0 +1,53 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8">
+<title>banco di prova — Drive</title></head><body>
+<script type="module">
+// js/drive.js VERO, con la rete finta: si contano le fetch verso Google e i
+// caricamenti del suo script di accesso.
+window.__fetches = 0;
+window.__abortiti = 0;
+window.gsiCaricato = 0;
+// La finestra di Google comincia SEMPRE col caricamento del suo script: se
+// quello script non viene mai richiesto, nessuna schermata può essere comparsa.
+const creaVera = document.createElement.bind(document);
+document.createElement = (tag, ...r)=>{
+  const el = creaVera(tag, ...r);
+  if(String(tag).toLowerCase() === 'script'){
+    const setSrc = Object.getOwnPropertyDescriptor(HTMLScriptElement.prototype, 'src').set;
+    Object.defineProperty(el, 'src', {
+      set(v){ if(String(v).includes('accounts.google.com')) window.gsiCaricato++; setSrc.call(this, v); },
+      get(){ return el.getAttribute('src') || ''; },
+      configurable: true,
+    });
+  }
+  return el;
+};
+// Risposta finta di Drive: uno stream a pezzi, così si può toccare di nuovo
+// l'albo MENTRE sta scaricando.
+const vero = window.fetch.bind(window);
+window.fetch = (url, opts={})=>{
+  if(!String(url).includes('googleapis.com')) return vero(url, opts);
+  window.__fetches++;
+  const totale = 10, pezzo = 4096;
+  return Promise.resolve(new Response(new ReadableStream({
+    start(c){
+      let i = 0;
+      const t = setInterval(()=>{
+        if(opts.signal && opts.signal.aborted){
+          clearInterval(t); window.__abortiti++;
+          c.error(Object.assign(new Error('aborted'), {name:'AbortError'}));
+          return;
+        }
+        if(i++ >= totale){ clearInterval(t); c.close(); return; }
+        c.enqueue(new Uint8Array(pezzo));
+      }, 60);
+    }
+  }), { headers: { 'Content-Length': String(totale*pezzo), 'Content-Type':'application/zip' } }));
+};
+localStorage.setItem('inkflow-drive-token', JSON.stringify({
+  access_token:'finto', expiresAt: Date.now()+3600e3, email:'prova@example.com' }));
+
+const drive = await import('/js/drive.js');
+window.drive = drive;
+window.__ready = true;
+</script>
+</body></html>

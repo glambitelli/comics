@@ -1,0 +1,41 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8">
+<title>banco di prova — galleria References</title>
+<!-- js/refs.js e js/dialogs.js sono QUELLI VERI; finti solo Firestore, Drive,
+     Cloudinary e la compressione, che qui non devono toccare la rete. -->
+<script type="importmap">
+{ "imports": {
+  "/js/firebase.js":    "/test/finti/firebase.js",
+  "/js/state.js":       "/test/finti/state.js",
+  "/js/imgcompress.js": "/test/finti/imgcompress.js",
+  "/js/cloudinary.js":  "/test/finti/cloudinary.js",
+  "/js/drive.js":       "/test/finti/drive.js"
+} }
+</script>
+<link rel="stylesheet" href="/css/variables.css">
+<link rel="stylesheet" href="/css/modals.css">
+<link rel="stylesheet" href="/css/refs.css">
+<link rel="stylesheet" href="/css/layout.css">
+<style>html,body{margin:0;height:100%;background:#111}</style>
+</head><body>
+<div id="refs-upload-status"></div>
+<script type="module">
+// Il markup della galleria si PRENDE da index.html invece di ricopiarlo qui:
+// una copia invecchierebbe da sola, e le prove passerebbero su una lightbox
+// che non esiste più. Va iniettato prima di importare refs.js, che al
+// caricamento aggancia subito i gesti agli elementi.
+const html = await (await fetch('/index.html')).text();
+const doc = new DOMParser().parseFromString(html, 'text/html');
+document.body.appendChild(document.importNode(doc.getElementById('refs-lightbox'), true));
+
+const refs = await import('/js/refs.js');
+window.refs = refs;
+// Come exposeLazy in main.js: gli onclick inline chiamano un GLOBALE che passa
+// da una promessa. Il salto asincrono va riprodotto, altrimenti si prova
+// qualcosa di diverso da quello che succede nell'app.
+['promptLinkProjectFromLightbox','closeRefLightbox','nextRefImage','prevRefImage',
+ 'refsImageMenu','openRefLightbox','deleteRefImageWithUndo'].forEach(n=>{
+  window[n] = (...a)=> Promise.resolve(refs).then(m=> m[n](...a));
+});
+window.__ready = true;
+</script>
+</body></html>

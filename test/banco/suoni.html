@@ -1,0 +1,26 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8">
+<!-- js/sound.js chiede i file con percorsi relativi ("./sfx/nav.wav") perché
+     nell'app il documento sta nella radice. Questa pagina no, sta in
+     test/banco/: senza questa riga i quattro .wav darebbero 404 e non
+     suonerebbe niente. Meglio spostare la base che riscrivere i percorsi nel
+     modulo vero solo per farlo provare. -->
+<base href="/">
+<title>banco di prova — suoni</title></head><body>
+<button id="b1" onclick="window.click1&&window.click1()">uno</button>
+<button id="b2" onclick="window.click2&&window.click2()">due</button>
+<div id="d1">non interattivo</div>
+<input id="i1" type="text">
+<script type="module">
+import { playSfx } from '/js/sound.js';
+window.playSfx = playSfx;
+// Si contano le riproduzioni VERE e la loro durata: i quattro file hanno
+// lunghezze diverse, quindi la durata dice quale suono è partito.
+window.__suoni = [];
+const start = AudioBufferSourceNode.prototype.start;
+AudioBufferSourceNode.prototype.start = function(...a){
+  window.__suoni.push(this.buffer ? +this.buffer.duration.toFixed(4) : 0);
+  return start.apply(this, a);
+};
+window.__ready = true;
+</script>
+</body></html>

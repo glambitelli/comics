@@ -16,6 +16,16 @@
   storia di cosa non funzionava prima. È lo stile del progetto: vanno mantenuti
   e aggiornati, non asciugati.
 
+## Le prove
+
+`npm test` esegue tutte le suite in `test/suite/` (circa 200 controlli, pochi
+minuti). Girano su un Chromium vero e sul **codice del repository**, non su una
+copia: se si tocca il lettore, la galleria, i suoni, lo scaricamento da Drive o
+il ritaglio, si lancia `npm test` prima di pubblicare. Dettagli e come
+scriverne di nuove: `test/README.md`.
+
+La cartella `test/` non finisce sul sito: il workflow di Pages la esclude.
+
 ## Come chiudere ogni messaggio
 
 Alla fine di **ogni** risposta, un resoconto brevissimo in due parti:

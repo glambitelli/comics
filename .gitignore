@@ -1,0 +1,6 @@
+# Gli albi di prova sono binari e si rigenerano in un istante
+# (test/crea-albi.js, chiamato da solo da test/esegui.js).
+test/fixtures/
+
+node_modules/
+package-lock.json

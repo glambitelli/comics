@@ -1,0 +1,33 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8">
+<title>banco di prova — lettore</title>
+<!-- I moduli caricati sono QUELLI VERI del progetto: la mappa qui sotto
+     sostituisce solo le dipendenze che parlerebbero con la rete (Firestore,
+     Drive, Cloudinary). Così le prove non girano su una copia del codice, che
+     invecchierebbe da sola, ma sul codice che va davvero in produzione. -->
+<script type="importmap">
+{ "imports": {
+  "/js/refs.js":       "/test/finti/refs.js",
+  "/js/cloudinary.js": "/test/finti/cloudinary.js",
+  "/js/drive.js":      "/test/finti/drive.js",
+  "/js/state.js":      "/test/finti/state.js",
+  "/js/dialogs.js":    "/test/finti/dialogs.js"
+} }
+</script>
+<link rel="stylesheet" href="/css/variables.css">
+<link rel="stylesheet" href="/css/albums.css">
+<style>html,body{margin:0;height:100%;background:#111}</style>
+</head><body>
+<input type="file" id="album-file-input" style="display:none">
+<div id="refs-upload-status"></div>
+<script type="module">
+import * as albums from '/js/albums.js';
+window.albums = albums;
+albums.initAlbums();
+// Come main.js nell'app vera: il tasto Indietro chiude il lettore.
+window.addEventListener('popstate', ()=>{
+  const ar = document.getElementById('album-reader');
+  if(ar && ar.classList.contains('open')) albums.closeReaderUI();
+});
+window.__ready = true;
+</script>
+</body></html>

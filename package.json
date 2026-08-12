@@ -1,0 +1,11 @@
+{
+  "name": "inkflow",
+  "private": true,
+  "description": "App per leggere albi e ritagliare riferimenti. Il sito è statico: questo file esiste solo per le prove automatiche.",
+  "scripts": {
+    "test": "node test/esegui.js"
+  },
+  "devDependencies": {
+    "playwright": "^1.56.1"
+  }
+}
