@@ -1655,8 +1655,26 @@ function applyLbResistance(dx, w){
     // diventa il punto in cui la foto è finita — altrimenti il nastro
     // partirebbe già spostato di tutto il tragitto fatto sull'immagine.
     let lbDragOriginX = 0;
-    // Quanto insistere oltre il bordo prima che il gesto cambi mestiere.
-    const EDGE_HANDOFF = 16;
+    // Il trascinamento arriva dal bordo di una foto ingrandita? Da ingranditi
+    // il cambio immagine non deve MAI capitare per sbaglio: il nastro si
+    // comporta come una molla e non accetta scorciatoie (vedi il rilascio).
+    let lbFromEdge = false;
+    // Dove stava il dito quando la foto ha finito di scorrere. L'insistenza si
+    // conta da lì in pixel di DITO: contarla sullo spostamento della foto
+    // sarebbe falsata dal guadagno di panGain.
+    let lbPinnedAtX = null;
+    // Quanto insistere, dito alla mano, prima che il nastro accenni a muoversi.
+    const EDGE_HANDOFF = 30;
+    // Quanto va tirata la molla, in frazione di schermo, perche' si cambi foto.
+    const EDGE_COMMIT = 0.22;
+    // Con questa costante servono circa 165px di dito per arrivarci, piu' i 30
+    // di innesco: una spinta decisa, non un colpetto che scappa.
+    const SPRING_C = 0.7;
+    const edgeSpring = (dx, w)=>{
+      if(!w) return dx;
+      const rb = (1 - 1/((Math.abs(dx)*SPRING_C/w)+1)) * w;
+      return dx < 0 ? -rb : rb;
+    };
 
     function dist(t0, t1){ return Math.hypot(t1.clientX-t0.clientX, t1.clientY-t0.clientY); }
 
@@ -1675,6 +1693,7 @@ function applyLbResistance(dx, w){
         swipeStartX = touches[0].clientX; swipeStartY = touches[0].clientY;
         if(_zoomScale > 1.02){
           isPanning = true; lbDragCandidate = false; lbArmed = false;
+          lbFromEdge = false; lbPinnedAtX = null;
           panStartX = touches[0].clientX; panStartY = touches[0].clientY;
           panOrigX = _zoomX; panOrigY = _zoomY;
         } else {
@@ -1685,6 +1704,7 @@ function applyLbResistance(dx, w){
           if(_lbAnimating) flushLbTransition();
           lbDragCandidate = true;
           lbArmed = false;
+          lbFromEdge = false; lbPinnedAtX = null;
           lbBodyW = body.clientWidth;
           lbDragOriginX = touches[0].clientX;
           lbLastX = lbPrevX = touches[0].clientX;
@@ -1721,9 +1741,16 @@ function applyLbResistance(dx, w){
         // da quella parte. Non c'è più niente da mostrare lì, quindi da qui in
         // poi il gesto muove il NASTRO e cambia immagine, senza dover prima
         // uscire dall'ingrandimento e ripartire da capo.
-        if(Math.abs(oltre) > EDGE_HANDOFF && Math.abs(x - panStartX) > Math.abs(y - panStartY)){
+        // L'insistenza si misura in pixel di DITO da quando la foto si e'
+        // fermata, non sullo scarto della foto: quello e' moltiplicato da
+        // panGain, e faceva scattare il passaggio molto prima di quanto la
+        // mano si aspettasse.
+        if(Math.abs(oltre) < 0.5) lbPinnedAtX = null;
+        else if(lbPinnedAtX === null) lbPinnedAtX = x;
+        if(lbPinnedAtX !== null && Math.abs(x - lbPinnedAtX) > EDGE_HANDOFF
+           && Math.abs(x - panStartX) > Math.abs(y - panStartY)){
           isPanning = false;
-          lbDragCandidate = true; lbArmed = true;
+          lbDragCandidate = true; lbArmed = true; lbFromEdge = true;
           lbDragOriginX = x; lbBodyW = body.clientWidth;
           lbLastX = lbPrevX = x; lbLastT = lbPrevT = performance.now();
           const track = document.getElementById('refs-lightbox-track');
@@ -1758,7 +1785,9 @@ function applyLbResistance(dx, w){
         }
         lbPrevX = lbLastX; lbPrevT = lbLastT;
         lbLastX = x; lbLastT = performance.now();
-        _lbOffsetPx = applyLbResistance(ddx, lbBodyW);
+        // Dal bordo di una foto ingrandita il nastro non segue il dito: cede
+        // come una molla, sempre meno man mano che si insiste.
+        _lbOffsetPx = lbFromEdge ? edgeSpring(ddx, lbBodyW) : applyLbResistance(ddx, lbBodyW);
         const track = document.getElementById('refs-lightbox-track');
         if(track) track.style.transform = `translate3d(calc(-100% + ${_lbOffsetPx}px),0,0)`;
       }
@@ -1795,11 +1824,22 @@ function applyLbResistance(dx, w){
         const adx = Math.abs(dx);
         const vx = lbLastT > lbPrevT ? (lbLastX - lbPrevX) / (lbLastT - lbPrevT) : 0;
         const elapsed = Date.now() - lastTouchAt;
-        const distOk = adx > lbBodyW * 0.3;
-        const flickOk = (Math.abs(vx) > 0.5 && Math.sign(vx) === Math.sign(dx)) || (elapsed < 300 && adx > 24);
         const dir = dx < 0 ? 1 : -1;   // trascino a sinistra → avanti
         const blocked = dir > 0 ? (_lightboxIndex+1 >= _lightboxList.length) : (_lightboxIndex-1 < 0);
-        if(!blocked && (distOk || flickOk)) commitSwipe(dir);
+        let vaiAvanti;
+        if(lbFromEdge){
+          // Da ingranditi conta solo quanto la molla e' stata TIRATA — quello
+          // che si vede — e non vale nessuna scorciatoia di velocita': era il
+          // flick a rendere il cambio troppo facile, bastava un colpetto al
+          // bordo per cambiare foto senza volerlo.
+          vaiAvanti = Math.abs(edgeSpring(dx, lbBodyW)) > lbBodyW * EDGE_COMMIT;
+        } else {
+          const distOk = adx > lbBodyW * 0.3;
+          const flickOk = (Math.abs(vx) > 0.5 && Math.sign(vx) === Math.sign(dx)) || (elapsed < 300 && adx > 24);
+          vaiAvanti = distOk || flickOk;
+        }
+        lbFromEdge = false;
+        if(!blocked && vaiAvanti) commitSwipe(dir);
         else cancelSwipe();
         return;
       }
@@ -1863,7 +1903,7 @@ function applyLbResistance(dx, w){
         const tk = document.getElementById('refs-lightbox-track');
         if(tk) tk.style.willChange = '';
       }
-      lbArmed = false; lbDragCandidate = false;
+      lbArmed = false; lbDragCandidate = false; lbFromEdge = false; lbPinnedAtX = null;
     }, {passive:true});
 
     // Desktop: doppio clic per zoomare/dezoomare. I browser mobile generano

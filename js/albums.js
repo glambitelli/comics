@@ -1308,6 +1308,23 @@ function cancelPageSwipe(){
   });
 }
 
+// La molla: il nastro cede sempre meno man mano che si tira, e non arriva mai
+// a fondo corsa da solo. Serve ai due estremi dell'albo (dove oltre non c'è
+// niente) e al bordo di una tavola ingrandita, dove il cambio pagina non deve
+// mai capitare per sbaglio.
+// Con questa costante servono circa 165px di dito perché la molla arrivi alla
+// soglia che fa scattare il cambio — piu' i 30 di innesco, cioè una spinta
+// decisa di circa mezzo schermo DOPO che la tavola si è fermata. Un gesto che
+// si fa apposta, non un colpetto che scappa.
+const SPRING_C = 0.7;
+// Quanto va tirata la molla, in frazione di schermo, perché la pagina giri.
+const EDGE_COMMIT = 0.22;
+function edgeSpring(dx, w){
+  if(!w) return dx;
+  const rb = (1 - 1/((Math.abs(dx)*SPRING_C/w)+1)) * w;
+  return dx < 0 ? -rb : rb;
+}
+
 // Ai due estremi dell'albo non c'è niente da mostrare oltre: il nastro cede
 // sempre meno, come una molla, invece di scorrere su una cella vuota.
 function arResistance(dx, w){
@@ -1315,9 +1332,7 @@ function arResistance(dx, w){
   const goingNext = dx < 0;
   const blocked = goingNext ? (_idx + 1 >= _pages.length) : (_idx - 1 < 0);
   if(!blocked) return dx;
-  const c = 0.55;
-  const rb = (1 - 1/((Math.abs(dx)*c/w)+1)) * w;
-  return goingNext ? -rb : rb;
+  return edgeSpring(dx, w);
 }
 
 // Un passo avanti o indietro rispetto a dove siamo ADESSO. Va chiesto come
@@ -1527,10 +1542,17 @@ function wireGestures(ov){
   // la tavola è finita: altrimenti il nastro partirebbe già spostato di tutto
   // il tragitto fatto per attraversare la pagina ingrandita.
   let dragOriginX = 0;
-  // Quanto bisogna insistere OLTRE il bordo della tavola prima che il gesto
-  // smetta di spostarla e cominci a girare pagina. Abbastanza da non scattare
-  // per il rimbalzo di un dito che si ferma, poco da doverlo cercare.
-  const EDGE_HANDOFF = 16;
+  // Il trascinamento arriva dal bordo di una tavola ingrandita, invece che da
+  // una pagina a dimensione naturale? Cambia tutto: da ingranditi il cambio
+  // pagina non deve MAI capitare per sbaglio, quindi il nastro si comporta
+  // come una molla e non accetta scorciatoie (vedi il rilascio più sotto).
+  let dragFromEdge = false;
+  // Dove stava il dito quando la tavola ha finito di scorrere. Da lì si conta
+  // l'insistenza, in pixel di DITO: contarla sullo spostamento della tavola
+  // sarebbe falsato dal guadagno di panGain.
+  let pinnedAtX = null;
+  // Quanto insistere, dito alla mano, prima che il nastro accenni a muoversi.
+  const EDGE_HANDOFF = 30;
 
   const dist = (a, b) => Math.hypot(b.clientX - a.clientX, b.clientY - a.clientY);
 
@@ -1548,10 +1570,12 @@ function wireGestures(ov){
       x0 = t[0].clientX; y0 = t[0].clientY;
       if(_zoom > 1.02){
         panning = true; dragCandidate = false; dragArmed = false;
+        dragFromEdge = false; pinnedAtX = null;
         panX = x0; panY = y0; origX = _zx; origY = _zy;
         stageW = stage.clientWidth;
       } else {
         panning = false;
+        dragFromEdge = false; pinnedAtX = null;
         // Il dito è arrivato mentre il nastro scorreva ancora: si chiude subito
         // l'animazione e questo gesto parte da pagina ferma, invece di essere
         // scartato (vedi flushArTransition — è la causa del "doppio swipe").
@@ -1596,14 +1620,22 @@ function wireGestures(ov){
       applyZoom();
       // PASSAGGIO DI CONSEGNE: la tavola è finita e il dito continua a
       // spingere da quella parte. Non c'è più niente da mostrare lì, quindi da
-      // qui in poi il gesto muove il NASTRO e gira pagina — senza dover prima
-      // uscire dall'ingrandimento, tornare indietro e ripartire.
+      // qui in poi il gesto muove il NASTRO e può girare pagina — senza dover
+      // prima uscire dall'ingrandimento, tornare indietro e ripartire.
       // Il verso torna da solo: fermi sul bordo sinistro della tavola si sta
       // spingendo verso destra, che è la pagina precedente; sul bordo destro
       // verso sinistra, che è la successiva.
-      if(Math.abs(oltre) > EDGE_HANDOFF && Math.abs(x - panX) > Math.abs(y - panY)){
+      //
+      // L'insistenza si misura in pixel di DITO da quando la tavola si è
+      // fermata, non sullo scarto della tavola: quello è moltiplicato da
+      // panGain, e faceva scattare il passaggio molto prima di quanto la mano
+      // si aspettasse.
+      if(Math.abs(oltre) < 0.5) pinnedAtX = null;         // rientrati nella tavola
+      else if(pinnedAtX === null) pinnedAtX = x;          // appena arrivati al bordo
+      if(pinnedAtX !== null && Math.abs(x - pinnedAtX) > EDGE_HANDOFF
+         && Math.abs(x - panX) > Math.abs(y - panY)){
         panning = false;
-        dragCandidate = true; dragArmed = true;
+        dragCandidate = true; dragArmed = true; dragFromEdge = true;
         dragOriginX = x;
         lastX = prevX = x; lastT = prevT = performance.now();
         const track = arTrack();
@@ -1638,7 +1670,11 @@ function wireGestures(ov){
       }
       prevX = lastX; prevT = lastT;
       lastX = x; lastT = performance.now();
-      _arOffsetPx = arResistance(ddx, stageW);
+      // Dal bordo di una tavola ingrandita il nastro non segue il dito: cede
+      // come una molla, sempre meno man mano che si insiste. È il "magnetico"
+      // che si vuole — si sente che la pagina resiste, e cambia solo se si
+      // decide davvero di andare oltre.
+      _arOffsetPx = dragFromEdge ? edgeSpring(ddx, stageW) : arResistance(ddx, stageW);
       const track = arTrack();
       if(track) track.style.transform = `translate3d(calc(-100% + ${_arOffsetPx}px),0,0)`;
     }
@@ -1671,11 +1707,23 @@ function wireGestures(ov){
       const adx = Math.abs(dx);
       const vx = lastT > prevT ? (lastX - prevX) / (lastT - prevT) : 0;
       const elapsed = Date.now() - lastTouchAt;
-      const distOk = adx > stageW * 0.3;
-      const flickOk = (Math.abs(vx) > 0.5 && Math.sign(vx) === Math.sign(dx)) || (elapsed < 300 && adx > 24);
       const dir = dx < 0 ? 1 : -1;   // trascino a sinistra → avanti
       const blocked = dir > 0 ? (_idx + 1 >= _pages.length) : (_idx - 1 < 0);
-      if(!blocked && (distOk || flickOk)) commitPageSwipe(dir);
+      let vaiAvanti;
+      if(dragFromEdge){
+        // Da ingranditi conta solo quanto la molla è stata TIRATA — cioè
+        // quello che si vede, non quanto è corso il dito — e non vale nessuna
+        // scorciatoia di velocità. Era il flick ad aver reso il cambio pagina
+        // troppo facile: un colpetto secco al bordo bastava a girare, anche
+        // quando si voleva solo finire di guardare la tavola.
+        vaiAvanti = Math.abs(edgeSpring(dx, stageW)) > stageW * EDGE_COMMIT;
+      } else {
+        const distOk = adx > stageW * 0.3;
+        const flickOk = (Math.abs(vx) > 0.5 && Math.sign(vx) === Math.sign(dx)) || (elapsed < 300 && adx > 24);
+        vaiAvanti = distOk || flickOk;
+      }
+      dragFromEdge = false;
+      if(!blocked && vaiAvanti) commitPageSwipe(dir);
       else cancelPageSwipe();
       return;
     }
@@ -1705,7 +1753,7 @@ function wireGestures(ov){
     pinching = false; panning = false;
     if(dragArmed) cancelPageSwipe();
     else if(!_arAnimating){ const tk = arTrack(); if(tk) tk.style.willChange = ''; }
-    dragArmed = false; dragCandidate = false;
+    dragArmed = false; dragCandidate = false; dragFromEdge = false; pinnedAtX = null;
   }, { passive: true });
 
   // Desktop: rotella per ingrandire, con lo zoom centrato sul puntatore.
