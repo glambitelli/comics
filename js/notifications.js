@@ -85,6 +85,9 @@ export function scheduleNextReminder(){
   }, delay);
 }
 
+// Il testo finisce come DIDASCALIA sotto la voce "Promemoria" nel pannello
+// (vedi index.html): frasi corte, e mai la parola "reminder", che sta gia'
+// nell'occhiello della sezione sopra.
 export function updateReminderStatus(){
   const el = document.getElementById('reminder-status');
   if(!el) return;
@@ -93,23 +96,23 @@ export function updateReminderStatus(){
   const perm = ('Notification' in window) ? Notification.permission : 'unsupported';
 
   if(perm === 'unsupported'){
-    el.textContent = 'Notifiche non supportate su questo browser';
+    el.textContent = 'Non supportate su questo browser';
     el.style.color = 'var(--ink3)';
   } else if(!enabled){
-    el.textContent = 'Reminder disattivato';
+    el.textContent = 'Spento — nessuna notifica al mattino';
     el.style.color = 'var(--ink3)';
   // I colori vengono dalla palette calda di Inkflow (vedi variables.css):
   // rame per l'avviso al posto del rosso squillante, ottone per lo stato
   // attivo al posto del verde. Il giallo #f0c020 del suggerimento era così
   // chiaro da leggersi a fatica sul fondo panna.
   } else if(perm === 'denied'){
-    el.textContent = 'Permesso negato — abilita le notifiche nelle impostazioni del telefono';
+    el.textContent = 'Permesso negato: abilitalo dalle impostazioni del telefono';
     el.style.color = 'var(--rame)';
   } else if(perm === 'granted'){
-    el.textContent = `Reminder attivo alle ${time} — funziona con la scheda aperta`;
+    el.textContent = `Attivo alle ${time} · serve la scheda aperta`;
     el.style.color = 'var(--ottone)';
   } else {
-    el.textContent = 'Attiva l\'interruttore per abilitare il reminder';
+    el.textContent = 'Tocca l\'interruttore per attivarlo';
     el.style.color = 'var(--ottone)';
   }
 }

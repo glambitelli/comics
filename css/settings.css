@@ -1,15 +1,34 @@
-/* SETTINGS PANEL */
-.settings-overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:150;opacity:0;pointer-events:none;transition:opacity .3s}
+/* ── PANNELLO IMPOSTAZIONI ───────────────────────────────────────────────
+   Rifatto con i materiali che l'app aveva già. Prima era l'unica schermata a
+   non parlare la lingua delle altre, e si vedeva: sezioni separate da righelli
+   a tutta larghezza (il modo in cui si facevano le impostazioni nel 2012),
+   fondo bianco da bordo a bordo mentre ovunque altro il bianco è la SCHEDA e
+   la sabbia è il fondo, etichette in grigio freddo dove References le fa in
+   ottone caldo, e sette pulsanti vestiti uguale — "Azzera stelle" identico a
+   "Esporta backup", due cose con conseguenze molto diverse.
+
+   Tre scelte reggono il rifacimento:
+
+   1. FONDO SABBIA, CONTENUTO IN SCHEDE. Come home, References e progetti.
+   2. TESTATA NERO-SABBIA CON L'ORO. È il gesto che l'app usa già per il
+      pulsante nuovo progetto, per le conferme dei modali e per la barra del
+      lettore: aprendo il pannello si sa subito di essere in Inkflow.
+   3. NIENTE SERIF NEL TITOLO. Castoro a 22px in mezzo a Nunito era proprio
+      quello che nei modali era già stato tolto, con la motivazione scritta
+      lì: "la gerarchia la fanno corpo e peso, non il cambio di carattere".
+      Le impostazioni non avevano ricevuto la correzione. */
+
+.settings-overlay{position:fixed;inset:0;background:rgba(26,20,16,.5);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:150;opacity:0;pointer-events:none;transition:opacity .3s}
 .settings-overlay.open{opacity:1;pointer-events:all}
 .settings-panel{
   position:fixed;bottom:0;left:0;right:0;z-index:160;
-  background:var(--white);border-radius:24px 24px 0 0;
+  background:var(--sand);border-radius:24px 24px 0 0;
   /* 92vh e non 80: le impostazioni sono quattro sezioni corte, devono
      starci INTERE senza chiedere di scorrere. A 80vh il contenuto (697px)
      sforava già su uno schermo da 800px, e su quelli con la safe-area alta
      sforava sempre. Resta comunque un tetto con overflow-y:auto, così se un
      domani si aggiunge una sezione non esce dallo schermo. */
-  max-height:92vh;overflow-y:auto;
+  max-height:92vh;overflow-y:auto;overflow-x:hidden;
   transform:translateY(100%);transition:transform .35s cubic-bezier(.32,.72,0,1);
 }
 .settings-panel.open{transform:translateY(0)}
@@ -17,55 +36,119 @@
    è nascosta (body.settings-open in layout.css). Basta rispettare la
    safe-area del telefono. */
 body.is-touch .settings-panel{ padding-bottom:var(--safe-bot); }
-.settings-handle{width:36px;height:4px;background:var(--sand3);border-radius:2px;margin:12px auto 0}
-.settings-head{display:flex;align-items:center;justify-content:space-between;padding:12px 22px 6px}
-.settings-title{font-family:'Castoro',serif;font-size:22px;font-weight:400;color:var(--ink)}
-.settings-close{background:none;border:none;font-size:16px;color:var(--ink3);cursor:pointer;padding:4px}
-/* Spaziature strette quel tanto che basta a far entrare tutto senza scorrere.
-   I separatori fra le sezioni fanno già il lavoro di dare respiro: non serve
-   aggiungerci anche l'aria che spingeva il pannello fuori dallo schermo. */
-.settings-section{padding:13px 22px;border-top:1.5px solid var(--sand2)}
-/* Stessa scala tipografica di References: intestazione di sezione 12px,
-   voce 14px, didascalia 12px. Prima erano 11/13/11 — una taglia sotto tutto
-   il resto dell'app, e si leggeva come una schermata di un'altra epoca. */
-.settings-section-label{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);margin-bottom:10px}
-.settings-note{font-size:12px;color:var(--ink3);margin-top:7px;line-height:1.45}
-.settings-stat{font-size:14px;color:var(--ink2);margin-bottom:11px}
-/* Pulsanti di servizio: stesso vestito per tutti (test, reset, backup),
-   invece di tre varianti scritte a mano nell'HTML. */
-.settings-btn{
-  font-size:13px;padding:9px 15px;border-radius:10px;
-  border:1.5px solid var(--sand3);background:var(--sand);color:var(--ink2);
-  font-family:'Nunito',sans-serif;font-weight:600;cursor:pointer;
-  transition:border-color .15s,color .15s;
-}
-.settings-btn:active{border-color:var(--ottone);color:var(--ink)}
-.settings-btn-row{display:flex;gap:10px;flex-wrap:wrap}
-.settings-btn-row .settings-btn{flex:1;white-space:nowrap}
 
-/* REMINDER */
-.reminder-card{background:var(--white);border-radius:var(--r);padding:14px 16px;margin-bottom:12px;box-shadow:var(--shadow);border:1.5px solid var(--sand2)}
-.reminder-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap}
-.reminder-label{font-size:14px;font-weight:600;color:var(--ink);flex:1}
-.reminder-time{background:var(--sand);border:1.5px solid var(--sand3);border-radius:10px;padding:7px 12px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:600;color:var(--ink);outline:none;width:100px}
-.reminder-time:focus{border-color:var(--ottone)}
+/* ── TESTATA ── */
+/* Sticky: se un domani il contenuto cresce oltre lo schermo, il titolo e la
+   X restano raggiungibili invece di scorrere via in cima. */
+.settings-head-wrap{
+  position:sticky;top:0;z-index:2;
+  background:linear-gradient(135deg,#2a2018,#1a1410);
+  border-radius:24px 24px 0 0;
+  padding:11px 20px 16px;
+}
+.settings-handle{width:36px;height:4px;background:rgba(217,164,23,.4);border-radius:2px;margin:0 auto}
+.settings-head{display:flex;align-items:center;justify-content:space-between;padding:10px 0 0}
+.settings-title{font-size:17.5px;font-weight:800;letter-spacing:-.005em;color:#fdf6e4;line-height:1.25}
+.settings-eyebrow{font-size:11px;font-weight:600;letter-spacing:.13em;text-transform:uppercase;color:var(--oro);opacity:.75;margin-top:3px}
+.settings-close{
+  background:none;border:none;padding:6px;margin:-6px;cursor:pointer;
+  color:var(--oro);opacity:.85;display:flex;line-height:0;
+  transition:opacity .15s,transform .1s;
+}
+.settings-close:active{opacity:1;transform:scale(.9)}
+
+/* ── CORPO: schede sulla sabbia ── */
+.settings-body{padding:16px 14px 4px;display:grid;gap:14px}
+/* Occhiello caldo, lo stesso di References (#9a8458). Prima era grigio
+   freddo, e due grigi diversi a due schermate di distanza si notano anche
+   senza sapere perché. */
+.settings-section-label{
+  font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
+  color:#9a8458;margin:0 2px 7px;
+}
+.settings-card{
+  background:var(--white);border:1.5px solid var(--sand2);border-radius:14px;
+  padding:13px 14px;box-shadow:0 2px 8px rgba(40,30,15,.05);
+}
+
+/* Riga: icona · voce (+ didascalia) · controllo */
+.settings-row{display:flex;align-items:center;gap:12px}
+.settings-row + .settings-row{margin-top:12px}
+.settings-ico{
+  width:22px;height:22px;flex-shrink:0;color:var(--ottone);
+  display:flex;align-items:center;justify-content:center;
+}
+.settings-ico svg{display:block}
+.settings-item{flex:1;min-width:0}
+.settings-item b{display:block;font-size:14.5px;font-weight:700;color:var(--ink);line-height:1.3}
+.settings-item span{display:block;font-size:12px;color:var(--ink3);line-height:1.4;margin-top:2px}
+/* Il separatore dentro la scheda arriva fino ai bordi: dice "sotto c'è
+   un'altra cosa", non "qui il testo va a capo". */
+.settings-divider{height:1px;background:var(--sand2);margin:12px -14px}
+
+/* Orario del reminder. Vestito come le pastiglie del resto dell'app; il
+   selettore vero e proprio lo apre il telefono. */
+.settings-time{
+  background:var(--sand);border:1.5px solid var(--sand3);border-radius:9px;
+  padding:6px 11px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;
+  color:var(--ink);outline:none;flex-shrink:0;
+  font-variant-numeric:tabular-nums;
+}
+.settings-time:focus{border-color:var(--oro)}
+
 /* Interruttori in oro, non in verde. Il verde acceso (#48a848) veniva dalla
    vecchia palette "Ponyo" e nel pannello era l'unica cosa a quel volume:
    saltava all'occhio più del testo. Nel resto dell'app "acceso" si dice in
    oro — la stella, il glifo di caricamento, gli accenti del lettore. */
-.reminder-toggle{width:42px;height:24px;appearance:none;-webkit-appearance:none;background:var(--sand3);border-radius:12px;cursor:pointer;position:relative;transition:background .2s;flex-shrink:0}
-.reminder-toggle:checked{background:var(--oro)}
-.reminder-toggle::after{content:'';position:absolute;width:18px;height:18px;background:#fff;border-radius:50%;top:3px;left:3px;transition:left .2s;box-shadow:0 1px 3px rgba(90,60,20,.25)}
-.reminder-toggle:checked::after{left:21px}
-.reminder-status{font-size:12px;color:var(--ink3);margin-top:2px;line-height:1.5}
+.settings-toggle{
+  width:42px;height:24px;appearance:none;-webkit-appearance:none;
+  background:var(--sand3);border-radius:12px;cursor:pointer;position:relative;
+  transition:background .2s;flex-shrink:0;margin:0;
+}
+.settings-toggle:checked{background:var(--oro)}
+.settings-toggle::after{
+  content:'';position:absolute;width:18px;height:18px;background:#fff;
+  border-radius:50%;top:3px;left:3px;transition:left .2s;
+  box-shadow:0 1px 3px rgba(90,60,20,.25);
+}
+.settings-toggle:checked::after{left:21px}
 
-/* MUSIC PLAYER */
-.music-player{background:var(--white);border-radius:var(--r);margin-bottom:12px;overflow:hidden;box-shadow:var(--shadow);border:1.5px solid var(--sand2);padding:14px 16px}
-.music-label{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);margin-bottom:10px}
-.music-url-row{display:flex;gap:8px;margin-bottom:10px}
-.music-url-input{flex:1;background:var(--sand);border:1.5px solid var(--sand3);border-radius:10px;padding:8px 12px;font-family:'Nunito',sans-serif;font-size:12px;color:var(--ink);outline:none}
-.music-url-input:focus{border-color:var(--sky)}
-.music-play-btn{padding:8px 14px;border-radius:10px;border:none;background:var(--coral);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:'Nunito',sans-serif;white-space:nowrap}
-.music-play-btn:active{opacity:.8}
-.music-iframe-wrap{border-radius:10px;overflow:hidden;display:none}
-.music-iframe-wrap.open{display:block}
+/* ── AZIONI, IN TRE PESI ──
+   Prima erano tutte uguali. Il peso dice la conseguenza: tenue per una prova
+   che non lascia traccia, neutro per il backup, rame per ciò che cancella —
+   così si capisce cosa fa male PRIMA di toccarlo, non dopo. */
+.settings-action{
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  width:100%;padding:10px;border-radius:10px;
+  border:1.5px solid var(--sand3);background:transparent;color:var(--ink2);
+  font-family:'Nunito',sans-serif;font-size:13.5px;font-weight:700;cursor:pointer;
+  transition:background .15s,border-color .15s,color .15s;
+}
+.settings-action:active{background:var(--sand)}
+.settings-action.quiet{border-color:var(--sand2);color:var(--ink3)}
+.settings-action.risky{border-color:#e0c4b0;color:var(--rame)}
+.settings-action.risky:active{background:#fbf1ea}
+.settings-action-row{display:flex;gap:9px}
+.settings-action-row .settings-action{flex:1;white-space:nowrap}
+
+/* ── STELLE E STREAK ──
+   Erano annegate in una frase ("Serate completate: 4 · Streak attuale: 0 gg").
+   Sono un piccolo premio: vale la pena vederle. */
+.settings-figures{display:flex;gap:9px}
+.settings-figure{
+  flex:1;background:var(--sand);border:1px solid var(--sand2);
+  border-radius:11px;padding:9px 11px;
+}
+.settings-figure b{
+  display:block;font-size:24px;font-weight:800;line-height:1.1;color:var(--ink);
+  font-variant-numeric:tabular-nums;
+}
+.settings-figure span{
+  display:block;font-size:10.5px;font-weight:800;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--ink3);margin-top:2px;
+}
+.settings-figure.gold b{color:var(--oro)}
+.settings-figure.copper b{color:var(--rame)}
+
+/* Didascalia in coda a una scheda (es. cosa contiene il backup). */
+.settings-note{font-size:12px;color:var(--ink3);line-height:1.45;margin-top:11px}
