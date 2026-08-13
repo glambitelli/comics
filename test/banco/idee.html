@@ -1,0 +1,30 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8">
+<title>banco di prova — idee</title>
+<link rel="stylesheet" href="/css/variables.css">
+<link rel="stylesheet" href="/css/idee.css">
+<script type="importmap">
+{ "imports": {
+  "/js/firebase.js": "/test/finti/firebase.js",
+  "/js/state.js":    "/test/finti/state.js",
+  "/js/dialogs.js":  "/test/finti/dialogs.js",
+  "/js/home.js":     "/test/finti/home.js"
+} }
+</script>
+</head><body>
+<script type="module">
+// Il markup della schermata e dell'editor si PRENDE da index.html invece di
+// riscriverlo: se domani cambia lì, la prova lo segue. Una copia a mano
+// direbbe che tutto funziona su una schermata che non esiste più.
+const dom = new DOMParser().parseFromString(await (await fetch('/index.html')).text(), 'text/html');
+for(const sel of ['#screen-idee', '#idea-editor']){
+  const el = dom.querySelector(sel);
+  document.body.appendChild(document.importNode(el, true));
+}
+document.getElementById('screen-idee').classList.add('active');
+
+const idee = await import('/js/idee.js');
+window.idee = idee;
+idee.initIdee();
+window.__ready = true;
+</script>
+</body></html>

@@ -6,7 +6,7 @@ import { calcDaysLeft } from './velocity.js';
 import { openProject, confirmDeleteCurrent } from './project.js';
 import { promptModal } from './dialogs.js';
 
-function newProjectObj(title, numTav){
+export function newProjectObj(title, numTav){
   const idx = projects.length % PROJECT_PALETTE.length;
   const pal = PROJECT_PALETTE[idx];
   return {

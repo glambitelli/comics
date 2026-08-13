@@ -49,6 +49,10 @@ body.refs-lightbox-open .dune-nav{display:none}
    alta, i pulsanti finivano comunque sotto la capsula e non si potevano
    toccare. */
 body.settings-open .dune-nav{display:none}
+/* Stessa ragione per un'idea aperta a tutto schermo: e' un foglio che copre
+   tutto lo schermo, e la capsula ci galleggerebbe sopra proprio dove finisce
+   il testo che si sta scrivendo. */
+body.idea-editor-open .dune-nav{display:none}
 
 /* Layer blur + colore + grana — CAPSULA FLOTTANTE (pill staccata dai bordi) */
 .dune-blur,.dune-color,.dune-grain{

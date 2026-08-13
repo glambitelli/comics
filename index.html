@@ -20,6 +20,7 @@
 <link rel="stylesheet" href="css/story.css">
 <link rel="stylesheet" href="css/evening.css">
 <link rel="stylesheet" href="css/settings.css">
+<link rel="stylesheet" href="css/idee.css">
 <link rel="stylesheet" href="css/modals.css">
 <link rel="stylesheet" href="css/stats.css">
 <link rel="stylesheet" href="css/scriptment.css">
@@ -69,6 +70,38 @@
     <button id="btn-stats" onclick="openStats()" class="home-fab" aria-label="Statistiche"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="20" x2="6" y2="13"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="18" y1="20" x2="18" y2="9"/></svg></button>
     <button id="btn-settings" onclick="openSettings()" class="home-fab" aria-label="Impostazioni"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
   </div>
+</div>
+
+<!-- IDEE -->
+<div class="screen" id="screen-idee">
+  <div class="idee-header">
+    <div class="idee-title">Idee</div>
+    <div class="idee-sub">pensieri senza progetto</div>
+  </div>
+  <div class="idee-scroll">
+    <div class="idee-nuovo">
+      <textarea id="idee-nuovo-testo" rows="2" placeholder="Una battuta, una scena, un titolo…"></textarea>
+      <div class="idee-nuovo-piede">
+        <button class="idee-salva" id="idee-nuovo-salva" type="button">Salva</button>
+      </div>
+    </div>
+    <div id="idee-lista"></div>
+  </div>
+</div>
+
+<!-- EDITOR DI UN'IDEA -->
+<div class="idea-editor" id="idea-editor">
+  <div class="idea-editor-barra">
+    <button class="idea-editor-btn" id="idea-editor-chiudi" type="button" aria-label="Chiudi">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+    </button>
+    <span class="cresci"></span>
+    <button class="idea-editor-promuovi" id="idea-editor-promuovi" type="button">Diventa progetto</button>
+    <button class="idea-editor-btn" id="idea-editor-elimina" type="button" aria-label="Butta via">
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg>
+    </button>
+  </div>
+  <textarea id="idea-editor-testo" placeholder="Scrivi…"></textarea>
 </div>
 
 <!-- PROJECT -->
@@ -775,6 +808,9 @@
       <svg class="dune-home-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3L2 11h2.3v9a1 1 0 0 0 1 1H10v-6h4v6h4.7a1 1 0 0 0 1-1v-9H22L12 3Z" fill="currentColor"/></svg>
     </button>
     <button class="dune-btn dune-btn-light" onclick="openStats()" aria-label="Statistiche"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="20" x2="6" y2="13"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="18" y1="20" x2="18" y2="9"/></svg></button>
+    <button class="dune-btn dune-btn-light" onclick="openIdee()" aria-label="Idee" title="Idee">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2Z"/></svg>
+    </button>
     <button class="dune-btn dune-btn-light" onclick="toggleSettings()" aria-label="Impostazioni"><span class="dune-g-gear">⚙</span></button>
   </div>
 </nav>

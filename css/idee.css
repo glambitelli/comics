@@ -1,0 +1,124 @@
+/* ── IDEE — il taccuino senza padrone ─────────────────────────────────────
+   Stessi materiali di References: intestazione bianca arrotondata col filo
+   colorato, fondo sabbia, contenuto in schede. Una schermata nuova che sembri
+   nuova sarebbe la sesta lingua parlata dall'app. */
+
+.idee-header{
+  background:var(--white);padding:calc(24px + var(--safe-top)) 22px 12px;
+  position:relative;overflow:hidden;flex-shrink:0;
+  border-radius:0 0 28px 28px;border-bottom:3px solid var(--oro-sabbia);z-index:1;
+}
+.idee-header::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:5px;
+  background:linear-gradient(90deg,var(--coral),var(--gold),var(--green),var(--sky));
+}
+.idee-title{
+  font-family:'Castoro',serif;font-size:30px;line-height:1.05;
+  color:var(--ink);letter-spacing:-.01em;
+}
+.idee-sub{
+  font-size:9px;color:var(--ink3);letter-spacing:.12em;text-transform:lowercase;margin-top:2px;
+}
+
+.idee-scroll{
+  flex:1;overflow-y:auto;background:#efe6d4;
+  padding:14px 14px calc(20px + var(--safe-bot));
+}
+body.is-touch .idee-scroll{padding-bottom:calc(110px + var(--safe-bot))}
+
+/* ── LA CASELLA ──
+   Sta in cima e non si nasconde mai dietro un pulsante "+": il valore di un
+   taccuino è tutto nella distanza fra l'idea e il posto dove scriverla. */
+.idee-nuovo{
+  background:var(--white);border:1.5px solid var(--sand2);border-radius:14px;
+  padding:12px 13px;margin-bottom:14px;box-shadow:0 2px 8px rgba(40,30,15,.05);
+}
+.idee-nuovo textarea{
+  width:100%;border:none;outline:none;background:none;resize:none;overflow-y:auto;
+  font-family:'Nunito',sans-serif;font-size:15px;line-height:1.55;color:var(--ink);
+  min-height:46px;display:block;
+}
+.idee-nuovo textarea::placeholder{color:var(--ink3);opacity:.85}
+.idee-nuovo-piede{display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-top:2px}
+/* A casella vuota il pulsante c'è ma è spento: un bottone che compare e
+   scompare fa saltare l'altezza della scheda a ogni carattere. */
+.idee-salva{
+  border:none;border-radius:10px;padding:8px 18px;cursor:pointer;
+  font-family:'Nunito',sans-serif;font-size:13.5px;font-weight:700;
+  background:var(--sand);color:var(--ink3);
+  transition:background .18s,color .18s,transform .1s;
+}
+.idee-salva.pronto{
+  background:linear-gradient(135deg,#2a2018,#1a1410);color:var(--gold);
+  box-shadow:0 3px 12px rgba(26,20,16,.25);
+}
+.idee-salva.pronto:active{transform:scale(.97)}
+
+/* ── LE SCHEDE ── */
+.idee-card{
+  background:var(--white);border:1.5px solid var(--sand2);border-radius:13px;
+  padding:12px 14px;margin-bottom:8px;cursor:pointer;
+  box-shadow:0 2px 8px rgba(40,30,15,.05);
+  transition:border-color .18s,transform .1s;
+}
+.idee-card:active{transform:scale(.985);border-color:var(--oro-sabbia)}
+.idee-card-testo b{
+  display:block;font-size:15px;font-weight:700;color:var(--ink);line-height:1.35;
+  overflow:hidden;text-overflow:ellipsis;display:-webkit-box;
+  -webkit-line-clamp:2;-webkit-box-orient:vertical;
+}
+.idee-card-testo span{
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+  font-size:13px;color:var(--ink3);line-height:1.45;margin-top:3px;
+}
+.idee-card-piede{display:flex;align-items:center;gap:9px;margin-top:9px}
+.idee-data{font-size:11px;font-weight:700;letter-spacing:.04em;color:var(--ink3);flex:1}
+/* Un'idea diventata progetto resta in elenco: il taccuino conserva anche la
+   memoria di cosa è germogliato. La targa porta al progetto. */
+.idee-targa{
+  border:1px solid var(--oro-sabbia);background:#fdf6e4;color:var(--ottone);
+  border-radius:9px;padding:3px 9px;cursor:pointer;flex-shrink:0;max-width:60%;
+  font-family:'Nunito',sans-serif;font-size:11.5px;font-weight:700;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.idee-card.promossa{background:#fffdf6}
+
+.idee-vuoto{text-align:center;padding:34px 22px 10px;color:var(--ink3)}
+.idee-vuoto-glifo{font-size:26px;color:var(--oro-sabbia);margin-bottom:10px}
+.idee-vuoto p{font-size:13.5px;line-height:1.6;max-width:32ch;margin:0 auto}
+.idee-vuoto-hint{font-size:12px;margin-top:10px;opacity:.75}
+
+/* ── EDITOR A TUTTO SCHERMO ──
+   Un'idea si rilegge e si allunga: dentro una finestrella non si fa né l'uno
+   né l'altro. Sale dal basso come gli altri fogli dell'app. */
+.idea-editor{
+  position:fixed;inset:0;z-index:210;display:flex;flex-direction:column;
+  background:var(--sand);
+  transform:translateY(100%);transition:transform .3s cubic-bezier(.32,.72,0,1);
+  pointer-events:none;
+}
+.idea-editor.open{transform:translateY(0);pointer-events:auto}
+.idea-editor-barra{
+  display:flex;align-items:center;gap:10px;flex-shrink:0;
+  padding:calc(10px + var(--safe-top)) 14px 10px;
+  background:linear-gradient(135deg,#2a2018,#1a1410);
+}
+.idea-editor-barra .cresci{flex:1}
+.idea-editor-btn{
+  background:none;border:none;padding:7px;cursor:pointer;color:var(--oro);
+  display:flex;line-height:0;opacity:.85;transition:opacity .15s,transform .1s;
+}
+.idea-editor-btn:active{opacity:1;transform:scale(.9)}
+.idea-editor-promuovi{
+  border:1px solid rgba(217,164,23,.5);background:rgba(217,164,23,.14);
+  color:var(--oro);border-radius:10px;padding:7px 14px;cursor:pointer;
+  font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;
+  white-space:nowrap;max-width:52vw;overflow:hidden;text-overflow:ellipsis;
+}
+.idea-editor-promuovi.fatto{background:none;border-style:dashed}
+.idea-editor textarea{
+  flex:1;width:100%;border:none;outline:none;resize:none;
+  background:var(--sand);color:var(--ink);
+  font-family:'Nunito',sans-serif;font-size:16px;line-height:1.65;
+  padding:18px 18px calc(24px + var(--safe-bot));
+}

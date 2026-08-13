@@ -89,7 +89,7 @@ import { getTodayTip } from './tips.js';
 
 // ── Navigazione centralizzata: chiude tutte le schermate prima di aprirne una ──
 function hideAllScreens(){
-  ['screen-home','screen-project','screen-stats','screen-evening','screen-refs'].forEach(id=>{
+  ['screen-home','screen-project','screen-stats','screen-evening','screen-refs','screen-idee'].forEach(id=>{
     const el = document.getElementById(id);
     if(el) el.classList.remove('active');
   });
@@ -112,6 +112,17 @@ async function openStats(){
   if(window.__navSync) window.__navSync('stats');
   const m = await trackResolved('./stats.js');
   m.renderStats();
+}
+
+// Il taccuino. Il modulo si carica al primo ingresso come stats/refs, ma la
+// schermata compare subito: chi tocca "Idee" ha in testa un pensiero da
+// scrivere, e mezzo secondo di schermo fermo basta a perderlo.
+async function openIdee(){
+  hideAllScreens();
+  document.getElementById('screen-idee').classList.add('active');
+  if(window.__navSync) window.__navSync('idee');
+  const m = await trackResolved('./idee.js');
+  m.initIdee();
 }
 
 // Preparazione comune della schermata References, condivisa da tutti i punti
@@ -357,6 +368,7 @@ async function showScreen(view, id){
   try{
     if(view === 'project' && id && getProject(id)){ openProject(id); }
     else if(view === 'stats'){ await openStats(); }
+    else if(view === 'idee'){ await openIdee(); }
     else if(view === 'refs'){ await openRefsScreen(); }
     else if(view === 'refs-folder' && id){ await openRefsScreenAtFolder(id); }
     else if(view === 'refs-all'){ await openRefsScreenAtAll(); }
@@ -385,6 +397,13 @@ window.addEventListener('popstate', e=>{
     const m = loadedMod('./refs.js');
     if(m){ m.closeLightboxUI(); return; }
   }
+  // Un'idea aperta a tutto schermo: Indietro la chiude (salvando) e riporta
+  // all'elenco, invece di uscire dalla schermata.
+  const ie = document.getElementById('idea-editor');
+  if(ie && ie.classList.contains('open')){
+    const m = loadedMod('./idee.js');
+    if(m){ m.chiudiEditor(); return; }
+  }
   const st = e.state || { view:'home' };
   showScreen(st.view, st.id);
 });
@@ -394,6 +413,7 @@ try{ if(!history.state) history.replaceState({ view:'home', depth:0 }, ''); }cat
 // esporle. Funziona qualunque sia il chiamante (window o binding importato).
 window.openProject = openProject;
 window.openStats = openStats;
+window.openIdee = openIdee;
 window.enterEveningMode = enterEveningImpl;
 // Azioni "indietro" — passano dalla cronologia, così il back del browser resta coerente.
 // Stats e sera si aprono sempre direttamente sopra la Home (un solo livello),
