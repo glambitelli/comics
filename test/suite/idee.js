@@ -1,7 +1,7 @@
 // Idee — il taccuino senza padrone
 const { suite } = require('../motore.js');
 
-module.exports = () => suite("Idee — taccuino, ordine, menu della scheda",
+module.exports = () => suite("Idee — taccuino, ordine a mano, menu della scheda",
   { banco: '/test/banco/idee.html' }, async ({ page, base, ok }) => {
 
   const stato = ()=> page.evaluate(()=>{
@@ -78,8 +78,10 @@ module.exports = () => suite("Idee — taccuino, ordine, menu della scheda",
   });
   await page.waitForTimeout(260);
   s = await stato();
-  ok('chiudendo si salva quello che si e\' scritto', /Ruba le ombre/.test(s.resti[0] || ''), s);
-  ok('e l\'idea appena toccata risale in cima', s.titoli[0] === 'Il ladro di ombre', s);
+  ok('chiudendo si salva quello che si e\' scritto', /Ruba le ombre/.test(s.resti[1] || ''), s);
+  // Modificare un'idea NON la sposta: l'ordine e' quello che hai deciso tu, e
+  // una correzione di due parole non e' un motivo per rimescolare il taccuino.
+  ok('e l\'idea resta dov\'era', s.titoli[1] === 'Il ladro di ombre', s);
   ok('senza creare un doppione', s.n === 2, s);
 
   console.log('\n── i tre puntini: tutte le azioni in un posto solo ──');
@@ -113,51 +115,68 @@ module.exports = () => suite("Idee — taccuino, ordine, menu della scheda",
     aperto: document.getElementById('idea-editor').classList.contains('open'),
     testo: document.getElementById('idea-editor-testo').value,
   }));
-  ok('si apre l\'editor sull\'idea giusta', ed.aperto && /Ruba le ombre/.test(ed.testo), ed);
+  ok('si apre l\'editor sull\'idea giusta', ed.aperto && /due fratelli/.test(ed.testo), ed);
   await page.evaluate(()=> document.getElementById('idea-editor-chiudi').click());
   await page.waitForTimeout(320);
-
-  console.log('\n── ordinare l\'elenco ──');
-  // Terza idea, scritta per ultima ma alfabeticamente prima di tutte: serve a
-  // distinguere davvero i tre criteri fra loro. Con due sole idee "alfabetico"
-  // e "piu' recenti" potrebbero dare lo stesso ordine per caso.
+  console.log('\n── tenere premuto e spostare ──');
+  // Terza idea, così ci si può muovere davvero: con due schede qualunque
+  // spostamento è lo stesso spostamento e non si distingue niente.
   await scrivi('Aria di mare');
   await salva();
   s = await stato();
-  ok('la barra dell\'ordine compare quando c\'e\' qualcosa da ordinare',
-     !(await page.evaluate(()=> document.getElementById('idee-barra').hidden)), s);
-  ok('di partenza si va dalle piu\' recenti',
-     s.titoli[0] === 'Aria di mare' && s.titoli[2] === 'La casa sul molo', s);
-  const etichetta = ()=> page.evaluate(()=> document.getElementById('idee-ordine').textContent);
-  ok('e la riga lo dice a parole', /Più recenti/.test(await etichetta()), await etichetta());
+  ok('le idee nuove entrano in cima',
+     s.titoli.join(' | ') === 'Aria di mare | La casa sul molo | Il ladro di ombre', s);
 
-  const cambiaOrdine = async (nome)=>{
-    await page.evaluate(()=> document.getElementById('idee-ordine').click());
-    await page.waitForTimeout(220);
-    await tocca(nome);
+  // Il gesto vero: dito giù, si aspetta che la scheda si sollevi, si sposta,
+  // si posa. Le pause sono quelle di una mano, non di un test.
+  const premiESposta = async (indice, dy, opzioni = {})=>{
+    await page.evaluate(([i, dyy, attesa]) => new Promise(async fine=>{
+      const card = document.querySelectorAll('.idee-card')[i];
+      const r = card.getBoundingClientRect();
+      const x = r.left + 60, y = r.top + r.height/2;
+      const t = (cx,cy)=> [new Touch({ identifier:1, target:card, clientX:cx, clientY:cy })];
+      const attendi = ms => new Promise(r2=>setTimeout(r2, ms));
+      card.dispatchEvent(new TouchEvent('touchstart', {bubbles:true, touches:t(x,y), targetTouches:t(x,y)}));
+      await attendi(attesa);
+      for(let k=1; k<=6; k++){
+        card.dispatchEvent(new TouchEvent('touchmove', {bubbles:true, cancelable:true,
+          touches:t(x, y + dyy*k/6), targetTouches:t(x, y + dyy*k/6)}));
+        await attendi(16);
+      }
+      card.dispatchEvent(new TouchEvent('touchend', {bubbles:true, touches:[], targetTouches:[]}));
+      fine();
+    }), [indice, dy, opzioni.attesa == null ? 520 : opzioni.attesa]);
+    await page.waitForTimeout(320);
   };
 
-  await cambiaOrdine('Alfabetico');
+  // Spostamenti larghi apposta: si prova il SIGNIFICATO del gesto — in fondo,
+  // in cima — non a quale pixel cade il confine fra due schede, che dipende
+  // dall'altezza di ciascuna (una senza anteprima e' piu' bassa).
+  await premiESposta(0, 1000);
   s = await stato();
-  ok('alfabetico mette in fila per titolo',
-     s.titoli.join(' | ') === 'Aria di mare | Il ladro di ombre | La casa sul molo', s);
-  ok('e l\'etichetta segue', /Alfabetico/.test(await etichetta()), await etichetta());
+  ok('trascinata in giu\', la scheda finisce in fondo',
+     s.titoli.join(' | ') === 'La casa sul molo | Il ladro di ombre | Aria di mare', s);
 
-  await cambiaOrdine('Più vecchie');
+  await premiESposta(2, -1000);
   s = await stato();
-  ok('"piu\' vecchie" parte da quella scritta per prima',
-     s.titoli[0] === 'Il ladro di ombre' && s.titoli[2] === 'Aria di mare', s);
+  ok('e trascinata in su torna in cima',
+     s.titoli.join(' | ') === 'Aria di mare | La casa sul molo | Il ladro di ombre', s);
 
-  console.log('\n── il criterio scelto e\' anche il criterio ricordato ──');
-  const salvato = await page.evaluate(()=> localStorage.getItem('inkflow-idee-ordine'));
-  ok('resta scritto per la prossima volta', salvato === 'vecchie', salvato);
+  console.log('\n── l\'ordine e\' scritto, non ricalcolato ──');
+  const numeri = await page.evaluate(()=> window.idee.tutteLeIdee()
+    .slice().sort((a,b)=>(a.ordine||0)-(b.ordine||0)).map(i=>({t:i.testo.split('\n')[0], o:i.ordine})));
+  ok('ogni idea ha il suo posto, numerato da zero senza buchi',
+     numeri.map(n=>n.o).join(',') === '0,1,2', numeri);
+  ok('e i numeri corrispondono a quello che si vede',
+     numeri[0].t === 'Aria di mare' && numeri[2].t === 'Il ladro di ombre', numeri);
 
-  console.log('\n── cambiare ordine non tocca le idee ──');
-  const numeri = await page.evaluate(()=> window.idee.tutteLeIdee().map(i=>i.updatedAt));
-  await cambiaOrdine('Più recenti');
-  const numeriDopo = await page.evaluate(()=> window.idee.tutteLeIdee().map(i=>i.updatedAt));
-  ok('nessuna data di modifica e\' cambiata riordinando',
-     JSON.stringify(numeri.slice().sort()) === JSON.stringify(numeriDopo.slice().sort()), { numeri, numeriDopo });
+  console.log('\n── senza tenere premuto non si sposta niente ──');
+  // Lo stesso movimento verticale, ma partendo subito: è uno scorrimento
+  // dell'elenco, e l'elenco non si deve riordinare da solo.
+  await premiESposta(0, 1000, { attesa: 40 });
+  s = await stato();
+  ok('un dito che parte subito fa scorrere, non riordina',
+     s.titoli.join(' | ') === 'Aria di mare | La casa sul molo | Il ladro di ombre', s);
 
   // Si torna a due idee, come si aspettano le sezioni seguenti.
   await page.evaluate(()=>{ window.__undo = null; });

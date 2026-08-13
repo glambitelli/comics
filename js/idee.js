@@ -26,20 +26,17 @@ import { actionMenu } from './dialogs.js';
 
 const IDEE_COL = 'ideas';
 
-// ── ORDINE DELL'ELENCO ──
-// Tre soli criteri, tutti con un nome che dice cosa fanno. Il criterio non
-// cambia MAI l'elenco in memoria: si applica al momento di disegnarlo, così
-// scrivere o modificare un'idea non deve sapere niente di come è ordinata.
-const ORDINI = {
-  recenti:   { label:'Più recenti',  cmp:(a,b)=> (b.updatedAt||0) - (a.updatedAt||0) },
-  vecchie:   { label:'Più vecchie',  cmp:(a,b)=> (a.createdAt||0) - (b.createdAt||0) },
-  alfabetico:{ label:'Alfabetico',   cmp:(a,b)=> titoloDi(a.testo).localeCompare(titoloDi(b.testo), 'it', {sensitivity:'base'}) },
-};
-const ORDINE_KEY = 'inkflow-idee-ordine';
-let _ordine = (()=>{
-  try{ const v = localStorage.getItem(ORDINE_KEY); return ORDINI[v] ? v : 'recenti'; }
-  catch(e){ return 'recenti'; }
-})();
+// ── L'ORDINE LO DECIDI TU ──
+// Non per data e non per titolo: le idee stanno dove le metti. Ognuna porta un
+// numero `ordine`, e l'elenco si legge in quel senso. Le nuove entrano in cima
+// perché è lì che si guarda tornando sulla schermata; da quel momento in poi
+// si spostano tenendo premuto su una scheda e trascinandola.
+//
+// Un criterio automatico (più recenti, alfabetico…) era la prima versione ed è
+// stata buttata: rispondeva a una domanda che non era quella giusta. In un
+// taccuino la posizione è essa stessa un'informazione — in cima c'è quello a
+// cui stai pensando adesso — e nessun criterio la sa indovinare.
+const cmpOrdine = (a,b)=> (a.ordine||0) - (b.ordine||0);
 
 let _idee = [];
 let _unsub = null;
@@ -81,6 +78,14 @@ export function startIdeeListener(){
   if(_unsub) return;
   _unsub = onSnapshot(collection(db, IDEE_COL), snap=>{
     _idee = snap.docs.map(d=>({ id:d.id, ...d.data() }));
+    // Le idee scritte prima che l'ordine esistesse non hanno un numero: se lo
+    // prendono adesso, una volta sola, partendo dall'ordine in cui si erano
+    // sempre viste (le più recenti in cima). Senza questo finirebbero tutte a
+    // zero e l'elenco si rimescolerebbe sotto gli occhi.
+    if(_idee.some(i=> i.ordine == null)){
+      _idee.sort((a,b)=> (b.updatedAt||0) - (a.updatedAt||0))
+           .forEach((idea,k)=>{ idea.ordine = k; scrivi(idea); });
+    }
     renderIdee();
   }, err=>console.warn('listener idee:', err));
 }
@@ -96,7 +101,9 @@ export async function aggiungiIdea(testo){
   const t = (testo||'').trim();
   if(!t) return null;
   const ora = Date.now();
-  const idea = { id: genId(), testo: t, createdAt: ora, updatedAt: ora };
+  // Sopra a tutte: un pensiero appena scritto è quello a cui stai pensando.
+  const cima = _idee.length ? Math.min(..._idee.map(i=> i.ordine||0)) - 1 : 0;
+  const idea = { id: genId(), testo: t, createdAt: ora, updatedAt: ora, ordine: cima };
   // Ottimistico: l'idea compare SUBITO nell'elenco, senza aspettare la rete.
   // Scrivere un pensiero e vederlo sparire per un secondo mentre il server
   // risponde è il modo più veloce di non fidarsi più di un taccuino.
@@ -153,13 +160,6 @@ export function renderIdee(){
   const lista = document.getElementById('idee-lista');
   if(!lista) return;
 
-  const bottone = document.getElementById('idee-ordine');
-  if(bottone) bottone.textContent = ORDINI[_ordine].label;
-  // La riga dell'ordine ha senso solo quando c'è qualcosa da ordinare: con una
-  // sola idea in elenco sarebbe un comando che non cambia niente.
-  const barra = document.getElementById('idee-barra');
-  if(barra) barra.hidden = _idee.length < 2;
-
   if(!_idee.length){
     lista.innerHTML = `<div class="idee-vuoto">
       <div class="idee-vuoto-glifo">✦</div>
@@ -170,9 +170,7 @@ export function renderIdee(){
     return;
   }
 
-  // Copia prima di ordinare: _idee resta nell'ordine in cui è arrivato, e
-  // cambiare criterio non riscrive niente su Firestore.
-  lista.innerHTML = _idee.slice().sort(ORDINI[_ordine].cmp).map(idea=>{
+  lista.innerHTML = _idee.slice().sort(cmpOrdine).map(idea=>{
     const titolo = titoloDi(idea.testo);
     const resto = restoDi(idea.testo);
     return `<article class="idee-card" data-id="${esc(idea.id)}">
@@ -269,18 +267,6 @@ export function initIdee(){
     await aggiungiIdea(t);
   });
 
-  const ordine = document.getElementById('idee-ordine');
-  if(ordine) ordine.addEventListener('click', ()=>{
-    actionMenu(ordine, Object.entries(ORDINI).map(([chiave, o])=>({
-      label: o.label + (chiave === _ordine ? '  ✓' : ''),
-      onSelect: ()=>{
-        _ordine = chiave;
-        try{ localStorage.setItem(ORDINE_KEY, chiave); }catch(e){}
-        renderIdee();
-      },
-    })));
-  });
-
   const lista = document.getElementById('idee-lista');
   lista.addEventListener('click', e=>{
     const menu = e.target.closest('[data-menu]');
@@ -291,6 +277,93 @@ export function initIdee(){
     const card = e.target.closest('.idee-card');
     if(card) apriEditor(card.dataset.id);
   });
+
+  // ── TRASCINAMENTO: TENERE PREMUTO E SPOSTARE ──
+  //
+  // Il gesto ha tre strade possibili dallo stesso identico punto di partenza —
+  // un dito appoggiato su una scheda — e si distinguono per quello che succede
+  // DOPO, non per dove si tocca:
+  //
+  //   · il dito resta fermo mezzo secondo   → si solleva la scheda, si sposta
+  //   · il dito parte di lato               → menu della scheda
+  //   · il dito parte in verticale          → l'elenco scorre, come sempre
+  //   · il dito si alza subito              → si apre l'idea
+  //
+  // Nessuna maniglia dedicata: su una scheda alta cinquanta pixel un
+  // appiglio da venti sarebbe un bersaglio da centrare, e il gesto smetterebbe
+  // di essere comodo proprio dove serve.
+  const ATTESA = 420;          // quanto tenere premuto prima che si sollevi
+  const FERMO = 9;             // di quanto ci si può muovere senza annullare
+
+  let timerPressione = null;
+  let trascinato = null, altri = [], altezza = 0, daIndice = 0, aIndice = 0, yPartenza = 0;
+
+  const spegniPressione = ()=>{ clearTimeout(timerPressione); timerPressione = null; };
+
+  function sollevaScheda(card, y){
+    const schede = Array.from(lista.querySelectorAll('.idee-card'));
+    daIndice = schede.indexOf(card);
+    if(daIndice < 0) return;
+    aIndice = daIndice;
+    yPartenza = y;
+    trascinato = card;
+    altezza = card.getBoundingClientRect().height + 8;   // scheda + spazio fra le schede
+    // I centri si misurano ORA, una volta sola: leggerli ad ogni movimento del
+    // dito significherebbe chiedere al browser di rifare il layout sessanta
+    // volte al secondo mentre le schede si stanno già muovendo.
+    altri = schede.filter(x=>x!==card).map(el=>({
+      el, centro: el.getBoundingClientRect().top + el.getBoundingClientRect().height/2,
+      indice: schede.indexOf(el),
+    }));
+    card.classList.add('trascinata');
+    lista.classList.add('in-riordino');
+    haptic('done');
+  }
+
+  function muoviScheda(y){
+    const dy = y - yPartenza;
+    trascinato.style.transform = 'translateY(' + dy + 'px)';
+    const centro = trascinato.getBoundingClientRect().top + trascinato.getBoundingClientRect().height/2;
+    // Dove finirebbe la scheda se la si mollasse adesso: quante schede ha
+    // superato, contate sul loro centro.
+    let nuovo = daIndice;
+    for(const a of altri){
+      if(a.indice < daIndice && centro < a.centro) { nuovo = Math.min(nuovo, a.indice); }
+      if(a.indice > daIndice && centro > a.centro) { nuovo = Math.max(nuovo, a.indice); }
+    }
+    if(nuovo !== aIndice) haptic('tap');
+    aIndice = nuovo;
+    // Le altre schede si spostano per aprire il buco: senza, si vede la scheda
+    // volare sopra un elenco immobile e non si capisce dove atterrerà.
+    for(const a of altri){
+      let spostamento = 0;
+      if(daIndice < a.indice && a.indice <= aIndice) spostamento = -altezza;
+      else if(aIndice <= a.indice && a.indice < daIndice) spostamento = altezza;
+      a.el.style.transform = spostamento ? 'translateY(' + spostamento + 'px)' : '';
+    }
+  }
+
+  async function posaScheda(){
+    if(!trascinato) return;
+    const card = trascinato;
+    trascinato = null;
+    card.classList.remove('trascinata');
+    lista.classList.remove('in-riordino');
+    card.style.transform = '';
+    altri.forEach(a=> a.el.style.transform = '');
+    if(aIndice === daIndice) return;
+    // Si riscrive l'ordine di TUTTE le idee, non solo di quella spostata:
+    // numeri consecutivi da zero, così non ci si ritrova mai con due schede
+    // sullo stesso posto né con buchi che crescono ad ogni trascinamento.
+    const fila = _idee.slice().sort(cmpOrdine);
+    const [presa] = fila.splice(daIndice, 1);
+    fila.splice(aIndice, 0, presa);
+    fila.forEach((idea,k)=>{ idea.ordine = k; });
+    _idee = fila;
+    renderIdee();
+    haptic('done');
+    for(const idea of fila) await scrivi(idea);
+  }
 
   // ── STRISCIATA VERSO SINISTRA ──
   // Stesse azioni dei tre puntini, raggiunte col gesto invece che mirando a un
@@ -304,15 +377,26 @@ export function initIdee(){
   const SOGLIA_X = 44;
   let sx = 0, sy = 0, seguendo = false, cardStrisciata = null;
   lista.addEventListener('touchstart', e=>{
+    spegniPressione();
     if(e.touches.length !== 1) { seguendo = false; return; }
     cardStrisciata = e.target.closest('.idee-card');
     if(!cardStrisciata){ seguendo = false; return; }
     sx = e.touches[0].clientX; sy = e.touches[0].clientY;
     seguendo = true;
+    const card = cardStrisciata, y = sy;
+    timerPressione = setTimeout(()=>{ seguendo = false; sollevaScheda(card, y); }, ATTESA);
   }, { passive:true });
+
+  // passive:false perché durante il trascinamento si deve poter FERMARE lo
+  // scorrimento della pagina: senza, l'elenco scorrerebbe sotto la scheda
+  // sollevata e il dito non riuscirebbe mai a posarla dove vuole.
   lista.addEventListener('touchmove', e=>{
+    if(trascinato){ e.preventDefault(); muoviScheda(e.touches[0].clientY); return; }
     if(!seguendo || e.touches.length !== 1) return;
     const dx = e.touches[0].clientX - sx, dy = e.touches[0].clientY - sy;
+    // Appena il dito si muove davvero, la pressione lunga non vale più: si
+    // stava facendo qualcos'altro.
+    if(Math.hypot(dx, dy) > FERMO) spegniPressione();
     if(Math.abs(dy) > Math.abs(dx)){ seguendo = false; return; }   // sta scorrendo
     if(dx < -SOGLIA_X && Math.abs(dx) > Math.abs(dy) * 1.6){
       seguendo = false;
@@ -320,8 +404,19 @@ export function initIdee(){
       haptic('tap');
       menuIdea(cardStrisciata, cardStrisciata.dataset.id);
     }
+  }, { passive:false });
+
+  lista.addEventListener('touchend', ()=>{
+    spegniPressione();
+    seguendo = false;
+    if(trascinato){ _stridoA = Date.now(); posaScheda(); }
   }, { passive:true });
-  lista.addEventListener('touchend', ()=>{ seguendo = false; }, { passive:true });
+  // Una telefonata, una notifica a tutto schermo: il sistema porta via il
+  // gesto senza un touchend. Senza questo la scheda resterebbe sollevata.
+  lista.addEventListener('touchcancel', ()=>{
+    spegniPressione(); seguendo = false;
+    if(trascinato){ aIndice = daIndice; posaScheda(); }
+  }, { passive:true });
 
   document.getElementById('idea-editor-chiudi').addEventListener('click', ()=> chiudiEditor());
 

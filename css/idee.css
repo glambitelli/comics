@@ -54,20 +54,6 @@ body.is-touch .idee-scroll{padding-bottom:calc(110px + var(--safe-bot))}
 }
 .idee-salva.pronto:active{transform:scale(.97)}
 
-/* ── ORDINE DELL'ELENCO ──
-   Una riga sola, allineata a destra sopra le schede: dice com'è ordinato
-   adesso e si tocca per cambiarlo. Non è un pulsante con un'icona da
-   decifrare — la parola che si legge È lo stato corrente. */
-.idee-barra{display:flex;justify-content:flex-end;margin:0 2px 8px}
-.idee-barra[hidden]{display:none}
-.idee-ordine{
-  background:none;border:none;cursor:pointer;padding:4px 2px;
-  font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;
-  letter-spacing:.06em;text-transform:uppercase;color:#9a8458;
-}
-.idee-ordine::after{content:' ⌄';font-weight:400;letter-spacing:0}
-.idee-ordine:active{color:var(--ottone)}
-
 /* ── LE SCHEDE ── */
 .idee-card{
   background:var(--white);border:1.5px solid var(--sand2);border-radius:13px;
@@ -76,6 +62,27 @@ body.is-touch .idee-scroll{padding-bottom:calc(110px + var(--safe-bot))}
   transition:border-color .18s,transform .1s;
 }
 .idee-card:active{transform:scale(.985);border-color:var(--oro-sabbia)}
+
+/* ── TENERE PREMUTO E SPOSTARE ──
+   La scheda si stacca dal foglio: cresce un pelo, prende un'ombra vera e il
+   bordo d'oro. Serve a dire "adesso questa è in mano tua" — senza il distacco
+   non si capisce se la si sta spostando o se l'elenco sta scorrendo. */
+.idee-card.trascinata{
+  transform:scale(1.03);
+  border-color:var(--oro);
+  box-shadow:0 12px 28px rgba(40,30,15,.22);
+  position:relative;z-index:5;
+  transition:none;                 /* segue il dito, non lo insegue */
+}
+/* Le altre scivolano per aprire il buco. La transizione sta QUI e non sulla
+   scheda in mano: quella deve stare incollata al dito, queste devono
+   accompagnare. */
+.in-riordino .idee-card:not(.trascinata){
+  transition:transform .16s cubic-bezier(.22,.61,.36,1);
+}
+/* Mentre si sposta una scheda il testo non si seleziona e il dito non fa
+   scorrere la pagina: il gesto è uno solo e non deve dividersi. */
+.in-riordino{user-select:none;-webkit-user-select:none;touch-action:none}
 /* Il testo e i tre puntini stanno sulla stessa riga: il pulsante deve essere
    raggiungibile senza scorrere e senza coprire la prima parola. */
 .idee-card-riga{display:flex;align-items:flex-start;gap:8px}
