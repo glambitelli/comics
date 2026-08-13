@@ -19,8 +19,8 @@
 // così non si ricomincia da una pagina bianca proprio nel momento in cui si
 // aveva già qualcosa da dire.
 import { db, collection, doc, onSnapshot, setDoc, deleteDoc, saveProject } from './firebase.js';
-import { projects, haptic } from './state.js';
-import { confirmModal } from './dialogs.js';
+import { projects, haptic, showUndoToast } from './state.js';
+import { actionMenu } from './dialogs.js';
 import { newProjectObj } from './home.js';
 
 const IDEE_COL = 'ideas';
@@ -106,16 +106,30 @@ export async function salvaIdea(id, testo){
   await scrivi(idea);
 }
 
+// NIENTE finestra di conferma. Un'idea costa tre parole e si riscrive in
+// dieci secondi: fermare tutto con un "sei sicuro?" a schermo intero per
+// buttare una riga era sproporzionato — e la finestra, aperta da dentro
+// l'editor, finiva perfino DIETRO di esso (z-index 200 contro 210), così il
+// pulsante sembrava morto e la domanda compariva dal nulla dopo, a editor
+// chiuso. Si cancella e basta, con cinque secondi per ripensarci: è lo stesso
+// modo in cui l'app tratta le altre cose eliminabili.
 export async function eliminaIdea(id, silenzioso){
-  if(!silenzioso){
-    const ok = await confirmModal('Questa idea sparisce per sempre.',
-      { title:'Buttare via l\'idea?', confirmLabel:'Butta via' });
-    if(!ok) return false;
-  }
+  const idea = _idee.find(x=>x.id===id);
+  if(!idea) return false;
   _idee = _idee.filter(x=>x.id!==id);
   renderIdee();
   try{ await deleteDoc(doc(db, IDEE_COL, id)); }
   catch(e){ console.warn('eliminazione idea fallita:', e); }
+  // Svuotare il testo è già di per sé un modo di dire "non la voglio più":
+  // proporre di annullare sarebbe un invito a disfare quello che si è appena
+  // fatto apposta.
+  if(!silenzioso){
+    showUndoToast('Idea eliminata', async ()=>{
+      _idee = [idea, ..._idee].sort((a,b)=> (b.updatedAt||0) - (a.updatedAt||0));
+      renderIdee();
+      await scrivi(idea);
+    });
+  }
   return true;
 }
 
@@ -171,9 +185,12 @@ export function renderIdee(){
       ? `<button class="idee-targa" data-vai="${esc(idea.promossaA)}">→ ${esc(nome)}</button>`
       : '';
     return `<article class="idee-card${idea.promossaA && nome ? ' promossa' : ''}" data-id="${esc(idea.id)}">
-      <div class="idee-card-testo">
-        <b>${esc(titolo)}</b>
-        ${resto ? `<span>${esc(resto)}</span>` : ''}
+      <div class="idee-card-riga">
+        <div class="idee-card-testo">
+          <b>${esc(titolo)}</b>
+          ${resto ? `<span>${esc(resto)}</span>` : ''}
+        </div>
+        <button class="idee-menu" data-menu="${esc(idea.id)}" aria-label="Cosa fare con questa idea">⋯</button>
       </div>
       <div class="idee-card-piede">
         <span class="idee-data">${esc(quando(idea.updatedAt||idea.createdAt))}</span>
@@ -183,6 +200,32 @@ export function renderIdee(){
   }).join('');
 }
 
+// ── COSA FARE CON UN'IDEA ───────────────────────────────────────────────────
+// Tutte le azioni stanno QUI, in un posto solo, raggiungibile dai tre puntini
+// o strisciando la scheda verso sinistra. Prima erano sparse dentro l'editor:
+// aprire un'idea per rileggerla significava trovarsi davanti "Diventa
+// progetto" e un cestino, cioè due decisioni che non si stavano prendendo. Ora
+// l'editor serve solo a scrivere, e le decisioni si prendono dall'elenco.
+function menuIdea(ancora, id){
+  const idea = _idee.find(x=>x.id===id);
+  if(!idea) return;
+  const nome = idea.promossaA ? nomeProgetto(idea.promossaA) : null;
+  const voci = [
+    { label: 'Modifica', onSelect: ()=> apriEditor(id) },
+  ];
+  // Il nome dice cosa SUCCEDE, non come si chiama l'operazione: "Diventa
+  // progetto" non spiegava né cosa nasce né dove finisce quello che hai
+  // scritto.
+  voci.push(nome
+    ? { label: 'Apri “' + nome + '”', onSelect: ()=> window.openProject && window.openProject(idea.promossaA) }
+    : { label: 'Crea un progetto da questa idea', onSelect: async ()=>{
+        const pid = await promuoviIdea(id);
+        if(pid && window.openProject) window.openProject(pid);
+      } });
+  voci.push({ label: 'Elimina', danger: true, onSelect: ()=> eliminaIdea(id) });
+  actionMenu(ancora, voci);
+}
+
 // ── EDITOR ──────────────────────────────────────────────────────────────────
 function apriEditor(id){
   const idea = _idee.find(x=>x.id===id);
@@ -190,13 +233,7 @@ function apriEditor(id){
   _apertaId = id;
   const ov = document.getElementById('idea-editor');
   const ta = document.getElementById('idea-editor-testo');
-  const promuovi = document.getElementById('idea-editor-promuovi');
   ta.value = idea.testo;
-  // Promuovere due volte creerebbe due progetti dalla stessa idea: una volta
-  // partita, l'azione diventa il collegamento a dov'è finita.
-  const nome = idea.promossaA ? nomeProgetto(idea.promossaA) : null;
-  promuovi.textContent = nome ? ('Apri ' + nome) : 'Diventa progetto';
-  promuovi.classList.toggle('fatto', !!nome);
   ov.classList.add('open');
   document.body.classList.add('idea-editor-open');
   setTimeout(()=>{ ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }, 260);
@@ -220,6 +257,14 @@ export function editorAperto(){
 
 // ── AGGANCI ─────────────────────────────────────────────────────────────────
 let _agganciato = false;
+// Quando è finita l'ultima strisciata. Serve a scartare il click fantasma che
+// il browser genera subito dopo un gesto, che altrimenti aprirebbe l'editor
+// sotto al menu appena comparso. È un ISTANTE e non un interruttore: da
+// interruttore restava alzato quando il gesto non produceva nessun click (dito
+// uscito dalla scheda, gesto annullato dal sistema) e a quel punto si mangiava
+// il primo tocco buono successivo — un tap che non fa niente, senza spiegazione.
+let _stridoA = 0;
+const STRIDO_ECO = 500;
 export function initIdee(){
   startIdeeListener();
   if(_agganciato) return;
@@ -245,46 +290,51 @@ export function initIdee(){
     await aggiungiIdea(t);
   });
 
-  document.getElementById('idee-lista').addEventListener('click', e=>{
+  const lista = document.getElementById('idee-lista');
+  lista.addEventListener('click', e=>{
+    const menu = e.target.closest('[data-menu]');
+    if(menu){ e.stopPropagation(); menuIdea(menu, menu.dataset.menu); return; }
     const vai = e.target.closest('[data-vai]');
-    if(vai){
-      e.stopPropagation();
-      if(window.openProject) window.openProject(vai.dataset.vai);
-      return;
-    }
+    if(vai){ e.stopPropagation(); if(window.openProject) window.openProject(vai.dataset.vai); return; }
+    // Un dito che ha appena strisciato per aprire il menu lascia dietro di sé
+    // un click: senza questa riga si aprirebbe anche l'editor, sotto al menu.
+    if(Date.now() - _stridoA < STRIDO_ECO){ _stridoA = 0; return; }
     const card = e.target.closest('.idee-card');
     if(card) apriEditor(card.dataset.id);
   });
 
+  // ── STRISCIATA VERSO SINISTRA ──
+  // Stesse azioni dei tre puntini, raggiunte col gesto invece che mirando a un
+  // bersaglio da venti pixel. Un posto solo dove vivono le azioni: due
+  // interfacce diverse per le stesse tre voci si sarebbero disallineate al
+  // primo cambiamento.
+  //
+  // La soglia sull'asse è quella che conta: l'elenco scorre in verticale, e
+  // senza il confronto fra dx e dy ogni scorrimento un po' storto aprirebbe
+  // un menu. Si chiede che il movimento sia nettamente orizzontale.
+  const SOGLIA_X = 44;
+  let sx = 0, sy = 0, seguendo = false, cardStrisciata = null;
+  lista.addEventListener('touchstart', e=>{
+    if(e.touches.length !== 1) { seguendo = false; return; }
+    cardStrisciata = e.target.closest('.idee-card');
+    if(!cardStrisciata){ seguendo = false; return; }
+    sx = e.touches[0].clientX; sy = e.touches[0].clientY;
+    seguendo = true;
+  }, { passive:true });
+  lista.addEventListener('touchmove', e=>{
+    if(!seguendo || e.touches.length !== 1) return;
+    const dx = e.touches[0].clientX - sx, dy = e.touches[0].clientY - sy;
+    if(Math.abs(dy) > Math.abs(dx)){ seguendo = false; return; }   // sta scorrendo
+    if(dx < -SOGLIA_X && Math.abs(dx) > Math.abs(dy) * 1.6){
+      seguendo = false;
+      _stridoA = Date.now();
+      haptic('tap');
+      menuIdea(cardStrisciata, cardStrisciata.dataset.id);
+    }
+  }, { passive:true });
+  lista.addEventListener('touchend', ()=>{ seguendo = false; }, { passive:true });
+
   document.getElementById('idea-editor-chiudi').addEventListener('click', ()=> chiudiEditor());
-  document.getElementById('idea-editor-elimina').addEventListener('click', async ()=>{
-    const id = _apertaId;
-    if(!id) return;
-    const fatto = await eliminaIdea(id);
-    if(fatto){
-      _apertaId = null;
-      document.getElementById('idea-editor').classList.remove('open');
-      document.body.classList.remove('idea-editor-open');
-    }
-  });
-  document.getElementById('idea-editor-promuovi').addEventListener('click', async ()=>{
-    const id = _apertaId;
-    if(!id) return;
-    const idea = _idee.find(x=>x.id===id);
-    if(!idea) return;
-    if(idea.promossaA && nomeProgetto(idea.promossaA)){
-      await chiudiEditor();
-      if(window.openProject) window.openProject(idea.promossaA);
-      return;
-    }
-    // Si salva PRIMA di promuovere: altrimenti le modifiche fatte in questo
-    // momento non finirebbero nello scriptment del progetto appena creato.
-    const ta = document.getElementById('idea-editor-testo');
-    await salvaIdea(id, ta.value);
-    const pid = await promuoviIdea(id);
-    await chiudiEditor();
-    if(pid && window.openProject) window.openProject(pid);
-  });
 
   renderIdee();
 }
