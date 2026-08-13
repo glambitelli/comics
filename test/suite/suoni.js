@@ -100,4 +100,33 @@ module.exports = () => suite("Suoni — un tocco, un suono", {"banco": "/test/ba
   await page.evaluate(()=> window.playSfx('tap'));
   s = await conta();
   ok('due comandi da tastiera restano due suoni', s.length === 2, s);
+
+  console.log('\n── con l\'interruttore spento non deve suonare NIENTE ──');
+  // Il buco che c'era: il tick diffuso dei tocchi non passava dal controllo
+  // dell'interruttore, quindi spegnendo i suoni si zittivano le conferme —
+  // quelle che passano da playSfx — e restava acceso il ticchettio di ogni
+  // tocco, che e' proprio quello che si sente di piu'. Da fuori sembrava un
+  // interruttore rotto.
+  await page.evaluate(()=>{ window.setSoundEnabled(false); window.azzera(); });
+  await page.evaluate(()=> window.tocca('#b1','tap',30));
+  s = await conta();
+  ok('un tocco su un bottone non ticchetta', s.length === 0, s);
+
+  await page.evaluate(()=>window.azzera());
+  await page.evaluate(()=> window.tocca('#b2','done',30));
+  s = await conta();
+  ok('e nemmeno una conferma', s.length === 0, s);
+
+  await page.evaluate(()=>window.azzera());
+  await page.waitForTimeout(1100);
+  await page.evaluate(()=> window.playSfx('reward'));
+  await page.waitForTimeout(150);
+  s = await conta();
+  ok('nemmeno una ricompensa chiamata a mano', s.length === 0, s);
+
+  console.log('\n── e riaccendendolo si torna a sentire ──');
+  await page.evaluate(()=>{ window.setSoundEnabled(true); window.azzera(); });
+  await page.evaluate(()=> window.tocca('#b1','tap',30));
+  s = await conta();
+  ok('il tocco ticchetta di nuovo', s.length === 1, s);
 });

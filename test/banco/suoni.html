@@ -11,8 +11,9 @@
 <div id="d1">non interattivo</div>
 <input id="i1" type="text">
 <script type="module">
-import { playSfx } from '/js/sound.js';
+import { playSfx, setSoundEnabled } from '/js/sound.js';
 window.playSfx = playSfx;
+window.setSoundEnabled = setSoundEnabled;
 // Si contano le riproduzioni VERE e la loro durata: i quattro file hanno
 // lunghezze diverse, quindi la durata dice quale suono è partito.
 window.__suoni = [];

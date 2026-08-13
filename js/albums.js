@@ -2316,6 +2316,16 @@ function blobToImage(blob){
 // Cloudinary lo riserve comunque ridimensionato e ricompresso (cldResize con
 // q_auto/f_auto); 1600px sul lato lungo restano più di quanti pixel abbia lo
 // schermo su cui lo si guarda, anche ingrandendolo.
+//
+// COME FINISCE, misurato poi sul telefono vero (Xiaomi, 5G), che è l'unico
+// posto dove la domanda ha senso: preparazione 0,0s — sparita del tutto
+// grazie alla compressione anticipata, vedi anticipaRitaglio — spedizione
+// 0,0s, e 1,2s di attesa del server (Cloudinary che elabora, Firestore che
+// scrive). Quindi da qui in avanti: spedire meno byte non serve più a niente,
+// il tempo che resta è tutto dall'altra parte del filo. Se un giorno quel
+// secondo desse fastidio, l'unica strada è dichiarare il ritaglio salvato
+// prima che il server risponda — che vuol dire dire "fatto" a scatola chiusa,
+// ed è un prezzo diverso da tutti quelli pagati finora.
 const CLIP_MAX_DIM = 1600;
 const CLIP_MAX_BYTES = 1400000;
 
@@ -2396,11 +2406,9 @@ async function exportCropAndSave(sourceImg, cx, cy, cw, ch, destFolderId, pronto
     folderId: sourceFolderId || null,   // cartella artista di origine
   };
 
-  const tInizio = performance.now();
   const preparato = await (pronto || preparaRitaglio(sourceImg, cx, cy, cw, ch));
   if(!preparato){ toast('Ritaglio fallito.', true); return; }
   const { blob, w, h, webp, encode } = preparato;
-  const msPrep = performance.now() - tInizio;
 
   // folderId e provenance sono stati catturati in cima, prima di qualunque
   // await: la provenienza viaggia SEMPRE col ritaglio, anche quando finisce
@@ -2411,22 +2419,16 @@ async function exportCropAndSave(sourceImg, cx, cy, cw, ch, destFolderId, pronto
   // con la percentuale che sale il tempo è lo stesso, ma si vede che sta
   // andando. Si arrotonda a multipli di 5 per non far tremolare la scritta ad
   // ogni pacchetto.
-  let ultimo = -1, tPartenza = 0, msInvio = 0;
+  let ultimo = -1;
   const avanzamento = (fatti, totale)=>{
     if(!totale) return;
-    if(!tPartenza) tPartenza = performance.now();
-    // Quando l'ultimo byte è uscito. Da qui in poi si aspetta CLOUDINARY, che
-    // è una cosa diversa dallo spedire e va misurata a parte.
-    if(fatti >= totale && !msInvio) msInvio = performance.now() - tPartenza;
     const pct = Math.min(99, Math.round(fatti / totale * 20) * 5);
     if(pct === ultimo) return;
     ultimo = pct;
     toast('Ritaglio in corso… ' + pct + '%', false, true);
   };
 
-  const tRete = performance.now();
   let id = await addRefBlob(blob, { folderId, source: 'clip', provenance, w, h, onProgress: avanzamento });
-  const msRete = performance.now() - tRete;
   // Rete di sicurezza sul formato: se il caricamento non riesce col WebP si
   // riprova UNA volta in JPEG. Il preset di Cloudinary è fuori da questo
   // repository e potrebbe non accettarlo: meglio un ritaglio più pesante che
@@ -2441,30 +2443,9 @@ async function exportCropAndSave(sourceImg, cx, cy, cw, ch, destFolderId, pronto
     // per conto suo, e ricordarla spingerebbe giù gli studi davvero usati.
     if(destFolderId && destFolderId !== sourceFolderId) rememberClipDest(destFolderId);
     const destName = destFolderId ? getFolderName(destFolderId) : null;
-    const dove = destName ? ('Salvato in ' + destName + ' ✓') : 'Frammento salvato ✓';
-    toast(dove + ' · ' + resoconto(msPrep, msInvio, msRete, blob.size), false, false, 7000);
+    toast(destName ? ('Salvato in ' + destName + ' ✓') : 'Frammento salvato ✓');
   }
   else { toast('Salvataggio del frammento fallito.', true); }
-}
-
-// MISURA TEMPORANEA, da togliere appena avremo la risposta.
-//
-// Il ritaglio "sembra uguale" anche dopo averne dimezzato la preparazione e
-// tolto un terzo dei byte. Vuol dire che il tempo se ne va da un'altra parte,
-// e da qui non lo si può sapere: le prove girano su una macchina cablata, il
-// ritaglio vive su un telefono in 4G. Quindi il telefono se lo misura da solo
-// e lo scrive, una riga, dopo il salvataggio:
-//
-//   prep  — disegnare e comprimere. Zero se era già pronto (vedi anticipo).
-//   invio — l'ultimo byte fuori dal telefono.
-//   resto — quello che resta: Cloudinary che elabora e Firestore che scrive.
-//           Se è questa la voce grossa, spedire meno byte non servirà a niente
-//           e la strada è un'altra.
-function resoconto(msPrep, msInvio, msTotale, byte){
-  const s = ms => (ms/1000).toFixed(1) + 's';
-  const resto = Math.max(0, msTotale - msInvio);
-  return 'prep ' + s(msPrep) + ' · invio ' + s(msInvio)
-       + ' · resto ' + s(resto) + ' · ' + Math.round(byte/1024) + 'KB';
 }
 
 // ── INIT ────────────────────────────────────────────────────────────────────

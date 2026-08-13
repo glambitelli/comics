@@ -182,7 +182,18 @@ export function playSfx(intent){
 
 // Manda davvero il suono in uscita. Separata da playSfx perche' la decide
 // anche il tick differito qui sopra, che le regole le ha gia' applicate.
+//
+// L'interruttore si controlla QUI, non solo in playSfx, ed e' il motivo per
+// cui esiste questa riga: il tick diffuso dei tocchi (il pointerup qui sopra)
+// arriva a emit senza passare da playSfx, quindi spegnere i suoni zittiva le
+// conferme e le ricompense ma NON il ticchettio di ogni tocco — che e' il
+// suono che si sente di piu'. Da fuori sembrava che l'interruttore non
+// funzionasse affatto, e per giunta che il suono di fine operazione fosse
+// sparito: era sparito davvero, perche' quello l'interruttore lo spegneva.
+// Con il controllo nel punto in cui il suono esce non c'e' piu' modo di
+// aggiungere una strada che se lo dimentichi.
 function emit(key){
+  if(!isSoundEnabled()) return;
   const ctx = getCtx();
   if(!ctx) return;
   const play = ()=>{
