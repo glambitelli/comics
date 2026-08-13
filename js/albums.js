@@ -115,7 +115,9 @@ function saveReadingPos(){
 // quinte, sembrando che l'app si sia bloccata o non abbia fatto nulla. Resta
 // visibile finché non arriva la prossima chiamata (conferma o errore, che
 // invece si nascondono da soli) o toast('') a fine operazione.
-function toast(msg, isError, persistent){
+// `durata`: per i rari messaggi che vanno letti con calma. Senza, restano
+// i 2,6 secondi di sempre.
+function toast(msg, isError, persistent, durata){
   // Il lettore è un overlay a schermo intero SOPRA la schermata References:
   // l'indicatore di stato di quella schermata (usato quando si ritaglia da
   // fuori dal lettore, es. da un'altra vista) resterebbe nascosto dietro.
@@ -139,7 +141,7 @@ function toast(msg, isError, persistent){
       el.className = idle + ' show ' + (isError ? 'error' : 'ok');
       el.textContent = msg;
       if(!persistent){
-        el._t = setTimeout(()=>{ el.className = idle; el.textContent=''; }, isError ? 6000 : 2600);
+        el._t = setTimeout(()=>{ el.className = idle; el.textContent=''; }, durata || (isError ? 6000 : 2600));
       }
     }
     // Glifo di caricamento: solo nel lettore, solo per gli stati "sto
@@ -1978,7 +1980,45 @@ function wireClip(ov){
     drawing = false;
     resizeCorner = null;
     box.hidden = true;
+    _anticipo = null;
     showConfirm(false);
+  };
+
+  // ── PREPARAZIONE ANTICIPATA ──
+  // Fra il momento in cui il riquadro è disegnato e il momento in cui si tocca
+  // la destinazione passa almeno un secondo: si legge la barra, si decide dove
+  // mettere il ritaglio, si mira alla pastiglia. In quel secondo il telefono
+  // non fa niente, e subito dopo lo si tiene fermo mezzo secondo buono a
+  // disegnare il canvas e comprimerlo — un lavoro che dipende SOLO dal
+  // riquadro, che a quel punto è già deciso. Quindi si comincia subito: alla
+  // conferma il file è quasi sempre già lì e la preparazione sparisce
+  // dall'attesa.
+  //
+  // La chiave è la geometria del riquadro più la pagina: se si aggiusta una
+  // maniglia il lavoro fatto non vale più e si ricomincia. Il ritardo evita di
+  // rifarlo ad ogni pixel mentre la maniglia è ancora in movimento.
+  const ANTICIPO_MS = 260;
+  let _anticipo = null;      // { chiave, promessa }
+  let _anticipoT = null;
+  const chiaveSel = sel => [_idx, Math.round(sel.left), Math.round(sel.top),
+                            Math.round(sel.width), Math.round(sel.height)].join('|');
+  const anticipaRitaglio = ()=>{
+    clearTimeout(_anticipoT);
+    _anticipo = null;
+    _anticipoT = setTimeout(()=>{
+      if(!pendingSel) return;
+      const img = readerImg();
+      if(!img) return;
+      const g = geometriaRitaglio(img, pendingSel, layer);
+      if(!g) return;
+      // La promessa non viene mai attesa qui: se il ritaglio finisce nel
+      // cestino (Riprova, uscita dal ritaglio) resta un lavoro buttato, ed è
+      // il prezzo — piccolo — di averlo pronto quando invece serve.
+      _anticipo = {
+        chiave: chiaveSel(pendingSel),
+        promessa: preparaRitaglio(img, g.cx, g.cy, g.cw, g.ch).catch(()=> null),
+      };
+    }, ANTICIPO_MS);
   };
 
   const showConfirm = (on)=>{
@@ -1990,7 +2030,7 @@ function wireClip(ov){
     // in coda alle categorie sembrava una pastiglia avanzata, e per giunta
     // rubava larghezza proprio alla fila che ne ha più bisogno.
     if(retryBtn) retryBtn.hidden = !on;
-    if(on){ renderDests(); aggiornaManiglie(); }
+    if(on){ renderDests(); aggiornaManiglie(); anticipaRitaglio(); }
     // Le maniglie di resize hanno senso SOLO nello stato "in attesa di
     // conferma": durante il disegno iniziale coprirebbero il gesto sulla
     // superficie, e a riquadro chiuso non c'è nulla da ridimensionare.
@@ -2003,6 +2043,7 @@ function wireClip(ov){
       left: parseFloat(box.style.left), top: parseFloat(box.style.top),
       width: parseFloat(box.style.width), height: parseFloat(box.style.height),
     };
+    anticipaRitaglio();
   };
 
   const start = (px, py)=>{
@@ -2171,11 +2212,19 @@ function wireClip(ov){
   ov._clipRetry = ()=>{
     pendingSel = null;
     box.hidden = true;
+    clearTimeout(_anticipoT);
+    _anticipo = null;
     showConfirm(false);
   };
   ov._clipConfirm = async (destFolderId)=>{
     if(!pendingSel) return;
     const sel = pendingSel;
+    // Il lavoro anticipato vale solo se riguarda ESATTAMENTE questo riquadro:
+    // un'ultima maniglia spostata un attimo prima di confermare lo rende
+    // vecchio, e salvare quello vecchio sarebbe un ritaglio sbagliato.
+    const pronto = (_anticipo && _anticipo.chiave === chiaveSel(sel)) ? _anticipo.promessa : null;
+    clearTimeout(_anticipoT);
+    _anticipo = null;
     pendingSel = null;
     showConfirm(false);
     // Risolta ORA e non alla creazione del lettore: il ritaglio deve usare la
@@ -2183,7 +2232,7 @@ function wireClip(ov){
     // quello nascosto.
     const img = readerImg();
     if(!img) return;
-    await commitClip(img, sel, layer, destFolderId);
+    await commitClip(img, sel, layer, destFolderId, pronto);
     box.hidden = true;
   };
 
@@ -2201,16 +2250,23 @@ function wireClip(ov){
   layer.addEventListener('touchend', end, { passive:true });
 }
 
-// Ritaglia il rettangolo selezionato dalla pagina a piena risoluzione.
-async function commitClip(img, sel, layer, destFolderId){
+// Dal riquadro sullo schermo alle coordinate dentro la tavola a piena
+// risoluzione (tolte le bande nere ai lati).
+function geometriaRitaglio(img, sel, layer){
   const rect = renderedImageRect(img, layer);
-  // Coordinate del riquadro relative all'immagine renderizzata (tolte le bande).
   const relX = sel.left - rect.x, relY = sel.top - rect.y;
-  const cropX = Math.max(0, relX / rect.scale);
-  const cropY = Math.max(0, relY / rect.scale);
-  const cropW = Math.min(img.naturalWidth  - cropX, sel.width  / rect.scale);
-  const cropH = Math.min(img.naturalHeight - cropY, sel.height / rect.scale);
-  if(cropW < 4 || cropH < 4){ toast('Riquadro fuori dalla pagina, riprova.', true); toggleClip(false); return; }
+  const cx = Math.max(0, relX / rect.scale);
+  const cy = Math.max(0, relY / rect.scale);
+  const cw = Math.min(img.naturalWidth  - cx, sel.width  / rect.scale);
+  const ch = Math.min(img.naturalHeight - cy, sel.height / rect.scale);
+  if(cw < 4 || ch < 4) return null;
+  return { cx, cy, cw, ch };
+}
+
+// Ritaglia il rettangolo selezionato dalla pagina a piena risoluzione.
+async function commitClip(img, sel, layer, destFolderId, pronto){
+  const g = geometriaRitaglio(img, sel, layer);
+  if(!g){ toast('Riquadro fuori dalla pagina, riprova.', true); toggleClip(false); return; }
 
   // Si ritaglia DALLA TAVOLA GIÀ A SCHERMO. Prima si rileggeva la pagina
   // dall'archivio e la si decodificava una seconda volta da zero, solo per
@@ -2220,7 +2276,7 @@ async function commitClip(img, sel, layer, destFolderId){
   // davanti. L'elemento a schermo è a piena risoluzione (il conto del crop
   // usa già il suo naturalWidth/naturalHeight), quindi il risultato non
   // cambia di un pixel.
-  const done = exportCropAndSave(img, cropX, cropY, cropW, cropH, destFolderId);
+  const done = exportCropAndSave(img, g.cx, g.cy, g.cw, g.ch, destFolderId, pronto);
   // La modalità ritaglio si chiude SUBITO: il caricamento su Cloudinary
   // prosegue in sottofondo e si annuncia da solo col banner. Prima l'intera
   // interfaccia restava bloccata per tutta la durata della rete.
@@ -2286,25 +2342,12 @@ function supportaWebp(){
   return _webpOk;
 }
 
-// Disegna il crop su canvas (con cap dimensionale), comprime e lo consegna a
-// refs.js, che lo carica su Cloudinary e scrive il Frammento con provenienza
-// { opera, pagina }.
-async function exportCropAndSave(sourceImg, cx, cy, cw, ch, destFolderId){
-  toast('Ritaglio in corso…', false, true);
+// Disegna il crop su canvas (con cap dimensionale) e lo comprime. Solo lavoro
+// locale: nessuna rete. Torna { blob, w, h, encode } — `encode` serve al
+// ripiego in JPEG, che riparte dallo stesso canvas senza ridisegnarlo.
+async function preparaRitaglio(sourceImg, cx, cy, cw, ch){
   const im = sourceImg;
-  if(!im || !im.naturalWidth){ toast('Ritaglio fallito.', true); return; }
-
-  // Provenienza e destinazione lette ORA, non dopo l'upload: da quando il
-  // caricamento prosegue in sottofondo si può già voltare pagina mentre è in
-  // corso, e _idx sarebbe quello nuovo — il frammento si porterebbe dietro il
-  // numero di pagina sbagliato.
-  const sourceFolderId = getActiveFolderId();
-  const folderId = destFolderId || sourceFolderId;
-  const provenance = {
-    opera: _albumName,
-    pagina: _idx + 1,
-    folderId: sourceFolderId || null,   // cartella artista di origine
-  };
+  if(!im || !im.naturalWidth) return null;
 
   let w = Math.round(cw), h = Math.round(ch);
   if(w > CLIP_MAX_DIM || h > CLIP_MAX_DIM){
@@ -2328,7 +2371,36 @@ async function exportCropAndSave(sourceImg, cx, cy, cw, ch, destFolderId){
     quality = Math.max(0.5, quality - 0.1);
     blob = await encode(tipo, quality);
   }
-  if(!blob){ toast('Ritaglio fallito.', true); return; }
+  if(!blob) return null;
+  return { blob, w, h, webp, encode };
+}
+
+// Prende il ritaglio già pronto (o lo prepara adesso) e lo consegna a refs.js,
+// che lo carica su Cloudinary e scrive il Frammento con provenienza
+// { opera, pagina }.
+//
+// `pronto` è la preparazione avviata mentre si sceglieva la destinazione (vedi
+// anticipaRitaglio in wireClip): se c'è, qui non si aspetta niente.
+async function exportCropAndSave(sourceImg, cx, cy, cw, ch, destFolderId, pronto){
+  toast('Ritaglio in corso…', false, true);
+
+  // Provenienza e destinazione lette ORA, non dopo l'upload: da quando il
+  // caricamento prosegue in sottofondo si può già voltare pagina mentre è in
+  // corso, e _idx sarebbe quello nuovo — il frammento si porterebbe dietro il
+  // numero di pagina sbagliato.
+  const sourceFolderId = getActiveFolderId();
+  const folderId = destFolderId || sourceFolderId;
+  const provenance = {
+    opera: _albumName,
+    pagina: _idx + 1,
+    folderId: sourceFolderId || null,   // cartella artista di origine
+  };
+
+  const tInizio = performance.now();
+  const preparato = await (pronto || preparaRitaglio(sourceImg, cx, cy, cw, ch));
+  if(!preparato){ toast('Ritaglio fallito.', true); return; }
+  const { blob, w, h, webp, encode } = preparato;
+  const msPrep = performance.now() - tInizio;
 
   // folderId e provenance sono stati catturati in cima, prima di qualunque
   // await: la provenienza viaggia SEMPRE col ritaglio, anche quando finisce
@@ -2339,16 +2411,22 @@ async function exportCropAndSave(sourceImg, cx, cy, cw, ch, destFolderId){
   // con la percentuale che sale il tempo è lo stesso, ma si vede che sta
   // andando. Si arrotonda a multipli di 5 per non far tremolare la scritta ad
   // ogni pacchetto.
-  let ultimo = -1;
+  let ultimo = -1, tPartenza = 0, msInvio = 0;
   const avanzamento = (fatti, totale)=>{
     if(!totale) return;
+    if(!tPartenza) tPartenza = performance.now();
+    // Quando l'ultimo byte è uscito. Da qui in poi si aspetta CLOUDINARY, che
+    // è una cosa diversa dallo spedire e va misurata a parte.
+    if(fatti >= totale && !msInvio) msInvio = performance.now() - tPartenza;
     const pct = Math.min(99, Math.round(fatti / totale * 20) * 5);
     if(pct === ultimo) return;
     ultimo = pct;
     toast('Ritaglio in corso… ' + pct + '%', false, true);
   };
 
+  const tRete = performance.now();
   let id = await addRefBlob(blob, { folderId, source: 'clip', provenance, w, h, onProgress: avanzamento });
+  const msRete = performance.now() - tRete;
   // Rete di sicurezza sul formato: se il caricamento non riesce col WebP si
   // riprova UNA volta in JPEG. Il preset di Cloudinary è fuori da questo
   // repository e potrebbe non accettarlo: meglio un ritaglio più pesante che
@@ -2363,9 +2441,30 @@ async function exportCropAndSave(sourceImg, cx, cy, cw, ch, destFolderId){
     // per conto suo, e ricordarla spingerebbe giù gli studi davvero usati.
     if(destFolderId && destFolderId !== sourceFolderId) rememberClipDest(destFolderId);
     const destName = destFolderId ? getFolderName(destFolderId) : null;
-    toast(destName ? ('Salvato in ' + destName + ' ✓') : 'Frammento salvato ✓');
+    const dove = destName ? ('Salvato in ' + destName + ' ✓') : 'Frammento salvato ✓';
+    toast(dove + ' · ' + resoconto(msPrep, msInvio, msRete, blob.size), false, false, 7000);
   }
   else { toast('Salvataggio del frammento fallito.', true); }
+}
+
+// MISURA TEMPORANEA, da togliere appena avremo la risposta.
+//
+// Il ritaglio "sembra uguale" anche dopo averne dimezzato la preparazione e
+// tolto un terzo dei byte. Vuol dire che il tempo se ne va da un'altra parte,
+// e da qui non lo si può sapere: le prove girano su una macchina cablata, il
+// ritaglio vive su un telefono in 4G. Quindi il telefono se lo misura da solo
+// e lo scrive, una riga, dopo il salvataggio:
+//
+//   prep  — disegnare e comprimere. Zero se era già pronto (vedi anticipo).
+//   invio — l'ultimo byte fuori dal telefono.
+//   resto — quello che resta: Cloudinary che elabora e Firestore che scrive.
+//           Se è questa la voce grossa, spedire meno byte non servirà a niente
+//           e la strada è un'altra.
+function resoconto(msPrep, msInvio, msTotale, byte){
+  const s = ms => (ms/1000).toFixed(1) + 's';
+  const resto = Math.max(0, msTotale - msInvio);
+  return 'prep ' + s(msPrep) + ' · invio ' + s(msInvio)
+       + ' · resto ' + s(resto) + ' · ' + Math.round(byte/1024) + 'KB';
 }
 
 // ── INIT ────────────────────────────────────────────────────────────────────

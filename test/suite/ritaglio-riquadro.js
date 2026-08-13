@@ -122,6 +122,64 @@ module.exports = () => suite("Ritaglio — maniglie del riquadro e peso del file
   console.log('   1600px → ' + kb(misura.nuovo.byte) + ' in ' + misura.nuovo.ms + ' ms'
     + '   ·   ' + Math.round(100 - misura.nuovo.byte/misura.vecchio.byte*100) + '% di byte in meno');
 
+  console.log('\n── la compressione parte PRIMA della conferma ──');
+  // Fra il riquadro disegnato e la pastiglia toccata passa almeno un secondo:
+  // in quel secondo il telefono puo' gia' comprimere, invece di stare fermo e
+  // poi far aspettare. Qui si guarda proprio questo — che una codifica sia
+  // partita prima del tocco — su una tavola da scansione vera, dove il lavoro
+  // si misura.
+  await page.evaluate(async u=>{ const b=await (await fetch(u)).arrayBuffer();
+    await window.albums.openAlbumFromFile(new File([b],'Pesante.cbz',{type:'application/zip'})); },
+    base+'/test/fixtures/pesante.cbz');
+  await page.waitForTimeout(1400);
+  await page.evaluate(()=>{
+    window.__codifiche = [];
+    const vero = HTMLCanvasElement.prototype.toBlob;
+    HTMLCanvasElement.prototype.toBlob = function(cb, ...r){
+      window.__codifiche.push({ quando: performance.now(), px: this.width + 'x' + this.height });
+      return vero.call(this, cb, ...r);
+    };
+    window.__salita = 0;
+  });
+  await page.evaluate(()=> document.querySelector('.ar-clip').dispatchEvent(new MouseEvent('click',{bubbles:true})));
+  await page.waitForTimeout(200);
+  await disegna(60, 120, 340, 460);
+  await page.waitForTimeout(700);                 // il tempo di leggere la barra
+  const primaDiConfermare = await page.evaluate(()=> window.__codifiche.length);
+  ok('il ritaglio e\' gia\' compresso mentre si sceglie dove metterlo',
+     primaDiConfermare >= 1, primaDiConfermare);
+
+  await page.evaluate(()=>{ window.__salvati = 0;
+    window.__segnaConferma = performance.now();
+    document.querySelector('[data-act="confirmclip"]').dispatchEvent(new MouseEvent('click',{bubbles:true})); });
+  await page.waitForTimeout(900);
+  const esitoConferma = await page.evaluate(()=> ({
+    salvati: window.__salvati,
+    codificheDopoIlTocco: window.__codifiche.filter(c=> c.quando > window.__segnaConferma).length,
+  }));
+  ok('e alla conferma non si ricomincia da capo', esitoConferma.codificheDopoIlTocco === 0, esitoConferma);
+  ok('il frammento viene salvato lo stesso, una volta sola', esitoConferma.salvati === 1, esitoConferma);
+
+  console.log('\n── ma se si aggiusta una maniglia, il lavoro vecchio si butta ──');
+  // Il pezzo delicato: riusare la compressione fatta prima di un ritocco
+  // salverebbe un ritaglio che non e' quello che si vede sullo schermo.
+  await page.evaluate(()=> document.querySelector('.ar-clip').dispatchEvent(new MouseEvent('click',{bubbles:true})));
+  await page.waitForTimeout(200);
+  await disegna(60, 120, 340, 460);
+  await page.waitForTimeout(700);
+  await page.evaluate(()=>{ window.__salvati = 0; });
+  await tira('e', -120, 0);                        // si stringe il riquadro
+  await page.waitForTimeout(700);
+  await page.evaluate(()=> document.querySelector('[data-act="confirmclip"]').dispatchEvent(new MouseEvent('click',{bubbles:true})));
+  await page.waitForTimeout(900);
+  const stretto = await page.evaluate(()=> window.__ultimoSalvato);
+  const riquadro = await box();
+  // Il salvato deve avere le proporzioni del riquadro RISTRETTO, non di quello
+  // disegnato all'inizio.
+  const attesa = riquadro.w / riquadro.h, avuta = stretto.w / stretto.h;
+  ok('si salva il riquadro aggiustato, non quello di prima',
+     Math.abs(attesa - avuta) < 0.05, { attesa, avuta, riquadro, stretto });
+
   console.log('\n── il banner dice a che punto e\' il caricamento ──');
   // Chi ritaglia vede "Ritaglio in corso…" e basta, per tutti i secondi che
   // la rete si prende: un banner fermo fa sembrare l'app piantata. Qui si
@@ -132,11 +190,12 @@ module.exports = () => suite("Ritaglio — maniglie del riquadro e peso del file
     new MutationObserver(()=>{ window.__scritte.push(el.textContent); })
       .observe(el, { childList:true, characterData:true, subtree:true });
   });
-  await page.evaluate(()=> document.querySelector('[data-act="retryclip"]').dispatchEvent(new MouseEvent('click',{bubbles:true})));
+  await page.evaluate(()=> document.querySelector('.ar-clip').dispatchEvent(new MouseEvent('click',{bubbles:true})));
   await page.waitForTimeout(200);
   await disegna(60, 120, 340, 460);
+  await page.waitForTimeout(700);
   await page.evaluate(()=> document.querySelector('[data-act="confirmclip"]').dispatchEvent(new MouseEvent('click',{bubbles:true})));
-  await page.waitForTimeout(1200);
+  await page.waitForTimeout(1500);
   const scritte = await page.evaluate(()=> window.__scritte);
   const perc = scritte.map(t=>{ const m = /(\d+)%/.exec(t); return m ? +m[1] : null; }).filter(n=>n!==null);
   ok('durante il caricamento compare una percentuale', perc.length >= 3, scritte);

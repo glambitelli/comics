@@ -7,6 +7,7 @@
 // nel banner mentre spedisce. Ogni chiamata lascia traccia in window.__salvati.
 export function addRefBlob(blob, opts = {}){
   window.__salvati = (window.__salvati || 0) + 1;
+  window.__ultimoSalvato = { w: opts.w, h: opts.h, byte: blob && blob.size, quando: performance.now() };
   const passi = window.__salita || 0;
   if(!passi || !opts.onProgress) return Promise.resolve('id');
   const totale = 1000;
