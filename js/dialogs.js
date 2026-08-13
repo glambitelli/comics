@@ -127,8 +127,19 @@ export function actionMenu(anchorEl, actions){
   _actionMenuEl.querySelectorAll('button').forEach(btn=>{
     btn.onclick = (e)=>{ e.stopPropagation(); closeActionMenu(); actions[+btn.dataset.i].onSelect(); };
   });
-  setTimeout(()=> document.addEventListener('click', closeActionMenu, {once:true}), 0);
+  // Un click fuori dal menu lo chiude. Il ritardo di un giro serve a non farlo
+  // chiudere dal click stesso che l'ha aperto.
+  setTimeout(()=> document.addEventListener('click', closeActionMenu), 0);
 }
 export function closeActionMenu(){
+  // L'ascoltatore va tolto SEMPRE, anche quando il menu si chiude scegliendo
+  // una voce. Prima era registrato con {once:true} e basta: scegliendo una
+  // voce il click veniva fermato dentro il menu (stopPropagation), quindi
+  // l'ascoltatore non scattava mai e restava appeso al documento. Il menu
+  // successivo aperto con un click veniva creato e poi ucciso all'istante da
+  // quell'ascoltatore vecchio, che finalmente scattava — un "⋯" che non
+  // risponde, apparentemente a caso. Vale per tutti i menu dell'app, non solo
+  // per le idee: anche quelli delle cartelle in References.
+  document.removeEventListener('click', closeActionMenu);
   if(_actionMenuEl){ _actionMenuEl.remove(); _actionMenuEl=null; }
 }

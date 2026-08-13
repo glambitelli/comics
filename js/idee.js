@@ -14,16 +14,32 @@
 // serve, è la prima riga — come in un foglio di carta vero, dove il titolo è
 // semplicemente la prima cosa che scrivi.
 //
-// E quando un'idea cresce abbastanza da diventare un lavoro, "Diventa
-// progetto" la promuove portandosi dietro tutto il testo dentro lo scriptment,
-// così non si ricomincia da una pagina bianca proprio nel momento in cui si
-// aveva già qualcosa da dire.
-import { db, collection, doc, onSnapshot, setDoc, deleteDoc, saveProject } from './firebase.js';
-import { projects, haptic, showUndoToast } from './state.js';
+// C'è stato per un giorno un collegamento coi progetti — "diventa progetto",
+// con la targa del progetto nato attaccata all'idea. È stato tolto: nessuno
+// capiva cosa facesse guardandolo, e un taccuino che ti chiede di decidere il
+// destino di un pensiero mentre lo stai solo rileggendo non è più un taccuino.
+// Qui dentro le idee restano idee. Se una diventa un lavoro, il lavoro si apre
+// da Home come tutti gli altri.
+import { db, collection, doc, onSnapshot, setDoc, deleteDoc } from './firebase.js';
+import { haptic, showUndoToast } from './state.js';
 import { actionMenu } from './dialogs.js';
-import { newProjectObj } from './home.js';
 
 const IDEE_COL = 'ideas';
+
+// ── ORDINE DELL'ELENCO ──
+// Tre soli criteri, tutti con un nome che dice cosa fanno. Il criterio non
+// cambia MAI l'elenco in memoria: si applica al momento di disegnarlo, così
+// scrivere o modificare un'idea non deve sapere niente di come è ordinata.
+const ORDINI = {
+  recenti:   { label:'Più recenti',  cmp:(a,b)=> (b.updatedAt||0) - (a.updatedAt||0) },
+  vecchie:   { label:'Più vecchie',  cmp:(a,b)=> (a.createdAt||0) - (b.createdAt||0) },
+  alfabetico:{ label:'Alfabetico',   cmp:(a,b)=> titoloDi(a.testo).localeCompare(titoloDi(b.testo), 'it', {sensitivity:'base'}) },
+};
+const ORDINE_KEY = 'inkflow-idee-ordine';
+let _ordine = (()=>{
+  try{ const v = localStorage.getItem(ORDINE_KEY); return ORDINI[v] ? v : 'recenti'; }
+  catch(e){ return 'recenti'; }
+})();
 
 let _idee = [];
 let _unsub = null;
@@ -64,8 +80,7 @@ function quando(ms){
 export function startIdeeListener(){
   if(_unsub) return;
   _unsub = onSnapshot(collection(db, IDEE_COL), snap=>{
-    _idee = snap.docs.map(d=>({ id:d.id, ...d.data() }))
-      .sort((a,b)=> (b.updatedAt||0) - (a.updatedAt||0));
+    _idee = snap.docs.map(d=>({ id:d.id, ...d.data() }));
     renderIdee();
   }, err=>console.warn('listener idee:', err));
 }
@@ -81,7 +96,7 @@ export async function aggiungiIdea(testo){
   const t = (testo||'').trim();
   if(!t) return null;
   const ora = Date.now();
-  const idea = { id: genId(), testo: t, createdAt: ora, updatedAt: ora, promossaA: null };
+  const idea = { id: genId(), testo: t, createdAt: ora, updatedAt: ora };
   // Ottimistico: l'idea compare SUBITO nell'elenco, senza aspettare la rete.
   // Scrivere un pensiero e vederlo sparire per un secondo mentre il server
   // risponde è il modo più veloce di non fidarsi più di un taccuino.
@@ -101,7 +116,7 @@ export async function salvaIdea(id, testo){
   if(!t){ await eliminaIdea(id, true); return; }
   if(t === _idee[i].testo) return;
   const idea = { ..._idee[i], testo: t, updatedAt: Date.now() };
-  _idee = [idea, ..._idee.filter(x=>x.id!==id)];
+  _idee = _idee.map(x=> x.id===id ? idea : x);
   renderIdee();
   await scrivi(idea);
 }
@@ -125,7 +140,7 @@ export async function eliminaIdea(id, silenzioso){
   // fatto apposta.
   if(!silenzioso){
     showUndoToast('Idea eliminata', async ()=>{
-      _idee = [idea, ..._idee].sort((a,b)=> (b.updatedAt||0) - (a.updatedAt||0));
+      _idee = [idea, ..._idee];
       renderIdee();
       await scrivi(idea);
     });
@@ -133,58 +148,34 @@ export async function eliminaIdea(id, silenzioso){
   return true;
 }
 
-// ── DA IDEA A PROGETTO ──────────────────────────────────────────────────────
-// Il testo intero finisce nello scriptment, non solo il titolo: il senso della
-// promozione è non ripartire da una pagina bianca. L'idea NON viene cancellata
-// — resta in elenco con l'etichetta di dov'è finita, così il taccuino conserva
-// anche la memoria di cosa è germogliato e cosa no.
-export async function promuoviIdea(id){
-  const idea = _idee.find(x=>x.id===id);
-  if(!idea || idea.promossaA) return null;
-  const titolo = titoloDi(idea.testo) || 'Nuovo progetto';
-  // Stesso costruttore del pulsante "+" in home: colore, emoji e campi sono
-  // quelli di un progetto qualunque, non una versione ridotta.
-  const p = newProjectObj(titolo, 10);
-  p.scriptment = { text: idea.testo, font:'courier', size:13 };
-  await saveProject(p);
-  const agg = { ...idea, promossaA: p.id, updatedAt: Date.now() };
-  _idee = _idee.map(x=> x.id===id ? agg : x);
-  renderIdee();
-  await scrivi(agg);
-  haptic('reward');
-  return p.id;
-}
-
-function nomeProgetto(pid){
-  const p = (projects||[]).find(x=>x.id===pid);
-  return p ? p.title : null;
-}
-
 // ── SCHERMATA ───────────────────────────────────────────────────────────────
 export function renderIdee(){
   const lista = document.getElementById('idee-lista');
   if(!lista) return;
 
+  const bottone = document.getElementById('idee-ordine');
+  if(bottone) bottone.textContent = ORDINI[_ordine].label;
+  // La riga dell'ordine ha senso solo quando c'è qualcosa da ordinare: con una
+  // sola idea in elenco sarebbe un comando che non cambia niente.
+  const barra = document.getElementById('idee-barra');
+  if(barra) barra.hidden = _idee.length < 2;
+
   if(!_idee.length){
     lista.innerHTML = `<div class="idee-vuoto">
       <div class="idee-vuoto-glifo">✦</div>
-      <p>Qui finiscono i pensieri che non hanno ancora un progetto:
+      <p>Qui finiscono i pensieri che ti passano per la testa:
       una battuta, una scena, un titolo.</p>
       <p class="idee-vuoto-hint">Scrivi qui sopra e tocca Salva.</p>
     </div>`;
     return;
   }
 
-  lista.innerHTML = _idee.map(idea=>{
+  // Copia prima di ordinare: _idee resta nell'ordine in cui è arrivato, e
+  // cambiare criterio non riscrive niente su Firestore.
+  lista.innerHTML = _idee.slice().sort(ORDINI[_ordine].cmp).map(idea=>{
     const titolo = titoloDi(idea.testo);
     const resto = restoDi(idea.testo);
-    const nome = idea.promossaA ? nomeProgetto(idea.promossaA) : null;
-    // Se il progetto è stato cancellato dopo la promozione l'etichetta
-    // sparisce da sola invece di puntare al vuoto.
-    const targa = (idea.promossaA && nome)
-      ? `<button class="idee-targa" data-vai="${esc(idea.promossaA)}">→ ${esc(nome)}</button>`
-      : '';
-    return `<article class="idee-card${idea.promossaA && nome ? ' promossa' : ''}" data-id="${esc(idea.id)}">
+    return `<article class="idee-card" data-id="${esc(idea.id)}">
       <div class="idee-card-riga">
         <div class="idee-card-testo">
           <b>${esc(titolo)}</b>
@@ -194,7 +185,6 @@ export function renderIdee(){
       </div>
       <div class="idee-card-piede">
         <span class="idee-data">${esc(quando(idea.updatedAt||idea.createdAt))}</span>
-        ${targa}
       </div>
     </article>`;
   }).join('');
@@ -209,21 +199,10 @@ export function renderIdee(){
 function menuIdea(ancora, id){
   const idea = _idee.find(x=>x.id===id);
   if(!idea) return;
-  const nome = idea.promossaA ? nomeProgetto(idea.promossaA) : null;
-  const voci = [
+  actionMenu(ancora, [
     { label: 'Modifica', onSelect: ()=> apriEditor(id) },
-  ];
-  // Il nome dice cosa SUCCEDE, non come si chiama l'operazione: "Diventa
-  // progetto" non spiegava né cosa nasce né dove finisce quello che hai
-  // scritto.
-  voci.push(nome
-    ? { label: 'Apri “' + nome + '”', onSelect: ()=> window.openProject && window.openProject(idea.promossaA) }
-    : { label: 'Crea un progetto da questa idea', onSelect: async ()=>{
-        const pid = await promuoviIdea(id);
-        if(pid && window.openProject) window.openProject(pid);
-      } });
-  voci.push({ label: 'Elimina', danger: true, onSelect: ()=> eliminaIdea(id) });
-  actionMenu(ancora, voci);
+    { label: 'Elimina', danger: true, onSelect: ()=> eliminaIdea(id) },
+  ]);
 }
 
 // ── EDITOR ──────────────────────────────────────────────────────────────────
@@ -290,12 +269,22 @@ export function initIdee(){
     await aggiungiIdea(t);
   });
 
+  const ordine = document.getElementById('idee-ordine');
+  if(ordine) ordine.addEventListener('click', ()=>{
+    actionMenu(ordine, Object.entries(ORDINI).map(([chiave, o])=>({
+      label: o.label + (chiave === _ordine ? '  ✓' : ''),
+      onSelect: ()=>{
+        _ordine = chiave;
+        try{ localStorage.setItem(ORDINE_KEY, chiave); }catch(e){}
+        renderIdee();
+      },
+    })));
+  });
+
   const lista = document.getElementById('idee-lista');
   lista.addEventListener('click', e=>{
     const menu = e.target.closest('[data-menu]');
     if(menu){ e.stopPropagation(); menuIdea(menu, menu.dataset.menu); return; }
-    const vai = e.target.closest('[data-vai]');
-    if(vai){ e.stopPropagation(); if(window.openProject) window.openProject(vai.dataset.vai); return; }
     // Un dito che ha appena strisciato per aprire il menu lascia dietro di sé
     // un click: senza questa riga si aprirebbe anche l'editor, sotto al menu.
     if(Date.now() - _stridoA < STRIDO_ECO){ _stridoA = 0; return; }

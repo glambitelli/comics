@@ -1,7 +1,7 @@
 // Idee — il taccuino senza padrone
 const { suite } = require('../motore.js');
 
-module.exports = () => suite("Idee — taccuino, editor, promozione a progetto",
+module.exports = () => suite("Idee — taccuino, ordine, menu della scheda",
   { banco: '/test/banco/idee.html' }, async ({ page, base, ok }) => {
 
   const stato = ()=> page.evaluate(()=>{
@@ -10,7 +10,6 @@ module.exports = () => suite("Idee — taccuino, editor, promozione a progetto",
       n: card.length,
       titoli: card.map(c=> c.querySelector('b').textContent),
       resti: card.map(c=>{ const s = c.querySelector('span'); return s ? s.textContent : null; }),
-      targhe: card.map(c=>{ const t = c.querySelector('.idee-targa'); return t ? t.textContent : null; }),
       vuoto: !!document.querySelector('.idee-vuoto'),
     };
   });
@@ -100,14 +99,14 @@ module.exports = () => suite("Idee — taccuino, editor, promozione a progetto",
 
   await apriMenu(0);
   let v = await voci();
-  ok('il menu si apre con tre voci', v.length === 3, v);
+  // Due voci sole. Il collegamento coi progetti c'e' stato per un giorno ed e'
+  // stato tolto: guardandolo non si capiva cosa facesse.
+  ok('il menu si apre con due voci', v.length === 2, v);
   ok('la prima e\' modificare', /Modifica/.test(v[0]||''), v);
-  ok('la seconda dice COSA succede, non come si chiama l\'operazione',
-     /Crea un progetto da questa idea/.test(v[1]||''), v);
-  ok('la terza e\' eliminare', /Elimina/.test(v[2]||''), v);
+  ok('la seconda e\' eliminare', /Elimina/.test(v[1]||''), v);
+  ok('e non si parla di progetti', !v.join(' ').toLowerCase().includes('progetto'), v);
   const editorChiuso = await page.evaluate(()=> !document.getElementById('idea-editor').classList.contains('open'));
   ok('e aprendo il menu non si e\' aperto anche l\'editor sotto', editorChiuso, editorChiuso);
-
   console.log('\n── "Modifica" apre il foglio su cui scrivere ──');
   await tocca('Modifica');
   ed = await page.evaluate(()=> ({
@@ -118,34 +117,58 @@ module.exports = () => suite("Idee — taccuino, editor, promozione a progetto",
   await page.evaluate(()=> document.getElementById('idea-editor-chiudi').click());
   await page.waitForTimeout(320);
 
-  console.log('\n── da idea a progetto, dal menu ──');
-  await page.evaluate(()=>{ window.__salvati = []; window.__aperti = []; window.openProject = id=>window.__aperti.push(id); });
-  await apriMenu(0);
-  await tocca('Crea un progetto');
-  const nato = await page.evaluate(()=> ({
-    quanti: window.__salvati.length,
-    titolo: window.__salvati[0] && window.__salvati[0].title,
-    scriptment: window.__salvati[0] && window.__salvati[0].scriptment.text,
-    aperti: window.__aperti,
-  }));
-  ok('nasce un progetto solo', nato.quanti === 1, nato);
-  ok('col titolo preso dalla prima riga', nato.titolo === 'Il ladro di ombre', nato);
-  ok('e TUTTO il testo dentro lo scriptment, non solo il titolo',
-     /Ruba le ombre/.test(nato.scriptment || ''), nato);
-  ok('e si atterra sul progetto nuovo', nato.aperti.length === 1, nato);
-
+  console.log('\n── ordinare l\'elenco ──');
+  // Terza idea, scritta per ultima ma alfabeticamente prima di tutte: serve a
+  // distinguere davvero i tre criteri fra loro. Con due sole idee "alfabetico"
+  // e "piu' recenti" potrebbero dare lo stesso ordine per caso.
+  await scrivi('Aria di mare');
+  await salva();
   s = await stato();
-  ok('l\'idea resta in elenco', s.n === 2, s);
-  ok('con la targa di dov\'e\' finita', /Il ladro di ombre/.test(s.targhe[0] || ''), s);
+  ok('la barra dell\'ordine compare quando c\'e\' qualcosa da ordinare',
+     !(await page.evaluate(()=> document.getElementById('idee-barra').hidden)), s);
+  ok('di partenza si va dalle piu\' recenti',
+     s.titoli[0] === 'Aria di mare' && s.titoli[2] === 'La casa sul molo', s);
+  const etichetta = ()=> page.evaluate(()=> document.getElementById('idee-ordine').textContent);
+  ok('e la riga lo dice a parole', /Più recenti/.test(await etichetta()), await etichetta());
 
-  console.log('\n── promuovere due volte creerebbe due progetti: non si puo\' ──');
-  await apriMenu(0);
-  v = await voci();
-  ok('la voce diventa "apri il progetto"', /^Apri /.test(v[1]||''), v);
-  await tocca('Apri ');
-  const dopo = await page.evaluate(()=> ({ quanti: window.__salvati.length, aperti: window.__aperti.length }));
-  ok('nessun secondo progetto', dopo.quanti === 1, dopo);
-  ok('ma il progetto si apre lo stesso', dopo.aperti === 2, dopo);
+  const cambiaOrdine = async (nome)=>{
+    await page.evaluate(()=> document.getElementById('idee-ordine').click());
+    await page.waitForTimeout(220);
+    await tocca(nome);
+  };
+
+  await cambiaOrdine('Alfabetico');
+  s = await stato();
+  ok('alfabetico mette in fila per titolo',
+     s.titoli.join(' | ') === 'Aria di mare | Il ladro di ombre | La casa sul molo', s);
+  ok('e l\'etichetta segue', /Alfabetico/.test(await etichetta()), await etichetta());
+
+  await cambiaOrdine('Più vecchie');
+  s = await stato();
+  ok('"piu\' vecchie" parte da quella scritta per prima',
+     s.titoli[0] === 'Il ladro di ombre' && s.titoli[2] === 'Aria di mare', s);
+
+  console.log('\n── il criterio scelto e\' anche il criterio ricordato ──');
+  const salvato = await page.evaluate(()=> localStorage.getItem('inkflow-idee-ordine'));
+  ok('resta scritto per la prossima volta', salvato === 'vecchie', salvato);
+
+  console.log('\n── cambiare ordine non tocca le idee ──');
+  const numeri = await page.evaluate(()=> window.idee.tutteLeIdee().map(i=>i.updatedAt));
+  await cambiaOrdine('Più recenti');
+  const numeriDopo = await page.evaluate(()=> window.idee.tutteLeIdee().map(i=>i.updatedAt));
+  ok('nessuna data di modifica e\' cambiata riordinando',
+     JSON.stringify(numeri.slice().sort()) === JSON.stringify(numeriDopo.slice().sort()), { numeri, numeriDopo });
+
+  // Si torna a due idee, come si aspettano le sezioni seguenti.
+  await page.evaluate(()=>{ window.__undo = null; });
+  await page.evaluate(()=>{
+    const i = Array.from(document.querySelectorAll('.idee-card')).find(c=>/Aria di mare/.test(c.textContent));
+    i.querySelector('.idee-menu').click();
+  });
+  await page.waitForTimeout(240);
+  await tocca('Elimina');
+  s = await stato();
+  ok('si torna a due idee', s.n === 2, s);
 
   console.log('\n── eliminare: niente "sei sicuro?", ma si puo\' annullare ──');
   await page.evaluate(()=>{ window.__undo = null; });
@@ -177,7 +200,7 @@ module.exports = () => suite("Idee — taccuino, editor, promozione a progetto",
   await chiudiMenu();
   await striscia(0, -90, 4);
   v = await voci();
-  ok('strisciando a sinistra compaiono le stesse tre voci', v.length === 3, v);
+  ok('strisciando a sinistra compaiono le stesse due voci', v.length === 2, v);
 
   console.log('\n── ma scorrere l\'elenco non deve aprire niente ──');
   await chiudiMenu();

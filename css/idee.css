@@ -54,6 +54,20 @@ body.is-touch .idee-scroll{padding-bottom:calc(110px + var(--safe-bot))}
 }
 .idee-salva.pronto:active{transform:scale(.97)}
 
+/* ── ORDINE DELL'ELENCO ──
+   Una riga sola, allineata a destra sopra le schede: dice com'è ordinato
+   adesso e si tocca per cambiarlo. Non è un pulsante con un'icona da
+   decifrare — la parola che si legge È lo stato corrente. */
+.idee-barra{display:flex;justify-content:flex-end;margin:0 2px 8px}
+.idee-barra[hidden]{display:none}
+.idee-ordine{
+  background:none;border:none;cursor:pointer;padding:4px 2px;
+  font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;
+  letter-spacing:.06em;text-transform:uppercase;color:#9a8458;
+}
+.idee-ordine::after{content:' ⌄';font-weight:400;letter-spacing:0}
+.idee-ordine:active{color:var(--ottone)}
+
 /* ── LE SCHEDE ── */
 .idee-card{
   background:var(--white);border:1.5px solid var(--sand2);border-radius:13px;
@@ -86,15 +100,6 @@ body.is-touch .idee-scroll{padding-bottom:calc(110px + var(--safe-bot))}
 }
 .idee-card-piede{display:flex;align-items:center;gap:9px;margin-top:9px}
 .idee-data{font-size:11px;font-weight:700;letter-spacing:.04em;color:var(--ink3);flex:1}
-/* Un'idea diventata progetto resta in elenco: il taccuino conserva anche la
-   memoria di cosa è germogliato. La targa porta al progetto. */
-.idee-targa{
-  border:1px solid var(--oro-sabbia);background:#fdf6e4;color:var(--ottone);
-  border-radius:9px;padding:3px 9px;cursor:pointer;flex-shrink:0;max-width:60%;
-  font-family:'Nunito',sans-serif;font-size:11.5px;font-weight:700;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-}
-.idee-card.promossa{background:#fffdf6}
 
 .idee-vuoto{text-align:center;padding:34px 22px 10px;color:var(--ink3)}
 .idee-vuoto-glifo{font-size:26px;color:var(--oro-sabbia);margin-bottom:10px}
