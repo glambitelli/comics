@@ -13,6 +13,14 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Castoro&family=Courier+Prime:wght@400;700&family=Lora:ital,wght@0,400;0,600;1,400&family=Nunito:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<!-- I quattro fogli qui sotto (lettore, galleria, scriptment, statistiche)
+     valgono da soli metà del CSS dell'app, e servono a schermate che si aprono
+     con un tocco DOPO l'avvio. Caricati come tutti gli altri fermavano il
+     primo disegno della home aspettando roba che nessuno stava guardando.
+     media="print" li fa scaricare senza bloccare niente; l'onload li rimette
+     in gioco appena sono pronti, molto prima che si possa toccare qualcosa.
+     Il <noscript> è la rete di sicurezza: senza JavaScript resterebbero
+     applicati solo alla stampa, cioè a nulla. -->
 <link rel="stylesheet" href="css/variables.css">
 <link rel="stylesheet" href="css/layout.css">
 <link rel="stylesheet" href="css/home.css">
@@ -22,10 +30,16 @@
 <link rel="stylesheet" href="css/settings.css">
 <link rel="stylesheet" href="css/idee.css">
 <link rel="stylesheet" href="css/modals.css">
-<link rel="stylesheet" href="css/stats.css">
-<link rel="stylesheet" href="css/scriptment.css">
-<link rel="stylesheet" href="css/refs.css">
-<link rel="stylesheet" href="css/albums.css">
+<link rel="stylesheet" href="css/stats.css" media="print" onload="this.media='all'">
+<link rel="stylesheet" href="css/scriptment.css" media="print" onload="this.media='all'">
+<link rel="stylesheet" href="css/refs.css" media="print" onload="this.media='all'">
+<link rel="stylesheet" href="css/albums.css" media="print" onload="this.media='all'">
+<noscript>
+  <link rel="stylesheet" href="css/albums.css">
+  <link rel="stylesheet" href="css/refs.css">
+  <link rel="stylesheet" href="css/scriptment.css">
+  <link rel="stylesheet" href="css/stats.css">
+</noscript>
 </head>
 <body>
 

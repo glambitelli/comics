@@ -1181,6 +1181,14 @@ function curImg(){ return _lbCells && _lbCells[1] && _lbCells[1].img; }
 // invece già fuori schermo, quindi non serve nascondere nulla.
 async function preloadCell(cell, index, hideUntilReady){
   if(!cell) return;
+  // Ogni chiamata prende un numero. Serve a riconoscere, dopo l'attesa, se
+  // nel frattempo QUESTA STESSA cella è stata mandata su un'altra immagine:
+  // sfogliando in fretta subito dopo l'apertura, la decode() della prima si
+  // rompe (src cambiata), finisce nel catch e proseguiva a rimettere visibile
+  // la cella — mentre dentro c'era già l'immagine dopo, ancora a metà. Un
+  // lampo dell'immagine sbagliata, raro e inspiegabile. Il lettore la stessa
+  // difesa ce l'ha da sempre (vedi cellHas e il token in albums.js).
+  const mio = (cell.gen = (cell.gen || 0) + 1);
   const item = _lightboxList[index];
   if(!item){ cell.img.removeAttribute('src'); return; }
   const url = lightboxUrl(item.url);
@@ -1192,6 +1200,7 @@ async function preloadCell(cell, index, hideUntilReady){
   }
   try{ await cell.img.decode(); }
   catch(e){ /* src cambiata a metà o file rotto: si prosegue comunque */ }
+  if(cell.gen !== mio) return;            // sorpassata: non tocca più niente
   if(hideUntilReady) cell.el.style.visibility = '';
 }
 
