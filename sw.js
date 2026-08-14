@@ -1,10 +1,23 @@
 // Service Worker — cache file statici locali, Firebase sempre da rete
-const CACHE = 'inkflow-static-v188';
+const CACHE = 'inkflow-static-v189';
 const SHARE_CACHE = 'inkflow-share-inbox';
 // Cache dei file .cbz/.cbr scaricati da Drive: gestita da js/drive.js, va
 // PRESERVATA tra i deploy (altrimenti a ogni aggiornamento riscaricheresti
 // decine di MB su 4G). Deve restare identica alla costante in drive.js.
 const ALBUM_CACHE = 'inkflow-drive-albums';
+// Roba di terze parti: l'SDK di Firebase e i caratteri. Sta in una cache
+// TUTTA SUA, e come quella degli albi va PRESERVATA fra i deploy.
+//
+// PERCHÉ, imparato male. Prima stava insieme ai file dell'app, quindi ogni
+// volta che si alzava la versione della cache — cioè ad ogni ritocco di CSS,
+// più volte al giorno — veniva buttata via anche lei. Alla riapertura
+// successiva l'SDK di Firebase andava riscaricato dalla rete, e siccome è un
+// import statico del grafo dei moduli, se quella singola richiesta non andava
+// a buon fine main.js non veniva mai eseguito: l'app restava piantata sulla
+// schermata di sincronizzazione, senza un messaggio e senza una via d'uscita.
+// Un ritocco al colore di un bottone non deve poter costare il riscaricamento
+// dell'SDK, e tantomeno l'avvio dell'app.
+const VENDOR_CACHE = 'inkflow-vendor';
 
 self.addEventListener('install', e => {
   self.skipWaiting();
@@ -13,7 +26,8 @@ self.addEventListener('install', e => {
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys().then(keys => Promise.all(
-      keys.filter(k => k !== CACHE && k !== SHARE_CACHE && k !== ALBUM_CACHE).map(k => caches.delete(k))
+      keys.filter(k => k !== CACHE && k !== SHARE_CACHE && k !== ALBUM_CACHE && k !== VENDOR_CACHE)
+          .map(k => caches.delete(k))
     )).then(() => self.clients.claim())
   );
 });
@@ -46,12 +60,22 @@ self.addEventListener('fetch', e => {
 
   if(isFirebaseSDK){
     e.respondWith(
-      caches.open(CACHE).then(cache => cache.match(e.request).then(hit =>
-        hit || fetch(e.request).then(resp => {
+      caches.open(VENDOR_CACHE).then(cache => cache.match(e.request).then(hit => {
+        if(hit) return hit;
+        return fetch(e.request).then(resp => {
           if(resp && resp.status === 200) cache.put(e.request, resp.clone());
           return resp;
-        })
-      ))
+        }).catch(err => {
+          // Ultima spiaggia: se la rete non risponde si cerca la stessa cosa
+          // nelle cache vecchie, comprese quelle di versioni precedenti che
+          // non sono ancora state ripulite. Meglio un SDK di ieri che un'app
+          // che non parte.
+          return caches.match(e.request).then(vecchio => {
+            if(vecchio) return vecchio;
+            throw err;
+          });
+        });
+      }))
     );
     return;
   }

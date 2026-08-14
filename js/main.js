@@ -231,6 +231,9 @@ window.toggleEvening=toggleEvening;
 })();
 
 function hideLoading(){
+  // Disinnesca il messaggio "non riesco a partire" armato in index.html: se
+  // siamo qui l'app è partita, e quel messaggio non deve comparire mai.
+  if(window.__avvioRiuscito) window.__avvioRiuscito();
   const loading = document.getElementById('loading');
   if(loading && !loading.classList.contains('hidden')){
     loading.classList.add('hidden');

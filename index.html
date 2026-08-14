@@ -46,9 +46,48 @@
 <!-- LOADING -->
 <div class="loading-screen" id="loading">
   <div class="loading-title">Inkflow <span style="font-size:.6em;color:#f0c020;vertical-align:.14em;font-weight:400">✦</span></div>
-  <div class="loading-sub">sincronizzazione in corso…</div>
-  <div class="loading-spinner"></div>
+  <div class="loading-sub" id="loading-sub">sincronizzazione in corso…</div>
+  <div class="loading-spinner" id="loading-spinner"></div>
+  <div class="loading-uscita" id="loading-uscita" hidden>
+    <p>Non riesco a partire. Di solito è la rete che ha fatto cilecca mentre
+       scaricavo una libreria.</p>
+    <button type="button" onclick="location.reload()">Riprova</button>
+  </div>
 </div>
+
+<!--
+  VIA D'USCITA DALLA SCHERMATA D'AVVIO.
+
+  Questo script sta QUI, scritto a mano dentro la pagina, e non in un modulo:
+  deve funzionare proprio nel caso in cui i moduli non partono. L'app si
+  avvia quando main.js viene eseguito, e main.js viene eseguito solo se TUTTO
+  il grafo dei suoi import si è caricato — compreso l'SDK di Firebase, che
+  arriva dalla rete. Se quella singola richiesta fallisce, main.js non parte
+  mai e la schermata di sincronizzazione resta lì per sempre: nessun errore
+  visibile, nessun pulsante, niente da fare se non chiudere l'app.
+  È successo davvero.
+
+  Otto secondi sono molto più di un avvio normale (misurato: 226ms a CPU
+  piena, 622ms su CPU rallentata quattro volte, e con la cache fredda si sta
+  comunque sotto i due secondi). Se a quel punto non è ancora partito, non
+  partirà: meglio dirlo e offrire di riprovare che far fissare uno spinner.
+-->
+<script>
+(function(){
+  var t = setTimeout(function(){
+    var l = document.getElementById('loading');
+    if(!l || l.classList.contains('hidden')) return;   // partito, tutto a posto
+    var s = document.getElementById('loading-spinner');
+    var sub = document.getElementById('loading-sub');
+    var u = document.getElementById('loading-uscita');
+    if(s) s.hidden = true;
+    if(sub) sub.textContent = 'qualcosa si è inceppato';
+    if(u) u.hidden = false;
+  }, 8000);
+  // Se l'app parte, il timer non serve più.
+  window.__avvioRiuscito = function(){ clearTimeout(t); };
+})();
+</script>
 
 <!-- HOME -->
 <div class="screen" id="screen-home">
