@@ -3,21 +3,20 @@
    colorato, fondo sabbia, contenuto in schede. Una schermata nuova che sembri
    nuova sarebbe la sesta lingua parlata dall'app. */
 
+/* Intestazione identica a quella di References, non somigliante: stesse
+   misure, stesso filo colorato, e soprattutto lo STESSO marchio "Inkflow" che
+   riporta alla home toccandolo. Prima qui c'era scritto "Idee" a caratteri
+   grandi: bello da vedere e sbagliato da usare — era l'unica schermata da cui
+   non si tornava indietro dal titolo, e chi ci arrivava ci restava dentro.
+   Il nome della schermata sta sotto, in piccolo, dov'e' in tutte le altre. */
 .idee-header{
-  background:var(--white);padding:calc(24px + var(--safe-top)) 22px 12px;
+  background:var(--white);padding:calc(24px + var(--safe-top)) 22px 10px;
   position:relative;overflow:hidden;flex-shrink:0;
   border-radius:0 0 28px 28px;border-bottom:3px solid var(--oro-sabbia);z-index:1;
 }
 .idee-header::before{
   content:'';position:absolute;top:0;left:0;right:0;height:5px;
   background:linear-gradient(90deg,var(--coral),var(--gold),var(--green),var(--sky));
-}
-.idee-title{
-  font-family:'Castoro',serif;font-size:30px;line-height:1.05;
-  color:var(--ink);letter-spacing:-.01em;
-}
-.idee-sub{
-  font-size:9px;color:var(--ink3);letter-spacing:.12em;text-transform:lowercase;margin-top:2px;
 }
 
 .idee-scroll{
