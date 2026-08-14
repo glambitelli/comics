@@ -171,4 +171,45 @@ module.exports = () => suite("Lettore — spostamento e sfoglio da ingranditi", 
   const dopoY = (await page.evaluate(()=>window.Z.pan())).y;
   ok('la tavola scorre in verticale', Math.abs(dopoY - primaY) > 300, { primaY, dopoY });
   ok('e la pagina non cambia', (await page.evaluate(()=>window.Z.contatore())) === pag3);
+
+  console.log('\n── il doppio tocco deve partire SUBITO ──');
+  // Non si misura quanto dura lo zoom, ma quanta strada ha fatto nei primi
+  // fotogrammi: e' li' che una cosa si giudica "reattiva". Con la curva
+  // predefinita del browser (`ease`, che parte piano) dopo 35ms l'immagine
+  // aveva percorso meno di un quinto del tragitto, e il doppio tocco sembrava
+  // lento pur durando poco.
+  // Si riparte a scala 1 passando dal comando vero: forzare il transform a
+  // mano lascerebbe il lettore convinto di essere ancora ingrandito, e il
+  // doppio tocco successivo rimpicciolirebbe invece di ingrandire.
+  const scalaOra = ()=> page.evaluate(()=> new DOMMatrix(getComputedStyle(window.Z.img()).transform).a);
+  await page.waitForTimeout(1200);          // oltre la guardia sul dblclick sintetico
+  if(await scalaOra() > 1.02){
+    await page.evaluate(()=> window.Z.ingrandisci());
+    await page.waitForTimeout(1300);
+  }
+  ok('si riparte da tavola intera', (await scalaOra()) < 1.02, await scalaOra());
+  const avvioZoom = await page.evaluate(async ()=>{
+    const im = window.Z.img();
+    const scala = ()=> new DOMMatrix(getComputedStyle(im).transform).a;
+    const prima = scala();
+    window.Z.ingrandisci();
+    await new Promise(r=>setTimeout(r,35));
+    const a35 = scala();
+    await new Promise(r=>setTimeout(r,400));
+    const fine = scala();
+    return { prima, a35, fine, curva: im.style.transition };
+  });
+  const quota = (avvioZoom.a35 - avvioZoom.prima) / (avvioZoom.fine - avvioZoom.prima);
+  ok('lo zoom arriva dove deve', avvioZoom.fine > 2.4, avvioZoom);
+  // La soglia viene dalla misura, non da un desiderio: con la curva in uscita
+  // il browser fa il 23% del tragitto nei primi 35ms (dentro ci sono anche i
+  // ~16ms che passano fra il comando e il primo fotogramma). Con la
+  // predefinita `ease` sarebbero circa il 6%. 0.15 sta comodamente in mezzo:
+  // passa oggi, e fallisce se qualcuno rimette la curva del browser.
+  ok('e dopo 35ms ha gia\' fatto un pezzo di strada, non due pixel',
+     quota > 0.15, { quota: +quota.toFixed(2), ...avvioZoom });
+  ok('la curva e\' quella in uscita dichiarata, non quella del browser',
+     /cubic-bezier/.test(avvioZoom.curva), avvioZoom.curva);
+  console.log('   dopo 35ms: ' + Math.round(quota*100) + '% del tragitto');
+
 });

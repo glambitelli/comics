@@ -37,7 +37,7 @@ import { haptic } from './state.js';
 import { actionMenu } from './dialogs.js';
 import {
   ZOOM_IN, ZOOM_MAX, panGain, edgeSpring, EDGE_COMMIT, EDGE_HANDOFF,
-  panLimits as limitiPan, clampTo,
+  panLimits as limitiPan, clampTo, ZOOM_TRANSITION,
 } from './gesti.js';
 
 // Stato dell'albo attualmente aperto
@@ -1434,7 +1434,7 @@ function applyZoom(){
 function resetZoom(animate){
   const img = readerImg();
   _zoom = 1; _zx = 0; _zy = 0;
-  if(img) img.style.transition = animate ? 'transform .2s' : 'none';
+  if(img) img.style.transition = animate ? ZOOM_TRANSITION : 'none';
   applyZoom();
 }
 
@@ -1470,7 +1470,7 @@ function clampPan(scale, x, y){
 function zoomAt(clientX, clientY){
   const img = readerImg();
   if(!img) return;
-  img.style.transition = 'transform .22s';
+  img.style.transition = ZOOM_TRANSITION;
   if(_zoom > 1.02){ resetZoom(true); return; }
   const r = img.getBoundingClientRect();
   const relX = clientX - (r.left + r.width / 2);
@@ -1509,7 +1509,7 @@ function wireGestures(ov){
   let x0 = 0, y0 = 0;
   let pinching = false, startDist = 0, startScale = 1;
   let panning = false, panX = 0, panY = 0, origX = 0, origY = 0;
-  let lastTap = 0, lastTapX = 0, lastTapY = 0, tapTimer = null, lastTouchAt = 0;
+  let lastTap = 0, lastTapX = 0, lastTapY = 0, lastTouchAt = 0;
 
   // Trascinamento del NASTRO (cambio pagina a 1x): "candidato" appena parte un
   // tocco singolo a dimensione naturale, "armato" solo quando il movimento
@@ -1737,7 +1737,6 @@ function wireGestures(ov){
       const now = Date.now();
       const closeTap = Math.hypot(t.clientX - lastTapX, t.clientY - lastTapY) < 50;
       if(now - lastTap < 400 && closeTap){
-        clearTimeout(tapTimer);
         zoomAt(t.clientX, t.clientY);
         lastTap = 0;
       } else {

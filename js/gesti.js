@@ -21,6 +21,22 @@
 // Quanto si ingrandisce col doppio tocco, e il tetto della pinzata.
 export const ZOOM_IN = 2.6, ZOOM_MAX = 4;
 
+// Come si muove l'immagine quando il doppio tocco la ingrandisce.
+//
+// Prima non c'era nessuna curva dichiarata, quindi valeva quella predefinita
+// del browser (`ease`), che parte piano e accelera dopo. Misurata: a 30ms dal
+// tocco aveva percorso il 16% dello zoom, a 60ms il 46%. I primi fotogrammi
+// non si muovevano quasi, ed è esattamente lì che si giudica se una cosa
+// "risponde" — il doppio tocco sembrava un filo lento pur durando poco.
+//
+// Con questa, che è la stessa curva in uscita dello sfoglio: 39% a 30ms, 67%
+// a 60ms. Parte alla massima velocità e frena arrivando, come un oggetto vero
+// che si ferma. La durata scende appena, da 220 a 200ms: il grosso del
+// guadagno non è nell'accorciare, è nel non far aspettare l'inizio.
+export const ZOOM_MS = 200;
+export const ZOOM_EASE = 'cubic-bezier(.22,.61,.36,1)';
+export const ZOOM_TRANSITION = 'transform ' + ZOOM_MS + 'ms ' + ZOOM_EASE;
+
 // Quanto l'immagine segue il dito, da ingranditi. Non 1:1: più si è
 // ingranditi, più piccola è la porzione visibile e più lungo il tragitto da
 // fare, quindi a 1:1 servivano tre o quattro passate di dito per attraversare

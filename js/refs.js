@@ -15,7 +15,7 @@ import {
 } from './drive.js';
 import {
   ZOOM_IN, ZOOM_MAX, panGain, edgeSpring, EDGE_COMMIT, EDGE_HANDOFF,
-  panLimits as limitiPan, clampTo,
+  panLimits as limitiPan, clampTo, ZOOM_TRANSITION,
 } from './gesti.js';
 
 const REFS_COL = 'refs';
@@ -1606,7 +1606,7 @@ function applyZoomTransform(img){
 function toggleZoomAt(clientX, clientY){
   const img = curImg();
   if(!img) return;
-  img.style.transition = 'transform .22s';
+  img.style.transition = ZOOM_TRANSITION;
   if(_zoomScale > 1.02){
     _zoomScale = 1; _zoomX = 0; _zoomY = 0;
     applyZoomTransform(img);
@@ -1808,7 +1808,7 @@ function applyLbResistance(dx, w){
         if(_zoomScale < 1.05){
           resetImageZoom();
           const img = curImg();
-          if(img) img.style.transition = 'transform .18s';
+          if(img) img.style.transition = ZOOM_TRANSITION;
         }
         return;
       }
