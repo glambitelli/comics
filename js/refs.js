@@ -11,7 +11,7 @@ import { promptModal, confirmModal, actionMenu } from './dialogs.js';
 import {
   isDriveConfigured, isDriveConnected, connectDrive, disconnectDrive,
   driveAccountEmail, onDriveAuthChange, listDriveAlbumsForFolder,
-  ensureDriveConnected, initDriveAuth,
+  ensureDriveConnected, daRicollegare,
 } from './drive.js';
 import {
   ZOOM_IN, ZOOM_MAX, panGain, edgeSpring, EDGE_COMMIT, EDGE_HANDOFF,
@@ -494,6 +494,10 @@ export async function connectDriveAndSync(){
   try{
     await connectDrive();
     haptic('done');
+    // Tornando dalla pagina di Google lo schermo cambiava e basta, di scatto.
+    // Una riga di conferma dice che il viaggio e' finito bene, ed e' anche il
+    // modo di chiudere il gesto invece di lasciarlo cadere.
+    setUploadStatus('ok', 'Google Drive collegato ✓');
     renderRefsScreen();
     if(_view === 'folder' && _activeFolderId) syncDriveAlbumsForFolder(_activeFolderId);
   }catch(e){
@@ -513,9 +517,10 @@ export function startRefsListener(){
     // Se il token scade o viene revocato a metà sessione, il bottone/badge
     // Drive nello scaffale deve aggiornarsi da solo al prossimo render.
     onDriveAuthChange(()=>renderRefsScreen());
-    // All'avvio prova a ricollegarsi in silenzio, così riaprendo l'app ci si
-    // ritrova già collegati senza dover ritoccare "Connetti" ogni volta.
-    initDriveAuth();
+    // Qui NON si chiede piu' niente a Google. Il rinnovo automatico che c'era
+    // prima faceva comparire da sola la pagina di accesso appena si entrava
+    // in References (vedi la nota in drive.js): adesso il collegamento parte
+    // solo da un tocco, e finche' non arriva lo scaffale mostra "Ricollega".
   }
   if(!_refsUnsub){
     _refsUnsub = onSnapshot(collection(db, REFS_COL), snap=>{
@@ -875,7 +880,12 @@ function renderProfile(){
     } else if(connected){
       drive.innerHTML = `<button class="rp-btn rp-btn-ghost" onclick="window.disconnectDriveUI()">Scollega</button>`;
     } else {
-      drive.innerHTML = `<button class="rp-btn rp-btn-primary" onclick="window.connectDriveAndSync()">${DRIVE_ICO} Connetti Google Drive</button>`;
+      // "Ricollega" a chi l'aveva gia' collegato: sentirsi proporre la prima
+      // connessione quando l'hai gia' fatta sembra che l'app abbia perso i
+      // pezzi. Ed e' anche l'unico punto da cui, ora, puo' partire la
+      // schermata di Google.
+      const rientro = daRicollegare();
+      drive.innerHTML = `<button class="rp-btn rp-btn-primary" onclick="window.connectDriveAndSync()">${DRIVE_ICO} ${rientro ? 'Ricollega Google Drive' : 'Connetti Google Drive'}</button>`;
     }
   }
 }

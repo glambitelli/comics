@@ -606,7 +606,10 @@ export async function openAlbumFromDrive(albumId){
   openReaderShell(a.title || '');
   detachCurrentAlbum();   // via le tavole dell'albo precedente (vedi la funzione)
   toast('', false, true);
-  if(!(await ensureDriveConnected())){ toast('Ricollega Google Drive per aprire questo albo.', true); return; }
+  // `true`: qui l'utente ha toccato un albo che vive su Drive, quindi se serve
+  // ricollegarsi la finestra di Google e' la conseguenza di un suo gesto, non
+  // una sorpresa. In tutti gli altri punti si resta silenziosi.
+  if(!(await ensureDriveConnected(true))){ toast('Ricollega Google Drive per aprire questo albo.', true); return; }
   if(token !== _openToken) return;
   // Per LEGGERE si prende il file intero: dalla cache locale se c'è (istantaneo,
   // zero rete), altrimenti un unico download che poi resta in cache. Leggere a

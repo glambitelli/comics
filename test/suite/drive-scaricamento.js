@@ -74,33 +74,54 @@ module.exports = () => suite("Drive — un solo scaricamento per albo", {"banco"
   // Lo script di Google si carica UNA volta sola per pagina: dopo il primo
   // tentativo la spia non conterebbe piu' niente. Ogni scenario riparte quindi
   // da una pagina pulita.
-  const scenario = async (prepara)=>{
+  const scenario = async (prepara, azione)=>{
     await page.goto(base+'/test/banco/drive.html');
     await page.waitForFunction(()=>window.__ready===true);
-    return page.evaluate(async (codice)=>{
+    return page.evaluate(async ([codice, cosa])=>{
       eval(codice);
       const prima = window.gsiCaricato;
-      window.drive.initDriveAuth();                    // com'e' aprendo References
-      await new Promise(r=>setTimeout(r, 900));        // oltre il mezzo secondo di attesa
-      return { scriptGoogle: window.gsiCaricato - prima,
+      let esito = null;
+      if(cosa === 'apri')       { window.drive.initDriveAuth(); }
+      if(cosa === 'silenzioso') { esito = await window.drive.ensureDriveConnected(); }
+      if(cosa === 'richiesto')  { window.drive.ensureDriveConnected(true); }
+      await new Promise(r=>setTimeout(r, 900));
+      // Prima si chiede, POI si legge il segno: e' proprio interrogando lo
+      // stato che un vecchio collegamento senza segno se lo prende (vedi
+      // wasLinked in drive.js), e leggendolo prima si vedrebbe ancora vuoto.
+      const ricollegare = window.drive.daRicollegare();
+      return { scriptGoogle: window.gsiCaricato - prima, esito, ricollegare,
                segno: localStorage.getItem('inkflow-drive-linked') };
-    }, prepara);
+    }, [prepara, azione]);
   };
 
-  console.log('\n── chi non ha mai collegato Drive non deve vedersi aprire niente ──');
-  const mai = await scenario("window.drive.disconnectDrive();");
-  ok('lo script di Google non viene nemmeno caricato', mai.scriptGoogle === 0, mai);
-  const senza = await page.evaluate(()=> window.drive.ensureDriveConnected());
-  ok('e non risulta collegato', senza === false, senza);
+  console.log('\n── aprire References non deve chiedere NIENTE a Google ──');
+  // Il difetto che questa sezione sorveglia: entrando in References partiva un
+  // "rinnovo silenzioso" che silenzioso non e' — quando la sessione Google si
+  // e' raffreddata, Google apre la sua pagina di accesso a tutto schermo. Una
+  // schermata di login piombata addosso a chi voleva solo guardare dei ritagli.
+  const mai = await scenario("window.drive.disconnectDrive();", 'apri');
+  ok('chi non ha mai collegato Drive non vede niente', mai.scriptGoogle === 0, mai);
 
-  console.log('\n── chi lo aveva collegato viene rinnovato ──');
-  const gia = await scenario("window.drive.disconnectDrive(); localStorage.setItem('inkflow-drive-linked','1');");
-  ok('il rinnovo parte davvero', gia.scriptGoogle > 0, gia);
+  const gia = await scenario(
+    "window.drive.disconnectDrive(); localStorage.setItem('inkflow-drive-linked','1');", 'apri');
+  ok('e NEMMENO chi lo aveva gia\' collegato', gia.scriptGoogle === 0, gia);
+  ok('ma l\'app sa che c\'e\' da ricollegare', gia.ricollegare === true, gia);
 
-  console.log('\n── e chi era collegato PRIMA che esistesse questo segno ──');
+  console.log('\n── il rinnovo in sottofondo risponde "no" invece di aprire ──');
+  const zitto = await scenario(
+    "window.drive.disconnectDrive(); localStorage.setItem('inkflow-drive-linked','1');", 'silenzioso');
+  ok('nessuna schermata di Google', zitto.scriptGoogle === 0, zitto);
+  ok('e la risposta e\' un "no" pulito, non un\'attesa', zitto.esito === false, zitto);
+
+  console.log('\n── da un tocco esplicito, invece, si puo\' aprire ──');
+  const chiesto = await scenario("window.drive.disconnectDrive();", 'richiesto');
+  ok('toccare "Ricollega" apre davvero il collegamento', chiesto.scriptGoogle > 0, chiesto);
+
+  console.log('\n── e chi era collegato PRIMA che esistesse il segno ──');
   const vecchio = await scenario(
     "window.drive.disconnectDrive();" +
-    "localStorage.setItem('inkflow-drive-token', JSON.stringify({access_token:'x', expiresAt:0}));");
+    "localStorage.setItem('inkflow-drive-token', JSON.stringify({access_token:'x', expiresAt:0}));", 'apri');
   ok('viene riconosciuto come gia\' collegato', vecchio.segno === '1', vecchio);
-  ok('e il rinnovo parte lo stesso', vecchio.scriptGoogle > 0, vecchio);
+  ok('e gli si propone di ricollegare, senza aprirgli niente',
+     vecchio.ricollegare === true && vecchio.scriptGoogle === 0, vecchio);
 });

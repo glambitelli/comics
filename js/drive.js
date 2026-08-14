@@ -196,16 +196,24 @@ let _silentPromise = null;
 export function ensureDriveConnected(richiesto = false){
   if(isDriveConnected()) return Promise.resolve(true);
   if(!isDriveConfigured()) return Promise.resolve(false);
-  // SENZA UN COLLEGAMENTO PRECEDENTE NON SI APRE NIENTE DA SOLI.
+  // NIENTE PARTE DA SOLO. MAI.
   //
-  // requestToken('') si chiama "rinnovo silenzioso" e lo è davvero finché
-  // esiste una sessione Google con il consenso già dato. Quando quella
-  // sessione non c'è — primo avvio, consenso mai dato, cronologia pulita —
-  // Google apre la sua finestra di accesso, e per chi entra in References si
-  // traduce in una schermata di login piombata addosso senza averla chiesta.
-  // Chi ha già collegato una volta invece lo rinnova per davvero in silenzio,
-  // ed è il caso per cui questa funzione esiste.
-  if(!richiesto && !wasLinked()) return Promise.resolve(false);
+  // requestToken('') si chiama "rinnovo silenzioso", e la parola silenzioso è
+  // una promessa che Google non mantiene: lo è finché esiste una sessione viva
+  // col consenso già dato, ma quando quella sessione si è raffreddata — ed è
+  // la norma su un telefono, fra restrizioni sui cookie di terze parti e
+  // sessioni che scadono — apre la sua pagina di accesso a tutto schermo.
+  //
+  // Il risultato, dal lato di chi usa l'app: entri in References per guardare
+  // dei ritagli e ti piomba addosso una schermata di login che non hai
+  // chiesto; fai l'accesso, e la pagina si richiude di scatto. Due strappi per
+  // un'operazione che non avevi nemmeno avviato.
+  //
+  // Quindi: senza una richiesta esplicita qui non si chiede niente a Google.
+  // Se il token in cache è ancora buono si va avanti, altrimenti si risponde
+  // "no" e chi ha chiamato mostrerà il suo invito a ricollegare — che è un
+  // bottone, cioè qualcosa che si tocca quando si vuole.
+  if(!richiesto) return Promise.resolve(false);
   if(!_silentPromise){
     _silentPromise = requestToken('')
       .then(()=> true)
@@ -215,16 +223,18 @@ export function ensureDriveConnected(richiesto = false){
   return _silentPromise;
 }
 
-// Chiamata all'avvio dell'app: se non c'è già un token valido tenta il
-// rinnovo silenzioso in sottofondo, così ci si ritrova collegati senza
-// toccare nulla.
-export function initDriveAuth(){
-  if(!isDriveConfigured() || isDriveConnected() || !wasLinked()) return;
-  // Non nello stesso istante in cui la schermata si apre: il rinnovo può
-  // comunque far comparire qualcosa, e vederlo arrivare addosso mentre
-  // References sta ancora disegnandosi è la parte che si sente invadente.
-  // Mezzo secondo dopo, a schermata ferma, è un'altra cosa.
-  setTimeout(()=>{ if(!isDriveConnected()) ensureDriveConnected(); }, 500);
+// Un tempo qui partiva un rinnovo automatico all'apertura di References.
+// Non c'è più: era l'origine della pagina di Google che compariva da sola
+// (vedi la nota dentro ensureDriveConnected). Resta come funzione vuota
+// perché chiamarla non deve rompere niente, ma non fa nulla e non va
+// rimessa a fare qualcosa.
+export function initDriveAuth(){ /* di proposito: niente */ }
+
+// Drive è stato collegato in passato ma il token è scaduto? Serve a dire
+// "Ricollega" invece di "Connetti": non è la stessa cosa, e chiamarla
+// prima connessione a chi l'ha già fatta sembra un errore dell'app.
+export function daRicollegare(){
+  return isDriveConfigured() && !isDriveConnected() && wasLinked();
 }
 
 export function disconnectDrive(){

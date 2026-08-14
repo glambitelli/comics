@@ -12,3 +12,4 @@ export function driveAccountEmail(){ return null; }
 export function onDriveAuthChange(){}
 export function listDriveAlbumsForFolder(){ return Promise.resolve([]); }
 export function initDriveAuth(){}
+export function daRicollegare(){ return false; }
