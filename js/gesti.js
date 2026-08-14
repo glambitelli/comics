@@ -23,18 +23,33 @@ export const ZOOM_IN = 2.6, ZOOM_MAX = 4;
 
 // Come si muove l'immagine quando il doppio tocco la ingrandisce.
 //
-// Prima non c'era nessuna curva dichiarata, quindi valeva quella predefinita
-// del browser (`ease`), che parte piano e accelera dopo. Misurata: a 30ms dal
-// tocco aveva percorso il 16% dello zoom, a 60ms il 46%. I primi fotogrammi
-// non si muovevano quasi, ed è esattamente lì che si giudica se una cosa
-// "risponde" — il doppio tocco sembrava un filo lento pur durando poco.
+// Questa curva ha due requisiti che sembrano opposti e non lo sono, perché
+// riguardano due pezzi diversi del movimento.
 //
-// Con questa, che è la stessa curva in uscita dello sfoglio: 39% a 30ms, 67%
-// a 60ms. Parte alla massima velocità e frena arrivando, come un oggetto vero
-// che si ferma. La durata scende appena, da 220 a 200ms: il grosso del
-// guadagno non è nell'accorciare, è nel non far aspettare l'inizio.
-export const ZOOM_MS = 200;
-export const ZOOM_EASE = 'cubic-bezier(.22,.61,.36,1)';
+// 1. DEVE PARTIRE SUBITO. La prima versione non dichiarava nessuna curva,
+//    quindi valeva la predefinita del browser (`ease`), che parte a 0,4 volte
+//    la velocità media: nel primo fotogramma l'immagine si muoveva del 3%, e
+//    il doppio tocco sembrava molle anche durando poco.
+//
+// 2. NON DEVE PRECIPITARE ADDOSSO. La seconda versione ha risolto il punto 1
+//    esagerando: partiva a 2,77 volte la velocità media e a metà tempo aveva
+//    già fatto l'87% della corsa. Immediata sì, ma l'immagine arrivava in
+//    faccia — "un avvicinamento troppo immediato".
+//
+// C'è anche una ragione percettiva sotto, che spiega perché una curva molto
+// sbilanciata sull'inizio è peggio qui che altrove: lo zoom percepito non è la
+// scala, è il suo logaritmo — passare da 1 a 2 e da 2 a 4 è lo stesso
+// avvicinamento per l'occhio. Metà dell'avvicinamento percepito, da 1 a 2,6,
+// cade al 38% della corsa lineare. Una curva che al 50% del tempo sta già
+// all'87% ha quindi consumato quasi tutto l'avvicinamento nella prima metà, e
+// la seconda è un lungo strascico: si vede come uno scatto seguito da niente.
+//
+// La curva scelta parte a velocità 1,00 — cioè esattamente quella media: si
+// muove dal primo fotogramma, senza dead zone e senza strattone — sta al 57%
+// a metà tempo, e ha una velocità di punta di 1,20 volte la media invece di
+// 2,77. Meno della metà dello scatto, a parità di partenza pronta.
+export const ZOOM_MS = 240;
+export const ZOOM_EASE = 'cubic-bezier(.3,.3,.65,.85)';
 export const ZOOM_TRANSITION = 'transform ' + ZOOM_MS + 'ms ' + ZOOM_EASE;
 
 // Quanto l'immagine segue il dito, da ingranditi. Non 1:1: più si è
