@@ -44,12 +44,21 @@ window.refs = refs;
 
 // Una cartella con dentro un po' di tutto. Le immagini sono canvas minuscoli
 // trasformati in data URL: la griglia le carica davvero, senza rete.
+// Le tavole sono FATTE A PAGINA (7:10) e i ritagli quadrotti: la forma conta,
+// è quella che la griglia deve rispettare invece di ritagliarla.
 window.semina = (ritagli, tavole)=>{
   const foto = (pre, n, tav) => Array.from({length:n},(_,i)=>{
-    const c = document.createElement('canvas'); c.width = 8; c.height = 8;
-    const x = c.getContext('2d'); x.fillStyle = tav ? '#c05a3a' : '#2a6aa0'; x.fillRect(0,0,8,8);
+    const c = document.createElement('canvas');
+    c.width = tav ? 70 : 40; c.height = tav ? 100 : 40;
+    const x = c.getContext('2d');
+    x.fillStyle = '#f4ecdc'; x.fillRect(0,0,c.width,c.height);
+    // Qualche vignetta, così a occhio si vede se la miniatura taglia in alto o
+    // in basso: le strisce agli estremi sono la prova visiva.
+    x.fillStyle = tav ? '#c05a3a' : '#2a6aa0';
+    x.fillRect(3,3,c.width-6,c.height*0.3);
+    x.fillRect(3,c.height*0.66,c.width-6,c.height*0.31);
     return { id:pre+i, url:c.toDataURL('image/png'), projectIds:[], projectId:null,
-             folderId:'F1', tavola:tav, source:'clip',
+             folderId:'F1', tavola:tav, source:'clip', w:c.width, h:c.height,
              provenance:{ opera:'Akira', pagina:i+1, folderId:'F1' } };
   });
   const arr = refs.getRefs(); arr.length = 0;

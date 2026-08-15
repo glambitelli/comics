@@ -69,6 +69,17 @@ let _albumSort = 'recenti';            // 'recenti' | 'vecchi' | 'titolo'
 // intorno a 104px — 300 e 260 coprono con abbondanza anche a 3×.
 const THUMB_W = 300;
 const COVER_W = 260;
+// Le tavole hanno una miniatura tutta loro, più grande.
+//
+// PERCHÉ NON BASTAVA THUMB_W. Una miniatura di ritaglio è un quadrato di ~80px
+// ritagliato al centro: 300px di sorgente la coprono tre volte. Una tavola
+// invece si mostra INTERA, in una tessera verticale larga ~120px e alta ~172px
+// (vedi .refs-grid.tavole nel CSS): a 300px il lato lungo dell'immagine
+// starebbe a 2,4× — sotto il rapporto di uno schermo da telefono, e su una
+// pagina fitta di retini e chine sottili la differenza si vede. 420 la riporta
+// sopra il 3× senza pesare: una pagina intera a 420px sta comunque sotto i
+// 60 KB in WebP.
+const TAVOLA_W = 420;
 // La lightbox usa l'URL ORIGINALE, senza trasformazioni. Ci avevo messo
 // q_auto/f_auto per risparmiare byte, ma ogni immagine così diventava una
 // variante nuova da generare al primo sguardo: swipando in galleria si
@@ -124,7 +135,9 @@ export async function addRefImage(file, source='file', folderId=null, tavola=cur
   try{
     const { blob, w, h } = await compressImageFile(file);
     const { url } = await uploadToCloudinary(blob, id+'.jpg');
-    warmDerived(url);
+    // La variante pre-generata è quella che si vedrà davvero: una tavola
+    // comparirà nella griglia alta, non nel quadratino.
+    warmDerived(url, tavola ? TAVOLA_W : THUMB_W);
     const data = {
       url, source,
       // Nessun progetto all'inizio. I due campi convivono: `projectIds` è
@@ -160,7 +173,7 @@ export async function addRefBlob(blob, opts={}){
     // .jpg sarebbe una bugia scritta nel nome del file.
     const est = (blob.type && blob.type.split('/')[1]) || 'jpg';
     const { url } = await uploadToCloudinary(blob, id+'.'+est, onProgress);
-    warmDerived(url);
+    warmDerived(url, tavola ? TAVOLA_W : THUMB_W);
     const data = {
       url, source,
       // Nessun progetto all'inizio. I due campi convivono: `projectIds` è
@@ -1213,6 +1226,16 @@ export function renderRefsGrid(){
   if(empty) empty.style.display='none';
   if(noResults) noResults.style.display='none';
 
+  // Le tavole si guardano INTERE. Nella griglia dei ritagli la miniatura è un
+  // quadrato ritagliato al centro (object-fit:cover): per un pezzo di pagina va
+  // benissimo — il soggetto sta in mezzo e il taglio non toglie niente. Per una
+  // pagina no: la vignetta d'apertura, il ballon in alto e la striscia in fondo
+  // sono proprio quello che si cerca aprendo questo scaffale, e il quadrato li
+  // buttava via tutti e tre. Qui la tessera diventa verticale e l'immagine ci
+  // sta dentro tutta (vedi .refs-grid.tavole nel CSS).
+  const mostraTavole = _view === 'folder' && !!_activeFolderId && _folderTab === 'tavole';
+  grid.classList.toggle('tavole', mostraTavole);
+
   // I tre listener Firestore chiamano renderRefsScreen ad OGNI modifica, anche
   // di un campo che qui non si vede: ricostruire l'HTML rifà da capo tutte le
   // miniature (nuovi <img>, decodifica, sfarfallio). Se il contenuto mostrato
@@ -1221,7 +1244,10 @@ export function renderRefsGrid(){
   // griglia (il puntino sotto li riassume) ma cambiano con "Collega a un
   // progetto", e senza di loro in coda quel cambiamento non farebbe mai
   // ridisegnare la griglia.
-  const sig = list.map(r=>r.id+':'+r.url+':'+projectIdsOf(r).join(',')).join('|');
+  // In coda anche lo scaffale: cambia la forma delle tessere E la larghezza
+  // della sorgente, quindi due elenchi identici vanno comunque ridisegnati.
+  const sig = (mostraTavole ? 'T|' : 'R|')
+    + list.map(r=>r.id+':'+r.url+':'+projectIdsOf(r).join(',')).join('|');
   if(grid.dataset.sig === sig) return;
   grid.dataset.sig = sig;
 
@@ -1237,7 +1263,7 @@ export function renderRefsGrid(){
     const dot = proj ? `<span class="refs-thumb-linkdot" style="background:${proj.color||'#4ab8d8'}" title="${esc(suoi.map(p=>p.title||'').join(' · '))}"></span>` : '';
     return `
     <div class="refs-thumb" data-id="${r.id}">
-      <img src="${cldResize(r.url, THUMB_W)}" loading="lazy" decoding="async" alt=""/>
+      <img src="${cldResize(r.url, mostraTavole ? TAVOLA_W : THUMB_W)}" loading="lazy" decoding="async" alt=""/>
       ${dot}
     </div>
   `;

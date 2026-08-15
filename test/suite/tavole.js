@@ -43,6 +43,51 @@ module.exports = () => suite("References — Ritagli e Tavole dentro una cartell
   ok('in griglia ci sono solo le tavole', s.inGriglia.every(id=>id[0]==='t') && s.inGriglia.length === 2, s);
   ok('e la ricerca cambia etichetta', /tavole/i.test(s.cerca||''), s);
 
+  sezione('la miniatura di una tavola mostra la pagina INTERA');
+  // La misura vera: il rapporto fra i lati dell'immagine a schermo deve essere
+  // quello dell'originale. Se la griglia la ritagliasse (object-fit:cover) il
+  // rapporto diventerebbe quello della tessera, e la prima e l'ultima striscia
+  // di vignette sparirebbero.
+  const forma = await page.evaluate(()=>{
+    const el = document.querySelector('.refs-thumb');
+    const im = el.querySelector('img');
+    const rt = el.getBoundingClientRect(), ri = im.getBoundingClientRect();
+    return {
+      classe: document.getElementById('refs-grid').classList.contains('tavole'),
+      tessera: +(rt.width / rt.height).toFixed(3),
+      immagine: +(ri.width / ri.height).toFixed(3),
+      naturale: +(im.naturalWidth / im.naturalHeight).toFixed(3),
+      dentro: ri.width <= rt.width + 1 && ri.height <= rt.height + 1,
+      larga: Math.round(rt.width),
+      // Quanto è stata chiesta larga la sorgente (vedi test/finti/cloudinary.js).
+      sorgente: (window.__larghezze || new Map()).get(im.getAttribute('src')),
+    };
+  });
+  ok('la griglia passa in modalità tavole', forma.classe, forma);
+  ok('la tessera è verticale, non quadrata', forma.tessera < 0.85, forma);
+  ok('l\'immagine conserva le sue proporzioni: niente è tagliato via',
+     Math.abs(forma.immagine - forma.naturale) < 0.02, forma);
+  ok('e sta tutta dentro la tessera', forma.dentro, forma);
+  ok('la tessera è abbastanza grande da leggerci una pagina', forma.larga >= 96, forma);
+
+  sezione('e la chiede a Cloudinary più grande di un quadratino');
+  ok('la sorgente della tavola è a 420px', forma.sorgente === 420, forma);
+  await tocca('ritagli');
+  const formaR = await page.evaluate(()=>{
+    const el = document.querySelector('.refs-thumb');
+    const im = el.querySelector('img');
+    const rt = el.getBoundingClientRect();
+    return {
+      classe: document.getElementById('refs-grid').classList.contains('tavole'),
+      tessera: +(rt.width / rt.height).toFixed(3),
+      sorgente: (window.__larghezze || new Map()).get(im.getAttribute('src')),
+    };
+  });
+  ok('tornando fra i ritagli la tessera ridiventa quadrata',
+     !formaR.classe && Math.abs(formaR.tessera - 1) < 0.02, formaR);
+  ok('e la sorgente torna quella piccola', formaR.sorgente === 300, formaR);
+  await tocca('tavole');
+
   sezione('la ricerca non si porta dietro il filtro dell\'altro scaffale');
   await page.evaluate(()=> window.refs.refsGridSearch('pagina 1'));
   await page.waitForTimeout(250);
