@@ -93,4 +93,45 @@ module.exports = () => suite("Impostazioni — il pannello dice solo quello che 
   ok('ma non se il promemoria è spento: lì non è un problema di nessuno',
      negatoMaSpento === '', negatoMaSpento);
 
+  sezione('il tasto Indietro chiude il pannello e RIMETTE la barra in fondo');
+  // Il difetto: Indietro chiudeva il pannello ma lasciava sul body la classe
+  // che nasconde la barra-duna. Si tornava alla schermata di prima senza piu'
+  // navigazione, e non c'era modo di capire perche'.
+  await page.evaluate(()=> document.body.classList.add('is-touch'));
+  await apri();
+  const aperto = await page.evaluate(()=>({
+    pannello: document.getElementById('settings-panel').classList.contains('open'),
+    classe: document.body.classList.contains('settings-open'),
+    barra: getComputedStyle(document.getElementById('dune-nav')).display,
+    stato: (history.state||{}).view,
+  }));
+  ok('aperto: il pannello c\'e\' e la barra si toglie di mezzo',
+     aperto.pannello && aperto.classe && aperto.barra === 'none', aperto);
+  ok('e il pannello ha preso un posto nella cronologia', aperto.stato === 'settings', aperto);
+
+  await page.evaluate(()=> history.back());
+  await page.waitForTimeout(400);
+  const dopoIndietro = await page.evaluate(()=>({
+    pannello: document.getElementById('settings-panel').classList.contains('open'),
+    classe: document.body.classList.contains('settings-open'),
+    barra: getComputedStyle(document.getElementById('dune-nav')).display,
+  }));
+  ok('Indietro chiude il pannello', !dopoIndietro.pannello, dopoIndietro);
+  ok('e la barra in fondo torna', !dopoIndietro.classe && dopoIndietro.barra !== 'none', dopoIndietro);
+
+  sezione('e la X fa esattamente la stessa cosa');
+  await apri();
+  await page.evaluate(async ()=>{ const m = await import('/js/settings.js'); m.closeSettings(); });
+  await page.waitForTimeout(400);
+  const dopoX = await page.evaluate(()=>({
+    pannello: document.getElementById('settings-panel').classList.contains('open'),
+    barra: getComputedStyle(document.getElementById('dune-nav')).display,
+    // Chiudendo con la X il posto in cronologia va restituito, altrimenti il
+    // primo Indietro dopo non farebbe niente di visibile.
+    stato: (history.state||{}).view,
+  }));
+  ok('la X chiude e rimette la barra',
+     !dopoX.pannello && dopoX.barra !== 'none', dopoX);
+  ok('e non lascia il pannello nella cronologia', dopoX.stato !== 'settings', dopoX);
+
 });

@@ -49,6 +49,44 @@ body.refs-lightbox-open .dune-nav{display:none}
    alta, i pulsanti finivano comunque sotto la capsula e non si potevano
    toccare. */
 body.settings-open .dune-nav{display:none}
+
+/* ── IL VELO DELLA NOTTE ──
+   Passare fra giorno e sera vuol dire scambiare una schermata color panna con
+   una quasi nera, e finora avveniva in un fotogramma: un lampo, e al buio
+   fastidioso. Non e' un problema di gusto, e' l'occhio che deve riadattarsi
+   ogni volta.
+
+   Qui in mezzo ci va una tenda del colore della notte. Si accende sopra la
+   schermata che stai lasciando (che quindi si spegne progressivamente), sotto
+   le due schermate si scambiano al buio — nessuno vede lo scambio — e poi la
+   tenda si dissolve scoprendo quella nuova. Fra i due versi c'e' la stessa
+   nera, quindi il buio non fa mai un salto: la luce cala e risale, e basta.
+
+   DUE DURATE DIVERSE, e non e' una svista. Entrare (opacita' 0 → 1) usa i
+   200ms della regola .acceso, uscire (1 → 0) i 280ms della regola base: la
+   luce che torna e' la parte che infastidisce, e le si danno quasi tre decimi
+   perche' la pupilla la seguano. In tutto poco piu' di mezzo secondo — la luna
+   e' un pulsante che si preme spesso, e una tenda lenta stancherebbe piu' del
+   lampo che sostituisce.
+
+   Mentre e' accesa la tenda si prende anche i tocchi: a meta' scambio non si
+   sa piu' cosa c'e' sotto il dito, e un tocco andato a vuoto li' e' peggio di
+   uno perso. */
+.velo-notte{
+  position:fixed;inset:0;z-index:9800;
+  background:#0a0807;
+  opacity:0;pointer-events:none;
+  transition:opacity 280ms ease-out;
+}
+.velo-notte.acceso{
+  opacity:1;pointer-events:auto;
+  transition:opacity 200ms ease-in;
+}
+/* Chi ha chiesto meno animazioni al sistema il lampo non lo vede comunque:
+   main.js salta del tutto la tenda e cambia schermata all'istante. */
+@media (prefers-reduced-motion: reduce){
+  .velo-notte{transition:none}
+}
 /* Stessa ragione per un'idea aperta a tutto schermo: e' un foglio che copre
    tutto lo schermo, e la capsula ci galleggerebbe sopra proprio dove finisce
    il testo che si sta scrivendo. */

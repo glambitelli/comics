@@ -5,7 +5,7 @@ import { togglePhase, toggleStep, selectTav, addSfida, addTodo, toggleTodo, clea
 import { addScene, updateScene, deleteScene, autoResize, saveStoryField, updateCharCount, toggleSubsection, addCharacter, deleteCharacter, toggleCharCard, autoResizeAll, toggleScreenplay, addSceneText, deleteSceneText, extractAllFromScript } from './story.js';
 import { updatePlanner, applyPlanner, openPlannerModal, closePlannerModal } from './planner.js';
 import { initNotifications, saveReminderSettings, testNotification } from './notifications.js';
-import { openSettings, closeSettings, resetStarsConfirm, closeStarsConfirm, doResetStars, exportBackup, importBackup, resetStreakConfirm, closeStreakConfirm, doResetStreak, onSoundToggle, onSoundPackChange } from './settings.js';
+import { openSettings, closeSettings, closeSettingsUI, resetStarsConfirm, closeStarsConfirm, doResetStars, exportBackup, importBackup, resetStreakConfirm, closeStreakConfirm, doResetStreak, onSoundToggle, onSoundPackChange } from './settings.js';
 window.onSoundToggle=onSoundToggle; window.onSoundPackChange=onSoundPackChange;
 import { renderHome, openNewModal, closeModal, createProject, openCardMenu, exportProjectJSON, confirmDeleteProject, openColorPicker, closeColorPicker, selectProjectColor, filterProjects, attachCardDrag, applyProjectOrder, startSandstorm, getScriptment } from './home.js';
 import { openProject, restoreProject, goHome, confirmDeleteCurrent, closeConfirm, confirmMicrotask } from './project.js';
@@ -98,6 +98,11 @@ function hideAllScreens(){
   const sp = document.getElementById('settings-panel');
   if(so) so.classList.remove('open');
   if(sp) sp.classList.remove('open');
+  // La classe sul body e' quella che NASCONDE LA BARRA IN FONDO (vedi
+  // body.settings-open in layout.css): dimenticarla qui significava chiudere il
+  // pannello e restare senza navigazione, ed e' esattamente quello che
+  // succedeva arrivando qui dal tasto Indietro.
+  document.body.classList.remove('settings-open');
   // Esce dalla modalità sera (barra torna chiara) se si naviga altrove
   document.body.classList.remove('evening-mode');
 }
@@ -183,8 +188,10 @@ function toggleEvening(){
   if(document.body.classList.contains('evening-mode')){
     if(window.exitEveningMode) window.exitEveningMode();
   } else {
-    hideAllScreens();
-    if(window.enterEveningMode) window.enterEveningMode();
+    // hideAllScreens sta DENTRO la tenda insieme all'ingresso: fuori, per un
+    // fotogramma non ci sarebbe nessuna schermata attiva e si vedrebbe il
+    // fondo nudo del body prima che il buio arrivi.
+    transizioneNotte(()=>{ hideAllScreens(); enterEveningImpl(); });
   }
 }
 window.openStats=openStats;
@@ -388,7 +395,7 @@ async function showScreen(view, id){
     else if(view === 'refs'){ await openRefsScreen(); }
     else if(view === 'refs-folder' && id){ await openRefsScreenAtFolder(id); }
     else if(view === 'refs-all'){ await openRefsScreenAtAll(); }
-    else if(view === 'evening'){ enterEveningImpl(); }
+    else if(view === 'evening'){ enterEveningImpl(); }   // la tenda la mette chi ha premuto
     else { // home (o stato sconosciuto)
       if(document.body.classList.contains('evening-mode')) exitEveningImpl();
       goHomeImpl();
@@ -397,6 +404,11 @@ async function showScreen(view, id){
   finally{ _navReplaying = false; }
 }
 window.addEventListener('popstate', e=>{
+  // Le impostazioni stanno sopra a tutto: se il pannello e' aperto, Indietro
+  // chiude quello. settings.js e' importato staticamente qui sopra, quindi non
+  // serve la danza del modulo caricato pigramente.
+  const sp = document.getElementById('settings-panel');
+  if(sp && sp.classList.contains('open')){ closeSettingsUI(); return; }
   // Se c'è un albo aperto a schermo intero, il tasto Indietro chiude il lettore
   // e riporta alle References, invece di uscire dall'app.
   // loadedMod e non loadMod: se il lettore e' aperto il modulo e' per forza
@@ -430,13 +442,52 @@ try{ if(!history.state) history.replaceState({ view:'home', depth:0 }, ''); }cat
 window.openProject = openProject;
 window.openStats = openStats;
 window.openIdee = openIdee;
-window.enterEveningMode = enterEveningImpl;
+window.enterEveningMode = entraInSera;
 // Azioni "indietro" — passano dalla cronologia, così il back del browser resta coerente.
 // Stats e sera si aprono sempre direttamente sopra la Home (un solo livello),
 // quindi un passo indietro basta.
+// ── IL PASSAGGIO GIORNO ↔ SERA ──
+// Lo scambio vero e proprio avviene mentre la tenda e' opaca, quindi non si
+// vede: si vede solo la luce che cala e risale (vedi .velo-notte in
+// layout.css, dove stanno anche le due durate e il perche' sono diverse).
+//
+// Il doppio requestAnimationFrame prima di scoprire non e' scaramanzia: la
+// schermata nuova viene attivata mentre e' nascosta, e se si togliesse la
+// tenda nello stesso fotogramma il browser potrebbe non averla ancora
+// disegnata — si scoprirebbe per un istante quella vecchia, cioe' proprio il
+// lampo che si sta togliendo di mezzo.
+const VELO_MS = 200;
+let _veloInCorso = false;
+// Dichiarata cosi' e non con const: viene assegnata a window piu' sopra nel
+// file (window.enterEveningMode), e una const non esiste ancora a quel punto.
+function entraInSera(){ transizioneNotte(enterEveningImpl); }
+function transizioneNotte(azione){
+  const velo = document.getElementById('velo-notte');
+  const ridotto = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // Senza tenda, o a doppio tocco sulla luna, si fa la cosa semplice: meglio
+  // una transizione saltata che due tende sovrapposte.
+  if(!velo || ridotto || _veloInCorso){ azione(); return; }
+  _veloInCorso = true;
+  velo.classList.add('acceso');
+  setTimeout(()=>{
+    azione();
+    requestAnimationFrame(()=> requestAnimationFrame(()=>{
+      velo.classList.remove('acceso');
+      _veloInCorso = false;
+    }));
+  }, VELO_MS);
+}
+
 const _backOrHome = ()=>{
-  if(history.state && history.state.view && history.state.view !== 'home') history.back();
-  else { if(document.body.classList.contains('evening-mode')) exitEveningImpl(); goHomeImpl(); }
+  const inSera = document.body.classList.contains('evening-mode');
+  const passo = ()=>{
+    if(history.state && history.state.view && history.state.view !== 'home') history.back();
+    else { if(document.body.classList.contains('evening-mode')) exitEveningImpl(); goHomeImpl(); }
+  };
+  // La tenda serve solo quando si sta davvero uscendo dalla sera: chiudendo le
+  // statistiche (stesso pulsante, stessa funzione) non c'e' nessun colore da
+  // invertire, e un buio di mezzo secondo li' sarebbe gratuito.
+  if(inSera) transizioneNotte(passo); else passo();
 };
 window.closeStats = _backOrHome;
 window.exitEveningMode = _backOrHome;

@@ -54,6 +54,13 @@ export function importBackup(){
 export function openSettings(){
   document.getElementById('settings-overlay').classList.add('open');
   document.getElementById('settings-panel').classList.add('open');
+  // Il pannello prende un posto nella cronologia: cosi' il tasto Indietro del
+  // telefono lo CHIUDE invece di navigare via. Prima non lo faceva, e il
+  // risultato era il difetto peggiore possibile — si tornava alla schermata di
+  // prima con addosso ancora la classe che nasconde la barra in fondo, cioe'
+  // l'app restava senza navigazione finche' non si riapriva e richiudeva le
+  // impostazioni per bene.
+  if(window.__navSync) window.__navSync('settings');
   // Nasconde la barra-duna (vedi body.settings-open in layout.css). Stesso
   // trattamento della galleria References: finché il pannello è aperto
   // l'overlay blocca comunque la navigazione, quindi la barra non serve — e
@@ -103,10 +110,22 @@ export function onSoundPackChange(){
   if(isSoundEnabled()) playSfx('done');
 }
 
-export function closeSettings(){
+// Chiude e basta, senza toccare la cronologia: la usa il tasto Indietro, che
+// la cronologia l'ha gia' fatta scorrere per conto suo (vedi popstate in
+// main.js). Stesso schema del lettore e della lightbox.
+export function closeSettingsUI(){
   document.getElementById('settings-overlay').classList.remove('open');
   document.getElementById('settings-panel').classList.remove('open');
   document.body.classList.remove('settings-open');
+}
+
+// La X e le chiusure da codice passano invece DALLA cronologia: altrimenti il
+// posto occupato dall'apertura resterebbe li', e il primo Indietro dopo aver
+// chiuso col pulsante non farebbe niente di visibile.
+export function closeSettings(){
+  const st = history.state;
+  if(st && st.view === 'settings'){ history.back(); return; }
+  closeSettingsUI();
 }
 
 export function resetStarsConfirm(){

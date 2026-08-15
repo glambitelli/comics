@@ -83,4 +83,50 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
   });
   await page.waitForTimeout(120);
   ok('scorrendo verso l\'alto la barra riappare', (await nascosta()) === false);
+  console.log('\n── il passaggio giorno ↔ sera non e\' piu\' un lampo ──');
+  // Non si prova "e' bello": si prova che fra le due schermate ci passa una
+  // tenda, che lo scambio avviene MENTRE e' opaca (quindi non si vede), e che
+  // alla fine se ne va da sola invece di restare li' a coprire tutto.
+  await page.evaluate(()=>{
+    document.querySelectorAll('.screen').forEach(x=>x.classList.remove('active'));
+    document.getElementById('screen-home').classList.add('active');
+    window.__velo = [];
+    const v = document.getElementById('velo-notte');
+    // Si campiona l'opacita' vera calcolata dal browser, non la classe: e' la
+    // sola cosa che dica se lo schermo era davvero coperto in quell'istante.
+    window.__campiona = setInterval(()=>{
+      window.__velo.push({
+        t: Math.round(performance.now()),
+        o: +getComputedStyle(v).opacity,
+        sera: document.body.classList.contains('evening-mode'),
+      });
+    }, 25);
+  });
+  await page.evaluate(()=> window.enterEveningMode());
+  await page.waitForTimeout(900);
+  const campioni = await page.evaluate(()=>{ clearInterval(window.__campiona); return window.__velo; });
+
+  const picco = Math.max(...campioni.map(c=>c.o));
+  const primaSera = campioni.find(c=>c.sera);
+  const ultimo = campioni[campioni.length - 1];
+  ok('la tenda si accende davvero', picco > 0.9, picco);
+  ok('lo scambio avviene al buio, non a vista',
+     !!primaSera && primaSera.o > 0.9, primaSera);
+  ok('e alla fine la tenda se n\'e\' andata', ultimo && ultimo.o < 0.02, ultimo);
+  ok('non e\' un lampo: ci mette piu\' di due fotogrammi',
+     campioni.filter(c=>c.o > 0.02 && c.o < 0.98).length >= 2,
+     campioni.map(c=>c.o));
+  ok('ma nemmeno una tenda lenta: sotto il secondo',
+     (()=>{ const su = campioni.filter(c=>c.o > 0.02);
+            return su.length && (su[su.length-1].t - su[0].t) < 1000; })(),
+     campioni.map(c=>[c.t, c.o]));
+
+  console.log('\n── e la tenda non resta mai a coprire lo schermo ──');
+  const dopo = await page.evaluate(()=>{
+    const v = document.getElementById('velo-notte');
+    return { opacita: +getComputedStyle(v).opacity, tocchi: getComputedStyle(v).pointerEvents };
+  });
+  ok('a riposo e\' trasparente e non intercetta i tocchi',
+     dopo.opacita < 0.02 && dopo.tocchi === 'none', dopo);
+
 });
