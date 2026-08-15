@@ -686,6 +686,9 @@ function buildReaderDOM(){
           <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.6-5.9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M20 4v4.6h-4.6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
           <span>Riprova</span>
         </button>
+        <button class="ar-btn ar-tutta" data-act="tuttalatavola" aria-label="Ritaglia tutta la tavola" title="Tutta la tavola" hidden>
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V5.6A1.6 1.6 0 0 1 5.6 4H9"/><path d="M15 4h3.4A1.6 1.6 0 0 1 20 5.6V9"/><path d="M20 15v3.4a1.6 1.6 0 0 1-1.6 1.6H15"/><path d="M9 20H5.6A1.6 1.6 0 0 1 4 18.4V15"/></svg>
+        </button>
         <button class="ar-btn ar-clip" aria-label="Ritaglia" data-act="clip">
           <svg viewBox="0 0 24 24" width="20" height="20"><circle cx="6.5" cy="6.5" r="2.4" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="6.5" cy="17.5" r="2.4" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8.6 8.2 20 18 M8.6 15.8 20 6" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg>
         </button>
@@ -745,7 +748,7 @@ function buildReaderDOM(){
         </div>
       </div>
       <div class="ar-clip-hint" hidden>
-        <span class="ar-clip-hint-instruct">Trascina un riquadro sulla pagina<button class="ar-clip-tutta" data-act="tuttalatavola">Tutta la tavola</button><button class="ar-cancelclip" data-act="cancelclip">annulla</button></span>
+        <span class="ar-clip-hint-instruct">Trascina un riquadro sulla pagina</span>
         <div class="ar-clip-hint-confirm" hidden>
           <div class="ar-clip-row">
             <span class="ar-clip-label" data-label="recenti">Recenti</span>
@@ -770,7 +773,6 @@ function buildReaderDOM(){
     else if(act === 'clip') toggleClip();
     else if(act === 'first') gotoPage(0);
     else if(act === 'last') gotoPage(_pages.length - 1);
-    else if(act === 'cancelclip') toggleClip(false);
     else if(act === 'retryclip'){ if(ov._clipRetry) ov._clipRetry(); }
     else if(act === 'tuttalatavola'){ if(ov._clipTutta) ov._clipTutta(); }
     // La pastiglia della destinazione È la conferma: un gesto solo invece di
@@ -1865,6 +1867,12 @@ function toggleClip(force){
   // ritaglio non se ne va da solo insieme al resto, va spento qui.
   const retry = _reader.querySelector('.ar-retry');
   if(retry) retry.hidden = true;
+  // "Tutta la tavola" sta in alto accanto alle forbici, non nella capsula in
+  // basso: e' un modo ALTERNATIVO di scegliere il ritaglio, quindi vive
+  // insieme allo strumento e non insieme alle destinazioni. Infilato là sotto
+  // mandava a capo la riga e traboccava sulla tavola.
+  const tutta = _reader.querySelector('.ar-tutta');
+  if(tutta) tutta.hidden = !_clipMode;
   // Entrando o uscendo si riparte SEMPRE da foglio bianco: un riquadro
   // lasciato in sospeso non deve sopravvivere al giro successivo.
   if(_reader._clipReset) _reader._clipReset();

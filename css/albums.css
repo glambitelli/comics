@@ -457,18 +457,13 @@ body.is-touch .ar-nav{display:none} /* su mobile si naviga con swipe/tap */
    nascondere l'elemento: senza questa riga la scritta resterebbe visibile
    SEMPRE, anche fuori dalla modalità ritaglio, qualunque cosa facesse il JS. */
 .ar-clip-hint[hidden]{display:none}
-.ar-clip-hint-instruct{
-  align-self:center;text-align:center;
-  display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;
-}
-/* Scorciatoia per la pagina intera: sta accanto all'istruzione perché è
-   un'alternativa AL disegnare, non un'azione su un riquadro già fatto. */
-.ar-clip-tutta{
-  border:1px solid rgba(217,164,23,.5);background:rgba(217,164,23,.14);color:#e8c060;
-  border-radius:999px;padding:5px 13px;cursor:pointer;
-  font-family:'Nunito',sans-serif;font-size:12.5px;font-weight:700;white-space:nowrap;
-}
-.ar-clip-tutta:active{background:rgba(217,164,23,.26)}
+/* Una riga sola, dentro la capsula. Ci era finito anche un pulsante: la riga
+   andava a capo, superava l'altezza fissa della capsula e le parole finivano
+   a galleggiare sopra la tavola, sovrapposte alla capsula delle destinazioni.
+   Qui dentro sta l'istruzione e basta. */
+.ar-clip-hint-instruct{align-self:center;text-align:center}
+/* "Tutta la tavola": pulsante in alto, accanto alle forbici. */
+.ar-tutta[hidden]{display:none}
 
 /* DUE RIGHE, non più una sola.
    Prima le cartelle recenti e le macro-categorie stavano affiancate sulla
@@ -501,12 +496,10 @@ body.is-touch .ar-nav{display:none} /* su mobile si naviga con swipe/tap */
 .ar-clip-hint-confirm.no-folders .ar-clip-label{display:none}
 .ar-clip-hint-confirm.no-folders .ar-clip-row{justify-content:center}
 .ar-clip-hint-confirm.no-folders .ar-clip-dests{flex:0 1 auto}
-.ar-clip-hint-confirm .ar-cancelclip{flex-shrink:0}
-.ar-clip-hint .ar-cancelclip{
-  background:none;border:none;color:var(--gold);cursor:pointer;padding:0;
-  font-family:'Nunito',sans-serif;font-size:10.5px;font-weight:700;letter-spacing:.08em;
-  text-decoration:underline;text-underline-offset:2px;
-}
+/* "annulla" non c'è più: usciva dal ritaglio, che è esattamente quello che fa
+   già il tocco sulle forbici in alto — lo stesso pulsante che ci ha portati
+   dentro. Un secondo comando per la stessa cosa, per giunta piazzato in mezzo
+   alla capsula, era solo un ingombro. */
 /* Azione positiva del riquadro appena disegnato: pillola piena, per
    distinguerla dal "Riprova" (testo sottolineato, azione secondaria). */
 .ar-clip-confirm-btn{

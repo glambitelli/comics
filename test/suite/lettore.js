@@ -308,7 +308,9 @@ module.exports = () => suite("Lettore — nastro, sfoglio, zoom, ritaglio", {"ba
   s = await st();
   ok('in ritaglio né tastiera né trascinamento cambiano pagina', s.pages[1] === 5, s.pages);
   ok('e il nastro resta a riposo', s.xform === REST, s.xform);
-  await page.evaluate(() => T.click('[data-act="cancelclip"]'));
+  // Uscire dal ritaglio = ritoccare le forbici (l'"annulla" nella capsula non
+  // c'e' piu': era un secondo comando per la stessa cosa).
+  await page.evaluate(() => T.click('.ar-clip'));
   await settle(250);
   await page.evaluate(() => T.key('ArrowRight'));
   await settle(600);

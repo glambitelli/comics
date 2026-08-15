@@ -68,7 +68,10 @@ module.exports = () => suite("Ritaglio — lo stato non sopravvive alla chiusura
   console.log('\n── caso peggiore: si apre un altro albo SENZA chiudere, col ritaglio acceso ──');
   // Nessuna pulizia in uscita: e' la rete di sicurezza in openReaderShell che
   // deve reggere da sola, qualunque strada abbia preso la chiusura precedente.
-  await page.evaluate(()=> document.querySelector('[data-act="cancelclip"]').dispatchEvent(new MouseEvent('click',{bubbles:true})));
+  // Si esce dal ritaglio ritoccando le forbici: il vecchio "annulla" nella
+  // capsula non c'e' piu' — faceva la stessa cosa dello stesso pulsante che ci
+  // aveva portati dentro, e stava in mezzo alle destinazioni.
+  await page.evaluate(()=> document.querySelector('.ar-clip').dispatchEvent(new MouseEvent('click',{bubbles:true})));
   await page.waitForTimeout(200);
   await page.evaluate(()=> document.querySelector('.ar-clip').dispatchEvent(new MouseEvent('click',{bubbles:true})));
   await page.waitForTimeout(200);
