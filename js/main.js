@@ -5,8 +5,8 @@ import { togglePhase, toggleStep, selectTav, addSfida, addTodo, toggleTodo, clea
 import { addScene, updateScene, deleteScene, autoResize, saveStoryField, updateCharCount, toggleSubsection, addCharacter, deleteCharacter, toggleCharCard, autoResizeAll, toggleScreenplay, addSceneText, deleteSceneText, extractAllFromScript } from './story.js';
 import { updatePlanner, applyPlanner, openPlannerModal, closePlannerModal } from './planner.js';
 import { initNotifications, saveReminderSettings, testNotification } from './notifications.js';
-import { openSettings, closeSettings, resetStarsConfirm, closeStarsConfirm, doResetStars, exportBackup, importBackup, resetStreakConfirm, closeStreakConfirm, doResetStreak, onSoundToggle } from './settings.js';
-window.onSoundToggle=onSoundToggle;
+import { openSettings, closeSettings, resetStarsConfirm, closeStarsConfirm, doResetStars, exportBackup, importBackup, resetStreakConfirm, closeStreakConfirm, doResetStreak, onSoundToggle, onSoundPackChange } from './settings.js';
+window.onSoundToggle=onSoundToggle; window.onSoundPackChange=onSoundPackChange;
 import { renderHome, openNewModal, closeModal, createProject, openCardMenu, exportProjectJSON, confirmDeleteProject, openColorPicker, closeColorPicker, selectProjectColor, filterProjects, attachCardDrag, applyProjectOrder, startSandstorm, getScriptment } from './home.js';
 import { openProject, restoreProject, goHome, confirmDeleteCurrent, closeConfirm, confirmMicrotask } from './project.js';
 import { enterEveningMode as enterEveningImpl, exitEveningMode as exitEveningImpl } from './evening.js';

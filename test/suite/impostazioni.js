@@ -1,0 +1,96 @@
+// Impostazioni — il pannello dice solo quello che serve
+//
+// Gira sull'APP VERA (come navigazione.js e home-ricerca.js): quello che si
+// prova qui è quanto testo il pannello mostra davvero, e dipende dall'incastro
+// fra il markup, notifications.js e sound.js.
+const fs = require('fs');
+const path = require('path');
+const { suite } = require('../motore.js');
+
+const SDK_FINTO = fs.readFileSync(path.join(__dirname, '..', 'finti', 'firebase-sdk.js'), 'utf8');
+
+module.exports = () => suite("Impostazioni — il pannello dice solo quello che serve", {
+  banco: '/index.html',
+  pronto: ()=> !!document.querySelector('#settings-panel'),
+  prima: async (page)=>{
+    await page.route('**://fonts.googleapis.com/**', r=> r.fulfill({status:200, contentType:'text/css', body:''}));
+    await page.route('**://fonts.gstatic.com/**', r=> r.abort());
+    await page.route('**://www.gstatic.com/firebasejs/**', r=> r.fulfill({
+      status:200, contentType:'text/javascript', body: SDK_FINTO }));
+  },
+}, async ({ page, ok, sezione }) => {
+
+  await page.waitForTimeout(1800);
+  const apri = async ()=>{
+    await page.evaluate(async ()=>{
+      const m = await import('/js/settings.js');
+      m.openSettings();
+    });
+    await page.waitForTimeout(250);
+  };
+
+  sezione('sotto "Suoni di menu" non c\'è più una didascalia generica');
+  await apri();
+  const suoni = await page.evaluate(()=>{
+    const riga = document.getElementById('sound-toggle').closest('.settings-row');
+    const sel = document.getElementById('sound-pack');
+    return {
+      didascalie: riga.querySelectorAll('.settings-item span').length,
+      testo: riga.querySelector('.settings-item').textContent.trim(),
+      opzioni: sel ? Array.from(sel.options).map(o=>o.textContent) : null,
+      scelto: sel ? sel.value : null,
+      // Con un set solo il menu resta leggibile ma non si apre a vuoto.
+      spento: sel ? sel.disabled : null,
+      visibile: sel ? getComputedStyle(sel).display !== 'none' : null,
+    };
+  });
+  ok('la riga dell\'interruttore ha solo il titolo',
+     suoni.didascalie === 0 && suoni.testo === 'Suoni di menu', suoni);
+  ok('c\'è un menu per scegliere il set', suoni.visibile === true, suoni);
+  ok('e dentro c\'è il set attuale', /Final Fantasy VII/.test((suoni.opzioni||[]).join('|')), suoni);
+  ok('con un set solo non si apre a vuoto', suoni.spento === true, suoni);
+
+  sezione('sotto "Promemoria" non si scrive quello che l\'interruttore già dice');
+  const spento = await page.evaluate(async ()=>{
+    localStorage.setItem('inkflow_reminder_enabled', 'false');
+    const m = await import('/js/notifications.js');
+    m.updateReminderStatus();
+    const el = document.getElementById('reminder-status');
+    return { testo: el.textContent, altezza: Math.round(el.getBoundingClientRect().height) };
+  });
+  ok('a promemoria spento la riga non c\'è proprio',
+     spento.testo === '' && spento.altezza === 0, spento);
+
+  const acceso = await page.evaluate(async ()=>{
+    localStorage.setItem('inkflow_reminder_enabled', 'true');
+    const m = await import('/js/notifications.js');
+    m.updateReminderStatus();
+    const el = document.getElementById('reminder-status');
+    return { testo: el.textContent, altezza: Math.round(el.getBoundingClientRect().height) };
+  });
+  ok('e nemmeno a promemoria acceso, se va tutto bene',
+     acceso.testo === '' && acceso.altezza === 0, acceso);
+
+  sezione('ma parla quando il promemoria non suonerà mai');
+  // È il caso per cui la riga esiste ancora: acceso, e il telefono ha detto no.
+  // Senza avviso resterebbe un interruttore acceso che non fa niente, e da
+  // nessun'altra parte si vedrebbe il perché.
+  const negato = await page.evaluate(async ()=>{
+    Object.defineProperty(Notification, 'permission', { get:()=>'denied', configurable:true });
+    const m = await import('/js/notifications.js');
+    m.updateReminderStatus();
+    const el = document.getElementById('reminder-status');
+    return { testo: el.textContent, altezza: Math.round(el.getBoundingClientRect().height) };
+  });
+  ok('lo dice, e si vede', /permesso negato/i.test(negato.testo) && negato.altezza > 0, negato);
+
+  const negatoMaSpento = await page.evaluate(async ()=>{
+    localStorage.setItem('inkflow_reminder_enabled', 'false');
+    const m = await import('/js/notifications.js');
+    m.updateReminderStatus();
+    return document.getElementById('reminder-status').textContent;
+  });
+  ok('ma non se il promemoria è spento: lì non è un problema di nessuno',
+     negatoMaSpento === '', negatoMaSpento);
+
+});

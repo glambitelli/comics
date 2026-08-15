@@ -2,7 +2,7 @@ import { projects } from './state.js';
 import { db, COL, saveUserData, setDoc, doc, bumpDataRev } from './firebase.js';
 import { getStreak } from './evening.js';
 import { restoreReminderUI } from './notifications.js';
-import { isSoundEnabled, setSoundEnabled, playSfx } from './sound.js';
+import { isSoundEnabled, setSoundEnabled, playSfx, SET_SUONI, setSuoniAttivo, setSuoniScegli } from './sound.js';
 
 export function exportBackup(){
   const data = {
@@ -69,6 +69,20 @@ export function openSettings(){
   restoreReminderUI();
   const st = document.getElementById('sound-toggle');
   if(st) st.checked = isSoundEnabled();
+  riempiSetSuoni();
+}
+
+// Il menu dei set si costruisce dall'elenco in sound.js, non a mano
+// nell'HTML: aggiungerne uno deve restare una riga sola, in un posto solo.
+function riempiSetSuoni(){
+  const sel = document.getElementById('sound-pack');
+  if(!sel) return;
+  const attivo = setSuoniAttivo();
+  sel.innerHTML = SET_SUONI.map(s=>
+    `<option value="${s.id}"${s.id === attivo ? ' selected' : ''}>${s.nome}</option>`).join('');
+  // Con un set solo non c'è niente da scegliere: il menu resta visibile — dice
+  // COSA stai sentendo, ed è un'informazione — ma non si apre a vuoto.
+  sel.disabled = SET_SUONI.length < 2;
 }
 
 // Interruttore suoni: salva la preferenza e, se acceso, fa un piccolo suono
@@ -78,6 +92,15 @@ export function onSoundToggle(){
   const on = !!(st && st.checked);
   setSoundEnabled(on);
   if(on) playSfx('done');
+}
+
+// Cambio di set: come per l'interruttore, si sente subito com'è. Il suono parte
+// dopo il cambio, quindi è già quello nuovo.
+export function onSoundPackChange(){
+  const sel = document.getElementById('sound-pack');
+  if(!sel) return;
+  setSuoniScegli(sel.value);
+  if(isSoundEnabled()) playSfx('done');
 }
 
 export function closeSettings(){

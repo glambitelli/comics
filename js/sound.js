@@ -32,12 +32,47 @@ const GESTURE_WINDOW = 1000;
 // Un file per ciascun intento di haptic(): 'tap' navigazione, 'done' conferma,
 // 'reward' il momento clou (serata completata). 'cancel' è pronto per un
 // eventuale uso su annulla/elimina, ma non agganciato di default.
-const FILES = {
-  tap: './sfx/nav.wav',
-  done: './sfx/done.wav',
-  reward: './sfx/reward.wav',
-  cancel: './sfx/cancel.wav',
+const NOMI = {
+  tap: 'nav.wav',
+  done: 'done.wav',
+  reward: 'reward.wav',
+  cancel: 'cancel.wav',
 };
+
+// ── SET DI SUONI ──
+// Per ora ce n'è uno solo, e va benissimo così: quello che serviva era togliere
+// dal codice l'idea che ce ne sia UNO E BASTA. I nomi dei file sono gli stessi
+// per tutti i set (nav/done/reward/cancel), cambia solo la cartella — quindi
+// aggiungerne un secondo è copiare quattro .wav in sfx/<nome>/ e una riga qui,
+// senza toccare né il pannello né chi suona.
+//
+// Il set attuale sta in ./sfx/ e non in ./sfx/ff7/: spostarlo avrebbe rotto la
+// cache del Service Worker e i banchi di prova per un guadagno estetico. Il
+// campo `cartella` esiste apposta per non doverlo decidere adesso.
+export const SET_SUONI = [
+  { id: 'ff7', nome: 'Final Fantasy VII', cartella: './sfx/' },
+];
+const PACK_KEY = 'inkflow-sfx-pack';
+
+export function setSuoniAttivo(){
+  const v = localStorage.getItem(PACK_KEY);
+  return SET_SUONI.some(s=>s.id === v) ? v : SET_SUONI[0].id;
+}
+export function setSuoniScegli(id){
+  if(!SET_SUONI.some(s=>s.id === id)) return;
+  if(id === setSuoniAttivo()) return;
+  try{ localStorage.setItem(PACK_KEY, id); }catch(e){}
+  // I campioni già decodificati sono quelli VECCHI: si buttano, altrimenti si
+  // continuerebbe a sentire il set di prima fino alla ricarica della pagina.
+  Object.keys(_buffers).forEach(k=> delete _buffers[k]);
+  _loading = null;
+  unlockAudio();
+}
+
+function fileDi(intento){
+  const set = SET_SUONI.find(s=>s.id === setSuoniAttivo()) || SET_SUONI[0];
+  return set.cartella + NOMI[intento];
+}
 
 let _ctx = null;
 const _buffers = {};        // intento -> AudioBuffer decodificato
@@ -85,9 +120,9 @@ function preload(){
   if(_loading) return _loading;
   const ctx = getCtx();
   if(!ctx) return Promise.resolve();
-  _loading = Promise.all(Object.entries(FILES).map(async ([key, url])=>{
+  _loading = Promise.all(Object.keys(NOMI).map(async key=>{
     try{
-      const buf = await fetch(url).then(r=> r.ok ? r.arrayBuffer() : Promise.reject(r.status));
+      const buf = await fetch(fileDi(key)).then(r=> r.ok ? r.arrayBuffer() : Promise.reject(r.status));
       _buffers[key] = await ctx.decodeAudioData(buf);
     }catch(e){ /* suono mancante: pazienza, gli altri funzionano */ }
   }));
@@ -154,7 +189,7 @@ document.addEventListener('pointerup', e=>{
 // non attende nulla, non blocca l'azione che l'ha innescato.
 export function playSfx(intent){
   if(!isSoundEnabled()) return;
-  const key = FILES[intent] ? intent : null;
+  const key = NOMI[intent] ? intent : null;
   if(!key) return;
   const now = Date.now();
   const dentroUnGesto = (now - _gestureAt) < GESTURE_WINDOW;

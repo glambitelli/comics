@@ -82,6 +82,11 @@ body.is-touch .settings-panel{ padding-bottom:var(--safe-bot); }
 .settings-item{flex:1;min-width:0}
 .settings-item b{display:block;font-size:14.5px;font-weight:700;color:var(--ink);line-height:1.3}
 .settings-item span{display:block;font-size:12px;color:var(--ink3);line-height:1.4;margin-top:2px}
+/* Il "display:block" qui sopra ha più peso della proprietà nativa che dovrebbe
+   nascondere l'elemento: senza questa riga la didascalia del promemoria
+   resterebbe visibile SEMPRE, anche vuota — cioè una riga di aria che allarga
+   la scheda senza dire niente (stesso inciampo di .ar-clip-hint[hidden]). */
+.settings-item span[hidden]{display:none}
 /* Il separatore dentro la scheda arriva fino ai bordi: dice "sotto c'è
    un'altra cosa", non "qui il testo va a capo". */
 .settings-divider{height:1px;background:var(--sand2);margin:12px -14px}
@@ -95,6 +100,23 @@ body.is-touch .settings-panel{ padding-bottom:var(--safe-bot); }
   font-variant-numeric:tabular-nums;
 }
 .settings-time:focus{border-color:var(--oro)}
+/* Stessa pastiglia per il menu del set di suoni. Serve solo togliere l'aspetto
+   nativo — su Android è un rettangolo grigio che stonerebbe accanto all'orario
+   — e lasciare spazio alla freccetta disegnata qui sotto. Il nome del set può
+   essere lungo: si accorcia con l'ellissi invece di spingere fuori l'etichetta. */
+select.settings-time{
+  appearance:none;-webkit-appearance:none;cursor:pointer;
+  padding-right:26px;max-width:52%;
+  text-overflow:ellipsis;
+  background-image:linear-gradient(45deg,transparent 50%,var(--ink3) 50%),
+                   linear-gradient(135deg,var(--ink3) 50%,transparent 50%);
+  background-position:calc(100% - 14px) 50%, calc(100% - 9px) 50%;
+  background-size:5px 5px, 5px 5px;
+  background-repeat:no-repeat;
+}
+/* Con un set solo non c'è scelta da fare: resta leggibile (dice cosa stai
+   sentendo) ma senza la freccia, che prometterebbe un menu che non si apre. */
+select.settings-time:disabled{opacity:1;color:var(--ink);background-image:none;padding-right:11px;cursor:default}
 
 /* Interruttori in oro, non in verde. Il verde acceso (#48a848) veniva dalla
    vecchia palette "Ponyo" e nel pannello era l'unica cosa a quel volume:

@@ -129,4 +129,29 @@ module.exports = () => suite("Suoni — un tocco, un suono", {"banco": "/test/ba
   await page.evaluate(()=> window.tocca('#b1','tap',30));
   s = await conta();
   ok('il tocco ticchetta di nuovo', s.length === 1, s);
+  console.log('\n── il set di suoni ──');
+  // Ce n'e' uno solo, e va bene: quello che si prova qui e' che il codice non
+  // dia piu' per scontato che sia UNO E BASTA, e che il file suonato dipenda
+  // dal set scelto invece di essere scritto a mano.
+  const sets = await page.evaluate(async ()=>{
+    const m = await import('/js/sound.js');
+    return { elenco: m.SET_SUONI.map(x=>x.id), attivo: m.setSuoniAttivo() };
+  });
+  ok('c\'e\' almeno un set e uno e\' attivo',
+     sets.elenco.length >= 1 && sets.elenco.includes(sets.attivo), sets);
+
+  const scelta = await page.evaluate(async ()=>{
+    const m = await import('/js/sound.js');
+    localStorage.setItem('inkflow-sfx-pack', 'un-set-che-non-esiste');
+    return m.setSuoniAttivo();
+  });
+  ok('un set salvato che non esiste piu\' non zittisce l\'app',
+     scelta === sets.elenco[0], scelta);
+
+  await page.evaluate(()=>{ localStorage.removeItem('inkflow-sfx-pack'); window.azzera(); });
+  await page.evaluate(()=> window.playSfx('done'));
+  await page.waitForTimeout(400);
+  const dopoScelta = await page.evaluate(()=> window.__suoni);
+  ok('e i suoni continuano a uscire', dopoScelta.length === 1, dopoScelta);
+
 });

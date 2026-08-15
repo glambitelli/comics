@@ -689,10 +689,11 @@
         </div>
         <div class="settings-row">
           <span class="settings-ico"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></span>
-          <!-- Lo stato del reminder sta QUI, come didascalia della voce che
-               descrive. Prima era una riga a sé in color rame sotto la
-               sezione, e si leggeva come un errore invece che come un'informazione. -->
-          <label class="settings-item" for="reminder-toggle"><b>Promemoria</b><span id="reminder-status">Spento — nessuna notifica al mattino</span></label>
+          <!-- La didascalia sotto "Promemoria" compare SOLO quando c'è
+               qualcosa che non va (vedi updateReminderStatus): acceso o spento
+               lo dice già l'interruttore accanto, e ripeterlo a parole era una
+               riga di testo che non decideva niente. -->
+          <label class="settings-item" for="reminder-toggle"><b>Promemoria</b><span id="reminder-status" hidden></span></label>
           <input class="settings-toggle" type="checkbox" id="reminder-toggle" onchange="saveReminderSettings()"/>
         </div>
         <div class="settings-divider"></div>
@@ -705,8 +706,15 @@
       <div class="settings-card">
         <div class="settings-row">
           <span class="settings-ico"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a9 9 0 0 1 0 14"/></svg></span>
-          <label class="settings-item" for="sound-toggle"><b>Suoni di menu</b><span>Navigazione, conferme, serata completata</span></label>
+          <label class="settings-item" for="sound-toggle"><b>Suoni di menu</b></label>
           <input class="settings-toggle" type="checkbox" id="sound-toggle" onchange="onSoundToggle()"/>
+        </div>
+        <div class="settings-row">
+          <span class="settings-ico"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg></span>
+          <label class="settings-item" for="sound-pack"><b>Set</b></label>
+          <!-- Una sola voce per ora: il menu esiste perché il giorno che se ne
+               aggiunge un secondo non ci sia niente da disegnare. -->
+          <select class="settings-time" id="sound-pack" onchange="onSoundPackChange()"></select>
         </div>
       </div>
     </div>
