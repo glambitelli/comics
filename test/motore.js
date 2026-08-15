@@ -77,8 +77,14 @@ async function suite(nome, opzioni, corpo){
   page.on('pageerror', e=>{ console.log('  !! errore di pagina: ' + e.message); falliti++; });
   console.log('\n\x1b[1m' + nome + '\x1b[0m');
   try{
+    // `prima` serve alle suite che aprono l'APP VERA invece di un banco: e'
+    // l'unico momento in cui si possono intercettare le richieste (l'SDK di
+    // Firebase, i caratteri) prima che la pagina parta.
+    if(opzioni.prima) await opzioni.prima(page);
     await page.goto(base + opzioni.banco);
-    await page.waitForFunction(()=> window.__ready === true, { timeout: 15000 });
+    // I banchi alzano window.__ready quando hanno finito di montarsi; l'app
+    // vera no, e dice di essere pronta in un altro modo (vedi `pronto`).
+    await page.waitForFunction(opzioni.pronto || (()=> window.__ready === true), { timeout: 15000 });
     await corpo({ page, base, ok, sezione: t => console.log('\n  ── ' + t + ' ──') });
   }catch(e){
     falliti++;

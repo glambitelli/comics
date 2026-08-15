@@ -204,6 +204,27 @@ window.toggleEvening=toggleEvening;
 // ── Barra-duna: nascondi scrollando giù, mostra scrollando su ──
 (function(){
   if(!document.body.classList.contains('is-touch')) return;
+  // LA BARRA TORNA SEMPRE QUANDO SI CAMBIA SCHERMATA.
+  //
+  // Il difetto: entrando in un progetto e scorrendo, la barra si nasconde —
+  // giusto. Tornando indietro pero' restava nascosta, perche' a rimetterla non
+  // ci pensava nessuno: la home non riceve nessun evento di scorrimento se non
+  // la si scorre, quindi la barra spariva e basta.
+  //
+  // La cura non e' aggiungere una riga ai punti che riportano alla home: le
+  // strade sono piu' d'una (il tasto Indietro passa da hideAllScreens, il
+  // ritorno da dentro il progetto no) ed e' proprio da quella dimenticanza che
+  // il difetto e' nato. Qui invece si guarda direttamente CHE COSA succede —
+  // una schermata che si accende o si spegne — cosi' anche una strada che
+  // domani non esiste ancora e' gia' coperta.
+  (function riappariSuCambioSchermata(){
+    const nav = document.getElementById('dune-nav');
+    if(!nav || !window.MutationObserver) return;
+    const occhio = new MutationObserver(()=> nav.classList.remove('dune-hidden'));
+    document.querySelectorAll('.screen').forEach(sc=>
+      occhio.observe(sc, { attributes:true, attributeFilter:['class'] }));
+  })();
+
   function wireScrollHide(){
     const nav = document.getElementById('dune-nav');
     if(!nav) return;
