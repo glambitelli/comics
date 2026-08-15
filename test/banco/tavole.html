@@ -36,7 +36,7 @@ document.body.appendChild(document.importNode(doc.getElementById('ref-panel'), t
 const refs = await import('/js/refs.js');
 window.refs = refs;
 // Gli onclick inline dei tab chiamano un globale: nell'app lo mette main.js.
-['setFolderTab','refsBackToFolders','refsGridSearch','refsImageMenu',
+['setFolderTab','refsBackToFolders','refsImageMenu',
  'openRefLightbox','closeRefLightbox','deleteRefImageWithUndo',
  'promptLinkProjectFromLightbox','toggleRefsProfile','closeRefsProfile'].forEach(n=>{
   window[n] = (...a)=> Promise.resolve(refs).then(m=> m[n] && m[n](...a));

@@ -30,6 +30,11 @@
    (elenco cartelle, scaffale albi, griglia ritagli): "trova/riordina quello
    che c'è già", non una funzione diversa per ogni vista. ── */
 .refs-toolbar{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+/* La barra dei ritagli e delle tavole ha un comando solo, l'ordinamento: senza
+   il campo di ricerca accanto resterebbe spaiato a sinistra, lontano dal
+   pollice e come se mancasse qualcosa. Va a destra, dove sta anche nelle altre
+   due barre — li' e' l'ultimo elemento della riga. */
+.refs-toolbar-sola{justify-content:flex-end}
 .refs-search{
   flex:1;min-width:0;display:flex;align-items:center;gap:8px;
   background:var(--white);border:1.5px solid var(--sand2);border-radius:20px;

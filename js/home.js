@@ -38,6 +38,7 @@ export function getScriptment(p){
 }
 
 export function renderHome(){
+  aggiornaRicerca();
   const scroll = document.getElementById('home-scroll');
   scroll.querySelectorAll('.project-card').forEach(c => c.remove());
   const newBtn = scroll.querySelector('.home-new-add');
@@ -207,16 +208,32 @@ export async function createProject(){
 document.getElementById('modal').addEventListener('click', e => { if(e.target===e.currentTarget) closeModal(); });
 document.getElementById('new-title').addEventListener('keydown', e => { if(e.key==='Enter') createProject(); });
 
-export function toggleSearch(){
+// Da quanti progetti in su la ricerca comincia a servire.
+//
+// Prima si apriva da una lente nell'intestazione, appoggiata in fondo alla
+// riga "pipeline · tracker · storyboard": un glifo da 15px allineato a un
+// testo da 9px, l'unico comando di tutta la schermata piu' alta dell'app.
+// Stonava, ed era anche il posto sbagliato — la ricerca riguarda l'ELENCO, e
+// stava attaccata al titolo.
+//
+// Sopra la lista invece e' il posto ovvio, ma un campo sempre presente su una
+// lista di quattro progetti e' rumore: si legge tutta senza cercare niente.
+// Sei e' la soglia in cui lo schermo si riempie e per trovare un progetto
+// bisogna scorrere: da li' in poi il campo c'e', prima no. Nessuna lente da
+// premere in nessuno dei due casi.
+const SOGLIA_CERCA = 6;
+
+// Chiamata da renderHome ad ogni ridisegno: i progetti si creano e si
+// cancellano, e la soglia va riguardata ogni volta.
+function aggiornaRicerca(){
   const bar = document.getElementById('search-bar');
   const input = document.getElementById('search-input');
-  const visible = bar.style.display !== 'none';
-  bar.style.display = visible ? 'none' : 'block';
-  if(!visible){
-    filterProjects('');
-    // delay focus su mobile: evita che la tastiera salti su durante la transizione
-    setTimeout(()=>{ input.focus(); }, 350);
-  } else { input.value=''; filterProjects(''); }
+  if(!bar) return;
+  const serve = projects.length >= SOGLIA_CERCA;
+  bar.style.display = serve ? 'flex' : 'none';
+  // Sparendo si porta via anche il filtro: lasciarlo acceso nasconderebbe
+  // progetti senza piu' un campo visibile che ne spieghi il motivo.
+  if(!serve && input && input.value){ input.value = ''; filterProjects(''); }
 }
 
 export function filterProjects(query){

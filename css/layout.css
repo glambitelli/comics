@@ -127,8 +127,6 @@ body.is-touch #btn-evening,
 body.is-touch #btn-refs,
 body.is-touch #btn-stats,
 body.is-touch #btn-settings{display:none !important}
-/* La lente resta invece visibile su touch: sopra la lista progetti, come da browser */
-body.is-touch .header-search-btn{display:inline-flex !important}
 /* Nascondi anche il pulsante "esci dalla sera" flottante su touch (luce-fantasma) */
 body.is-touch #evening-exit,
 body.is-touch .evening-exit-btn,

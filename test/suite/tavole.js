@@ -18,7 +18,6 @@ module.exports = () => suite("References — Ritagli e Tavole dentro una cartell
       inGriglia: Array.from(document.querySelectorAll('.refs-thumb')).map(e=>e.dataset.id),
       vuotoVisibile: getComputedStyle(document.getElementById('refs-empty')).display !== 'none',
       vuotoTitolo: (document.querySelector('#refs-empty div:not(.refs-empty-sub)')||{}).textContent,
-      cerca: (document.getElementById('refs-grid-search-input')||{}).placeholder,
     };
   });
   const tocca = async tab=>{
@@ -41,7 +40,6 @@ module.exports = () => suite("References — Ritagli e Tavole dentro una cartell
   s = await stato();
   ok('il tab diventa attivo', s.attivo === 'tavole', s);
   ok('in griglia ci sono solo le tavole', s.inGriglia.every(id=>id[0]==='t') && s.inGriglia.length === 3, s);
-  ok('e la ricerca cambia etichetta', /tavole/i.test(s.cerca||''), s);
 
   sezione('la miniatura di una tavola mostra la pagina INTERA');
   // La misura vera: il rapporto fra i lati dell'immagine a schermo deve essere
@@ -110,15 +108,17 @@ module.exports = () => suite("References — Ritagli e Tavole dentro una cartell
   ok('e la sorgente torna quella piccola', formaR.sorgente === 300, formaR);
   await tocca('tavole');
 
-  sezione('la ricerca non si porta dietro il filtro dell\'altro scaffale');
-  await page.evaluate(()=> window.refs.refsGridSearch('pagina 1'));
-  await page.waitForTimeout(250);
-  const filtrate = await stato();
+  sezione('sulla griglia non c\'e\' nessun campo di ricerca');
+  // Tolto apposta: un ritaglio non ha un nome da ricordare. Resta l'ordinamento.
+  const barra = await page.evaluate(()=>({
+    campo: !!document.getElementById('refs-grid-search-input'),
+    ordina: !!document.querySelector('#refs-images-pane .refs-sort-btn'),
+  }));
+  ok('il campo non c\'e\' piu\'', !barra.campo, barra);
+  ok('ma il pulsante Ordina resta', barra.ordina, barra);
   await tocca('ritagli');
   s = await stato();
-  ok('cambiando tab il campo di ricerca si svuota',
-     !(await page.evaluate(()=>document.getElementById('refs-grid-search-input').value)), s);
-  ok('e si rivedono tutti i ritagli', s.inGriglia.length === 3, { s, filtrate });
+  ok('e si vedono tutti i ritagli', s.inGriglia.length === 3, s);
 
   sezione('una cartella senza tavole');
   await apri(2, 0);

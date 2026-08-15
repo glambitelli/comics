@@ -7,7 +7,7 @@ import { updatePlanner, applyPlanner, openPlannerModal, closePlannerModal } from
 import { initNotifications, saveReminderSettings, testNotification } from './notifications.js';
 import { openSettings, closeSettings, resetStarsConfirm, closeStarsConfirm, doResetStars, exportBackup, importBackup, resetStreakConfirm, closeStreakConfirm, doResetStreak, onSoundToggle } from './settings.js';
 window.onSoundToggle=onSoundToggle;
-import { renderHome, openNewModal, closeModal, createProject, openCardMenu, exportProjectJSON, confirmDeleteProject, openColorPicker, closeColorPicker, selectProjectColor, toggleSearch, filterProjects, attachCardDrag, applyProjectOrder, startSandstorm, getScriptment } from './home.js';
+import { renderHome, openNewModal, closeModal, createProject, openCardMenu, exportProjectJSON, confirmDeleteProject, openColorPicker, closeColorPicker, selectProjectColor, filterProjects, attachCardDrag, applyProjectOrder, startSandstorm, getScriptment } from './home.js';
 import { openProject, restoreProject, goHome, confirmDeleteCurrent, closeConfirm, confirmMicrotask } from './project.js';
 import { enterEveningMode as enterEveningImpl, exitEveningMode as exitEveningImpl } from './evening.js';
 // ── CARICAMENTO PIGRO DEI MODULI PESANTI ──────────────────────────────────
@@ -43,7 +43,7 @@ exposeLazy('./refs.js', ['refsBackToFolders','openRefLightbox','closeRefLightbox
   'openFolderBrowser','openAllGrid','openFolder','promptNewFolder','promptNewFolderFlow',
   'promptRenameFolder','promptDeleteFolder','refsFolderMenu','setFolderTab','albumShelfMenu',
   'connectDriveAndSync','disconnectDriveUI','toggleRefsProfile','closeRefsProfile',
-  'refsFolderSearch','refsGridSearch','refsAlbumsSearch','refsGridSortMenu','refsAlbumsSortMenu',
+  'refsFolderSearch','refsAlbumsSearch','refsGridSortMenu','refsAlbumsSortMenu',
   'promptLinkProjectFromLightbox','toggleProjectRefPanel']);
 exposeLazy('./albums.js', ['openAlbumPicker','openAlbumFromFile','openAlbumFromDrive',
   'createAlbumFromDriveFile']);
@@ -178,14 +178,6 @@ function toggleSettings(){
     openSettings();
   }
 }
-// Cerca: torna alla home e apre la ricerca (punto 4)
-function duneSearch(){
-  hideAllScreens();
-  document.getElementById('screen-home').classList.add('active');
-  if(window._resumeSand) window._resumeSand();
-  renderHome(); attachCardDrag();
-  setTimeout(()=>{ if(window.toggleSearch) window.toggleSearch(); }, 80);
-}
 // Toggle giorno/sera dal pulsante luna della barra-duna
 function toggleEvening(){
   if(document.body.classList.contains('evening-mode')){
@@ -198,7 +190,7 @@ function toggleEvening(){
 window.openStats=openStats;
 window.closeStats=closeStats;
 window.toggleSettings=toggleSettings;
-window.duneSearch=duneSearch;
+
 window.toggleEvening=toggleEvening;
 
 // ── Barra-duna: nascondi scrollando giù, mostra scrollando su ──
@@ -358,7 +350,7 @@ window.doResetStars=doResetStars; window.exportBackup=exportBackup; window.impor
 window.resetStreakConfirm=resetStreakConfirm; window.closeStreakConfirm=closeStreakConfirm; window.doResetStreak=doResetStreak;
 window.openCardMenu=openCardMenu; window.exportProjectJSON=exportProjectJSON; window.confirmDeleteProject=confirmDeleteProject;
 window.openColorPicker=openColorPicker; window.closeColorPicker=closeColorPicker; window.selectProjectColor=selectProjectColor;
-window.toggleSearch=toggleSearch; window.filterProjects=filterProjects; window.autoResizeAll=autoResizeAll;
+window.filterProjects=filterProjects; window.autoResizeAll=autoResizeAll;
 
 // ─────────────────────────────────────────────────────────
 // Navigazione con la cronologia del browser (tasto Indietro)

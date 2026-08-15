@@ -46,12 +46,17 @@ let _folderTab = 'ritagli';      // 'albi' | 'ritagli' | 'tavole'
 let _lastUploadError = '';
 
 // ── RICERCA E ORDINAMENTO ──
+// Si cerca dove le cose hanno un NOME: le cartelle e gli albi. Sulla griglia
+// dei ritagli e delle tavole il campo c'era e se n'è andato — nessuno ricorda
+// come si chiama un ritaglio, si riconosce guardandolo, e un campo che non si
+// userà mai è solo una riga in meno di immagini a schermo. Lì resta
+// l'ordinamento, che è l'unica cosa che cambia davvero cosa vedi per primo.
+//
 // Il testo si azzera cambiando cartella/vista (vedi openFolder/openAllGrid/
-// openFolderBrowser): un filtro dimenticato acceso nasconderebbe ritagli
-// senza spiegazione. L'ordinamento invece è un'abitudine — resta impostato
-// finché non lo cambi tu, per tutta la sessione.
+// openFolderBrowser): un filtro dimenticato acceso nasconderebbe roba senza
+// spiegazione. L'ordinamento invece è un'abitudine — resta impostato finché
+// non lo cambi tu, per tutta la sessione.
 let _folderQuery = '';                 // cerca cartelle nell'elenco
-let _gridQuery = '';                   // cerca ritagli (opera/pagina/artista)
 let _gridSort = 'recenti';             // 'recenti' | 'vecchi' | 'artista'
 let _albumQuery = '';                  // cerca albi (titolo)
 let _albumSort = 'recenti';            // 'recenti' | 'vecchi' | 'titolo'
@@ -670,7 +675,7 @@ export function getFolders(){ return _folders; }
 // gli <input> a schermo vanno svuotati insieme a loro, altrimenti il campo
 // mostrerebbe ancora il testo cercato anche se il filtro è già stato tolto.
 function clearSearchInputs(){
-  ['refs-folder-search-input','refs-grid-search-input','refs-albums-search-input'].forEach(id=>{
+  ['refs-folder-search-input','refs-albums-search-input'].forEach(id=>{
     const el = document.getElementById(id);
     if(el) el.value = '';
   });
@@ -684,16 +689,15 @@ export function openFolderBrowser(){
 }
 export function openAllGrid(){
   _view = 'all'; _activeFolderId = null;
-  _gridQuery = '';
   clearSearchInputs();
   if(window.__navSync) window.__navSync('refs-all', null);
   renderRefsScreen();
 }
 export function openFolder(id){
   _view = 'folder'; _activeFolderId = id;
-  // La ricerca resta legata a dove sei: portarsela dietro da una cartella
-  // all'altra nasconderebbe ritagli senza che se ne veda il motivo.
-  _gridQuery = ''; _albumQuery = '';
+  // La ricerca degli albi resta legata a dove sei: portarsela dietro da una
+  // cartella all'altra nasconderebbe albi senza che se ne veda il motivo.
+  _albumQuery = '';
   clearSearchInputs();
   if(window.__navSync) window.__navSync('refs-folder', id);
   // Si apre sul tab che ha qualcosa dentro: se la cartella ha albi parte da lì,
@@ -725,13 +729,6 @@ export function setFolderTab(tab){
   if(tab !== 'albi' && tab !== 'ritagli' && tab !== 'tavole') return;
   if(_folderTab === tab) return;
   _folderTab = tab;
-  // La ricerca è per tab: quella scritta fra i ritagli non deve seguirti fra le
-  // tavole e farti credere che siano poche. Si azzera solo il campo della
-  // griglia — quello degli albi ha uno stato suo (_albumQuery) e svuotargli
-  // l'input senza azzerare anche quello lo farebbe mentire.
-  _gridQuery = '';
-  const cerca = document.getElementById('refs-grid-search-input');
-  if(cerca) cerca.value = '';
   // Niente haptic('tap') qui: la tab è un <button onclick>, già coperta dal
   // tick diffuso su pointerdown (sound.js) — chiamarlo anche qui suonava due
   // volte per un solo tocco (stesso motivo del pulsante ritaglia in albums.js).
@@ -787,10 +784,6 @@ export async function promptDeleteFolder(id){
 export function refsFolderSearch(value){
   _folderQuery = value || '';
   renderFolderBrowser();
-}
-export function refsGridSearch(value){
-  _gridQuery = value || '';
-  renderRefsGrid();
 }
 export function refsAlbumsSearch(value){
   _albumQuery = value || '';
@@ -926,14 +919,6 @@ function renderFolderTabs(){
   // ritocco fatto da una parte sola.
   albumsPane.style.display = _folderTab === 'albi' ? 'block' : 'none';
   imagesPane.style.display = _folderTab === 'albi' ? 'none' : 'block';
-  // Le etichette del pannello cambiano faccia col tab: "Cerca ritagli…" fra le
-  // tavole sarebbe una bugia piccola ma continua.
-  const cerca = document.getElementById('refs-grid-search-input');
-  if(cerca && _folderTab !== 'albi'){
-    const q = _folderTab === 'tavole' ? 'Cerca tavole…' : 'Cerca ritagli…';
-    cerca.placeholder = q;
-    cerca.setAttribute('aria-label', q.replace('…',''));
-  }
   if(_folderTab === 'albi'){
     renderAlbumsShelf();
     syncDriveAlbumsForFolder(_activeFolderId);
@@ -1146,17 +1131,6 @@ export function refsFolderMenu(id, btnEl){
 // Testo cercato contro l'artista (nome cartella) e la provenienza (opera,
 // eventuale artista di origine se il ritaglio vive altrove — es. in Studio):
 // gli unici campi che un ritaglio porta sempre con sé.
-function refMatchesQuery(r, q){
-  const bits = [];
-  const f = _folders.find(x=>x.id===r.folderId);
-  if(f) bits.push(f.name);
-  if(r.provenance){
-    if(r.provenance.opera) bits.push(r.provenance.opera);
-    const pf = r.provenance.folderId && _folders.find(x=>x.id===r.provenance.folderId);
-    if(pf) bits.push(pf.name);
-  }
-  return bits.join(' ').toLowerCase().includes(q);
-}
 
 function sortRefsList(list){
   const arr = list.slice();
@@ -1189,15 +1163,12 @@ function rawGridList(){
 }
 
 function currentGridList(){
-  const raw = rawGridList();
-  const q = _gridQuery.trim().toLowerCase();
-  return sortRefsList(q ? raw.filter(r=>refMatchesQuery(r,q)) : raw);
+  return sortRefsList(rawGridList());
 }
 
 export function renderRefsGrid(){
   const grid = document.getElementById('refs-grid');
   const empty = document.getElementById('refs-empty');
-  const noResults = document.getElementById('refs-noresults');
   if(!grid) return;
 
   const list = currentGridList();
@@ -1217,14 +1188,13 @@ export function renderRefsGrid(){
         ? 'Apri un albo, e col pulsante coi quattro angoli in alto salvi la pagina intera: finisce qui.'
         : 'Trascinane una qui, incollala, o usa "Condividi" dal telefono';
     }
-    // Stessa distinzione dello scaffale albi: cartella vuota vs ricerca a vuoto.
-    const isSearchMiss = _gridQuery.trim() && rawGridList().length > 0;
-    if(empty) empty.style.display = isSearchMiss ? 'none' : 'flex';
-    if(noResults) noResults.style.display = isSearchMiss ? 'flex' : 'none';
+    // Un solo stato vuoto, da quando non si cerca piu' qui: se la griglia e'
+    // vuota lo scaffale e' vuoto, non c'e' l'altro caso ("c'e' roba ma il
+    // filtro la nasconde") da distinguere.
+    if(empty) empty.style.display = 'flex';
     return;
   }
   if(empty) empty.style.display='none';
-  if(noResults) noResults.style.display='none';
 
   // Le tavole si guardano INTERE. Nella griglia dei ritagli la miniatura è un
   // quadrato ritagliato al centro (object-fit:cover): per un pezzo di pagina va

@@ -96,23 +96,18 @@
     <div class="home-title" onclick="goHomeFromLogo()" style="cursor:pointer" role="button" tabindex="0" aria-label="Torna alla home">Inkflow <span style="font-size:.6em;color:#f0c020;vertical-align:.14em;font-weight:400">✦</span></div>
     <div class="home-sub-row">
       <div class="home-sub">pipeline · tracker · storyboard <span class="sync-dot" id="sync-dot"></span><span style="margin-left:6px;opacity:.4;font-size:8px;letter-spacing:.06em">v1.0.0</span></div>
-      <button onclick="toggleSearch()" class="header-search-btn" aria-label="Cerca progetto">
-        <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M15.2 15.2 20 20" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
-      </button>
     </div>
   </div>
   <div class="home-scroll" id="home-scroll">
-    <div id="search-bar" style="display:none;margin-bottom:10px">
-      <div style="display:flex;align-items:center;gap:8px;background:var(--white);border-radius:12px;padding:8px 14px;box-shadow:var(--shadow);border:1.5px solid var(--sand2)">
-        <svg viewBox="0 0 24 24" width="14" height="14" style="display:block;flex-shrink:0;color:var(--ink3)" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M15.2 15.2 20 20" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
-        <input id="search-input" type="text" placeholder="Cerca progetto…" oninput="filterProjects(this.value)"
-          style="flex:1;background:none;border:none;font-family:'Nunito',sans-serif;font-size:13px;color:var(--ink);outline:none"/>
-        <button onclick="toggleSearch()" style="background:none;border:none;font-size:13px;color:var(--ink3);cursor:pointer;padding:0;line-height:1">✕</button>
-      </div>
-    </div>
     <!-- Citazione del giorno — in alto, centrata -->
     <div id="home-quote" style="text-align:center;padding:6px 8px 2px"></div>
     <div style="height:1px;background:var(--sand2);margin:14px 4px 18px"></div>
+    <!-- Attaccata alla lista che filtra, sotto la citazione: compare da sola
+         quando i progetti sono tanti (vedi SOGLIA_CERCA in home.js). -->
+    <div id="search-bar" class="home-search" style="display:none">
+      <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M15.2 15.2 20 20" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+      <input id="search-input" type="text" placeholder="Cerca progetto…" oninput="filterProjects(this.value)" aria-label="Cerca progetto"/>
+    </div>
     <button class="home-new-add" onclick="openNewModal()" aria-label="Nuovo progetto">+</button>
   </div>
   <div class="home-fab-row">
@@ -233,11 +228,10 @@
       </div>
      </div>
      <div id="refs-images-pane">
-      <div class="refs-toolbar">
-        <div class="refs-search">
-          <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M15.2 15.2 20 20" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
-          <input id="refs-grid-search-input" type="text" placeholder="Cerca ritagli…" oninput="window.refsGridSearch(this.value)" aria-label="Cerca ritagli">
-        </div>
+      <!-- Niente campo di ricerca qui: un ritaglio e una tavola non hanno un
+           nome che qualcuno possa ricordarsi. Si cercano guardandoli, quindi
+           l'unico comando che serve e' con quale ordine sfilano. -->
+      <div class="refs-toolbar refs-toolbar-sola">
         <button class="refs-sort-btn" onclick="window.refsGridSortMenu(this)" aria-label="Ordina ritagli" title="Ordina">
           <svg viewBox="0 0 24 24" width="15" height="15"><path d="M7 15 L7 5 M7 5 L4 8 M7 5 L10 8" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M17 9 L17 19 M17 19 L14 16 M17 19 L20 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
@@ -254,11 +248,6 @@
         <svg viewBox="0 0 24 24" style="width:34px;height:34px;opacity:.3"><rect x="3" y="4" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="8" cy="9.5" r="1.4" fill="currentColor"/><path d="M4 16 L9 11 L13 15 L16 12 L20 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
         <div>Ancora nessuna immagine</div>
         <div class="refs-empty-sub">Trascinane una qui, incollala, o usa "Condividi" dal telefono</div>
-      </div>
-      <div id="refs-noresults" class="refs-empty-state">
-        <svg viewBox="0 0 24 24" style="width:34px;height:34px;opacity:.3"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M15.2 15.2 20.5 20.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-        <div>Nessun ritaglio trovato</div>
-        <div class="refs-empty-sub">Prova con un altro artista, opera o pagina</div>
       </div>
      </div>
     </div>
