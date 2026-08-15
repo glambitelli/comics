@@ -1,0 +1,59 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8">
+<title>banco di prova — i due scaffali di una cartella</title>
+<!-- Come il banco della galleria: js/refs.js e js/dialogs.js sono QUELLI VERI,
+     finti solo Firestore, Drive, Cloudinary e la compressione. La differenza è
+     che qui si inietta l'INTERA schermata References di index.html — servono i
+     tab, la griglia, la barra di ricerca e gli stati vuoti, non solo la
+     lightbox. Anche qui il markup si prende dal file vero: una copia
+     invecchierebbe da sola. -->
+<script type="importmap">
+{ "imports": {
+  "/js/firebase.js":    "/test/finti/firebase.js",
+  "/js/state.js":       "/test/finti/state.js",
+  "/js/imgcompress.js": "/test/finti/imgcompress.js",
+  "/js/cloudinary.js":  "/test/finti/cloudinary.js",
+  "/js/drive.js":       "/test/finti/drive.js"
+} }
+</script>
+<link rel="stylesheet" href="/css/variables.css">
+<link rel="stylesheet" href="/css/modals.css">
+<link rel="stylesheet" href="/css/refs.css">
+<link rel="stylesheet" href="/css/layout.css">
+<style>html,body{margin:0;height:100%;background:#111}
+/* Nell'app la schermata attiva la mostra main.js: qui non c'è, e senza questo
+   la si misurerebbe mentre è ancora nascosta (tutte le altezze a zero). */
+#screen-refs{display:flex;flex-direction:column;height:100%}</style>
+</head><body>
+<script type="module">
+const html = await (await fetch('/index.html')).text();
+const doc = new DOMParser().parseFromString(html, 'text/html');
+document.body.appendChild(document.importNode(doc.getElementById('screen-refs'), true));
+document.body.appendChild(document.importNode(doc.getElementById('refs-lightbox'), true));
+
+const refs = await import('/js/refs.js');
+window.refs = refs;
+// Gli onclick inline dei tab chiamano un globale: nell'app lo mette main.js.
+['setFolderTab','refsBackToFolders','refsGridSearch','refsImageMenu',
+ 'openRefLightbox','closeRefLightbox','deleteRefImageWithUndo',
+ 'toggleRefsProfile','closeRefsProfile'].forEach(n=>{
+  window[n] = (...a)=> Promise.resolve(refs).then(m=> m[n] && m[n](...a));
+});
+
+// Una cartella con dentro un po' di tutto. Le immagini sono canvas minuscoli
+// trasformati in data URL: la griglia le carica davvero, senza rete.
+window.semina = (ritagli, tavole)=>{
+  const foto = (pre, n, tav) => Array.from({length:n},(_,i)=>{
+    const c = document.createElement('canvas'); c.width = 8; c.height = 8;
+    const x = c.getContext('2d'); x.fillStyle = tav ? '#c05a3a' : '#2a6aa0'; x.fillRect(0,0,8,8);
+    return { id:pre+i, url:c.toDataURL('image/png'), projectIds:[], projectId:null,
+             folderId:'F1', tavola:tav, source:'clip',
+             provenance:{ opera:'Akira', pagina:i+1, folderId:'F1' } };
+  });
+  const arr = refs.getRefs(); arr.length = 0;
+  arr.push(...foto('r', ritagli, false), ...foto('t', tavole, true));
+  const cart = refs.getFolders(); cart.length = 0;
+  cart.push({ id:'F1', category:'Artists', name:'OTOMO' });
+};
+window.__ready = true;
+</script>
+</body></html>

@@ -254,9 +254,24 @@ module.exports = () => suite("Ritaglio — maniglie del riquadro e peso del file
   await page.evaluate(()=> document.querySelector('[data-act="confirmclip"]').dispatchEvent(new MouseEvent('click',{bubbles:true})));
   await page.waitForTimeout(1500);
   const salvato = await page.evaluate(()=> ({ n: window.__salvati,
+    tavola: (window.__ultimoSalvato||{}).tavola,
     toast: (document.querySelector('.ar-toast')||{}).textContent,
     clip: !!document.querySelector('.ar-clip.active') }));
   ok('il frammento della tavola intera arriva al salvataggio', salvato.n === 1, salvato);
+  ok('ed e\' marcato come TAVOLA, cosi\' finisce nel suo scaffale', salvato.tavola === true, salvato);
+
+  console.log('\n── un riquadro tirato a mano resta un ritaglio ──');
+  // Il marchio segue l'INTENZIONE, non la geometria: anche un riquadro
+  // grandissimo, se l'ha tirato il dito, e' un ritaglio.
+  await accendiRitaglio();
+  await disegna(10, 10, 400, 700);
+  await page.waitForTimeout(700);
+  await page.evaluate(()=>{ window.__salvati = 0; window.__ultimoSalvato = null; });
+  await page.evaluate(()=> document.querySelector('[data-act="confirmclip"]').dispatchEvent(new MouseEvent('click',{bubbles:true})));
+  await page.waitForTimeout(1500);
+  const aMano = await page.evaluate(()=> ({ n: window.__salvati, tavola: (window.__ultimoSalvato||{}).tavola }));
+  ok('un riquadro disegnato col dito non diventa una tavola',
+     aMano.n === 1 && aMano.tavola === false, aMano);
 
   console.log('\n── un gesto rubato dal sistema non lascia il ritaglio a meta\' ──');
   // Android, tenendo premuto su un'immagine, apre il suo menu e si prende il

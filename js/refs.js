@@ -30,10 +30,19 @@ let _foldersUnsub = null;
 let _albumsUnsub = null;
 let _view = 'folders';           // 'folders' | 'all' | 'folder'
 let _activeFolderId = null;
-// Dentro una cartella vera convivono due assi: gli albi (fumetti da .cbr/.cbz)
-// e i ritagli (immagini sciolte). Nelle viste "All" e "senza cartella" i tab
-// non compaiono: lì si guardano solo immagini.
-let _folderTab = 'ritagli';      // 'albi' | 'ritagli'
+// Dentro una cartella vera convivono TRE assi: gli albi (fumetti da .cbr/.cbz),
+// i ritagli (pezzi di pagina) e le tavole (pagine intere). Nelle viste "All" e
+// "senza cartella" i tab non compaiono: lì si guardano solo immagini, tutte
+// insieme.
+//
+// PERCHÉ TAVOLE STA A PARTE. Sono la stessa cosa tecnica di un ritaglio — un
+// pezzo di JPEG su Cloudinary — ma non si guardano per lo stesso motivo. Un
+// ritaglio si cerca ("una mano così"), una tavola si sfoglia ("com'era messa
+// insieme quella pagina"). Mescolate, una tavola intera in griglia vale sei
+// ritagli di spazio e li sommerge. La divisione qui NON costa niente a chi
+// archivia: chi salva non sceglie, la scelta l'ha già fatta premendo "tutta la
+// tavola" invece di tirare un riquadro.
+let _folderTab = 'ritagli';      // 'albi' | 'ritagli' | 'tavole'
 let _lastUploadError = '';
 
 // ── RICERCA E ORDINAMENTO ──
@@ -106,7 +115,7 @@ function warmDerived(url, w = THUMB_W){
 // ── SALVATAGGIO IMMAGINE ──
 // Cattura sempre istantanea e senza cartella: si archivia dopo, dal lightbox,
 // così drag&drop/incolla/condivisione restano al primo colpo.
-export async function addRefImage(file, source='file', folderId=null){
+export async function addRefImage(file, source='file', folderId=null, tavola=currentUploadIsTavola()){
   if(!file || !file.type || !file.type.startsWith('image/')){
     console.warn('addRefImage: file non immagine ignorato', file&&file.type);
     return null;
@@ -125,6 +134,7 @@ export async function addRefImage(file, source='file', folderId=null){
       folderId: folderId || null,
       addedAt: serverTimestamp(),
       w, h, bytes: blob.size,
+      tavola: !!tavola,
     };
     await setDoc(doc(db, REFS_COL, id), data);
     return id;
@@ -142,7 +152,7 @@ export async function addRefImage(file, source='file', folderId=null){
 // così il frammento sa da dove viene.
 export async function addRefBlob(blob, opts={}){
   if(!blob) return null;
-  const { folderId=null, source='clip', provenance=null, w=null, h=null, onProgress=null } = opts;
+  const { folderId=null, source='clip', provenance=null, w=null, h=null, onProgress=null, tavola=false } = opts;
   const id = genId();
   try{
     // L'estensione segue il formato vero del blob: da quando i ritagli
@@ -160,6 +170,8 @@ export async function addRefBlob(blob, opts={}){
       folderId: folderId || null,
       addedAt: serverTimestamp(),
       w, h, bytes: blob.size,
+      // In quale dei due scaffali della cartella finisce (vedi isTavola).
+      tavola: !!tavola,
     };
     if(provenance) data.provenance = provenance;
     await setDoc(doc(db, REFS_COL, id), data);
@@ -276,13 +288,28 @@ function currentUploadFolderId(){
   return _view === 'folder' ? _activeFolderId : null;
 }
 
+// Un'immagine aggiunta MENTRE si sta guardando le tavole nasce tavola.
+//
+// Non è un capriccio: senza questa riga, trascinare una scansione nel tab
+// Tavole la faceva sparire all'istante — veniva creata come ritaglio e il
+// filtro della griglia la mandava nell'altro scaffale, davanti agli occhi di
+// chi l'aveva appena lasciata cadere. Il posto dove stai È la risposta alla
+// domanda "dove la metto", esattamente come lo è già la cartella.
+function currentUploadIsTavola(){
+  return _view === 'folder' && !!_activeFolderId && _folderTab === 'tavole';
+}
+
 export async function addRefImages(fileList, source='file', folderId=currentUploadFolderId()){
   const files = Array.from(fileList).filter(f=>f.type && f.type.startsWith('image/'));
   if(!files.length) return 0;
+  // Deciso UNA volta per tutto il gruppo, non file per file: caricare dieci
+  // scansioni dura decine di secondi e nulla vieta di cambiare tab nel mezzo —
+  // meta' finirebbero in uno scaffale e meta' nell'altro.
+  const tavola = currentUploadIsTavola();
   setUploadStatus('loading', files.length===1 ? 'Caricamento in corso…' : `Caricamento di ${files.length} immagini…`);
   let ok=0;
   for(const f of files){
-    const id = await addRefImage(f, source, folderId);
+    const id = await addRefImage(f, source, folderId, tavola);
     if(id) ok++;
   }
   if(ok===0){
@@ -339,6 +366,41 @@ function foldersByCategory(){
 
 function countInFolder(folderId){
   return _refs.filter(r=>r.folderId===folderId).length;
+}
+
+// Una tavola è un'immagine salvata col pulsante "tutta la tavola" del lettore:
+// si riconosce dal campo `tavola`, scritto al salvataggio (vedi
+// exportCropAndSave in albums.js). Tutto il resto — ritagli veri, file
+// trascinati, immagini condivise dal telefono — sta fra i ritagli.
+//
+// È un campo NUOVO e non un valore in più dentro `source`, che pure sembrava
+// più economico: `source` racconta da dove è entrata l'immagine ("clip",
+// "file", "share") e resta vero per sempre, mentre questo è uno scaffale e si
+// può cambiare idea (vedi il menu del tocco prolungato). Sovrascrivendo
+// `source` per spostare una foto fra i due scaffali si sarebbe persa per
+// strada l'unica traccia di come era arrivata.
+//
+// I documenti scritti prima di oggi non hanno il campo: `!!undefined` è false,
+// quindi finiscono tutti fra i ritagli — che è esattamente dov'erano.
+//
+// La funzione è UNA e la usano sia i conteggi che il filtro della griglia:
+// avere due definizioni di "cos'è una tavola" in due punti diversi è il modo
+// classico per ritrovarsi un numero sul tab che non corrisponde a quello che
+// si vede sotto.
+export function isTavola(r){ return !!(r && r.tavola); }
+
+// Spostare a mano un'immagine fra i due scaffali. Serve perché la classifica
+// automatica ha un caso che sbaglia per forza: la pagina intera archiviata
+// tirando il riquadro fino ai bordi, prima che esistesse il pulsante dedicato.
+export function setRefTavola(id, tavola){
+  setDoc(doc(db, REFS_COL, id), { tavola: !!tavola }, {merge:true});
+}
+
+function countRitagliInFolder(folderId){
+  return _refs.filter(r=>r.folderId===folderId && !isTavola(r)).length;
+}
+function countTavoleInFolder(folderId){
+  return _refs.filter(r=>r.folderId===folderId && isTavola(r)).length;
 }
 
 function countAlbumsByFolder(folderId){
@@ -580,6 +642,8 @@ async function migrateLegacyBase64Refs(){
 }
 
 export function getRefs(){ return _refs; }
+// Serve solo ai banchi di prova, che seminano una cartella senza Firestore.
+export function getFolders(){ return _folders; }
 
 // ── NAVIGAZIONE INTERNA (cartelle ↔ galleria) ──
 // Entrare in una cartella (o in "All") registra un secondo livello nella
@@ -621,7 +685,12 @@ export function openFolder(id){
   if(window.__navSync) window.__navSync('refs-folder', id);
   // Si apre sul tab che ha qualcosa dentro: se la cartella ha albi parte da lì,
   // altrimenti sui ritagli. Evita di sbattere in faccia una schermata vuota.
-  _folderTab = countAlbumsByFolder(id) > 0 ? 'albi' : 'ritagli';
+  // "Tavole" entra in questo giro solo come ultima spiaggia: una cartella con
+  // dentro solo pagine intere è rara, ma se capita è meglio aprirla lì che su
+  // un "Ancora nessuna immagine" che smentisce il numero sul tab accanto.
+  _folderTab = countAlbumsByFolder(id) > 0 ? 'albi'
+    : (countRitagliInFolder(id) === 0 && countTavoleInFolder(id) > 0) ? 'tavole'
+    : 'ritagli';
   renderRefsScreen();
 }
 
@@ -640,9 +709,16 @@ export function refsBackToFolders(){
 }
 
 export function setFolderTab(tab){
-  if(tab !== 'albi' && tab !== 'ritagli') return;
+  if(tab !== 'albi' && tab !== 'ritagli' && tab !== 'tavole') return;
   if(_folderTab === tab) return;
   _folderTab = tab;
+  // La ricerca è per tab: quella scritta fra i ritagli non deve seguirti fra le
+  // tavole e farti credere che siano poche. Si azzera solo il campo della
+  // griglia — quello degli albi ha uno stato suo (_albumQuery) e svuotargli
+  // l'input senza azzerare anche quello lo farebbe mentire.
+  _gridQuery = '';
+  const cerca = document.getElementById('refs-grid-search-input');
+  if(cerca) cerca.value = '';
   // Niente haptic('tap') qui: la tab è un <button onclick>, già coperta dal
   // tick diffuso su pointerdown (sound.js) — chiamarlo anche qui suonava due
   // volte per un solo tocco (stesso motivo del pulsante ritaglia in albums.js).
@@ -818,20 +894,33 @@ function renderFolderTabs(){
     return;
   }
 
-  const nAlbi = countAlbumsByFolder(_activeFolderId);
-  const nRitagli = countInFolder(_activeFolderId);
   const albiN = document.getElementById('refs-tab-albi-n');
   const ritagliN = document.getElementById('refs-tab-ritagli-n');
-  if(albiN) albiN.textContent = nAlbi;
-  if(ritagliN) ritagliN.textContent = nRitagli;
+  const tavoleN = document.getElementById('refs-tab-tavole-n');
+  if(albiN) albiN.textContent = countAlbumsByFolder(_activeFolderId);
+  if(ritagliN) ritagliN.textContent = countRitagliInFolder(_activeFolderId);
+  if(tavoleN) tavoleN.textContent = countTavoleInFolder(_activeFolderId);
 
-  const btnAlbi = document.getElementById('refs-tab-albi');
-  const btnRitagli = document.getElementById('refs-tab-ritagli');
-  if(btnAlbi) btnAlbi.classList.toggle('active', _folderTab === 'albi');
-  if(btnRitagli) btnRitagli.classList.toggle('active', _folderTab === 'ritagli');
+  ['albi','ritagli','tavole'].forEach(t=>{
+    const b = document.getElementById('refs-tab-'+t);
+    if(b) b.classList.toggle('active', _folderTab === t);
+  });
 
+  // Ritagli e tavole condividono lo STESSO pannello: sono immagini uguali,
+  // cambia solo quali si vedono (vedi rawGridList). Duplicare la griglia
+  // significherebbe duplicare anche lightbox, ricerca, ordinamento e menu del
+  // tocco prolungato — quattro cose che si sarebbero disallineate al primo
+  // ritocco fatto da una parte sola.
   albumsPane.style.display = _folderTab === 'albi' ? 'block' : 'none';
   imagesPane.style.display = _folderTab === 'albi' ? 'none' : 'block';
+  // Le etichette del pannello cambiano faccia col tab: "Cerca ritagli…" fra le
+  // tavole sarebbe una bugia piccola ma continua.
+  const cerca = document.getElementById('refs-grid-search-input');
+  if(cerca && _folderTab !== 'albi'){
+    const q = _folderTab === 'tavole' ? 'Cerca tavole…' : 'Cerca ritagli…';
+    cerca.placeholder = q;
+    cerca.setAttribute('aria-label', q.replace('…',''));
+  }
   if(_folderTab === 'albi'){
     renderAlbumsShelf();
     syncDriveAlbumsForFolder(_activeFolderId);
@@ -1075,9 +1164,13 @@ function sortRefsList(list){
 
 function rawGridList(){
   if(_view === 'folder'){
-    return _activeFolderId
-      ? _refs.filter(r=>r.folderId===_activeFolderId)
-      : _refs.filter(r=>!r.folderId);
+    // Dentro una cartella vera il tab decide anche COSA si vede: pezzi di
+    // pagina fra i ritagli, pagine intere fra le tavole. Fuori (All, "senza
+    // cartella") i tab non ci sono e si vede tutto insieme — lì la domanda è
+    // "dov'è finita quell'immagine", e nasconderne metà sarebbe un dispetto.
+    if(!_activeFolderId) return _refs.filter(r=>!r.folderId);
+    const tavole = _folderTab === 'tavole';
+    return _refs.filter(r=>r.folderId===_activeFolderId && isTavola(r) === tavole);
   }
   return _refs;
 }
@@ -1099,6 +1192,18 @@ export function renderRefsGrid(){
   if(!list.length){
     grid.innerHTML='';
     grid.dataset.sig = '';
+    // Fra le tavole il vuoto si spiega in modo diverso: non manca "un'immagine
+    // da trascinare qui", manca il gesto che le crea — e chi non l'ha ancora
+    // trovato non ha modo di indovinarlo da solo.
+    if(empty && _view === 'folder' && _activeFolderId){
+      const t = _folderTab === 'tavole';
+      const tit = empty.querySelector('div:not(.refs-empty-sub)');
+      const sub = empty.querySelector('.refs-empty-sub');
+      if(tit) tit.textContent = t ? 'Ancora nessuna tavola' : 'Ancora nessuna immagine';
+      if(sub) sub.textContent = t
+        ? 'Apri un albo, e col pulsante coi quattro angoli in alto salvi la pagina intera: finisce qui.'
+        : 'Trascinane una qui, incollala, o usa "Condividi" dal telefono';
+    }
     // Stessa distinzione dello scaffale albi: cartella vuota vs ricerca a vuoto.
     const isSearchMiss = _gridQuery.trim() && rawGridList().length > 0;
     if(empty) empty.style.display = isSearchMiss ? 'none' : 'flex';
@@ -2019,9 +2124,16 @@ function applyLbResistance(dx, w){
 export function refsImageMenu(anchorEl, imageId){
   const id = imageId || (document.getElementById('refs-lightbox')||{}).dataset?.id;
   if(!id) return;
+  // La voce cambia verso a seconda di dove sta l'immagine adesso: è l'unico
+  // modo per rimettere a posto una pagina intera archiviata a mano prima che
+  // esistesse il pulsante "tutta la tavola" — e viceversa.
+  const r = _refs.find(x=>x.id===id);
+  const eTavola = isTavola(r);
   actionMenu(anchorEl, [
     { label:'Collega a un progetto…', onSelect:()=>promptLinkProject(id, anchorEl) },
     { label:'Sposta in cartella…', onSelect:()=>promptMoveImage(id, anchorEl) },
+    { label: eTavola ? 'Sposta fra i ritagli' : 'Sposta fra le tavole',
+      onSelect:()=>{ setRefTavola(id, !eTavola); haptic('done'); } },
     { label:'Elimina', danger:true, onSelect:()=>deleteRefImageWithUndo(id) },
   ]);
 }

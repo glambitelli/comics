@@ -1,0 +1,133 @@
+// References — i due scaffali di una cartella: Ritagli e Tavole
+const { suite } = require('../motore.js');
+
+module.exports = () => suite("References — Ritagli e Tavole dentro una cartella", {"banco": "/test/banco/tavole.html"}, async ({ page, base, ok, sezione }) => {
+
+  const apri = async (ritagli, tavole)=>{
+    await page.evaluate(([r,t])=>{ window.semina(r,t); window.refs.openFolder('F1'); }, [ritagli, tavole]);
+    await page.waitForTimeout(300);
+  };
+  const stato = ()=> page.evaluate(()=>{
+    const n = id => (document.getElementById(id)||{}).textContent;
+    const attivo = ['albi','ritagli','tavole'].find(t=>
+      (document.getElementById('refs-tab-'+t)||{classList:{contains:()=>false}}).classList.contains('active'));
+    return {
+      albiN: n('refs-tab-albi-n'), ritagliN: n('refs-tab-ritagli-n'), tavoleN: n('refs-tab-tavole-n'),
+      attivo,
+      tabVisibili: document.getElementById('refs-tabs').classList.contains('show'),
+      inGriglia: Array.from(document.querySelectorAll('.refs-thumb')).map(e=>e.dataset.id),
+      vuotoVisibile: getComputedStyle(document.getElementById('refs-empty')).display !== 'none',
+      vuotoTitolo: (document.querySelector('#refs-empty div:not(.refs-empty-sub)')||{}).textContent,
+      cerca: (document.getElementById('refs-grid-search-input')||{}).placeholder,
+    };
+  });
+  const tocca = async tab=>{
+    await page.evaluate(t=> document.getElementById('refs-tab-'+t)
+      .dispatchEvent(new MouseEvent('click',{bubbles:true})), tab);
+    await page.waitForTimeout(300);
+  };
+
+  sezione('una cartella con tre ritagli e due tavole');
+  await apri(3, 2);
+  let s = await stato();
+  ok('i tab si vedono dentro una cartella', s.tabVisibili, s);
+  ok('c\'è un tab Tavole col suo numero', s.tavoleN === '2', s);
+  ok('e i ritagli sono contati a parte, senza le tavole', s.ritagliN === '3', s);
+  ok('si apre sui ritagli', s.attivo === 'ritagli', s);
+  ok('e in griglia ci sono solo quelli', s.inGriglia.every(id=>id[0]==='r') && s.inGriglia.length === 3, s);
+
+  sezione('passando a Tavole');
+  await tocca('tavole');
+  s = await stato();
+  ok('il tab diventa attivo', s.attivo === 'tavole', s);
+  ok('in griglia ci sono solo le tavole', s.inGriglia.every(id=>id[0]==='t') && s.inGriglia.length === 2, s);
+  ok('e la ricerca cambia etichetta', /tavole/i.test(s.cerca||''), s);
+
+  sezione('la ricerca non si porta dietro il filtro dell\'altro scaffale');
+  await page.evaluate(()=> window.refs.refsGridSearch('pagina 1'));
+  await page.waitForTimeout(250);
+  const filtrate = await stato();
+  await tocca('ritagli');
+  s = await stato();
+  ok('cambiando tab il campo di ricerca si svuota',
+     !(await page.evaluate(()=>document.getElementById('refs-grid-search-input').value)), s);
+  ok('e si rivedono tutti i ritagli', s.inGriglia.length === 3, { s, filtrate });
+
+  sezione('una cartella senza tavole');
+  await apri(2, 0);
+  await tocca('tavole');
+  s = await stato();
+  ok('il tab c\'è lo stesso, a zero', s.tavoleN === '0', s);
+  ok('e il vuoto spiega DA DOVE arrivano le tavole',
+     s.vuotoVisibile && /nessuna tavola/i.test(s.vuotoTitolo||''), s);
+
+  sezione('una cartella di sole tavole si apre già sulle tavole');
+  await apri(0, 3);
+  s = await stato();
+  ok('non sbatte in faccia un tab vuoto', s.attivo === 'tavole', s);
+  ok('e le mostra tutte', s.inGriglia.length === 3, s);
+
+  sezione('spostare a mano un\'immagine fra i due scaffali');
+  await apri(2, 1);
+  const scritta = await page.evaluate(()=>{
+    window.__scritture = [];
+    window.refs.setRefTavola('r0', true);
+    return window.__scritture[0];
+  });
+  ok('si scrive il campo giusto sul documento giusto',
+     scritta && scritta.col === 'refs' && scritta.id === 'r0' && scritta.data.tavola === true, scritta);
+  // Nell'app l'eco arriva dal listener di Firestore; qui la si applica a mano.
+  await page.evaluate(()=>{
+    window.refs.getRefs().find(r=>r.id==='r0').tavola = true;
+    window.refs.renderRefsScreen();
+  });
+  await page.waitForTimeout(250);
+  const dopo = await page.evaluate(()=>({
+    ritagliN: document.getElementById('refs-tab-ritagli-n').textContent,
+    tavoleN: document.getElementById('refs-tab-tavole-n').textContent,
+    inGriglia: Array.from(document.querySelectorAll('.refs-thumb')).map(e=>e.dataset.id),
+  }));
+  ok('il ritaglio promosso sparisce dai ritagli', !dopo.inGriglia.includes('r0'), dopo);
+  ok('e i due numeri si aggiornano insieme',
+     dopo.ritagliN === '1' && dopo.tavoleN === '2', dopo);
+
+  sezione('il menu del tocco prolungato offre il verso giusto');
+  const vociRitaglio = await page.evaluate(async ()=>{
+    await window.refsImageMenu(document.body, 'r1');
+    return Array.from(document.querySelectorAll('.ink-action-menu button')).map(b=>b.textContent);
+  });
+  await page.evaluate(()=> document.body.dispatchEvent(new MouseEvent('click',{bubbles:true})));
+  await page.waitForTimeout(150);
+  const vociTavola = await page.evaluate(async ()=>{
+    await window.refsImageMenu(document.body, 't0');
+    return Array.from(document.querySelectorAll('.ink-action-menu button')).map(b=>b.textContent);
+  });
+  ok('su un ritaglio propone di spostarlo fra le tavole',
+     vociRitaglio.some(v=>/fra le tavole/i.test(v)), vociRitaglio);
+  ok('su una tavola propone il contrario',
+     vociTavola.some(v=>/fra i ritagli/i.test(v)), vociTavola);
+
+  sezione('fuori da una cartella i tab non ci sono e si vede tutto');
+  await page.evaluate(()=>{ window.semina(3,2); window.refs.openAllGrid(); });
+  await page.waitForTimeout(300);
+  s = await stato();
+  ok('niente tab in "All"', !s.tabVisibili, s);
+  ok('e ci sono ritagli e tavole insieme',
+     s.inGriglia.length === 5 && s.inGriglia.some(i=>i[0]==='t') && s.inGriglia.some(i=>i[0]==='r'), s);
+
+  sezione('i tre tab stanno in riga senza accavallarsi');
+  await apri(3, 2);
+  const righe = await page.evaluate(()=>{
+    const b = ['albi','ritagli','tavole'].map(t=> document.getElementById('refs-tab-'+t).getBoundingClientRect());
+    return {
+      unaRiga: Math.abs(b[0].top - b[2].top) < 1,
+      dentro: b[2].right <= window.innerWidth,
+      separati: b[1].left >= b[0].right && b[2].left >= b[1].right,
+      destra: Math.round(b[2].right), largo: window.innerWidth,
+    };
+  });
+  ok('sono tutti e tre sulla stessa riga', righe.unaRiga, righe);
+  ok('non escono dallo schermo', righe.dentro, righe);
+  ok('e non si sovrappongono', righe.separati, righe);
+
+});

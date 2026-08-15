@@ -1940,6 +1940,17 @@ function wireClip(ov){
   // ritaglio già fatto — poteva solo uscire dalla modalità PRIMA di disegnare.
   let pendingSel = null;
   let resizeCorner = null; // angolo in trascinamento, o null
+  // Se il riquadro in attesa è stato messo lì dal pulsante "tutta la tavola" e
+  // non dal dito. È l'unica cosa che distingue una TAVOLA da un RITAGLIO al
+  // momento del salvataggio, e da lì dipende in quale dei due scaffali della
+  // cartella finisce (vedi isTavola in refs.js).
+  //
+  // Si guarda l'INTENZIONE, non la geometria. Misurare quanto il riquadro
+  // copre della pagina sarebbe stato più furbo e più sbagliato: un ritaglio a
+  // tutta larghezza su una splash page verrebbe promosso a tavola senza che
+  // nessuno l'abbia chiesto, e il confine "quanto è abbastanza" non lo si
+  // indovina — è una soglia che un giorno tradisce.
+  let tavolaIntera = false;
 
   // Pastiglie di destinazione: la prima è la cartella da cui stai leggendo
   // (i Ritagli dell'artista), poi le cartelle di Studio. Toccarne una salva
@@ -2019,6 +2030,7 @@ function wireClip(ov){
   ov._clipReset = ()=>{
     pendingSel = null;
     drawing = false;
+    tavolaIntera = false;
     resizeCorner = null;
     box.hidden = true;
     _anticipo = null;
@@ -2089,6 +2101,9 @@ function wireClip(ov){
 
   const start = (px, py)=>{
     pendingSel = null;
+    // Il dito ha ricominciato a disegnare: qualunque cosa ci fosse prima —
+    // compresa la tavola intera messa dal pulsante — non conta più.
+    tavolaIntera = false;
     showConfirm(false);
     lr = layer.getBoundingClientRect();
     sx = px - lr.left; sy = py - lr.top;
@@ -2276,12 +2291,14 @@ function wireClip(ov){
     box.style.height = r.h + 'px';
     pendingSel = { left: r.x, top: r.y, width: r.w, height: r.h };
     drawing = false;
+    tavolaIntera = true;
     haptic('tap');
     showConfirm(true);
   };
 
   ov._clipRetry = ()=>{
     pendingSel = null;
+    tavolaIntera = false;
     box.hidden = true;
     clearTimeout(_anticipoT);
     _anticipo = null;
@@ -2300,16 +2317,20 @@ function wireClip(ov){
     // un'ultima maniglia spostata un attimo prima di confermare lo rende
     // vecchio, e salvare quello vecchio sarebbe un ritaglio sbagliato.
     const pronto = (_anticipo && _anticipo.chiave === chiaveSel(sel)) ? _anticipo.promessa : null;
+    // Letto PRIMA di azzerarlo: da qui in poi si passa dai await del
+    // caricamento, e nel frattempo toggleClip lo rimette a false.
+    const tavola = tavolaIntera;
     clearTimeout(_anticipoT);
     _anticipo = null;
     pendingSel = null;
+    tavolaIntera = false;
     showConfirm(false);
     // Risolta ORA e non alla creazione del lettore: il ritaglio deve usare la
     // tavola effettivamente a schermo, non il buffer diventato nel frattempo
     // quello nascosto.
     const img = readerImg();
     if(!img) return;
-    await commitClip(img, sel, layer, destFolderId, pronto);
+    await commitClip(img, sel, layer, destFolderId, pronto, tavola);
     box.hidden = true;
   };
 
@@ -2352,7 +2373,7 @@ function geometriaRitaglio(img, sel, layer){
 }
 
 // Ritaglia il rettangolo selezionato dalla pagina a piena risoluzione.
-async function commitClip(img, sel, layer, destFolderId, pronto){
+async function commitClip(img, sel, layer, destFolderId, pronto, tavola){
   const g = geometriaRitaglio(img, sel, layer);
   if(!g){ toast('Riquadro fuori dalla pagina, riprova.', true); toggleClip(false); return; }
 
@@ -2364,7 +2385,7 @@ async function commitClip(img, sel, layer, destFolderId, pronto){
   // davanti. L'elemento a schermo è a piena risoluzione (il conto del crop
   // usa già il suo naturalWidth/naturalHeight), quindi il risultato non
   // cambia di un pixel.
-  const done = exportCropAndSave(img, g.cx, g.cy, g.cw, g.ch, destFolderId, pronto);
+  const done = exportCropAndSave(img, g.cx, g.cy, g.cw, g.ch, destFolderId, pronto, tavola);
   // La modalità ritaglio si chiude SUBITO: il caricamento su Cloudinary
   // prosegue in sottofondo e si annuncia da solo col banner. Prima l'intera
   // interfaccia restava bloccata per tutta la durata della rete.
@@ -2479,8 +2500,8 @@ async function preparaRitaglio(sourceImg, cx, cy, cw, ch){
 //
 // `pronto` è la preparazione avviata mentre si sceglieva la destinazione (vedi
 // anticipaRitaglio in wireClip): se c'è, qui non si aspetta niente.
-async function exportCropAndSave(sourceImg, cx, cy, cw, ch, destFolderId, pronto){
-  toast('Ritaglio in corso…', false, true);
+async function exportCropAndSave(sourceImg, cx, cy, cw, ch, destFolderId, pronto, tavola){
+  toast(tavola ? 'Salvataggio della tavola…' : 'Ritaglio in corso…', false, true);
 
   // Provenienza e destinazione lette ORA, non dopo l'upload: da quando il
   // caricamento prosegue in sottofondo si può già voltare pagina mentre è in
@@ -2523,24 +2544,28 @@ async function exportCropAndSave(sourceImg, cx, cy, cw, ch, destFolderId, pronto
     toast('Ritaglio in corso… ' + pct + '%', false, true);
   };
 
-  let id = await addRefBlob(blob, { folderId, source: 'clip', provenance, w, h, onProgress: avanzamento });
+  let id = await addRefBlob(blob, { folderId, source: 'clip', provenance, w, h, onProgress: avanzamento, tavola });
   // Rete di sicurezza sul formato: se il caricamento non riesce col WebP si
   // riprova UNA volta in JPEG. Il preset di Cloudinary è fuori da questo
   // repository e potrebbe non accettarlo: meglio un ritaglio più pesante che
   // un ritaglio perso, e senza doverlo scoprire dall'utente.
   if(!id && webp){
     const ripiego = await encode('image/jpeg', 0.88);
-    if(ripiego) id = await addRefBlob(ripiego, { folderId, source: 'clip', provenance, w, h, onProgress: avanzamento });
+    if(ripiego) id = await addRefBlob(ripiego, { folderId, source: 'clip', provenance, w, h, onProgress: avanzamento, tavola });
   }
   if(id){
     haptic('done');
     // Solo le destinazioni scelte a mano: la cartella corrente è già in cima
     // per conto suo, e ricordarla spingerebbe giù gli studi davvero usati.
     if(destFolderId && destFolderId !== sourceFolderId) rememberClipDest(destFolderId);
+    // Il messaggio dice anche IN QUALE DEI DUE SCAFFALI e' finita: una tavola
+    // non compare fra i ritagli, e senza dirlo si va a cercarla dove non c'e'.
     const destName = destFolderId ? getFolderName(destFolderId) : null;
-    toast(destName ? ('Salvato in ' + destName + ' ✓') : 'Frammento salvato ✓');
+    const dove = tavola ? ' · Tavole' : '';
+    toast(destName ? ('Salvato in ' + destName + dove + ' \u2713')
+                   : (tavola ? 'Tavola salvata \u2713' : 'Frammento salvato \u2713'));
   }
-  else { toast('Salvataggio del frammento fallito.', true); }
+  else { toast(tavola ? 'Salvataggio della tavola fallito.' : 'Salvataggio del frammento fallito.', true); }
 }
 
 // ── INIT ────────────────────────────────────────────────────────────────────
