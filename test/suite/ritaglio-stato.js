@@ -83,4 +83,5 @@ module.exports = () => suite("Ritaglio — lo stato non sopravvive alla chiusura
   await page.waitForTimeout(300);
   s = await page.evaluate(()=>window.stato());
   ok('e "Ritaglia" risponde al PRIMO tocco', s.clipAcceso && s.livelloVisibile && s.istruzioni, s);
+
 });

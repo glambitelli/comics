@@ -745,7 +745,7 @@ function buildReaderDOM(){
         </div>
       </div>
       <div class="ar-clip-hint" hidden>
-        <span class="ar-clip-hint-instruct">Trascina un riquadro sulla pagina · <button class="ar-cancelclip" data-act="cancelclip">annulla</button></span>
+        <span class="ar-clip-hint-instruct">Trascina un riquadro sulla pagina<button class="ar-clip-tutta" data-act="tuttalatavola">Tutta la tavola</button><button class="ar-cancelclip" data-act="cancelclip">annulla</button></span>
         <div class="ar-clip-hint-confirm" hidden>
           <div class="ar-clip-row">
             <span class="ar-clip-label" data-label="recenti">Recenti</span>
@@ -772,6 +772,7 @@ function buildReaderDOM(){
     else if(act === 'last') gotoPage(_pages.length - 1);
     else if(act === 'cancelclip') toggleClip(false);
     else if(act === 'retryclip'){ if(ov._clipRetry) ov._clipRetry(); }
+    else if(act === 'tuttalatavola'){ if(ov._clipTutta) ov._clipTutta(); }
     // La pastiglia della destinazione È la conferma: un gesto solo invece di
     // "conferma" e poi "scegli dove".
     else if(act === 'confirmclip'){ if(ov._clipConfirm) ov._clipConfirm(b.dataset.dest || null); }
@@ -2060,8 +2061,8 @@ function wireClip(ov){
     box.classList.toggle('pending', on);
   };
 
-  const syncPendingSelFromBox = ()=>{
-    if(!pendingSel) return;
+  const syncPendingSelFromBox = (forza)=>{
+    if(!pendingSel && !forza) return;
     pendingSel = {
       left: parseFloat(box.style.left), top: parseFloat(box.style.top),
       width: parseFloat(box.style.width), height: parseFloat(box.style.height),
@@ -2232,6 +2233,28 @@ function wireClip(ov){
   window.addEventListener('touchend', moveEnd, { passive:true });
 
   // Richiamate dal tap su "Riprova"/"✓ Conferma" (vedi il click delegato più sopra).
+  // ── TUTTA LA TAVOLA ──
+  // Ritagliare una pagina intera era possibile ma scomodo: bisognava tirare il
+  // riquadro fino agli angoli senza sbordare, e sbordando si prendeva
+  // "Riquadro fuori dalla pagina". È anche il caso più frequente quando si
+  // archivia una tavola che piace tutta, non un pannello. Qui il riquadro si
+  // disegna da solo esattamente sull'immagine — bande nere escluse — e si va
+  // dritti alla scelta della destinazione.
+  ov._clipTutta = ()=>{
+    const img = readerImg();
+    if(!img) return;
+    const r = renderedImageRect(img, layer);
+    box.hidden = false;
+    box.style.left = r.x + 'px';
+    box.style.top = r.y + 'px';
+    box.style.width = r.w + 'px';
+    box.style.height = r.h + 'px';
+    pendingSel = { left: r.x, top: r.y, width: r.w, height: r.h };
+    drawing = false;
+    haptic('tap');
+    showConfirm(true);
+  };
+
   ov._clipRetry = ()=>{
     pendingSel = null;
     box.hidden = true;
@@ -2240,6 +2263,12 @@ function wireClip(ov){
     showConfirm(false);
   };
   ov._clipConfirm = async (destFolderId)=>{
+    // Se il riquadro è a schermo ma la selezione in memoria si è persa — un
+    // gesto interrotto dal sistema, il menu lungo di Android che ruba il
+    // touchend — si riparte da quello che si VEDE invece di non fare niente.
+    // Un pulsante che non risponde e non spiega è la cosa peggiore qui: si
+    // aveva già disegnato, e non si capisce cosa manchi.
+    if(!pendingSel && !box.hidden) syncPendingSelFromBox(true);
     if(!pendingSel) return;
     const sel = pendingSel;
     // Il lavoro anticipato vale solo se riguarda ESATTAMENTE questo riquadro:
@@ -2271,6 +2300,17 @@ function wireClip(ov){
   }, { passive:true });
   layer.addEventListener('touchmove', e=>{ move(e.touches[0].clientX, e.touches[0].clientY); e.preventDefault(); }, { passive:false });
   layer.addEventListener('touchend', end, { passive:true });
+  // Android, tenendo premuto su un'immagine, apre il suo menu ("salva
+  // immagine", "cerca con Lens") e si PRENDE il gesto: arriva un touchcancel e
+  // il touchend non arriva mai. Senza questa riga il riquadro restava a metà,
+  // disegnato ma mai confermato, e il tocco successivo non capiva più niente.
+  layer.addEventListener('touchcancel', ()=>{ if(drawing) end(); }, { passive:true });
+  // E il menu, mentre si ritaglia, è sempre e solo un incidente: non si sta
+  // salvando un'immagine dal web, si sta tirando un riquadro. Fuori dal
+  // ritaglio resta dov'era. Quanto vada tenuto premuto perché compaia lo
+  // decide Android e non è regolabile dalla pagina: si può solo lasciarlo
+  // passare o fermarlo, e qui va fermato.
+  layer.addEventListener('contextmenu', e=> e.preventDefault());
 }
 
 // Dal riquadro sullo schermo alle coordinate dentro la tavola a piena
@@ -2429,8 +2469,15 @@ async function exportCropAndSave(sourceImg, cx, cy, cw, ch, destFolderId, pronto
     folderId: sourceFolderId || null,   // cartella artista di origine
   };
 
-  const preparato = await (pronto || preparaRitaglio(sourceImg, cx, cy, cw, ch));
-  if(!preparato){ toast('Ritaglio fallito.', true); return; }
+  // L'anticipo è una SCORCIATOIA, non un requisito: se per qualunque motivo non
+  // ha prodotto niente — la tavola non ancora decodificata quando è partito, un
+  // gesto di sistema che ha interrotto tutto a metà — si prepara adesso invece
+  // di arrendersi. Senza questa riga un'ottimizzazione poteva far fallire il
+  // ritaglio in silenzio: si confermava, non si salvava niente, e la barra
+  // restava lì come se nulla fosse.
+  let preparato = pronto ? await pronto : null;
+  if(!preparato) preparato = await preparaRitaglio(sourceImg, cx, cy, cw, ch);
+  if(!preparato){ toast('Ritaglio fallito.', true); toggleClip(false); return; }
   const { blob, w, h, webp, encode } = preparato;
 
   // folderId e provenance sono stati catturati in cima, prima di qualunque

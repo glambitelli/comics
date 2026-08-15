@@ -457,7 +457,18 @@ body.is-touch .ar-nav{display:none} /* su mobile si naviga con swipe/tap */
    nascondere l'elemento: senza questa riga la scritta resterebbe visibile
    SEMPRE, anche fuori dalla modalità ritaglio, qualunque cosa facesse il JS. */
 .ar-clip-hint[hidden]{display:none}
-.ar-clip-hint-instruct{align-self:center;text-align:center}
+.ar-clip-hint-instruct{
+  align-self:center;text-align:center;
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;
+}
+/* Scorciatoia per la pagina intera: sta accanto all'istruzione perché è
+   un'alternativa AL disegnare, non un'azione su un riquadro già fatto. */
+.ar-clip-tutta{
+  border:1px solid rgba(217,164,23,.5);background:rgba(217,164,23,.14);color:#e8c060;
+  border-radius:999px;padding:5px 13px;cursor:pointer;
+  font-family:'Nunito',sans-serif;font-size:12.5px;font-weight:700;white-space:nowrap;
+}
+.ar-clip-tutta:active{background:rgba(217,164,23,.26)}
 
 /* DUE RIGHE, non più una sola.
    Prima le cartelle recenti e le macro-categorie stavano affiancate sulla

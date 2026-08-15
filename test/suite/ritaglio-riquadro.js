@@ -202,4 +202,68 @@ module.exports = () => suite("Ritaglio — maniglie del riquadro e peso del file
   ok('e sale, non scende mai', perc.every((n,i)=> i===0 || n >= perc[i-1]), perc);
   ok('non arriva a 100 prima di essere davvero salvato', perc.every(n=> n < 100), perc);
   ok('e alla fine lo dice', /salvat/i.test(scritte[scritte.length-1] || ''), scritte.slice(-3));
+
+  console.log('\n── "Tutta la tavola": il riquadro si disegna da solo ──');
+  // Il pulsante forbici e' un INTERRUTTORE: cliccarlo alla cieca puo' spegnere
+  // il ritaglio invece di accenderlo, a seconda di come l'ha lasciato la
+  // sezione prima. Si accende solo se serve.
+  const accendiRitaglio = async ()=>{
+    await page.evaluate(()=>{
+      if(!document.querySelector('.ar-clip.active'))
+        document.querySelector('.ar-clip').dispatchEvent(new MouseEvent('click',{bubbles:true}));
+    });
+    await page.waitForTimeout(220);
+  };
+  await accendiRitaglio();
+  await page.evaluate(()=> document.querySelector('[data-act="tuttalatavola"]').dispatchEvent(new MouseEvent('click',{bubbles:true})));
+  await page.waitForTimeout(250);
+  const tutta = await page.evaluate(()=>{
+    const b = document.querySelector('.ar-clipbox');
+    const im = document.querySelectorAll('.ar-cell')[1].querySelector('.ar-img');
+    const ir = im.getBoundingClientRect(), lr = document.querySelector('.ar-cliplayer').getBoundingClientRect();
+    return {
+      visibile: !b.hidden,
+      inAttesa: b.classList.contains('pending'),
+      destinazioni: !document.querySelector('.ar-clip-hint-confirm').hidden,
+      // il riquadro deve coprire l'immagine renderizzata, non il livello
+      largo: parseFloat(b.style.width), altoB: parseFloat(b.style.height),
+      largoImg: Math.round(ir.width), altoImg: Math.round(ir.height),
+      sinistra: parseFloat(b.style.left), sinistraImg: Math.round(ir.left - lr.left),
+    };
+  });
+  ok('il riquadro compare gia\' disegnato', tutta.visibile && tutta.inAttesa, tutta);
+  ok('e si va dritti alla scelta della destinazione', tutta.destinazioni, tutta);
+  ok('copre tutta la tavola, bande escluse',
+     Math.abs(tutta.largo - tutta.largoImg) < 2 && Math.abs(tutta.altoB - tutta.altoImg) < 2, tutta);
+  ok('ed e\' allineato con l\'immagine, non col livello',
+     Math.abs(tutta.sinistra - tutta.sinistraImg) < 2, tutta);
+
+  console.log('\n── confermando si salva davvero ──');
+  await page.evaluate(()=>{ window.__salvati = 0; });
+  await page.evaluate(()=> document.querySelector('[data-act="confirmclip"]').dispatchEvent(new MouseEvent('click',{bubbles:true})));
+  await page.waitForTimeout(1500);
+  const salvato = await page.evaluate(()=> ({ n: window.__salvati,
+    toast: (document.querySelector('.ar-toast')||{}).textContent,
+    clip: !!document.querySelector('.ar-clip.active') }));
+  ok('il frammento della tavola intera arriva al salvataggio', salvato.n === 1, salvato);
+
+  console.log('\n── un gesto rubato dal sistema non lascia il ritaglio a meta\' ──');
+  // Android, tenendo premuto su un'immagine, apre il suo menu e si prende il
+  // gesto: arriva touchcancel e il touchend non arriva mai.
+  await accendiRitaglio();
+  await page.evaluate(()=>{
+    const lay = document.querySelector('.ar-cliplayer');
+    const r = lay.getBoundingClientRect();
+    const t = (x,y)=> [new Touch({identifier:1, target:lay, clientX:r.left+x, clientY:r.top+y})];
+    lay.dispatchEvent(new TouchEvent('touchstart',{bubbles:true,touches:t(60,120),targetTouches:t(60,120)}));
+    lay.dispatchEvent(new TouchEvent('touchmove',{bubbles:true,cancelable:true,touches:t(300,420),targetTouches:t(300,420)}));
+    lay.dispatchEvent(new TouchEvent('touchcancel',{bubbles:true,touches:[],targetTouches:[]}));
+  });
+  await page.waitForTimeout(250);
+  await page.evaluate(()=>{ window.__salvati = 0; });
+  await page.evaluate(()=> document.querySelector('[data-act="confirmclip"]').dispatchEvent(new MouseEvent('click',{bubbles:true})));
+  await page.waitForTimeout(900);
+  const dopoStrappo = await page.evaluate(()=> window.__salvati);
+  ok('il riquadro tirato prima dello strappo si conferma lo stesso', dopoStrappo === 1, dopoStrappo);
+
 });
