@@ -82,23 +82,23 @@
 .refs-cat-add:active{color:var(--ottone);transform:scale(.88)}
 
 /* ── IL NOME DI UN ARTISTA ──
-   Due pesi sulla stessa riga: il COGNOME ancora, il nome accompagna. E' la
-   forma delle didascalie da museo e dei credits di un albo, ed e' anche
-   l'ordine in cui si cerca un disegnatore a memoria — per cognome. Il nome in
-   minuscolo e in corsivo serve a non farne un secondo titolo: se avesse lo
-   stesso peso, la riga tornerebbe a essere una stringa sola scritta in due
-   modi. Lora invece di Nunito perche' e' il serif che l'app usa gia' per il
-   testo di lettura: accanto al cognome tutto maiuscolo fa il contrasto giusto
-   fra "etichetta" e "voce". */
-.rf-cognome{
-  font-weight:800;letter-spacing:.045em;text-transform:uppercase;
-  color:var(--ink);font-size:13px;
-}
-.rf-nome{
-  font-family:'Lora',serif;font-style:italic;text-transform:lowercase;
-  font-size:13px;font-weight:400;color:var(--ink3);margin-left:6px;
-  letter-spacing:0;
-}
+   Cognome in maiuscolo, nome com'e' scritto, stesso carattere di tutte le
+   altre righe: "OTOMO Katsuhiro". Nient'altro.
+   
+   La prima versione ci aveva messo il nome in Lora corsivo minuscolo, in un
+   grigio piu' chiaro: la forma delle didascalie da museo. Fuori posto — quel
+   serif in tutta l'app compare solo nei testi lunghi da leggere, e in un
+   elenco di cartelle diventava un carattere estraneo comparso per una riga
+   sola. La distinzione fra cognome e nome sta nei DATI (due campi sul
+   documento, vedi nomeCartella in refs.js) e non ha bisogno di essere gridata
+   anche a schermo: il maiuscolo basta a farla vedere.
+   
+   Le regole qui sotto sono quindi quasi vuote apposta, e devono restarlo:
+   tutto il resto — famiglia, corpo, peso, colore — si eredita da
+   .refs-folder-name, cosi' una riga di artista e una riga qualunque restano
+   la stessa cosa senza doverle tenere allineate a mano. */
+.rf-cognome{text-transform:uppercase}
+.rf-nome{margin-left:5px}
 
 .refs-folder-row{display:flex;align-items:center;gap:10px;background:var(--white);border:1.5px solid var(--sand2);border-radius:11px;padding:10px 12px;margin-bottom:6px;cursor:pointer}
 .refs-folder-ico{width:20px;height:20px;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#d8b060}

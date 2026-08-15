@@ -19,17 +19,25 @@ module.exports = () => suite("References — artisti e menu contestuali", {"banc
   sezione('un artista si scrive COGNOME + nome');
   await apri();
   const righe = await page.evaluate(()=> Array.from(document.querySelectorAll('.refs-folder-row')).map(r=>{
+    const riga = r.querySelector('.refs-folder-name');
     const cg = r.querySelector('.rf-cognome'), nm = r.querySelector('.rf-nome');
     const st = cg ? getComputedStyle(cg) : null;
     const stn = nm ? getComputedStyle(nm) : null;
+    const base = getComputedStyle(riga);
     return {
-      testo: r.querySelector('.refs-folder-name').textContent.trim(),
+      testo: riga.textContent.trim(),
       cognome: cg ? cg.textContent : null,
       nome: nm ? nm.textContent : null,
       maiuscolo: st ? st.textTransform : null,
-      pesoCognome: st ? +st.fontWeight : null,
-      minuscolo: stn ? stn.textTransform : null,
+      // Il nome non deve avere NIENTE di suo: stesso carattere, stesso corpo,
+      // stesso peso, stesso colore della riga. La prima versione lo metteva in
+      // un serif corsivo, e in un elenco di cartelle era un corpo estraneo.
+      stessaFamiglia: stn ? stn.fontFamily === base.fontFamily : null,
+      stessoCorpo:    stn ? stn.fontSize === base.fontSize : null,
+      stessoPeso:     stn ? stn.fontWeight === base.fontWeight : null,
+      stessoColore:   stn ? stn.color === base.color : null,
       corsivo: stn ? stn.fontStyle : null,
+      trasformaNome: stn ? stn.textTransform : null,
       semplice: !!r.querySelector('.rf-semplice'),
     };
   }));
@@ -41,10 +49,12 @@ module.exports = () => suite("References — artisti e menu contestuali", {"banc
   const soggetto = righe.find(r=> r.testo === 'Hands');
   ok('il cognome e il nome sono due pezzi distinti',
      otomo && otomo.nome === 'Katsuhiro', otomo);
-  ok('il cognome si vede tutto maiuscolo e in grassetto',
-     otomo && otomo.maiuscolo === 'uppercase' && otomo.pesoCognome >= 700, otomo);
-  ok('il nome in minuscolo e in corsivo, non un secondo titolo',
-     otomo && otomo.minuscolo === 'lowercase' && otomo.corsivo === 'italic', otomo);
+  ok('solo il cognome e\' in maiuscolo', otomo && otomo.maiuscolo === 'uppercase', otomo);
+  ok('il nome si scrive com\'e\' stato scritto',
+     otomo && otomo.trasformaNome === 'none' && otomo.corsivo === 'normal', otomo);
+  ok('e con lo stesso carattere di tutte le altre righe',
+     otomo && otomo.stessaFamiglia && otomo.stessoCorpo
+     && otomo.stessoPeso && otomo.stessoColore, otomo);
   ok('una cartella vecchia resta una riga sola',
      vecchia && vecchia.semplice && vecchia.cognome === null, vecchia);
   ok('e cosi\' anche quelle che non sono persone',
