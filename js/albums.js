@@ -1513,6 +1513,10 @@ function wireGestures(ov){
   let pinching = false, startDist = 0, startScale = 1;
   let panning = false, panX = 0, panY = 0, origX = 0, origY = 0;
   let lastTap = 0, lastTapX = 0, lastTapY = 0, lastTouchAt = 0;
+  // Il tocco in corso ha gia' fatto scattare lo zoom quando si e' appoggiato:
+  // al rilascio non va riconteggiato, o un terzo tocco ravvicinato
+  // rimpicciolirebbe senza che nessuno lo abbia chiesto.
+  let doppioConsumato = false;
 
   // Trascinamento del NASTRO (cambio pagina a 1x): "candidato" appena parte un
   // tocco singolo a dimensione naturale, "armato" solo quando il movimento
@@ -1555,6 +1559,26 @@ function wireGestures(ov){
     } else if(t.length === 1){
       pinching = false;
       x0 = t[0].clientX; y0 = t[0].clientY;
+      // ── IL DOPPIO TOCCO SI DECIDE QUI, NON AL RILASCIO ──
+      //
+      // Prima lo zoom partiva sul touchend del secondo tocco: fra il momento
+      // in cui il dito arrivava e quello in cui l'immagine si muoveva passava
+      // tutto il tempo di CONTATTO di quel tocco — un decimo di secondo
+      // buono, che si sente eccome. Eppure quando il secondo dito si appoggia
+      // non c'e' piu' niente da sapere: il primo tocco c'e' stato, e' stato
+      // meno di 400ms fa e a meno di 50px da qui. Aspettare il rilascio non
+      // aggiungeva nessuna informazione, aggiungeva solo attesa.
+      //
+      // E' anche il momento in cui zoomano i visualizzatori di foto del
+      // telefono, quindi la mano se lo aspetta gia'.
+      if(Date.now() - lastTap < 400 && Math.hypot(x0 - lastTapX, y0 - lastTapY) < 50){
+        lastTap = 0;
+        doppioConsumato = true;   // il rilascio non deve contarlo come un tocco nuovo
+        panning = false; dragCandidate = false; dragArmed = false;
+        dragFromEdge = false; pinnedAtX = null;
+        zoomAt(x0, y0);
+        return;
+      }
       if(_zoom > 1.02){
         panning = true; dragCandidate = false; dragArmed = false;
         dragFromEdge = false; pinnedAtX = null;
@@ -1736,15 +1760,12 @@ function wireGestures(ov){
     if(!_arAnimating){ const tk = arTrack(); if(tk) tk.style.willChange = ''; }
     const dx = t.clientX - x0, dy = t.clientY - y0;
     const moved = Math.hypot(dx, dy);
-    if(moved < 20){
-      const now = Date.now();
-      const closeTap = Math.hypot(t.clientX - lastTapX, t.clientY - lastTapY) < 50;
-      if(now - lastTap < 400 && closeTap){
-        zoomAt(t.clientX, t.clientY);
-        lastTap = 0;
-      } else {
-        lastTap = now; lastTapX = t.clientX; lastTapY = t.clientY;
-      }
+    if(doppioConsumato){
+      doppioConsumato = false;
+    } else if(moved < 20){
+      // Primo tocco di un'eventuale coppia: si segna dov'era e quando. Lo
+      // zoom, se arriva il secondo, scatta al suo touchstart (vedi sopra).
+      lastTap = Date.now(); lastTapX = t.clientX; lastTapY = t.clientY;
     }
   }, { passive: true });
 

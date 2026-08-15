@@ -1660,6 +1660,9 @@ function applyLbResistance(dx, w){
     let swipeStartX = 0, swipeStartY = 0;
     let isPinching = false, isPanning = false;
     let lastTapTime = 0, lastTapX = 0, lastTapY = 0, singleTapTimer = null;
+    // Il tocco in corso ha gia' zoomato appoggiandosi: al rilascio non va
+    // riconteggiato ne' deve far comparire/sparire l'interfaccia.
+    let doppioConsumato = false;
 
     // Trascinamento del NASTRO (cambio immagine a 1x): "candidato" appena
     // parte un tocco singolo a zoom 1x, "armato" solo quando il movimento
@@ -1700,6 +1703,21 @@ function applyLbResistance(dx, w){
       } else if(touches.length === 1){
         isPinching = false;
         swipeStartX = touches[0].clientX; swipeStartY = touches[0].clientY;
+        // ── IL DOPPIO TOCCO SI DECIDE QUI, NON AL RILASCIO ──
+        // Stessa ragione del lettore (vedi albums.js): aspettare il touchend
+        // del secondo tocco significa aspettare tutto il suo tempo di
+        // contatto, un decimo di secondo che si sente. Quando il dito si
+        // appoggia non c'e' piu' niente da sapere.
+        if(Date.now() - lastTapTime < 400
+           && Math.hypot(swipeStartX - lastTapX, swipeStartY - lastTapY) < 50){
+          lastTapTime = 0;
+          doppioConsumato = true;
+          clearTimeout(singleTapTimer);
+          isPanning = false; lbDragCandidate = false; lbArmed = false;
+          lbFromEdge = false; lbPinnedAtX = null;
+          toggleZoomAt(swipeStartX, swipeStartY);
+          return;
+        }
         if(_zoomScale > 1.02){
           isPanning = true; lbDragCandidate = false; lbArmed = false;
           lbFromEdge = false; lbPinnedAtX = null;
@@ -1873,24 +1891,19 @@ function applyLbResistance(dx, w){
       const t = e.changedTouches[0];
       const dx = t.clientX - swipeStartX, dy = t.clientY - swipeStartY;
       const moved = Math.hypot(dx, dy);
-      if(moved < 20){
-        const now = Date.now();
-        const closeTap = Math.hypot(t.clientX-lastTapX, t.clientY-lastTapY) < 50;
-        if(now - lastTapTime < 400 && closeTap){
-          // ── DOPPIO TAP: alterna 1x ↔ zoom centrato sul punto toccato ──
-          clearTimeout(singleTapTimer);
-          toggleZoomAt(t.clientX, t.clientY);
-          lastTapTime = 0;
-        } else {
-          lastTapTime = now; lastTapX = t.clientX; lastTapY = t.clientY;
-          // tap singolo: mostra/nasconde l'interfaccia (solo se non zoomato),
-          // ritardato per non rubare il gesto al doppio tap
-          clearTimeout(singleTapTimer);
-          singleTapTimer = setTimeout(()=>{
-            const ov = document.getElementById('refs-lightbox');
-            if(ov && _zoomScale <= 1.02) ov.classList.toggle('chrome-hidden');
-          }, 340);
-        }
+      if(doppioConsumato){
+        doppioConsumato = false;
+      } else if(moved < 20){
+        // Primo tocco di un'eventuale coppia: si segna dov'era e quando. Lo
+        // zoom, se arriva il secondo, scatta al suo touchstart (vedi sopra).
+        lastTapTime = Date.now(); lastTapX = t.clientX; lastTapY = t.clientY;
+        // tap singolo: mostra/nasconde l'interfaccia (solo se non zoomato),
+        // ritardato per non rubare il gesto al doppio tap
+        clearTimeout(singleTapTimer);
+        singleTapTimer = setTimeout(()=>{
+          const ov = document.getElementById('refs-lightbox');
+          if(ov && _zoomScale <= 1.02) ov.classList.toggle('chrome-hidden');
+        }, 340);
       }
     }, {passive:true});
 

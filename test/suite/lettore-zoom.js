@@ -217,4 +217,61 @@ module.exports = () => suite("Lettore — spostamento e sfoglio da ingranditi", 
   console.log('   corsa fatta: ' + Math.round(forma.presto*100) + '% al 12% del tempo · '
     + Math.round(forma.meta*100) + '% al 55%   (durata ' + forma.durata + 'ms)');
 
+
+  console.log('\n── il doppio tocco parte quando il dito ARRIVA, non quando si stacca ──');
+  // Il ritardo che si sentiva era il tempo di contatto del secondo tocco: lo
+  // zoom scattava al rilascio. Quando il secondo dito si appoggia pero' non
+  // c'e' piu' niente da sapere — il primo tocco c'e' stato, meno di 400ms fa e
+  // a meno di 50px — quindi aspettare aggiungeva solo attesa.
+  await page.waitForTimeout(1200);
+  if(await scalaOra() > 1.02){
+    await page.evaluate(()=> window.Z.ingrandisci());
+    await page.waitForTimeout(1300);
+  }
+  const quandoParte = await page.evaluate(async ()=>{
+    const attendi = ms => new Promise(r=>setTimeout(r,ms));
+    const scala = ()=> new DOMMatrix(getComputedStyle(window.Z.img()).transform).a;
+    const prima = scala();
+    // primo tocco
+    window.Z.touch('touchstart', 200, 400); await attendi(30);
+    window.Z.touch('touchend',   200, 400); await attendi(120);
+    // secondo tocco: si appoggia e RESTA GIU'
+    window.Z.touch('touchstart', 200, 400);
+    await attendi(90);                       // il dito e' ancora sullo schermo
+    const conDitoGiu = scala();
+    window.Z.touch('touchend',   200, 400);
+    await attendi(500);
+    return { prima, conDitoGiu, fine: scala() };
+  });
+  ok('col dito ancora appoggiato lo zoom si sta gia\' muovendo',
+     quandoParte.conDitoGiu > quandoParte.prima + 0.2, quandoParte);
+  ok('e arriva a destinazione', quandoParte.fine > 2.4, quandoParte);
+  console.log('   scala a dito ancora giu\': ' + quandoParte.conDitoGiu.toFixed(2)
+    + ' (partiva da ' + quandoParte.prima.toFixed(2) + ')');
+
+  console.log('\n── ma un tocco solo non ingrandisce niente ──');
+  await page.waitForTimeout(1200);
+  if(await scalaOra() > 1.02){
+    await page.evaluate(()=> window.Z.ingrandisci());
+    await page.waitForTimeout(1300);
+  }
+  const unoSolo = await page.evaluate(async ()=>{
+    const attendi = ms => new Promise(r=>setTimeout(r,ms));
+    window.Z.touch('touchstart', 200, 400); await attendi(30);
+    window.Z.touch('touchend',   200, 400); await attendi(600);
+    return new DOMMatrix(getComputedStyle(window.Z.img()).transform).a;
+  });
+  ok('un tocco isolato lascia la tavola com\'e\'', unoSolo < 1.02, unoSolo);
+
+  console.log('\n── e due tocchi lontani fra loro non sono un doppio tocco ──');
+  const lontani = await page.evaluate(async ()=>{
+    const attendi = ms => new Promise(r=>setTimeout(r,ms));
+    window.Z.touch('touchstart', 120, 300); await attendi(30);
+    window.Z.touch('touchend',   120, 300); await attendi(120);
+    window.Z.touch('touchstart', 320, 620); await attendi(30);   // ben oltre i 50px
+    window.Z.touch('touchend',   320, 620); await attendi(500);
+    return new DOMMatrix(getComputedStyle(window.Z.img()).transform).a;
+  });
+  ok('due tocchi in punti diversi non ingrandiscono', lontani < 1.02, lontani);
+
 });
