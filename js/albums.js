@@ -686,7 +686,7 @@ function buildReaderDOM(){
           <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.6-5.9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M20 4v4.6h-4.6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
           <span>Riprova</span>
         </button>
-        <button class="ar-btn ar-tutta" data-act="tuttalatavola" aria-label="Ritaglia tutta la tavola" title="Tutta la tavola" hidden>
+        <button class="ar-btn ar-tutta" data-act="tuttalatavola" aria-label="Salva tutta la tavola" title="Tutta la tavola">
           <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V5.6A1.6 1.6 0 0 1 5.6 4H9"/><path d="M15 4h3.4A1.6 1.6 0 0 1 20 5.6V9"/><path d="M20 15v3.4a1.6 1.6 0 0 1-1.6 1.6H15"/><path d="M9 20H5.6A1.6 1.6 0 0 1 4 18.4V15"/></svg>
         </button>
         <button class="ar-btn ar-clip" aria-label="Ritaglia" data-act="clip">
@@ -774,7 +774,15 @@ function buildReaderDOM(){
     else if(act === 'first') gotoPage(0);
     else if(act === 'last') gotoPage(_pages.length - 1);
     else if(act === 'retryclip'){ if(ov._clipRetry) ov._clipRetry(); }
-    else if(act === 'tuttalatavola'){ if(ov._clipTutta) ov._clipTutta(); }
+    // Salvare la tavola intera è un gesto SOLO: non si "entra in ritaglio" per
+    // poi dire "tutta". Il pulsante sta sempre accanto alle forbici e da
+    // qualsiasi punto della lettura porta dritto alla domanda "dove la metto".
+    // Se il ritaglio era spento lo accende per conto suo — serve la superficie
+    // e la capsula delle destinazioni — ma chi tocca non se ne accorge.
+    else if(act === 'tuttalatavola'){
+      if(!_clipMode) toggleClip(true);
+      if(ov._clipTutta) ov._clipTutta();
+    }
     // La pastiglia della destinazione È la conferma: un gesto solo invece di
     // "conferma" e poi "scegli dove".
     else if(act === 'confirmclip'){ if(ov._clipConfirm) ov._clipConfirm(b.dataset.dest || null); }
@@ -1867,12 +1875,13 @@ function toggleClip(force){
   // ritaglio non se ne va da solo insieme al resto, va spento qui.
   const retry = _reader.querySelector('.ar-retry');
   if(retry) retry.hidden = true;
-  // "Tutta la tavola" sta in alto accanto alle forbici, non nella capsula in
-  // basso: e' un modo ALTERNATIVO di scegliere il ritaglio, quindi vive
-  // insieme allo strumento e non insieme alle destinazioni. Infilato là sotto
-  // mandava a capo la riga e traboccava sulla tavola.
-  const tutta = _reader.querySelector('.ar-tutta');
-  if(tutta) tutta.hidden = !_clipMode;
+  // "Tutta la tavola" NON si nasconde qui, ed è la terza versione di questo
+  // pulsante: prima stava nella capsula in basso (mandava a capo la riga e
+  // traboccava sulla tavola), poi è salito accanto alle forbici ma compariva
+  // solo dentro il ritaglio — cioè per salvare una tavola intera servivano
+  // comunque due tocchi, e il primo era "entra in una modalità" che con
+  // l'intenzione non c'entrava niente. Ora sta sempre lì: un tocco, e si
+  // sceglie dove finisce.
   // Entrando o uscendo si riparte SEMPRE da foglio bianco: un riquadro
   // lasciato in sospeso non deve sopravvivere al giro successivo.
   if(_reader._clipReset) _reader._clipReset();
@@ -2251,6 +2260,14 @@ function wireClip(ov){
   ov._clipTutta = ()=>{
     const img = readerImg();
     if(!img) return;
+    // Da ingranditi la tavola sborda dallo schermo: il riquadro "tutta la
+    // tavola" finirebbe per metà fuori dal livello, e pur salvando comunque la
+    // pagina intera (geometriaRitaglio riporta i conti dentro l'originale) si
+    // vedrebbe un rettangolo tagliato — sembrerebbe che stia per salvare solo
+    // il pezzo visibile. Si torna a 1x senza animazione: la misura del
+    // rettangolo va presa subito dopo, e una transizione in corso la
+    // falserebbe.
+    if(_zoom > 1.02) resetZoom();
     const r = renderedImageRect(img, layer);
     box.hidden = false;
     box.style.left = r.x + 'px';

@@ -203,18 +203,27 @@ module.exports = () => suite("Ritaglio — maniglie del riquadro e peso del file
   ok('non arriva a 100 prima di essere davvero salvato', perc.every(n=> n < 100), perc);
   ok('e alla fine lo dice', /salvat/i.test(scritte[scritte.length-1] || ''), scritte.slice(-3));
 
-  console.log('\n── "Tutta la tavola": il riquadro si disegna da solo ──');
-  // Il pulsante forbici e' un INTERRUTTORE: cliccarlo alla cieca puo' spegnere
-  // il ritaglio invece di accenderlo, a seconda di come l'ha lasciato la
-  // sezione prima. Si accende solo se serve.
-  const accendiRitaglio = async ()=>{
-    await page.evaluate(()=>{
-      if(!document.querySelector('.ar-clip.active'))
+  console.log('\n── "Tutta la tavola": un tocco solo, da fermo ──');
+  // Il pulsante forbici e' un INTERRUTTORE: cliccarlo alla cieca puo' accendere
+  // il ritaglio invece di spegnerlo, a seconda di come l'ha lasciato la
+  // sezione prima. Si spegne solo se serve.
+  const interruttore = async (voluto)=>{
+    await page.evaluate(v=>{
+      if(!!document.querySelector('.ar-clip.active') !== v)
         document.querySelector('.ar-clip').dispatchEvent(new MouseEvent('click',{bubbles:true}));
-    });
+    }, voluto);
     await page.waitForTimeout(220);
   };
-  await accendiRitaglio();
+  const spegniRitaglio = ()=> interruttore(false);
+  const accendiRitaglio = ()=> interruttore(true);
+  await spegniRitaglio();
+  // Il punto della terza versione del pulsante: sta li' anche a ritaglio
+  // spento, cioe' mentre si sta semplicemente leggendo.
+  const visibileDaFermo = await page.evaluate(()=>{
+    const b = document.querySelector('[data-act="tuttalatavola"]');
+    return !!b && !b.hidden && b.getBoundingClientRect().width > 0;
+  });
+  ok('il pulsante c\'e\' anche fuori dal ritaglio', visibileDaFermo);
   await page.evaluate(()=> document.querySelector('[data-act="tuttalatavola"]').dispatchEvent(new MouseEvent('click',{bubbles:true})));
   await page.waitForTimeout(250);
   const tutta = await page.evaluate(()=>{
@@ -225,12 +234,14 @@ module.exports = () => suite("Ritaglio — maniglie del riquadro e peso del file
       visibile: !b.hidden,
       inAttesa: b.classList.contains('pending'),
       destinazioni: !document.querySelector('.ar-clip-hint-confirm').hidden,
+      ritaglioAcceso: !!document.querySelector('.ar-clip.active'),
       // il riquadro deve coprire l'immagine renderizzata, non il livello
       largo: parseFloat(b.style.width), altoB: parseFloat(b.style.height),
       largoImg: Math.round(ir.width), altoImg: Math.round(ir.height),
       sinistra: parseFloat(b.style.left), sinistraImg: Math.round(ir.left - lr.left),
     };
   });
+  ok('un tocco solo accende il ritaglio da se\'', tutta.ritaglioAcceso, tutta);
   ok('il riquadro compare gia\' disegnato', tutta.visibile && tutta.inAttesa, tutta);
   ok('e si va dritti alla scelta della destinazione', tutta.destinazioni, tutta);
   ok('copre tutta la tavola, bande escluse',

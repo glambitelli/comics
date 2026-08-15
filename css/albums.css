@@ -462,8 +462,6 @@ body.is-touch .ar-nav{display:none} /* su mobile si naviga con swipe/tap */
    a galleggiare sopra la tavola, sovrapposte alla capsula delle destinazioni.
    Qui dentro sta l'istruzione e basta. */
 .ar-clip-hint-instruct{align-self:center;text-align:center}
-/* "Tutta la tavola": pulsante in alto, accanto alle forbici. */
-.ar-tutta[hidden]{display:none}
 
 /* DUE RIGHE, non più una sola.
    Prima le cartelle recenti e le macro-categorie stavano affiancate sulla
