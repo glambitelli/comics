@@ -107,6 +107,58 @@ module.exports = () => suite("References — Ritagli e Tavole dentro una cartell
   ok('su una tavola propone il contrario',
      vociTavola.some(v=>/fra i ritagli/i.test(v)), vociTavola);
 
+  sezione('una tavola si collega a un progetto come un ritaglio qualunque');
+  // Nulla di dedicato: ritagli e tavole passano dalla STESSA lightbox e dallo
+  // stesso menu. La prova serve a impedire che una divisione fatta per come si
+  // GUARDANO diventi per sbaglio una divisione di cosa si può FARCI.
+  await apri(2, 2);
+  await tocca('tavole');
+  await page.evaluate(()=> window.openRefLightbox('t0'));
+  await page.waitForTimeout(400);
+  const inLightbox = await page.evaluate(()=>({
+    id: document.getElementById('refs-lightbox').dataset.id,
+    aperta: document.getElementById('refs-lightbox').classList.contains('open'),
+    tastoCollega: !!document.getElementById('refs-lightbox-link'),
+  }));
+  ok('una tavola si apre a schermo intero', inLightbox.aperta && inLightbox.id === 't0', inLightbox);
+  ok('e ha il pulsante per collegarla', inLightbox.tastoCollega, inLightbox);
+
+  const vociTav = await page.evaluate(async ()=>{
+    window.__scritture = [];
+    await window.promptLinkProjectFromLightbox(document.getElementById('refs-lightbox-link'));
+    return window.vociMenu();
+  });
+  ok('il menu elenca i progetti anche per una tavola',
+     vociTav.some(v=>/Il Sentiero/.test(v)), vociTav);
+
+  const legame = await page.evaluate(async ()=>{
+    Array.from(document.querySelectorAll('.ink-action-menu button'))
+      .find(b=>/Il Sentiero/.test(b.textContent))
+      .dispatchEvent(new MouseEvent('click',{bubbles:true}));
+    await new Promise(r=>setTimeout(r,200));
+    return (window.__scritture||[]).find(s=>s.id === 't0');
+  });
+  ok('il collegamento si scrive sulla tavola',
+     legame && legame.data && (legame.data.projectIds||[]).includes('p1'), legame);
+
+  // Eco del listener, come sopra: qui interessa che il pannello del progetto
+  // la mostri, non che Firestore risponda.
+  const nelPannello = await page.evaluate(()=>{
+    const t = window.refs.getRefs().find(r=>r.id==='t0');
+    t.projectIds = ['p1']; t.projectId = 'p1';
+    window.refs.renderProjectRefPanel('p1');
+    window.refs.renderRefsScreen();
+    return {
+      miniature: document.querySelectorAll('#ref-panel-grid .ref-panel-thumb').length,
+      conteggio: (document.getElementById('ref-panel-count')||{}).textContent,
+      puntino: !!document.querySelector('.refs-thumb[data-id="t0"] .refs-thumb-linkdot'),
+    };
+  });
+  ok('la tavola compare fra i riferimenti del progetto',
+     nelPannello.miniature === 1 && nelPannello.conteggio === '1', nelPannello);
+  ok('e in griglia porta il puntino del progetto come i ritagli',
+     nelPannello.puntino, nelPannello);
+
   sezione('fuori da una cartella i tab non ci sono e si vede tutto');
   await page.evaluate(()=>{ window.semina(3,2); window.refs.openAllGrid(); });
   await page.waitForTimeout(300);

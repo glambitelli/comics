@@ -29,13 +29,16 @@ const html = await (await fetch('/index.html')).text();
 const doc = new DOMParser().parseFromString(html, 'text/html');
 document.body.appendChild(document.importNode(doc.getElementById('screen-refs'), true));
 document.body.appendChild(document.importNode(doc.getElementById('refs-lightbox'), true));
+// Il pannello "Riferimenti" della scheda progetto: serve a verificare che una
+// TAVOLA collegata a un progetto ci compaia come qualsiasi altro ritaglio.
+document.body.appendChild(document.importNode(doc.getElementById('ref-panel'), true));
 
 const refs = await import('/js/refs.js');
 window.refs = refs;
 // Gli onclick inline dei tab chiamano un globale: nell'app lo mette main.js.
 ['setFolderTab','refsBackToFolders','refsGridSearch','refsImageMenu',
  'openRefLightbox','closeRefLightbox','deleteRefImageWithUndo',
- 'toggleRefsProfile','closeRefsProfile'].forEach(n=>{
+ 'promptLinkProjectFromLightbox','toggleRefsProfile','closeRefsProfile'].forEach(n=>{
   window[n] = (...a)=> Promise.resolve(refs).then(m=> m[n] && m[n](...a));
 });
 
@@ -53,7 +56,11 @@ window.semina = (ritagli, tavole)=>{
   arr.push(...foto('r', ritagli, false), ...foto('t', tavole, true));
   const cart = refs.getFolders(); cart.length = 0;
   cart.push({ id:'F1', category:'Artists', name:'OTOMO' });
+  window.__projects.length = 0;
+  window.__projects.push({ id:'p1', title:'Il Sentiero', color:'#4ab8d8' });
 };
+window.vociMenu = ()=> Array.from(document.querySelectorAll('.ink-action-menu button')).map(b=>b.textContent);
+window.chiudiMenu = ()=> document.dispatchEvent(new MouseEvent('click',{bubbles:true}));
 window.__ready = true;
 </script>
 </body></html>
