@@ -68,11 +68,41 @@
 .refs-quicklink-count{font-size:12px;font-weight:700;color:var(--ink3);background:var(--sand);border-radius:10px;padding:2px 9px}
 
 .refs-cat-row{display:flex;align-items:center;gap:8px;margin:18px 2px 8px}
-.refs-cat-name{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#9a8458}
+.refs-cat-name{flex:1;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#9a8458}
+/* Il "+" della categoria: discreto quanto l'occhiello accanto a cui vive — non
+   deve competere con le cartelle, che sono la cosa da guardare — ma con
+   un'area di tocco da dito vera, presa coi margini negativi invece che con la
+   dimensione, cosi' non allarga la riga. */
+.refs-cat-add{
+  flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  background:none;border:none;cursor:pointer;color:#b8a078;
+  padding:7px;margin:-7px -5px -7px 0;line-height:0;
+  transition:color .15s,transform .1s;
+}
+.refs-cat-add:active{color:var(--ottone);transform:scale(.88)}
+
+/* ── IL NOME DI UN ARTISTA ──
+   Due pesi sulla stessa riga: il COGNOME ancora, il nome accompagna. E' la
+   forma delle didascalie da museo e dei credits di un albo, ed e' anche
+   l'ordine in cui si cerca un disegnatore a memoria — per cognome. Il nome in
+   minuscolo e in corsivo serve a non farne un secondo titolo: se avesse lo
+   stesso peso, la riga tornerebbe a essere una stringa sola scritta in due
+   modi. Lora invece di Nunito perche' e' il serif che l'app usa gia' per il
+   testo di lettura: accanto al cognome tutto maiuscolo fa il contrasto giusto
+   fra "etichetta" e "voce". */
+.rf-cognome{
+  font-weight:800;letter-spacing:.045em;text-transform:uppercase;
+  color:var(--ink);font-size:13px;
+}
+.rf-nome{
+  font-family:'Lora',serif;font-style:italic;text-transform:lowercase;
+  font-size:13px;font-weight:400;color:var(--ink3);margin-left:6px;
+  letter-spacing:0;
+}
 
 .refs-folder-row{display:flex;align-items:center;gap:10px;background:var(--white);border:1.5px solid var(--sand2);border-radius:11px;padding:10px 12px;margin-bottom:6px;cursor:pointer}
 .refs-folder-ico{width:20px;height:20px;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#d8b060}
-.refs-folder-name{flex:1;font-size:13.5px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.refs-folder-name{flex:1;min-width:0;font-size:13.5px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .refs-folder-count{font-size:11.5px;font-weight:700;color:var(--ink3)}
 .refs-folder-menu{background:none;border:none;color:var(--ink3);font-size:15px;line-height:1;padding:2px 4px;cursor:pointer;flex-shrink:0}
 

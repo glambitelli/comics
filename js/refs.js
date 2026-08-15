@@ -7,7 +7,7 @@ import { db, collection, doc, onSnapshot, setDoc, deleteDoc, serverTimestamp } f
 import { haptic, showUndoToast, projects, currentId } from './state.js';
 import { compressImageFile, dataUrlToBlob } from './imgcompress.js';
 import { uploadToCloudinary, cldResize } from './cloudinary.js';
-import { promptModal, confirmModal, actionMenu } from './dialogs.js';
+import { promptModal, promptCampi, confirmModal, actionMenu } from './dialogs.js';
 import {
   isDriveConfigured, isDriveConnected, connectDrive, disconnectDrive,
   driveAccountEmail, onDriveAuthChange, listDriveAlbumsForFolder,
@@ -349,12 +349,42 @@ export function assignRefToFolder(id, folderId){
 }
 
 // ── CARTELLE ──
-export async function createFolder(category, name){
+// ── CARTELLE DI PERSONE ──
+// Una cartella "Artists" non e' un contenitore qualunque: e' una PERSONA, e le
+// persone hanno un cognome e un nome che vanno tenuti separati. Prima si
+// scriveva tutto dentro un campo solo — "OTOMO Katsuhiro", digitando le
+// maiuscole a mano — e l'app non aveva modo di sapere dove finisse l'uno e
+// cominciasse l'altro: non poteva ne' comporli con uno stile, ne' ordinare per
+// cognome se qualcuno avesse scritto "Katsuhiro Otomo".
+//
+// Ora cognome e nome stanno in due campi loro. `name` continua a esistere e a
+// contenere la forma piena: e' quello che leggono la ricerca, l'ordinamento
+// per artista e la provenienza dei ritagli, e riscriverli tutti per un
+// dettaglio di presentazione sarebbe stato tanto lavoro per zero guadagno. Le
+// cartelle create prima di oggi non hanno cognome/nome e restano una riga
+// sola: e' esattamente come apparivano.
+export function nomeCartella(cognome, nome){
+  return [(cognome||'').trim(), (nome||'').trim()].filter(Boolean).join(' ');
+}
+
+// Quali categorie contengono persone. La regola guarda il NOME della
+// categoria, perche' le categorie sono stringhe libere scritte da chi usa
+// l'app e non hanno un documento in cui segnare un tipo. Sbagliare in difetto
+// non fa danni: si ottiene il modulo a un campo solo, cioe' quello di prima.
+const CAT_PERSONE = /artist|autor|disegnat|maestr/i;
+export function categoriaDiPersone(cat){ return CAT_PERSONE.test(cat||''); }
+
+export async function createFolder(category, name, extra){
   category = (category||'').trim();
   name = (name||'').trim();
   if(!category || !name) return null;
   const id = genId();
-  await setDoc(doc(db, FOLDERS_COL, id), { category, name, createdAt: serverTimestamp() });
+  const dati = { category, name, createdAt: serverTimestamp() };
+  if(extra && (extra.cognome || extra.nome)){
+    dati.cognome = (extra.cognome||'').trim();
+    dati.nome = (extra.nome||'').trim();
+  }
+  await setDoc(doc(db, FOLDERS_COL, id), dati);
   return id;
 }
 
@@ -503,8 +533,8 @@ export function albumShelfMenu(id, anchorEl){
   const a = _albums.find(x=>x.id===id);
   if(!a) return;
   actionMenu(anchorEl, [
-    {label:'Rinomina', onSelect:()=>promptRenameAlbum(id)},
-    {label:'Elimina', danger:true, onSelect:()=>promptDeleteAlbum(id)},
+    {label:'Rinomina', icon:'rinomina', onSelect:()=>promptRenameAlbum(id)},
+    {label:'Elimina', icon:'elimina', danger:true, onSelect:()=>promptDeleteAlbum(id)},
   ]);
 }
 
@@ -737,34 +767,59 @@ export function setFolderTab(tab){
 
 // Flusso unificato "Nuova cartella": la categoria si sceglie qui dentro (o se
 // ne crea una al volo), perché una categoria vuota non ha senso di esistere.
-export function promptNewFolderFlow(btnEl){
-  const cats = Array.from(foldersByCategory().keys()).sort((a,b)=>a.localeCompare(b));
-  if(!cats.length){ promptNewFolder(); return; }
-  const actions = cats.map(c=>({ label: c, onSelect: ()=>promptNewFolder(c) }));
-  actions.push({ label: '+ Nuova categoria…', onSelect: ()=>promptNewFolder() });
-  actionMenu(btnEl, actions);
-}
-
+// Il "+" accanto al nome di una categoria: si aggiunge SEMPRE dentro una
+// categoria precisa, e il modulo che compare dipende da cosa quella categoria
+// contiene. Prima c'era un solo pulsante "Nuova cartella" in fondo alla pagina
+// che apriva un menu per scegliere dove: un passaggio in piu' per una domanda
+// a cui il posto in cui hai premuto risponde da solo.
 export async function promptNewFolder(category){
-  let cat = category;
+  let cat = (category||'').trim();
   if(!cat){
-    cat = await promptModal('Nome della categoria', '', 'es. Artists, Study');
+    cat = await promptModal('Nuova categoria', '', 'es. Artists, Study');
     if(!cat) return;
     cat = cat.trim();
     if(!cat) return;
   }
-  const name = await promptModal('Nome della cartella'+(cat?` in "${cat}"`:''), '', 'es. Otomo, Hands');
-  if(!name) return;
-  const id = await createFolder(cat, name);
+  if(categoriaDiPersone(cat)){
+    const v = await promptCampi('Nuovo artista', [
+      { etichetta:'Cognome', placeholder:'Otomo', maiuscolo:true },
+      { etichetta:'Nome',    placeholder:'Katsuhiro' },
+    ], 'Aggiungi');
+    if(!v) return;
+    const id = await createFolder(cat, nomeCartella(v[0], v[1]), { cognome:v[0], nome:v[1] });
+    if(id){ haptic('done'); openFolder(id); }
+    return;
+  }
+  const v = await promptCampi(`Nuova cartella in ${cat}`, [
+    { etichetta:'Nome', placeholder:'es. Hands, Prospettiva' },
+  ], 'Aggiungi');
+  if(!v) return;
+  const id = await createFolder(cat, v[0]);
   if(id){ haptic('done'); openFolder(id); }
 }
 
 export async function promptRenameFolder(id){
   const f = _folders.find(x=>x.id===id);
   if(!f) return;
-  const nv = await promptModal('Rinomina cartella', f.name||'');
-  if(!nv) return;
-  renameFolder(id, nv);
+  // Un artista si rinomina con gli stessi due campi con cui e' nato. Vale
+  // anche per le cartelle vecchie della categoria: si arriva col nome intero
+  // dentro il cognome, e chi vuole separarlo lo separa una volta e basta.
+  if(categoriaDiPersone(f.category)){
+    const v = await promptCampi('Modifica artista', [
+      { etichetta:'Cognome', valore: f.cognome || f.name || '', maiuscolo:true },
+      { etichetta:'Nome',    valore: f.nome || '' },
+    ], 'Salva');
+    if(!v) return;
+    setDoc(doc(db, FOLDERS_COL, id), {
+      name: nomeCartella(v[0], v[1]), cognome: v[0], nome: v[1],
+    }, {merge:true});
+    return;
+  }
+  const v = await promptCampi('Rinomina cartella', [
+    { etichetta:'Nome', valore: f.name || '' },
+  ], 'Salva');
+  if(!v) return;
+  renameFolder(id, v[0]);
 }
 
 export async function promptDeleteFolder(id){
@@ -1064,6 +1119,19 @@ function renderAlbumsShelf(){
 
 // ── RENDER: SFOGLIA CARTELLE ──
 const FOLDER_ICON = `<svg viewBox="0 0 24 24" width="20" height="20"><path d="M3 6.5a1.5 1.5 0 0 1 1.5-1.5h5l2 2h8a1.5 1.5 0 0 1 1.5 1.5v9a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>`;
+const PIU_ICON = `<svg viewBox="0 0 24 24" width="16" height="16"><path d="M12 5.5v13M5.5 12h13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`;
+
+// Come si scrive il nome di una cartella nell'elenco. Un artista si compone di
+// due pezzi con due pesi diversi — COGNOME che ancora la riga, nome che la
+// accompagna — cioe' la forma in cui gli artisti stanno scritti in una
+// didascalia di museo o nei credits di un albo. Chi non ha i due campi (le
+// cartelle vecchie, e tutto quello che non e' una persona) resta una riga
+// sola: e' la stessa funzione, non due strade da tenere allineate.
+function etichettaCartella(f){
+  if(!f.cognome) return `<span class="rf-semplice">${esc(f.name||'')}</span>`;
+  return `<span class="rf-cognome">${esc(f.cognome)}</span>`
+       + (f.nome ? `<span class="rf-nome">${esc(f.nome)}</span>` : '');
+}
 
 function renderFolderBrowser(){
   const el = document.getElementById('refs-folder-browser');
@@ -1089,13 +1157,19 @@ function renderFolderBrowser(){
     const visible = q ? folders.filter(f=>f.name.toLowerCase().includes(q)) : folders;
     if(!visible.length) return;
     shown += visible.length;
+    // Il "+" sta nell'intestazione della categoria: aggiungere un artista e'
+    // un'azione DI QUELLA categoria, e messa li' non costa nemmeno una riga.
+    const persone = categoriaDiPersone(category);
     html += `<div class="refs-cat-row">
       <span class="refs-cat-name">${esc(category)}</span>
+      <button class="refs-cat-add" onclick="window.promptNewFolder('${esc(category).replace(/'/g,"\\'")}')"
+              aria-label="${persone ? 'Aggiungi artista' : 'Aggiungi cartella in '+esc(category)}"
+              title="${persone ? 'Aggiungi artista' : 'Aggiungi cartella'}">${PIU_ICON}</button>
     </div>`;
     visible.forEach(f=>{
       html += `<div class="refs-folder-row" onclick="window.openFolder('${f.id}')">
         <span class="refs-folder-ico">${FOLDER_ICON}</span>
-        <span class="refs-folder-name">${esc(f.name)}</span>
+        <span class="refs-folder-name">${etichettaCartella(f)}</span>
         <span class="refs-folder-count">${countInFolder(f.id)}</span>
         <button class="refs-folder-menu" onclick="event.stopPropagation();window.refsFolderMenu('${f.id}',this)" aria-label="Altro">⋯</button>
       </div>`;
@@ -1106,10 +1180,11 @@ function renderFolderBrowser(){
     html += `<div class="refs-folders-empty">Nessuna cartella corrisponde a "${esc(_folderQuery.trim())}".</div>`;
   }
 
-  // Unica azione di questa vista: qui si organizzano contenitori, non immagini.
-  html += `<button class="refs-new-folder-row" onclick="window.promptNewFolderFlow(this)">
-    <span class="refs-new-folder-ico">${FOLDER_ICON}</span>
-    <span>Nuova cartella</span>
+  // In fondo resta solo la categoria: le cartelle si aggiungono dal "+" della
+  // loro categoria, qui sotto ci sarebbero state due volte.
+  html += `<button class="refs-new-folder-row" onclick="window.promptNewFolder()">
+    <span class="refs-new-folder-ico">${PIU_ICON}</span>
+    <span>Nuova categoria</span>
   </button>`;
 
   // Confronto sul contenuto vero: una firma "furba" (es. la lunghezza) manca
@@ -1122,8 +1197,8 @@ export function refsFolderMenu(id, btnEl){
   const f = _folders.find(x=>x.id===id);
   if(!f) return;
   actionMenu(btnEl, [
-    {label:'Rinomina', onSelect:()=>promptRenameFolder(id)},
-    {label:'Elimina', danger:true, onSelect:()=>promptDeleteFolder(id)},
+    {label:'Rinomina', icon:'rinomina', onSelect:()=>promptRenameFolder(id)},
+    {label:'Elimina', icon:'elimina', danger:true, onSelect:()=>promptDeleteFolder(id)},
   ]);
 }
 
@@ -2153,12 +2228,16 @@ export function refsImageMenu(anchorEl, imageId){
   // esistesse il pulsante "tutta la tavola" — e viceversa.
   const r = _refs.find(x=>x.id===id);
   const eTavola = isTavola(r);
+  // Etichette corte: l'icona accanto dice gia' di che cosa si parla, e
+  // "Collega a un progetto…" con i puntini di sospensione era la voce piu'
+  // lunga di tutta l'app per dire una cosa di due parole.
   actionMenu(anchorEl, [
-    { label:'Collega a un progetto…', onSelect:()=>promptLinkProject(id, anchorEl) },
-    { label:'Sposta in cartella…', onSelect:()=>promptMoveImage(id, anchorEl) },
-    { label: eTavola ? 'Sposta fra i ritagli' : 'Sposta fra le tavole',
+    { label:'Collega a progetto', icon:'progetto', onSelect:()=>promptLinkProject(id, anchorEl) },
+    { label:'Sposta', icon:'cartella', onSelect:()=>promptMoveImage(id, anchorEl) },
+    { label: eTavola ? 'Segna come ritaglio' : 'Segna come tavola',
+      icon: eTavola ? 'ritaglio' : 'tavola',
       onSelect:()=>{ setRefTavola(id, !eTavola); haptic('done'); } },
-    { label:'Elimina', danger:true, onSelect:()=>deleteRefImageWithUndo(id) },
+    { label:'Elimina', icon:'elimina', danger:true, onSelect:()=>deleteRefImageWithUndo(id) },
   ]);
 }
 

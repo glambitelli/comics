@@ -36,9 +36,9 @@ document.body.appendChild(document.importNode(doc.getElementById('ref-panel'), t
 const refs = await import('/js/refs.js');
 window.refs = refs;
 // Gli onclick inline dei tab chiamano un globale: nell'app lo mette main.js.
-['setFolderTab','refsBackToFolders','refsImageMenu',
- 'openRefLightbox','closeRefLightbox','deleteRefImageWithUndo',
- 'promptLinkProjectFromLightbox','toggleRefsProfile','closeRefsProfile'].forEach(n=>{
+['setFolderTab','refsBackToFolders','refsImageMenu','openFolder','openAllGrid',
+ 'openRefLightbox','closeRefLightbox','deleteRefImageWithUndo','refsFolderMenu',
+ 'promptNewFolder','promptLinkProjectFromLightbox','toggleRefsProfile','closeRefsProfile'].forEach(n=>{
   window[n] = (...a)=> Promise.resolve(refs).then(m=> m[n] && m[n](...a));
 });
 
@@ -73,7 +73,16 @@ window.semina = (ritagli, tavole)=>{
   window.__projects.length = 0;
   window.__projects.push({ id:'p1', title:'Il Sentiero', color:'#4ab8d8' });
 };
-window.vociMenu = ()=> Array.from(document.querySelectorAll('.ink-action-menu button')).map(b=>b.textContent);
+// Elenco cartelle: categorie e cartelle a piacere, per provare l'anagrafica
+// degli artisti e il menu del "⋯".
+window.seminaCartelle = (elenco)=>{
+  const cart = refs.getFolders(); cart.length = 0;
+  cart.push(...elenco);
+  refs.getRefs().length = 0;
+  refs.openFolderBrowser();
+};
+window.vociMenu = ()=> Array.from(document.querySelectorAll('.ink-action-menu button')).map(b=>b.textContent.trim());
+window.iconeMenu = ()=> Array.from(document.querySelectorAll('.ink-action-menu button')).map(b=>!!b.querySelector('svg'));
 window.chiudiMenu = ()=> document.dispatchEvent(new MouseEvent('click',{bubbles:true}));
 window.__ready = true;
 </script>

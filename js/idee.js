@@ -198,8 +198,8 @@ function menuIdea(ancora, id){
   const idea = _idee.find(x=>x.id===id);
   if(!idea) return;
   actionMenu(ancora, [
-    { label: 'Modifica', onSelect: ()=> apriEditor(id) },
-    { label: 'Elimina', danger: true, onSelect: ()=> eliminaIdea(id) },
+    { label: 'Modifica', icon: 'rinomina', onSelect: ()=> apriEditor(id) },
+    { label: 'Elimina', icon: 'elimina', danger: true, onSelect: ()=> eliminaIdea(id) },
   ]);
 }
 

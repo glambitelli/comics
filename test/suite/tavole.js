@@ -169,10 +169,10 @@ module.exports = () => suite("References — Ritagli e Tavole dentro una cartell
     await window.refsImageMenu(document.body, 't0');
     return Array.from(document.querySelectorAll('.ink-action-menu button')).map(b=>b.textContent);
   });
-  ok('su un ritaglio propone di spostarlo fra le tavole',
-     vociRitaglio.some(v=>/fra le tavole/i.test(v)), vociRitaglio);
+  ok('su un ritaglio propone di segnarlo come tavola',
+     vociRitaglio.some(v=>/come tavola/i.test(v)), vociRitaglio);
   ok('su una tavola propone il contrario',
-     vociTavola.some(v=>/fra i ritagli/i.test(v)), vociTavola);
+     vociTavola.some(v=>/come ritaglio/i.test(v)), vociTavola);
 
   sezione('una tavola si collega a un progetto come un ritaglio qualunque');
   // Nulla di dedicato: ritagli e tavole passano dalla STESSA lightbox e dallo
