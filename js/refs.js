@@ -1236,6 +1236,21 @@ export function renderRefsGrid(){
   const mostraTavole = _view === 'folder' && !!_activeFolderId && _folderTab === 'tavole';
   grid.classList.toggle('tavole', mostraTavole);
 
+  // OGNI TAVOLA PRENDE LE SUE PROPORZIONI.
+  //
+  // Una tessera di forma fissa non basta a mostrare la pagina intera: con
+  // object-fit:contain l'immagine ci sta tutta, sì, ma se le proporzioni non
+  // coincidono al pixel restano due filetti di fondo ai lati — e su una pagina
+  // di manga (0,66) dentro una tessera 7:10 (0,70) si vedevano eccome. Non è
+  // una cornice voluta, è lo sfondo che si intravede: un difetto.
+  //
+  // Le misure vere stanno già scritte sul documento (w/h, vedi addRefBlob),
+  // quindi la tessera si adatta ad ognuna invece di imporre una forma sola.
+  // La griglia allinea le tessere in alto (align-items:start nel CSS): senza,
+  // verrebbero stirate all'altezza della più alta della riga, e il filetto
+  // tornerebbe da dove era uscito.
+  const forma = r => (mostraTavole && r.w && r.h) ? ` style="aspect-ratio:${r.w} / ${r.h}"` : '';
+
   // I tre listener Firestore chiamano renderRefsScreen ad OGNI modifica, anche
   // di un campo che qui non si vede: ricostruire l'HTML rifà da capo tutte le
   // miniature (nuovi <img>, decodifica, sfarfallio). Se il contenuto mostrato
@@ -1262,12 +1277,25 @@ export function renderRefsGrid(){
     const proj = suoi[0] || null;
     const dot = proj ? `<span class="refs-thumb-linkdot" style="background:${proj.color||'#4ab8d8'}" title="${esc(suoi.map(p=>p.title||'').join(' · '))}"></span>` : '';
     return `
-    <div class="refs-thumb" data-id="${r.id}">
+    <div class="refs-thumb"${forma(r)} data-id="${r.id}">
       <img src="${cldResize(r.url, mostraTavole ? TAVOLA_W : THUMB_W)}" loading="lazy" decoding="async" alt=""/>
       ${dot}
     </div>
   `;
   }).join('');
+
+  // Le proporzioni scritte sul documento possono mancare (immagini archiviate
+  // da versioni vecchie) o non essere quelle vere. Appena la miniatura è
+  // caricata si prendono da lei, che non può sbagliarsi: è la stessa immagine
+  // che si sta guardando. Cosi' l'ultimo filo di bordo sparisce anche sulle
+  // tavole piu' vecchie, senza doverle ritoccare una per una.
+  if(mostraTavole) grid.querySelectorAll('.refs-thumb img').forEach(im=>{
+    const adatta = ()=>{
+      if(!im.naturalWidth || !im.naturalHeight) return;
+      im.parentElement.style.aspectRatio = im.naturalWidth + ' / ' + im.naturalHeight;
+    };
+    if(im.complete) adatta(); else im.addEventListener('load', adatta, { once:true });
+  });
 
   // Tap = apri · tocco prolungato (o tasto destro) = menu sposta/elimina
   grid.querySelectorAll('.refs-thumb').forEach(el=>{

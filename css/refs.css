@@ -92,22 +92,27 @@
    Stessa griglia, altre proporzioni. Le tre differenze sono tutte conseguenza
    di una sola regola: una tavola si guarda INTERA.
 
-   1. TESSERE VERTICALI, 7:10. È la forma di una pagina — un albo americano sta
-      a 0,65, un tankobon a 0,70, un A4 a 0,71 — quindi con object-fit:contain
-      la stragrande maggioranza delle pagine riempie la tessera quasi esatta,
-      senza bande. Le poche eccezioni (una doppia splash orizzontale) si vedono
-      comunque tutte, appoggiate al centro: è il caso che il quadrato ritagliato
-      distruggeva peggio di tutti.
+   1. OGNI TESSERA HA LE PROPORZIONI DELLA SUA TAVOLA, scritte inline da
+      renderRefsGrid. Il 7:10 qui sotto è solo il ripiego per l'istante prima
+      che si sappiano (e per i documenti vecchi senza w/h): serve a non far
+      saltare la griglia mentre le miniature arrivano. Una forma fissa per
+      tutte non bastava — con object-fit:contain l'immagine ci sta tutta, ma
+      dove le proporzioni non coincidono al pixel restano due filetti di fondo
+      ai lati, e fra una pagina di manga (0,66) e una tessera 7:10 (0,70) si
+      vedevano. Le tessere si allineano IN ALTO: stirate all'altezza della
+      riga tornerebbero tutte della stessa forma, cioè al punto di partenza.
    2. TESSERE PIÙ LARGHE, tre per riga invece di quattro. Rimpicciolita ancora
       una pagina intera non è più una pagina: è una macchia grigia. A ~120px la
       gabbia delle vignette si legge ancora, ed è quella che si sta cercando.
-   3. FONDO SCURO. Le bande, quando ci sono, devono leggersi come "cornice" e
-      non come "carta": su fondo sabbia una pagina bianca ci si scioglieva
-      dentro e non si capiva più dove finisse.
+   3. FONDO COLOR CARTA. Con le proporzioni giuste non si vede mai — è quello
+      che sta sotto per la frazione di secondo prima che l'immagine arrivi.
+      Era scuro, ed era la scelta giusta finché le tessere avevano una forma
+      fissa e le bande erano inevitabili: adesso che non ci sono, un fondo
+      scuro si vedrebbe solo come un lampo nero al caricamento.
    La sorgente più grande che serve a questa dimensione la sceglie
    renderRefsGrid (vedi TAVOLA_W in refs.js). */
-.refs-grid.tavole{grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:10px}
-.refs-grid.tavole .refs-thumb{aspect-ratio:7/10;background:#2a2018}
+.refs-grid.tavole{grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:10px;align-items:start}
+.refs-grid.tavole .refs-thumb{aspect-ratio:7/10;background:#f4ecdc}
 .refs-grid.tavole .refs-thumb img{object-fit:contain}
 
 .refs-empty-state{display:none;flex-direction:column;align-items:center;gap:8px;text-align:center;padding:60px 20px;color:var(--ink3)}

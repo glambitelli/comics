@@ -27,11 +27,11 @@ module.exports = () => suite("References — Ritagli e Tavole dentro una cartell
     await page.waitForTimeout(300);
   };
 
-  sezione('una cartella con tre ritagli e due tavole');
-  await apri(3, 2);
+  sezione('una cartella con tre ritagli e tre tavole');
+  await apri(3, 3);
   let s = await stato();
   ok('i tab si vedono dentro una cartella', s.tabVisibili, s);
-  ok('c\'è un tab Tavole col suo numero', s.tavoleN === '2', s);
+  ok('c\'è un tab Tavole col suo numero', s.tavoleN === '3', s);
   ok('e i ritagli sono contati a parte, senza le tavole', s.ritagliN === '3', s);
   ok('si apre sui ritagli', s.attivo === 'ritagli', s);
   ok('e in griglia ci sono solo quelli', s.inGriglia.every(id=>id[0]==='r') && s.inGriglia.length === 3, s);
@@ -40,7 +40,7 @@ module.exports = () => suite("References — Ritagli e Tavole dentro una cartell
   await tocca('tavole');
   s = await stato();
   ok('il tab diventa attivo', s.attivo === 'tavole', s);
-  ok('in griglia ci sono solo le tavole', s.inGriglia.every(id=>id[0]==='t') && s.inGriglia.length === 2, s);
+  ok('in griglia ci sono solo le tavole', s.inGriglia.every(id=>id[0]==='t') && s.inGriglia.length === 3, s);
   ok('e la ricerca cambia etichetta', /tavole/i.test(s.cerca||''), s);
 
   sezione('la miniatura di una tavola mostra la pagina INTERA');
@@ -69,6 +69,28 @@ module.exports = () => suite("References — Ritagli e Tavole dentro una cartell
      Math.abs(forma.immagine - forma.naturale) < 0.02, forma);
   ok('e sta tutta dentro la tessera', forma.dentro, forma);
   ok('la tessera è abbastanza grande da leggerci una pagina', forma.larga >= 96, forma);
+
+  sezione('e non le resta attorno nessun filo di fondo');
+  // Tre tavole di forma diversa (manga, albo, doppia orizzontale): ognuna deve
+  // riempire la SUA tessera esattamente. Se la tessera avesse una forma fissa,
+  // due delle tre lascerebbero scoperte due strisce di sfondo — il "bordino"
+  // che si vedeva sul telefono.
+  const bordi = await page.evaluate(()=> Array.from(document.querySelectorAll('.refs-thumb')).map(el=>{
+    const im = el.querySelector('img');
+    const rt = el.getBoundingClientRect(), ri = im.getBoundingClientRect();
+    const st = getComputedStyle(el);
+    // Il bordo bianco della tessera è voluto e non c'entra: si confronta col
+    // riquadro interno, quello che l'immagine deve riempire tutto.
+    const b = parseFloat(st.borderLeftWidth) || 0;
+    return {
+      naturale: +(im.naturalWidth / im.naturalHeight).toFixed(3),
+      scoperto: Math.round(Math.max((rt.width - 2*b) - ri.width, (rt.height - 2*b) - ri.height)),
+    };
+  }));
+  const forme = [...new Set(bordi.map(b=>b.naturale))];
+  ok('le tavole di prova hanno forme diverse fra loro', forme.length >= 3, forme);
+  ok('nessuna lascia scoperto un filo di sfondo',
+     bordi.every(b=> b.scoperto <= 1), bordi);
 
   sezione('e la chiede a Cloudinary più grande di un quadratino');
   ok('la sorgente della tavola è a 420px', forma.sorgente === 420, forma);
