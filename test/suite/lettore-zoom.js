@@ -192,14 +192,20 @@ module.exports = () => suite("Lettore — spostamento e sfoglio da ingranditi", 
     const attendi = ms => new Promise(r=>setTimeout(r,ms));
     const prima = scala();
     window.Z.ingrandisci();
-    await attendi(45);   const presto = scala();
-    await attendi(95);   const meta = scala();     // ~140ms, poco oltre la meta'
-    await attendi(500);  const fine = scala();
+    // I campioni si prendono in FRAZIONE della durata dichiarata, non a
+    // millisecondi fissi: qui si misura la FORMA del movimento, e la durata e'
+    // una manopola separata che si puo' girare senza rendere false le soglie.
+    // I 16ms in piu' sono quelli che passano fra il comando e il primo
+    // fotogramma, e vanno tolti dal conto o si misura anche l'attesa.
+    const dur = parseFloat((im.style.transition.match(/(\d+(?:\.\d+)?)ms/) || [0, 240])[1]);
+    await attendi(16 + dur * 0.12);   const presto = scala();
+    await attendi(dur * 0.43);        const meta = scala();   // ~55% della durata
+    await attendi(dur * 2);           const fine = scala();
     const corsa = v => (v - prima) / (fine - prima);
-    return { prima, fine, presto: corsa(presto), meta: corsa(meta), curva: im.style.transition };
+    return { durata: dur, prima, fine, presto: corsa(presto), meta: corsa(meta), curva: im.style.transition };
   });
   ok('lo zoom arriva dove deve', forma.fine > 2.4, forma);
-  ok('si e\' gia\' mosso dopo 45ms: nessun tratto morto in partenza',
+  ok('si e\' gia\' mosso al 12% del tempo: nessun tratto morto in partenza',
      forma.presto > 0.06, { presto: +forma.presto.toFixed(2), ...forma });
   // Il numero che sorveglia la bruschezza. La curva di prima, tutta sbilanciata
   // sull'inizio, qui stava intorno al 90%: quasi tutto l'avvicinamento
@@ -208,7 +214,7 @@ module.exports = () => suite("Lettore — spostamento e sfoglio da ingranditi", 
      forma.meta < 0.78, { meta: +forma.meta.toFixed(2), ...forma });
   ok('la curva e\' quella dichiarata, non quella del browser',
      /cubic-bezier/.test(forma.curva), forma.curva);
-  console.log('   corsa fatta: ' + Math.round(forma.presto*100) + '% a 45ms · '
-    + Math.round(forma.meta*100) + '% a 140ms');
+  console.log('   corsa fatta: ' + Math.round(forma.presto*100) + '% al 12% del tempo · '
+    + Math.round(forma.meta*100) + '% al 55%   (durata ' + forma.durata + 'ms)');
 
 });

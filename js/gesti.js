@@ -48,7 +48,15 @@ export const ZOOM_IN = 2.6, ZOOM_MAX = 4;
 // muove dal primo fotogramma, senza dead zone e senza strattone — sta al 57%
 // a metà tempo, e ha una velocità di punta di 1,20 volte la media invece di
 // 2,77. Meno della metà dello scatto, a parità di partenza pronta.
-export const ZOOM_MS = 240;
+//
+// DURATA E FORMA SONO DUE MANOPOLE SEPARATE, e conviene ricordarselo perché
+// qui si è sbagliato due volte girando quella sbagliata. La curva decide se il
+// movimento è fluido o a strappi; la durata decide solo quanto ci mette. A
+// giudizio dato ("la fluidità va bene, la velocità un pelo di più") si tocca
+// la seconda e si lascia stare la prima: 240 → 200ms, stessa curva. Il rapporto
+// fra velocità di punta e media resta 1,20 — cioè la morbidezza è identica —
+// e sale del 20% solo la velocità assoluta.
+export const ZOOM_MS = 200;
 export const ZOOM_EASE = 'cubic-bezier(.3,.3,.65,.85)';
 export const ZOOM_TRANSITION = 'transform ' + ZOOM_MS + 'ms ' + ZOOM_EASE;
 
