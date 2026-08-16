@@ -27,7 +27,22 @@
 .card-dot{width:38px;height:38px;border-radius:50%;flex-shrink:0;}
 .card-info{flex:1;min-width:0}
 .card-title{font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink)}
-.card-meta{font-size:12px;color:var(--ink3);margin-top:2px;font-weight:500}
+/* TRE RIGHE, TUTTE ALTE UNA RIGA. Nessuna di queste va a capo: se il testo non
+   ci sta si accorcia con i puntini. E' quello che tiene le schede tutte della
+   stessa altezza — prima bastava una scadenza a far andare a capo la riga di
+   stato, e quel progetto diventava piu' alto degli altri.
+   La terza riga si scrive anche quando e' vuota (vedi renderHome): senza, un
+   progetto senza data sarebbe piu' basso, cioe' lo stesso difetto al
+   contrario. */
+.card-meta,.card-sub{
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.card-meta{font-size:12px;color:var(--ink3);margin-top:2px;font-weight:500;line-height:1.45}
+.card-sub{font-size:10px;color:var(--ink3);margin-top:2px;font-weight:400;line-height:1.5;min-height:15px}
+/* La scadenza sta con le date, non con lo stato. Quando e' passata si accende:
+   e' l'unica informazione della scheda che chiede di fare qualcosa. */
+.card-scad{font-weight:600}
+.card-scad.oltre{color:var(--rame)}
 .card-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0}
 .card-pct{font-size:18px;font-weight:700}
 .new-btn{width:100%;padding:16px;border-radius:var(--r);border:2px dashed var(--sand3);background:transparent;color:var(--ink3);font-family:'Nunito',sans-serif;font-size:14px;font-weight:600;cursor:pointer;margin-top:4px;transition:border-color .2s,color .2s}

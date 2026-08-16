@@ -77,18 +77,27 @@ export function renderHome(){
     const cardInner = document.createElement('div');
     cardInner.style.cssText='display:flex;align-items:center;gap:14px;flex:1;min-width:0;cursor:pointer';
 
+    // DUE RIGHE FISSE, e nessuna che vada a capo. Prima era una sola riga con
+    // dentro tutto — fase, tavole, tavola in corso, scadenza — e su un telefono
+    // quella riga andava a capo appena il progetto aveva una scadenza: la
+    // scheda diventava piu' alta delle altre, e in un elenco di schede uguali
+    // una piu' alta sembra un errore (era il caso di "Kara").
+    //
+    // Sopra sta lo STATO (dove sei), sotto la CRONOLOGIA (da quando, per
+    // quando). Sono due cose diverse e adesso stanno su due righe diverse,
+    // ognuna alta una riga e basta: le schede tornano tutte identiche.
     const metaLine = [
       PHASE_NAMES[phIdx],
       `${p.numTav} tavole`,
       currentTav ? `✏️ tav. ${currentTav}` : '',
-      dStr ? `⏱ ${dStr}` : '',
     ].filter(Boolean).join(' · ');
+    const scadenza = dStr ? `<span class="card-scad${daysLeft < 0 ? ' oltre' : ''}">⏱ ${dStr}</span>` : '';
 
     cardInner.innerHTML=`
       <div class="card-info">
         <div class="card-title">${p.title}</div>
         <div class="card-meta">${metaLine}</div>
-        ${createdDate?`<div style="font-size:10px;color:var(--ink3);margin-top:2px;font-weight:400">Iniziato il ${createdDate}</div>`:''}
+        <div class="card-sub">${createdDate ? `Iniziato il ${createdDate}` : ''}${createdDate && scadenza ? ' · ' : ''}${scadenza}</div>
       </div>
       <div class="card-right">
         <div class="card-pct" style="color:${bgColor}">${pct}%</div>

@@ -91,4 +91,50 @@ module.exports = () => suite("Home — la ricerca progetti compare quando serve"
   ok('il testo si azzera', dopo.testo === '', dopo);
   ok('e si rivedono tutti i progetti', dopo.visibili === 2, dopo);
 
+  sezione('le schede sono tutte della stessa altezza');
+  // Il difetto: la riga di stato conteneva anche la scadenza, e su un telefono
+  // andava a capo appena il progetto ne aveva una. Quella scheda diventava piu'
+  // alta delle altre — in un elenco di schede uguali, una piu' alta sembra un
+  // errore. Qui si mettono a confronto i tre casi che facevano la differenza:
+  // con scadenza, senza, e con un titolo lungo il doppio della riga.
+  const altezze = await page.evaluate(async ()=>{
+    const st = await import('/js/state.js');
+    const home = await import('/js/home.js');
+    const p1 = home.newProjectObj('Kara', 10);
+    const p2 = home.newProjectObj('Test', 10);
+    const p3 = home.newProjectObj('Un titolo lunghissimo che non ci sta nella riga nemmeno a spingerlo', 120);
+    p1.id='p1'; p2.id='p2'; p3.id='p3';
+    p1.dateEnd = '2020-01-31';            // scaduta da un pezzo
+    p3.dateEnd = '2030-01-31';            // ancora lontana
+    delete p2.createdAt;                  // un progetto vecchio, senza data
+    st.setProjects([p1,p2,p3]);
+    home.renderHome();
+    await new Promise(r=>setTimeout(r,250));
+    const schede = Array.from(document.querySelectorAll('.project-card'));
+    return {
+      alte: schede.map(c=> Math.round(c.getBoundingClientRect().height)),
+      // Nessuna delle righe deve andare a capo: e' quello che le tiene uguali.
+      righe: schede.map(c=>{
+        const m = c.querySelector('.card-meta');
+        const s = c.querySelector('.card-sub');
+        return [Math.round(m.getBoundingClientRect().height),
+                Math.round(s.getBoundingClientRect().height)];
+      }),
+      // La scadenza passata si vede, e si vede che e' passata.
+      scaduta: (()=>{
+        const el = schede[0].querySelector('.card-scad');
+        return el ? { testo: el.textContent, acceso: el.classList.contains('oltre') } : null;
+      })(),
+      // La riga di stato non se la porta piu' dietro.
+      statoPulito: !/scaduto/i.test(schede[0].querySelector('.card-meta').textContent),
+    };
+  });
+  ok('tutte e tre alte uguale', new Set(altezze.alte).size === 1, altezze.alte);
+  ok('nessuna riga va a capo',
+     altezze.righe.every(([m,s])=> m <= 20 && s <= 18), altezze.righe);
+  ok('la scadenza sta con le date e si accende quando e\' passata',
+     altezze.scaduta && /scaduto/i.test(altezze.scaduta.testo) && altezze.scaduta.acceso,
+     altezze.scaduta);
+  ok('e non e\' piu\' in mezzo alla riga di stato', altezze.statoPulito, altezze);
+
 });
