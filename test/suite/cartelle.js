@@ -110,6 +110,34 @@ module.exports = () => suite("References — artisti e menu contestuali", {"banc
   ok('le righe non sono piu\' schede col bordo',
      dischi.every(d=> d.bordi.startsWith('0px')), dischi.map(d=>d.bordi));
 
+  sezione('Artists e References sono due linguette di uno schedario');
+  // Erano due parole con un trattino sotto: dicevano "titolo", non "scomparto".
+  // Adesso sono linguette, e a farle funzionare e' il colore: quella accesa ha
+  // lo stesso fondo dell'elenco sotto e nessun bordo in basso, quindi si salda
+  // alla pagina.
+  const linguette = await page.evaluate(()=>{
+    const leggi = el=>{
+      const s = getComputedStyle(el);
+      return { fondo:s.backgroundColor, angoli:s.borderTopLeftRadius,
+               sotto:parseFloat(s.borderBottomWidth), colore:s.color };
+    };
+    const a = document.getElementById('refs-axis-artists');
+    const r = document.getElementById('refs-axis-references');
+    return { attiva: leggi(a), spenta: leggi(r),
+             elenco: getComputedStyle(document.querySelector('.refs-scroll')).backgroundColor };
+  });
+  ok('la linguetta accesa ha il fondo dell\'elenco sotto',
+     linguette.attiva.fondo === linguette.elenco, linguette);
+  ok('e non tira nessun filo che la stacchi',
+     linguette.attiva.sotto === 0, linguette);
+  ok('quella spenta e\' di un altro tono',
+     linguette.spenta.fondo !== linguette.attiva.fondo, linguette);
+  ok('e tutte e due hanno gli angoli tondi in alto',
+     parseFloat(linguette.attiva.angoli) >= 12 && parseFloat(linguette.spenta.angoli) >= 12,
+     linguette);
+  ok('il nome della scheda accesa e\' piu\' scuro',
+     linguette.attiva.colore !== linguette.spenta.colore, linguette);
+
   sezione('niente piu\' "Senza cartella"');
   // Tolta su richiesta: tutto finisce sempre in una cartella o sotto un tag, e
   // una riga che nella pratica non compare mai e' solo un'altra cosa da
