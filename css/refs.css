@@ -144,15 +144,23 @@
    stanno due righe in piu' nello stesso schermo. */
 .refs-folder-row{
   display:flex;align-items:center;gap:12px;cursor:pointer;
-  padding:11px 4px;border-bottom:1px solid #e3d9c4;
+  padding:11px 10px;border-radius:10px;
+  background:#f6efe0;
   transition:background .12s;
 }
-.refs-folder-row:active{background:rgba(255,255,255,.55)}
-/* L'ultima riga di un gruppo non tira il filo: sotto non c'e' un'altra
-   cartella, c'e' il "+" o la sezione dopo, e un capello sospeso nel vuoto
-   sembra un errore. */
-.refs-folder-row:has(+ .refs-add-row),
-.refs-folder-row:last-child{border-bottom:none}
+/* A RIGHE ALTERNE, due sabbie a un soffio di distanza (#f6efe0 e #eae0c9,
+   entrambe figlie del fondo #efe6d4 su cui poggiano). Prima le righe erano
+   tutte uguali, separate da un capello di un pixel: con dieci artisti in
+   colonna l'occhio che scorreva perdeva il rigo e finiva per aprire la
+   cartella sopra o sotto quella voluta. La fascia intera si vede senza
+   guardarla — e' il trucco dei registri di carta — e costa meno di una linea,
+   che invece si mette a competere coi nomi. */
+.refs-folder-row.scura{background:#eae0c9}
+/* Tre pixel di respiro: bastano a far vedere gli angoli tondi, senza che le
+   righe diventino dieci schede staccate (era la versione di prima, e la
+   pagina sembrava un elenco di cose importanti invece di una rubrica). */
+.refs-folder-row + .refs-folder-row{margin-top:3px}
+.refs-folder-row:active{background:#e2d5b6}
 /* IL DISCO con le iniziali: oro pieno, inchiostro scuro sopra. Sono
    esattamente i due colori del riquadro "Task di stasera" (#e2b62c su #2a2412,
    vedi .microtask-box in project.css) — non una tinta nuova inventata qui.
@@ -190,9 +198,12 @@
    scritto "Aggiungi artista" ripeteva la parola che sta gia' sulla scheda. */
 .refs-add-row{
   display:flex;align-items:center;gap:12px;width:100%;
-  padding:12px 4px;background:none;border:none;cursor:pointer;
+  padding:12px 10px;background:none;border:none;cursor:pointer;
   font-family:'Nunito',sans-serif;text-align:left;
 }
+/* Stessa imbottitura laterale delle righe: il "+" cade esattamente sotto la
+   colonna dei dischi, e la coda dell'elenco non balla. */
+.refs-folder-row + .refs-add-row{margin-top:3px}
 .refs-add-cerchio{
   width:36px;height:36px;border-radius:50%;flex-shrink:0;
   display:flex;align-items:center;justify-content:center;
@@ -203,7 +214,6 @@
 .refs-add-row:active .refs-add-cerchio{background:#f0dfba;transform:scale(.92)}
 .refs-folder-name{flex:1;min-width:0;font-size:14.5px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .refs-folder-count{font-size:12px;font-weight:600;color:var(--ink3)}
-.refs-folder-menu{background:none;border:none;color:var(--ink3);font-size:15px;line-height:1;padding:6px 2px 6px 6px;margin:-6px 0;cursor:pointer;flex-shrink:0}
 
 .refs-folders-empty{font-size:12.5px;color:var(--ink3);line-height:1.6;padding:10px 4px 4px}
 

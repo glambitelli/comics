@@ -3,7 +3,17 @@
    nero-sabbia con testo oro del pulsante che apre i modali (.new-fab) e dei
    numeri di sequenza (.seq-num), al posto del gradiente corallo→oro di inizio
    progetto, che non aveva più niente a che vedere con l'identità dell'app. */
-.modal-overlay{position:fixed;inset:0;background:rgba(26,20,16,.55);backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px);display:none;align-items:center;justify-content:center;z-index:200}
+/* Z-INDEX 9700, e non 200 come prima. Il 200 bastava finche' i modali
+   nascevano solo dalle schermate normali, ma "Nuovo tag…" si chiede DENTRO il
+   lettore album (.album-reader sta a 4000) e dal lightbox dell'archivio
+   (9500): il modale si apriva sotto, la tastiera del telefono si alzava lo
+   stesso e si scriveva alla cieca in un campo che non si vedeva — sembrava
+   che l'app non registrasse i tasti. Un modale e' sempre l'ultima cosa
+   comparsa e chiede una risposta prima di ogni altra: sta sopra tutto tranne
+   la tenda del passaggio notte (.velo-notte, 9800), che deve poter coprire
+   anche lui. Il menu contestuale (9600) resta sotto: se un modale si apre da
+   una sua voce, il menu e' gia' chiuso. */
+.modal-overlay{position:fixed;inset:0;background:rgba(26,20,16,.55);backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px);display:none;align-items:center;justify-content:center;z-index:9700}
 .modal-overlay.open{display:flex}
 .modal,.confirm-modal{
   position:relative;background:var(--white);border-radius:20px;

@@ -224,11 +224,76 @@ module.exports = () => suite("References — artisti e menu contestuali", {"banc
   });
   await page.waitForTimeout(200);
 
+  sezione('niente piu\' "⋯": Rinomina/Elimina si aprono tenendo premuto');
+  // Il bottone dei tre puntini era un bersaglio da pochi pixel appoggiato a un
+  // bersaglio largo quanto lo schermo: si sbagliava in tutti e due i versi. Il
+  // gesto e' lo stesso delle miniature (480ms), e qui si riproduce INTERO —
+  // rilascio e click compresi — perche' il click che il browser manda quando
+  // il dito si stacca non deve aprire anche la cartella sotto.
+  await apri();
+  const senzaPuntini = await page.evaluate(()=> !document.querySelector('.refs-folder-menu'));
+  ok('il bottone non c\'e\' piu\' su nessuna riga', senzaPuntini, senzaPuntini);
+  const tenuta = await page.evaluate(async ()=>{
+    const el = document.querySelector('.refs-folder-row[data-folder-id]');
+    const r = el.getBoundingClientRect();
+    const x = r.left + r.width/2, y = r.top + r.height/2;
+    const t = ()=> [new Touch({identifier:3, target:el, clientX:x, clientY:y})];
+    el.dispatchEvent(new PointerEvent('pointerdown',{pointerId:3,clientX:x,clientY:y,bubbles:true}));
+    el.dispatchEvent(new TouchEvent('touchstart',{bubbles:true,touches:t(),targetTouches:t()}));
+    await new Promise(r=>setTimeout(r,600));
+    const durante = !!document.querySelector('.ink-action-menu');
+    // changedTouches serve davvero: la lista dei tag scorre con lo swipe fra
+    // gli assi (vedi wireSwipeAssi) e quel gestore legge da li' dove il dito
+    // si e' staccato. Un touchend senza, che il browser non manda mai, faceva
+    // esplodere il gestore in mezzo alla prova.
+    el.dispatchEvent(new TouchEvent('touchend',{bubbles:true,touches:[],targetTouches:[],changedTouches:t()}));
+    el.dispatchEvent(new PointerEvent('pointerup',{pointerId:3,clientX:x,clientY:y,bubbles:true}));
+    el.dispatchEvent(new MouseEvent('click',{bubbles:true,clientX:x,clientY:y}));
+    await new Promise(r=>setTimeout(r,200));
+    const galleria = document.getElementById('refs-gallery-view');
+    return { durante, dopo: !!document.querySelector('.ink-action-menu'),
+             entrata: galleria.style.display !== 'none' };
+  });
+  ok('tenendo premuto il menu compare', tenuta.durante, tenuta);
+  ok('e resta aperto quando il dito si stacca', tenuta.dopo, tenuta);
+  ok('senza entrare anche nella cartella sotto', !tenuta.entrata, tenuta);
+  // Il menu si chiude col dito che scende, non col click: e' proprio quello
+  // che gli impedisce di lampeggiare (vedi piu' sotto).
+  await page.evaluate(()=> document.body.dispatchEvent(
+    new PointerEvent('pointerdown',{pointerId:9,clientX:4,clientY:4,bubbles:true})));
+  // Mezzo secondo abbondante: chiudendo il menu col dito, il click che segue
+  // il distacco viene ingoiato apposta (vedi _fuoriMenu in dialogs.js), e il
+  // tocco della prova qui sotto dev'essere un tocco nuovo, non quello.
+  await page.waitForTimeout(600);
+
+  sezione('mentre un tocco normale entra e basta');
+  const entrato = await page.evaluate(async ()=>{
+    document.querySelector('.refs-folder-row[data-folder-id]')
+      .dispatchEvent(new MouseEvent('click',{bubbles:true}));
+    await new Promise(r=>setTimeout(r,250));
+    return { grid: document.getElementById('refs-gallery-view').style.display !== 'none',
+             menu: !!document.querySelector('.ink-action-menu') };
+  });
+  ok('la cartella si apre', entrato.grid, entrato);
+  ok('e nessun menu si mette in mezzo', !entrato.menu, entrato);
+
+  sezione('le righe si alternano di tinta');
+  // Due sabbie a un soffio di distanza: con dieci nomi in colonna e un fondo
+  // solo, l'occhio che scorreva perdeva il rigo e apriva la cartella accanto.
+  await apri();
+  const tinte = await page.evaluate(()=> Array.from(
+    document.querySelectorAll('.refs-folder-row[data-folder-id]'))
+    .map(r=> getComputedStyle(r).backgroundColor));
+  ok('due tinte in tutto, non una sola', new Set(tinte).size === 2, tinte);
+  ok('e si alternano riga per riga',
+     tinte.every((c,i)=> i === 0 || c !== tinte[i-1]), tinte);
+  ok('nessuna delle due e\' trasparente',
+     tinte.every(c=> !/^rgba\(0, 0, 0, 0\)$/.test(c)), tinte);
+
   sezione('i menu contestuali: parole corte e un\'icona per voce');
   await apri();
   const menuCartella = await page.evaluate(async ()=>{
-    document.querySelector('.refs-folder-row .refs-folder-menu')
-      .dispatchEvent(new MouseEvent('click',{bubbles:true}));
+    await window.refsFolderMenu('a1', document.querySelector('.refs-folder-row[data-folder-id]'));
     await new Promise(r=>setTimeout(r,200));
     const m = document.querySelector('.ink-action-menu');
     const st = getComputedStyle(m);
@@ -308,7 +373,7 @@ module.exports = () => suite("References — artisti e menu contestuali", {"banc
   // puntare a una cartella diversa da quella scelta.
   await apri();
   const dopoScroll = await page.evaluate(async ()=>{
-    await window.refsFolderMenu('a1', document.querySelector('.refs-folder-menu'));
+    await window.refsFolderMenu('a1', document.querySelector('.refs-folder-row[data-folder-id]'));
     await new Promise(r=>setTimeout(r,200));
     const prima = !!document.querySelector('.ink-action-menu');
     document.querySelector('.refs-scroll').dispatchEvent(new Event('scroll', {bubbles:true}));

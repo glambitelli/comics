@@ -305,4 +305,52 @@ module.exports = () => suite("References — i tag", {"banco": "/test/banco/tavo
   ok('e si vede tutto quello che c\'e\' dentro, tavole comprese',
      inStudy.ids.includes('h1') && inStudy.ids.includes('h2'), inStudy);
 
+  sezione('"Nuovo tag": il campo si vede mentre si scrive');
+  // Il difetto: si sceglieva "Nuovo tag…" ritagliando dentro il lettore, la
+  // tastiera del telefono si alzava, ma la casella non compariva — si scriveva
+  // alla cieca e sembrava che l'app non registrasse i tasti. Il modale stava a
+  // z-index 200 e il lettore a 4000: si apriva SOTTO la schermata da cui era
+  // stato chiesto.
+  const strati = await page.evaluate(()=>{
+    const z = cls=>{
+      const d = document.createElement('div'); d.className = cls;
+      document.body.appendChild(d);
+      const v = getComputedStyle(d).zIndex; d.remove(); return parseInt(v, 10);
+    };
+    return { modale: z('modal-overlay'), lettore: z('album-reader'),
+             lightbox: z('refs-lightbox'), velo: z('velo-notte') };
+  });
+  ok('il modale sta sopra il lettore album', strati.modale > strati.lettore, strati);
+  ok('e sopra la lightbox dell\'archivio', strati.modale > strati.lightbox, strati);
+  // La tenda del passaggio notte deve poter coprire anche un modale aperto:
+  // e' l'unica cosa che sta piu' in alto.
+  ok('ma sotto la tenda della modalita\' notte', strati.modale < strati.velo, strati);
+
+  // E la prova vera: col pannello piu' alto dell'archivio aperto, il dito che
+  // tocca il centro della casella deve trovare LA CASELLA, non il velo di
+  // qualcos'altro sopra.
+  const raggiungibile = await page.evaluate(async ()=>{
+    window.refs.openFolder('a1');
+    await new Promise(r=>setTimeout(r,250));
+    document.getElementById('refs-lightbox').classList.add('open');
+    const d = await import('/js/dialogs.js');
+    d.promptModal('Nuovo tag', '', 'es. folla che cammina');   // non si attende: si chiude sotto
+    await new Promise(r=>setTimeout(r,150));
+    const inp = document.getElementById('ink-prompt-input');
+    const r = inp.getBoundingClientRect();
+    const sopra = document.elementFromPoint(r.left + r.width/2, r.top + r.height/2);
+    const esito = { visibile: r.width > 0 && r.height > 0, proprioLui: sopra === inp,
+                    scritto: null };
+    inp.value = 'folla che cammina';
+    esito.scritto = inp.value;
+    document.getElementById('ink-prompt-cancel').dispatchEvent(new MouseEvent('click',{bubbles:true}));
+    document.getElementById('refs-lightbox').classList.remove('open');
+    return esito;
+  });
+  ok('la casella ha una sua dimensione a schermo', raggiungibile.visibile, raggiungibile);
+  ok('e nel punto in cui si tocca c\'e\' la casella, non altro',
+     raggiungibile.proprioLui, raggiungibile);
+  ok('quello che si scrive resta scritto',
+     raggiungibile.scritto === 'folla che cammina', raggiungibile);
+
 });

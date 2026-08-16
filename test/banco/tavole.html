@@ -19,6 +19,11 @@
 <link rel="stylesheet" href="/css/modals.css">
 <link rel="stylesheet" href="/css/refs.css">
 <link rel="stylesheet" href="/css/layout.css">
+<!-- Serve solo a confrontare gli strati: il lettore album (.album-reader) è la
+     schermata più alta da cui può nascere un modale — "Nuovo tag…" si chiede
+     proprio da lì, ritagliando — e senza il suo foglio di stile qui non si
+     potrebbe verificare che il modale gli stia sopra. -->
+<link rel="stylesheet" href="/css/albums.css">
 <style>html,body{margin:0;height:100%;background:#111}
 /* Nell'app la schermata attiva la mostra main.js: qui non c'è, e senza questo
    la si misurerebbe mentre è ancora nascosta (tutte le altezze a zero). */

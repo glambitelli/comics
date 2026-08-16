@@ -1344,8 +1344,8 @@ function etichettaCartella(f){
 // La riga di un tag. Vive in due posti — dentro l'elenco dei tag e nella
 // scheda References quando si sta cercando — e scriverla due volte avrebbe
 // voluto dire tenerne allineate due.
-function rigaTag(t){
-  return `<div class="refs-folder-row refs-tag-row" onclick="window.openTag('${perOnclick(t.nome)}')">
+function rigaTag(t, i){
+  return `<div class="refs-folder-row refs-tag-row${i % 2 ? ' scura' : ''}" onclick="window.openTag('${perOnclick(t.nome)}')">
       <span class="refs-mono mt">#</span>
       <span class="refs-folder-name">${esc(t.nome)}</span>
     </div>`;
@@ -1398,11 +1398,22 @@ function renderFolderBrowser(){
   // ed erano trenta cifre a schermo che rubavano l'occhio ai nomi, che sono la
   // cosa che si legge davvero. I conteggi restano sulle barre di sezione, dove
   // contano CARTELLE e TAG: quello si', dice quanto e' grande l'archivio.
-  const righeCartelle = folders => folders.map(f=>`
-      <div class="refs-folder-row" onclick="window.openFolder('${f.id}')">
+  //
+  // Le righe si alternano di tinta (vedi .scura in refs.css): due sabbie a un
+  // soffio di distanza, chiara e scura a righe alterne. Con dieci nomi uno
+  // sotto l'altro e tutti lo stesso fondo, l'occhio che scende perdeva il rigo
+  // e apriva la cartella sbagliata; la fascia dice dove finisce una riga senza
+  // bisogno di disegnare una linea.
+  //
+  // E niente piu' "⋯": Rinomina/Elimina si aprono TENENDO PREMUTO (vedi
+  // wireRigheCartelle). Il bottone era un bersaglio da otto pixel accanto a un
+  // bersaglio largo lo schermo — si sbagliava a premere in un verso e
+  // nell'altro — e le miniature qui sotto usano gia' lo stesso gesto: un modo
+  // solo per dire "questa cosa qui, cosa ci posso fare".
+  const righeCartelle = folders => folders.map((f,i)=>`
+      <div class="refs-folder-row${i % 2 ? ' scura' : ''}" data-folder-id="${f.id}">
         <span class="refs-mono">${esc(sigla(f))}</span>
         <span class="refs-folder-name">${etichettaCartella(f)}</span>
-        <button class="refs-folder-menu" onclick="event.stopPropagation();window.refsFolderMenu('${f.id}',this)" aria-label="Altro">⋯</button>
       </div>`).join('');
 
   // Senza parole. La riga resta alta e larga quanto le altre — il bersaglio e'
@@ -1467,11 +1478,33 @@ function renderFolderBrowser(){
   // Confronto sul contenuto vero: una firma "furba" (es. la lunghezza) manca
   // i casi in cui cambia il testo ma non la misura, tipo una cartella
   // rinominata con un nome della stessa lunghezza.
-  if(el._html !== html){ el._html = html; el.innerHTML = html; }
+  if(el._html !== html){ el._html = html; el.innerHTML = html; wireRigheCartelle(el); }
   const tabArtists = document.getElementById('refs-axis-artists');
   const tabRefs = document.getElementById('refs-axis-references');
   if(tabArtists) tabArtists.classList.toggle('active', _asse === 'artists');
   if(tabRefs) tabRefs.classList.toggle('active', _asse === 'references');
+}
+
+// Tocco = entra · tocco prolungato (o tasto destro) = Rinomina/Elimina.
+// Sono gli stessi 480ms delle miniature piu' sotto, e per la stessa ragione:
+// e' il tempo in cui una pressione smette di sembrare un tocco andato lungo.
+// Il click NON sta piu' scritto nell'HTML della riga perche' dopo il tocco
+// prolungato il browser manda comunque un click al distacco del dito: se ad
+// aprire la cartella fosse un onclick nell'attributo, il menu si aprirebbe e
+// sotto si aprirebbe anche la cartella. Con `tenuto` quel click si ignora.
+function wireRigheCartelle(el){
+  el.querySelectorAll('.refs-folder-row[data-folder-id]').forEach(riga=>{
+    const id = riga.dataset.folderId;
+    let attesa = null, tenuto = false;
+    riga.addEventListener('click', ()=>{ if(!tenuto) openFolder(id); tenuto = false; });
+    riga.addEventListener('contextmenu', e=>{ e.preventDefault(); refsFolderMenu(id, riga); });
+    riga.addEventListener('touchstart', ()=>{
+      tenuto = false;
+      attesa = setTimeout(()=>{ tenuto = true; haptic('done'); refsFolderMenu(id, riga); }, 480);
+    }, {passive:true});
+    ['touchend','touchmove','touchcancel'].forEach(ev=>
+      riga.addEventListener(ev, ()=>clearTimeout(attesa), {passive:true}));
+  });
 }
 
 export function refsFolderMenu(id, btnEl){
