@@ -1,0 +1,94 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8">
+<title>mockup — le schede Artists / References</title>
+<link rel="stylesheet" href="/css/variables.css">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Castoro&display=swap');
+  body{margin:0;background:#efe6d4;font-family:'Nunito',sans-serif;padding:12px 0 30px}
+  .tit{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#8a7248;
+       margin:22px 14px 4px;display:flex;align-items:center;gap:8px}
+  .tit span{background:#f5ecd8;border:1px solid #e0d4b4;border-radius:20px;padding:3px 10px}
+  .tit i{flex:1;height:1.5px;background:#dccca0;font-style:normal}
+  .nota{font-size:11.5px;color:#8a7248;margin:0 18px 8px;line-height:1.45}
+
+  /* il contorno della schermata vera: barra di ricerca sopra, elenco sotto */
+  .quadro{background:var(--sand);overflow:hidden}
+  .cerca{display:flex;align-items:center;gap:8px;padding:10px 16px 12px;background:var(--sand);
+         border-bottom:1px solid #e8dcc0}
+  .campo{flex:1;height:34px;background:var(--white);border:1.5px solid var(--sand2);border-radius:20px}
+  .nuvola{width:34px;height:34px;border-radius:50%;background:var(--white);border:1.5px solid var(--sand2)}
+  .sotto{background:#efe6d4;padding:14px}
+  .carta{position:relative;background:var(--white);border:1.5px solid var(--sand2);border-radius:18px;
+         overflow:hidden;box-shadow:0 2px 10px rgba(74,184,216,.08)}
+  .carta::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;
+                 background:linear-gradient(90deg,var(--sand3),var(--gold),var(--sand3))}
+  .riga{display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--sand)}
+  .riga:last-child{border-bottom:none}
+  .disco{width:36px;height:36px;border-radius:50%;background:#e2b62c;color:#2a2412;font-size:12.5px;
+         font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .nome{flex:1;font-size:14.5px;font-weight:700;color:var(--ink)}
+  .chev{color:var(--sand3);font-size:17px;font-weight:700}
+
+  /* ── OGGI ── */
+  .oggi{display:flex;background:var(--sand)}
+  .oggi button{flex:1;background:none;border:none;font-family:inherit;font-size:14px;font-weight:700;
+               color:var(--ink3);padding:11px 0 10px;border-bottom:2.5px solid transparent;cursor:pointer}
+  .oggi .on{color:var(--ink);border-bottom-color:var(--coral)}
+
+  /* ── A · pastiglia scorrevole (segmented) ── */
+  .a{display:flex;gap:4px;margin:10px 14px;padding:4px;background:#e7ddc6;border-radius:999px}
+  .a button{flex:1;background:none;border:none;border-radius:999px;padding:9px 0;cursor:pointer;
+            font-family:inherit;font-size:13.5px;font-weight:700;color:#8a7248}
+  .a .on{background:var(--white);color:var(--ink);box-shadow:0 2px 6px rgba(40,30,15,.12)}
+
+  /* ── B · linguette di cartella ── */
+  .b{display:flex;gap:6px;padding:8px 14px 0;background:var(--sand)}
+  .b button{flex:1;background:#e9dfc8;border:1.5px solid var(--sand2);border-bottom:none;
+            border-radius:14px 14px 0 0;padding:10px 0 11px;cursor:pointer;
+            font-family:inherit;font-size:13.5px;font-weight:700;color:#8a7248;position:relative;top:1px}
+  .b .on{background:var(--white);color:var(--ink);box-shadow:0 -2px 8px rgba(40,30,15,.06)}
+  .b-sotto{background:var(--white);border-top:1.5px solid var(--sand2);height:10px}
+
+  /* ── C · pastiglie d'inchiostro ── */
+  .c{display:flex;gap:8px;padding:10px 14px 12px;background:var(--sand)}
+  .c button{flex:1;background:none;border:1.5px solid var(--sand2);border-radius:999px;padding:9px 0;
+            cursor:pointer;font-family:inherit;font-size:13.5px;font-weight:700;color:#8a7248}
+  .c .on{background:linear-gradient(135deg,#2a2018,#1a1410);border-color:transparent;color:var(--gold);
+         box-shadow:0 3px 12px rgba(26,20,16,.22)}
+
+  /* ── D · filo d'oro e fondo appena acceso ── */
+  .d{display:flex;gap:6px;padding:8px 14px 10px;background:var(--sand)}
+  .d button{flex:1;background:none;border:none;border-radius:12px;padding:9px 0 7px;cursor:pointer;
+            font-family:inherit;font-size:14px;font-weight:700;color:#8a7248;position:relative}
+  .d .on{background:#f6efe0;color:var(--ink)}
+  .d .on::after{content:'';position:absolute;left:22%;right:22%;bottom:3px;height:3px;border-radius:2px;
+                background:linear-gradient(90deg,var(--oro-sabbia),var(--gold),var(--oro-sabbia))}
+</style>
+</head><body>
+<div id="qui"></div>
+<script>
+const ELENCO = `<div class="sotto"><div class="carta">
+  ${[['KO','KON'],['OT','OTOMO Katsuhiro']].map(([s,n])=>`
+    <div class="riga"><span class="disco">${s}</span><span class="nome">${n}</span><span class="chev">›</span></div>`).join('')}
+</div></div>`;
+const CERCA = `<div class="cerca"><div class="campo"></div><div class="nuvola"></div></div>`;
+const varianti = [
+  ['oggi · com\'e\' adesso', '',
+   `<div class="oggi"><button class="on">Artists</button><button>References</button></div>`],
+  ['A · pastiglia scorrevole',
+   'Le due voci stanno dentro una vaschetta tonda; quella attiva e\' una pastiglia bianca che ci scorre dentro. E\' il modo in cui l\'app segnala "una cosa o l\'altra".',
+   `<div class="a"><button class="on">Artists</button><button>References</button></div>`],
+  ['B · linguette di cartella',
+   'Due linguette con gli angoli tondi in alto, e quella attiva e\' dello stesso bianco del foglio sotto: si vede che la scheda continua nell\'elenco.',
+   `<div class="b"><button class="on">Artists</button><button>References</button></div><div class="b-sotto"></div>`],
+  ['C · pastiglie d\'inchiostro',
+   'Due pastiglie affiancate: quella attiva prende inchiostro e oro, come le barre di sezione e lo Scriptment. La piu\' decisa delle quattro.',
+   `<div class="c"><button class="on">Artists</button><button>References</button></div>`],
+  ['D · fondo acceso e filo d\'oro',
+   'Resta la fila di adesso, ma la voce attiva siede su un fondo sabbia chiaro con gli angoli tondi, e la riga sotto diventa un filo d\'oro invece del trattino corallo.',
+   `<div class="d"><button class="on">Artists</button><button>References</button></div>`],
+];
+document.getElementById('qui').innerHTML = varianti.map(([t,n,schede])=>
+  `<div class="tit"><span>${t}</span><i></i></div>` + (n?`<div class="nota">${n}</div>`:'') +
+  `<div class="quadro">${CERCA}${schede}${ELENCO}</div>`).join('');
+</script>
+</body></html>
