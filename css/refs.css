@@ -61,14 +61,39 @@
 
 .refs-scroll{flex:1;overflow-y:auto;background:#efe6d4;padding:14px 14px calc(20px + var(--safe-bot))}
 
-/* ── SFOGLIA CARTELLE ── */
-.refs-quicklink{display:flex;align-items:center;gap:10px;background:var(--white);border:1.5px solid var(--sand2);border-radius:12px;padding:12px 14px;margin-bottom:8px;cursor:pointer;box-shadow:0 2px 8px rgba(74,184,216,.06)}
-.refs-quicklink-ico{width:20px;height:20px;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#8a7248;font-size:16px}
-.refs-quicklink-lbl{flex:1;font-size:14px;font-weight:700;color:var(--ink)}
-.refs-quicklink-count{font-size:12px;font-weight:700;color:var(--ink3);background:var(--sand);border-radius:10px;padding:2px 9px}
+/* ── SFOGLIA CARTELLE — "la rubrica" ──
+   Era una pila di riquadri bianchi tutti dello stesso peso: funzionava e non
+   diceva niente, e soprattutto era l'unica schermata di IMMAGINI dell'app in
+   cui non se ne vedeva nemmeno una — un elenco di parole che porta a delle
+   figure. Rifatta come una rubrica: righe su carta separate da un capello, un
+   disco d'oro con le iniziali a fare da appiglio all'occhio, e un solo blocco
+   forte in cima. Meno inchiostro, piu' roba a schermo, e un carattere.
 
-.refs-cat-row{display:flex;align-items:center;gap:8px;margin:18px 2px 8px}
-.refs-cat-name{flex:1;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#9a8458}
+   IL BLOCCO IN ALTO. Nero-sabbia e oro, come i pulsanti principali e la
+   modalita' sera: entrando l'occhio si appoggia li' e poi scende. Prima non
+   c'era nessun capo, e la pagina cominciava ovunque. */
+.refs-quicklink{
+  display:flex;align-items:center;gap:12px;cursor:pointer;
+  background:linear-gradient(135deg,#2a2018,#1a1410);
+  border-radius:14px;padding:13px 15px;margin-bottom:4px;
+  box-shadow:0 4px 16px rgba(26,20,16,.22);
+  transition:transform .1s;
+}
+.refs-quicklink:active{transform:scale(.99)}
+.refs-quicklink-ico{
+  width:30px;height:30px;border-radius:8px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(232,200,120,.14);color:var(--oro);
+}
+.refs-quicklink-lbl{flex:1;font-size:14.5px;font-weight:700;color:#f5ecd8}
+.refs-quicklink-count{font-size:13px;font-weight:800;color:var(--oro)}
+
+/* L'occhiello della categoria: il nome, poi il pulsante, poi un capello che
+   tira fino al bordo. La riga cosi' non "finisce" con una parola sospesa a
+   meta' — e il filo la lega alle righe sotto, invece di lasciarla galleggiare. */
+.refs-cat-row{display:flex;align-items:baseline;gap:9px;margin:20px 4px 3px}
+.refs-cat-name{font-size:10.5px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:#9a8458}
+.refs-cat-rule{flex:1;height:1px;background:var(--sand2)}
 /* Il "+" della categoria: discreto quanto l'occhiello accanto a cui vive — non
    deve competere con le cartelle, che sono la cosa da guardare — ma con
    un'area di tocco da dito vera, presa coi margini negativi invece che con la
@@ -76,7 +101,7 @@
 .refs-cat-add{
   flex-shrink:0;display:flex;align-items:center;justify-content:center;
   background:none;border:none;cursor:pointer;color:#b8a078;
-  padding:7px;margin:-7px -5px -7px 0;line-height:0;
+  padding:7px;margin:-7px 0 -7px 0;line-height:0;
   transition:color .15s,transform .1s;
 }
 .refs-cat-add:active{color:var(--ottone);transform:scale(.88)}
@@ -100,16 +125,46 @@
 .rf-cognome{text-transform:uppercase}
 .rf-nome{margin-left:5px}
 
-.refs-folder-row{display:flex;align-items:center;gap:10px;background:var(--white);border:1.5px solid var(--sand2);border-radius:11px;padding:10px 12px;margin-bottom:6px;cursor:pointer}
-.refs-folder-ico{width:20px;height:20px;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#d8b060}
-.refs-folder-name{flex:1;min-width:0;font-size:13.5px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.refs-folder-count{font-size:11.5px;font-weight:700;color:var(--ink3)}
-.refs-folder-menu{background:none;border:none;color:var(--ink3);font-size:15px;line-height:1;padding:2px 4px;cursor:pointer;flex-shrink:0}
+/* La riga di una cartella: niente scheda, niente bordo, niente ombra. Sono
+   tutte uguali e sono tante — incorniciarle una per una voleva dire disegnare
+   dieci rettangoli per dire "elenco". Il capello sotto basta, e con esso ci
+   stanno due righe in piu' nello stesso schermo. */
+.refs-folder-row{
+  display:flex;align-items:center;gap:12px;cursor:pointer;
+  padding:11px 4px;border-bottom:1px solid #e3d9c4;
+  transition:background .12s;
+}
+.refs-folder-row:active{background:rgba(255,255,255,.55)}
+/* IL DISCO D'ORO con le iniziali. E' l'appiglio: scorrendo l'elenco si trova
+   la riga dal disco, non leggendo. L'oro e' quello del task di stasera
+   (#e2b62c, vedi .microtask-box) e l'inchiostro sopra e' quello scuro dello
+   stesso riquadro — non un colore nuovo inventato per questa schermata.
+   Un tempo qui c'era un colore diverso per cartella: piu' riconoscibile, ma
+   erano cinque tinte fredde in mezzo a una palette calda e stonavano. */
+.refs-mono{
+  width:36px;height:36px;border-radius:50%;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  background:#e2b62c;color:#2a2412;
+  font-size:12.5px;font-weight:800;letter-spacing:.03em;line-height:1;
+}
+.refs-folder-name{flex:1;min-width:0;font-size:14.5px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.refs-folder-count{font-size:12px;font-weight:600;color:var(--ink3)}
+.refs-folder-menu{background:none;border:none;color:var(--ink3);font-size:15px;line-height:1;padding:6px 2px 6px 6px;margin:-6px 0;cursor:pointer;flex-shrink:0}
 
 .refs-folders-empty{font-size:12.5px;color:var(--ink3);line-height:1.6;padding:10px 4px 4px}
-.refs-new-folder-row{display:flex;align-items:center;gap:10px;width:100%;background:none;border:1.5px solid var(--sand2);border-radius:11px;padding:10px 12px;margin-top:10px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:600;color:#a8925c;cursor:pointer;transition:background .15s,border-color .15s}
-.refs-new-folder-row:active{background:var(--sand);border-color:var(--sand3)}
-.refs-new-folder-ico{width:18px;height:18px;display:flex;align-items:center;justify-content:center;color:#c8b090;flex-shrink:0}
+/* "Nuova categoria" non e' una cartella e non deve sembrarlo: centrata, col
+   bordo tratteggiato, staccata dall'elenco. Prima era un riquadro identico
+   alle cartelle con dentro lo stesso "+" del pulsante di categoria, e le due
+   azioni si scambiavano di posto nella testa di chi guardava. */
+.refs-new-folder-row{
+  display:flex;align-items:center;justify-content:center;gap:9px;width:100%;
+  background:none;border:1.5px dashed var(--sand3);border-radius:12px;
+  margin-top:22px;padding:12px;
+  font-family:'Nunito',sans-serif;font-size:12.5px;font-weight:700;color:#a8925c;
+  cursor:pointer;transition:background .15s,border-color .15s;
+}
+.refs-new-folder-row:active{background:var(--sand);border-color:var(--ottone)}
+.refs-new-folder-ico{display:flex;align-items:center;justify-content:center;color:#c8b090;flex-shrink:0;line-height:0}
 .refs-new-folder-ico svg{width:100%;height:100%;display:block}
 
 .refs-drop-hint{display:flex;align-items:center;gap:9px;background:#fdf6e4;border:1.5px dashed #d8c090;border-radius:12px;padding:10px 14px;font-size:12px;color:#a8925c;margin-bottom:14px;line-height:1.4}

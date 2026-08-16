@@ -60,6 +60,43 @@ module.exports = () => suite("References — artisti e menu contestuali", {"banc
   ok('e cosi\' anche quelle che non sono persone',
      soggetto && soggetto.semplice, soggetto);
 
+  sezione('la rubrica: un disco con le iniziali per ogni cartella');
+  const dischi = await page.evaluate(()=> Array.from(document.querySelectorAll('.refs-folder-row')).map(r=>{
+    const m = r.querySelector('.refs-mono');
+    const st = m ? getComputedStyle(m) : null;
+    return {
+      nome: r.querySelector('.refs-folder-name').textContent.trim(),
+      sigla: m ? m.textContent : null,
+      tondo: st ? st.borderRadius : null,
+      sfondo: st ? st.backgroundColor : null,
+      // Niente piu' schede: le righe si separano con un capello, non con un
+      // bordo tutto attorno.
+      bordi: getComputedStyle(r).borderTopWidth + '/' + getComputedStyle(r).borderBottomWidth,
+    };
+  }));
+  ok('ogni riga ha il suo disco', dischi.every(d=> !!d.sigla), dischi);
+  ok('con DUE lettere, prese dal cognome',
+     dischi.find(d=>/otomo/i.test(d.nome)).sigla === 'OT', dischi);
+  ok('e da chi un cognome non ce l\'ha, dal nome',
+     dischi.find(d=>/hands/i.test(d.nome)).sigla === 'HA', dischi);
+  ok('sono tutti dello stesso oro, non cinque tinte diverse',
+     new Set(dischi.map(d=>d.sfondo)).size === 1, dischi.map(d=>d.sfondo));
+  ok('le righe non sono piu\' schede col bordo',
+     dischi.every(d=> d.bordi.startsWith('0px')), dischi.map(d=>d.bordi));
+
+  sezione('e un solo blocco forte in cima');
+  const cima = await page.evaluate(()=>{
+    const q = document.querySelector('.refs-quicklink');
+    const st = getComputedStyle(q);
+    return {
+      etichetta: q.querySelector('.refs-quicklink-lbl').textContent.trim(),
+      scuro: st.backgroundImage.includes('gradient'),
+      conteggio: getComputedStyle(q.querySelector('.refs-quicklink-count')).color,
+    };
+  });
+  ok('dice cosa fa, non "All"', /tutte le immagini/i.test(cima.etichetta), cima);
+  ok('ed e\' il nero-oro dei pulsanti principali', cima.scuro, cima);
+
   sezione('ogni categoria ha il suo "+"');
   const piu = await page.evaluate(()=> Array.from(document.querySelectorAll('.refs-cat-row')).map(r=>({
     categoria: r.querySelector('.refs-cat-name').textContent.trim(),
@@ -69,8 +106,18 @@ module.exports = () => suite("References — artisti e menu contestuali", {"banc
   ok('c\'e\' un "+" su ogni categoria', piu.length === 2 && piu.every(p=>p.haPiu), piu);
   ok('sotto Artists dice "artista", non "cartella"',
      /artista/i.test(piu.find(p=>p.categoria==='ARTISTS'||p.categoria==='Artists').etichetta||''), piu);
-  const fondo = await page.evaluate(()=> document.querySelector('.refs-new-folder-row').textContent.trim());
-  ok('in fondo resta solo "Nuova categoria"', /categoria/i.test(fondo), fondo);
+  const fondo = await page.evaluate(()=>{
+    const b = document.querySelector('.refs-new-folder-row');
+    const st = getComputedStyle(b);
+    // I due glifi devono essere DIVERSI: e' tutto il punto della modifica.
+    const gCat = document.querySelector('.refs-cat-add svg').innerHTML;
+    const gNuova = b.querySelector('svg').innerHTML;
+    return { testo: b.textContent.trim(), tratteggio: st.borderTopStyle,
+             uguali: gCat === gNuova };
+  });
+  ok('in fondo resta solo "Nuova categoria"', /categoria/i.test(fondo.testo), fondo);
+  ok('col bordo tratteggiato, staccata dalle cartelle', fondo.tratteggio === 'dashed', fondo);
+  ok('e con un\'icona DIVERSA da quella del "+" di categoria', !fondo.uguali, fondo);
 
   sezione('il modulo di un artista chiede due campi');
   // Niente `await` sulla promessa che torna: il modale resta aperto in attesa

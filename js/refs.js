@@ -1118,8 +1118,27 @@ function renderAlbumsShelf(){
 }
 
 // ── RENDER: SFOGLIA CARTELLE ──
-const FOLDER_ICON = `<svg viewBox="0 0 24 24" width="20" height="20"><path d="M3 6.5a1.5 1.5 0 0 1 1.5-1.5h5l2 2h8a1.5 1.5 0 0 1 1.5 1.5v9a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>`;
-const PIU_ICON = `<svg viewBox="0 0 24 24" width="16" height="16"><path d="M12 5.5v13M5.5 12h13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`;
+// I tre glifi dell'elenco cartelle, e le prime due sono DIVERSE APPOSTA.
+//
+// Prima erano lo stesso "+" due volte, a due livelli diversi: uno accanto alla
+// categoria per aggiungerci dentro una cartella, uno in fondo per aggiungere
+// una categoria. Identici, si scambiavano — e sbagliare voleva dire creare un
+// raggruppamento quando volevi un artista. Ora il primo e' una CARTELLA col
+// piu' ("aggiungi qui dentro"), il secondo delle RIGHE IMPILATE col piu'
+// ("aggiungi un raggruppamento"), e il secondo sta anche staccato dall'elenco.
+const CARTELLA_PIU = `<svg viewBox="0 0 24 24" width="16" height="16"><path d="M3.5 6.8A1.3 1.3 0 0 1 4.8 5.5h4.4l1.8 1.8h7.2a1.3 1.3 0 0 1 1.3 1.3v8.6a1.3 1.3 0 0 1-1.3 1.3H4.8a1.3 1.3 0 0 1-1.3-1.3Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M12 11v5M9.5 13.5h5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>`;
+const CATEGORIA_PIU = `<svg viewBox="0 0 24 24" width="15" height="15"><path d="M4 7h16M4 12h16M4 17h9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M17.5 15.5v5M15 18h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>`;
+const GRIGLIA_ICON = `<svg viewBox="0 0 24 24" width="16" height="16"><rect x="4" y="4" width="7" height="7" rx="1.4" fill="none" stroke="currentColor" stroke-width="1.7"/><rect x="13" y="4" width="7" height="7" rx="1.4" fill="none" stroke="currentColor" stroke-width="1.7"/><rect x="4" y="13" width="7" height="7" rx="1.4" fill="none" stroke="currentColor" stroke-width="1.7"/><rect x="13" y="13" width="7" height="7" rx="1.4" fill="none" stroke="currentColor" stroke-width="1.7"/></svg>`;
+
+// Le due lettere del disco d'oro. Si prendono dal cognome quando c'e' — e'
+// quello che si ha in testa cercando un disegnatore — altrimenti dal nome
+// della cartella. Due e non una: con una sola, meta' dell'elenco finirebbe per
+// avere lo stesso disco, e il colpo d'occhio che serve a riconoscere la riga
+// senza leggerla si perderebbe.
+function sigla(f){
+  const base = (f.cognome || f.name || '?').trim();
+  return base.slice(0, 2).toUpperCase();
+}
 
 // Come si scrive il nome di una cartella nell'elenco. Un artista si compone di
 // due pezzi con due pesi diversi — COGNOME che ancora la riga, nome che la
@@ -1141,10 +1160,15 @@ function renderFolderBrowser(){
 
   // "All" è una scorciatoia fissa, non un risultato di ricerca: resta sempre
   // in cima, cercare "kon" non deve farla sparire insieme alle cartelle.
+  //
+  // È anche l'unico elemento forte della pagina: nero-sabbia e oro, lo stesso
+  // dei pulsanti principali e della modalità sera. Serve un punto in cui
+  // l'occhio si appoggia entrando — prima erano tutti riquadri bianchi dello
+  // stesso peso e la schermata non aveva un capo.
   let html = `
     <div class="refs-quicklink" onclick="window.openAllGrid()">
-      <span class="refs-quicklink-ico">▦</span>
-      <span class="refs-quicklink-lbl">All</span>
+      <span class="refs-quicklink-ico">${GRIGLIA_ICON}</span>
+      <span class="refs-quicklink-lbl">Tutte le immagini</span>
       <span class="refs-quicklink-count">${_refs.length}</span>
     </div>`;
 
@@ -1160,15 +1184,19 @@ function renderFolderBrowser(){
     // Il "+" sta nell'intestazione della categoria: aggiungere un artista e'
     // un'azione DI QUELLA categoria, e messa li' non costa nemmeno una riga.
     const persone = categoriaDiPersone(category);
+    // Ordine: nome, capello, pulsante. Il "+" finisce all'estremita' destra,
+    // dove il pollice arriva senza spostare la mano e dove non si confonde con
+    // l'occhiello che sta leggendo.
     html += `<div class="refs-cat-row">
       <span class="refs-cat-name">${esc(category)}</span>
+      <span class="refs-cat-rule"></span>
       <button class="refs-cat-add" onclick="window.promptNewFolder('${esc(category).replace(/'/g,"\\'")}')"
               aria-label="${persone ? 'Aggiungi artista' : 'Aggiungi cartella in '+esc(category)}"
-              title="${persone ? 'Aggiungi artista' : 'Aggiungi cartella'}">${PIU_ICON}</button>
+              title="${persone ? 'Aggiungi artista' : 'Aggiungi cartella'}">${CARTELLA_PIU}</button>
     </div>`;
     visible.forEach(f=>{
       html += `<div class="refs-folder-row" onclick="window.openFolder('${f.id}')">
-        <span class="refs-folder-ico">${FOLDER_ICON}</span>
+        <span class="refs-mono">${esc(sigla(f))}</span>
         <span class="refs-folder-name">${etichettaCartella(f)}</span>
         <span class="refs-folder-count">${countInFolder(f.id)}</span>
         <button class="refs-folder-menu" onclick="event.stopPropagation();window.refsFolderMenu('${f.id}',this)" aria-label="Altro">⋯</button>
@@ -1183,7 +1211,7 @@ function renderFolderBrowser(){
   // In fondo resta solo la categoria: le cartelle si aggiungono dal "+" della
   // loro categoria, qui sotto ci sarebbero state due volte.
   html += `<button class="refs-new-folder-row" onclick="window.promptNewFolder()">
-    <span class="refs-new-folder-ico">${PIU_ICON}</span>
+    <span class="refs-new-folder-ico">${CATEGORIA_PIU}</span>
     <span>Nuova categoria</span>
   </button>`;
 
