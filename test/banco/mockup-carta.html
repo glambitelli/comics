@@ -1,0 +1,81 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8">
+<title>mockup — la scheda degli artisti</title>
+<link rel="stylesheet" href="/css/variables.css">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Castoro:ital@0;1&display=swap');
+  body{margin:0;background:#efe6d4;font-family:'Nunito',sans-serif;padding:12px 14px 30px}
+  .tit{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#8a7248;
+       margin:22px 0 4px;display:flex;align-items:center;gap:8px}
+  .tit span{background:#f5ecd8;border:1px solid #e0d4b4;border-radius:20px;padding:3px 10px}
+  .tit i{flex:1;height:1.5px;background:#dccca0;font-style:normal}
+  .nota{font-size:11.5px;color:#8a7248;margin:0 4px 10px;line-height:1.45}
+
+  /* base comune: e' la scheda di adesso */
+  .carta{background:var(--white);border:1.5px solid var(--sand2);border-radius:14px;
+         overflow:hidden;box-shadow:0 2px 10px rgba(74,184,216,.08);margin-bottom:6px;position:relative}
+  .riga{display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--sand)}
+  .riga:last-child{border-bottom:none}
+  .disco{width:36px;height:36px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;
+         justify-content:center;background:#e2b62c;color:#2a2412;font-size:12.5px;font-weight:800}
+  .nome{flex:1;font-size:14.5px;font-weight:700;color:var(--ink)}
+  .nome b{text-transform:uppercase;font-weight:700}
+  .nome em{font-style:normal;font-weight:700}
+  .piu{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+       background:#f7ecd2;color:var(--ottone);box-shadow:inset 0 0 0 1.5px #e2cca8;font-size:19px;line-height:0}
+  .chev{color:var(--sand3);font-size:17px;font-weight:700;line-height:1;flex-shrink:0}
+
+  /* ── A · filo d'oro e freccia ── */
+  .a{border-radius:18px}
+  .a::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;
+             background:linear-gradient(90deg,var(--sand3),var(--gold),var(--sand3))}
+  .a .riga:first-child{padding-top:15px}
+
+  /* ── B · capello rientrato, come un'agenda ── */
+  .b{border-radius:18px}
+  .b .riga{border-bottom:none;position:relative}
+  .b .riga:not(:last-child)::after{content:'';position:absolute;left:62px;right:14px;bottom:0;
+                                   height:1px;background:var(--sand2)}
+
+  /* ── C · carta rigata ── */
+  .c{border-radius:18px;
+     background:
+       repeating-linear-gradient(#fefcf8 0 60px, #f7f1e4 60px 61px);}
+  .c::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;
+             background:linear-gradient(90deg,var(--sand3),var(--gold),var(--sand3))}
+  .c .riga{border-bottom:none;height:60px;box-sizing:border-box;padding:0 14px}
+  /* il margine rosso del quaderno, ma d'oro e appena accennato */
+  .c::after{content:'';position:absolute;top:3px;bottom:0;left:56px;width:1px;background:rgba(226,182,44,.35)}
+
+  /* ── D · editoriale: iniziali in serif, doppio filo ── */
+  .d{border-radius:18px;border:1.5px solid #e6dcc2;box-shadow:0 3px 14px rgba(40,30,15,.07)}
+  .d::before{content:'';position:absolute;top:5px;left:5px;right:5px;bottom:5px;
+             border:1px solid rgba(226,182,44,.30);border-radius:13px;pointer-events:none}
+  .d .riga{border-bottom:1px solid #f0e8d6}
+  .d .disco{background:none;color:#a8763c;box-shadow:inset 0 0 0 1.5px rgba(200,150,40,.55);
+            font-family:'Castoro',serif;font-weight:400;font-size:14px}
+  .d .nome b{letter-spacing:.01em}
+</style>
+</head><body>
+<div id="qui"></div>
+<script>
+const GENTE = [['KO','KON',''],['OT','OTOMO','Katsuhiro'],['PR','PROVA','Test'],['ZI','ZINI','Luca']];
+const righe = (chev)=> GENTE.map(([s,c,n])=>`
+  <div class="riga"><span class="disco">${s}</span>
+    <span class="nome"><b>${c}</b>${n ? ' <em>'+n+'</em>' : ''}</span>
+    ${chev ? '<span class="chev">›</span>' : ''}</div>`).join('')
+  + `<div class="riga"><span class="piu">+</span><span class="nome"></span></div>`;
+const varianti = [
+  ['A · filo d\'oro in cima e freccia in coda',
+   'Il filo dorato e\' lo stesso che c\'e\' in testa ai modali e alle schermate. La freccia dice che la riga porta da qualche parte.', 'a', true],
+  ['B · capello rientrato, come un\'agenda',
+   'La riga di separazione non parte dal bordo ma da sotto il nome: l\'occhio scende lungo la colonna dei dischi senza inciampare.', 'b', true],
+  ['C · carta rigata',
+   'La scheda diventa un foglio a righe, con il filo d\'oro in cima e il margine verticale del quaderno.', 'c', false],
+  ['D · cornice doppia, iniziali in serif',
+   'Un filetto d\'oro corre dentro il bordo, e le iniziali passano al carattere dei titoli (Castoro) dentro un anello invece che su un disco pieno.', 'd', false],
+];
+document.getElementById('qui').innerHTML = varianti.map(([t,n,cl,chev])=>
+  `<div class="tit"><span>${t}</span><i></i></div><div class="nota">${n}</div>
+   <div class="carta ${cl}">${righe(chev)}</div>`).join('');
+</script>
+</body></html>
