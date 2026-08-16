@@ -138,29 +138,32 @@
 .rf-cognome{text-transform:uppercase}
 .rf-nome{margin-left:5px}
 
-/* La riga di una cartella: niente scheda, niente bordo, niente ombra. Sono
-   tutte uguali e sono tante — incorniciarle una per una voleva dire disegnare
-   dieci rettangoli per dire "elenco". Il capello sotto basta, e con esso ci
-   stanno due righe in piu' nello stesso schermo. */
+/* ── LA SCHEDA CHE TIENE INSIEME UN GRUPPO DI RIGHE ──
+   Sono gli stessi materiali dei blocchi della scheda progetto (.phase-block,
+   .deadline-block in project.css): foglio quasi bianco, bordo sabbia sottile,
+   angoli da 14 e un'ombra azzurrina appena accennata. Non e' una citazione
+   estetica — e' la stessa cosa detta nello stesso modo: "qui dentro c'e' un
+   elenco di voci che si toccano".
+
+   E' la terza versione. Prima le righe erano nude sul fondo, separate da un
+   capello: con dieci artisti in colonna l'occhio che scorreva perdeva il rigo.
+   Poi si sono provate a righe alterne, due sabbie a un soffio di distanza: si
+   seguiva il rigo, ma il colore diventava la cosa piu' visibile della pagina.
+   Il foglio bianco fa il lavoro senza mettersi in mezzo: i nomi stanno su
+   carta e il capello fra l'uno e l'altro basta perche' e' l'unica linea
+   rimasta. */
+.refs-scheda{
+  background:var(--white);border:1.5px solid var(--sand2);border-radius:var(--r);
+  overflow:hidden;box-shadow:0 2px 10px rgba(74,184,216,.08);
+  margin-bottom:14px;
+}
 .refs-folder-row{
   display:flex;align-items:center;gap:12px;cursor:pointer;
-  padding:11px 10px;border-radius:10px;
-  background:#f6efe0;
+  padding:12px 14px;border-bottom:1px solid var(--sand);
   transition:background .12s;
 }
-/* A RIGHE ALTERNE, due sabbie a un soffio di distanza (#f6efe0 e #eae0c9,
-   entrambe figlie del fondo #efe6d4 su cui poggiano). Prima le righe erano
-   tutte uguali, separate da un capello di un pixel: con dieci artisti in
-   colonna l'occhio che scorreva perdeva il rigo e finiva per aprire la
-   cartella sopra o sotto quella voluta. La fascia intera si vede senza
-   guardarla — e' il trucco dei registri di carta — e costa meno di una linea,
-   che invece si mette a competere coi nomi. */
-.refs-folder-row.scura{background:#eae0c9}
-/* Tre pixel di respiro: bastano a far vedere gli angoli tondi, senza che le
-   righe diventino dieci schede staccate (era la versione di prima, e la
-   pagina sembrava un elenco di cose importanti invece di una rubrica). */
-.refs-folder-row + .refs-folder-row{margin-top:3px}
-.refs-folder-row:active{background:#e2d5b6}
+.refs-folder-row:last-child{border-bottom:none}
+.refs-folder-row:active{background:var(--sand)}
 /* IL DISCO con le iniziali: oro pieno, inchiostro scuro sopra. Sono
    esattamente i due colori del riquadro "Task di stasera" (#e2b62c su #2a2412,
    vedi .microtask-box in project.css) — non una tinta nuova inventata qui.
@@ -196,14 +199,13 @@
    problema — ma senza parole: il solo "+" allineato ai dischi sopra, in coda a
    un elenco di artisti, non puo' voler dire nient'altro. La versione con
    scritto "Aggiungi artista" ripeteva la parola che sta gia' sulla scheda. */
+/* Ultima riga della scheda, con la stessa imbottitura delle altre: il "+" cade
+   esattamente sotto la colonna dei dischi. */
 .refs-add-row{
   display:flex;align-items:center;gap:12px;width:100%;
-  padding:12px 10px;background:none;border:none;cursor:pointer;
+  padding:12px 14px;background:none;border:none;cursor:pointer;
   font-family:'Nunito',sans-serif;text-align:left;
 }
-/* Stessa imbottitura laterale delle righe: il "+" cade esattamente sotto la
-   colonna dei dischi, e la coda dell'elenco non balla. */
-.refs-folder-row + .refs-add-row{margin-top:3px}
 .refs-add-cerchio{
   width:36px;height:36px;border-radius:50%;flex-shrink:0;
   display:flex;align-items:center;justify-content:center;

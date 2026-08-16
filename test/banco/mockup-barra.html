@@ -1,0 +1,117 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8">
+<title>mockup — barra di navigazione</title>
+<link rel="stylesheet" href="/css/variables.css">
+<link rel="stylesheet" href="/css/layout.css">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap');
+  body{margin:0;background:#efe6d4;font-family:'Nunito',sans-serif;padding:10px 0 30px}
+  .tit{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#8a7248;
+       margin:20px 14px 6px;display:flex;align-items:center;gap:8px}
+  .tit span{background:#f5ecd8;border:1px solid #e0d4b4;border-radius:20px;padding:3px 10px}
+  .tit i{flex:1;height:1.5px;background:#dccca0;font-style:normal}
+  .nota{font-size:11.5px;color:#8a7248;margin:0 20px 4px;line-height:1.45}
+  /* Nel mockup la barra non e' incollata in fondo allo schermo: sta in colonna,
+     una sotto l'altra, per poterle confrontare. Tutto il resto e' il CSS vero. */
+  body.is-touch .dune-nav{position:relative;height:82px;transform:none}
+  .dune-blur,.dune-color,.dune-grain,.dune-nav-items{bottom:12px}
+  .quadro{background:linear-gradient(#e6dcc4,#efe6d4);border-radius:18px;margin:0 8px;overflow:hidden}
+</style>
+</head><body class="is-touch">
+<div id="qui"></div>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <filter id="dune-sand-coarse"><feTurbulence type="fractalNoise" baseFrequency="0.7" numOctaves="3" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/><feComponentTransfer><feFuncA type="linear" slope="1.4"/></feComponentTransfer></filter>
+  <filter id="dune-sand-fine"><feTurbulence type="fractalNoise" baseFrequency="1.4" numOctaves="4" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/><feComponentTransfer><feFuncA type="linear" slope="1.1"/></feComponentTransfer></filter>
+</svg>
+<script>
+const LUNA = `<svg class="dune-moon-svg" viewBox="0 0 24 24"><path d="M13 2a10 10 0 1 0 7.5 16.6A8 8 0 0 1 13 2Z" fill="#f0c068"/></svg>`;
+const ARCHIVIO = `<svg viewBox="0 0 24 24" width="18" height="18"><rect x="3" y="4" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="8" cy="9.5" r="1.6" fill="currentColor"/><path d="M4 16 L9 11 L13 15 L16 12 L20 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+const STATS = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="6" y1="20" x2="6" y2="13"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="18" y1="20" x2="18" y2="9"/></svg>`;
+const IDEE = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2Z"/></svg>`;
+const GEAR = `<span class="dune-g-gear">⚙</span>`;
+const CASA = `<svg class="dune-home-svg" viewBox="0 0 24 24"><path d="M12 3L2 11h2.3v9a1 1 0 0 0 1 1H10v-6h4v6h4.7a1 1 0 0 0 1-1v-9H22L12 3Z" fill="currentColor"/></svg>`;
+
+const btn = (cl, dentro)=> `<button class="dune-btn ${cl}">${dentro}</button>`;
+// Due gruppi di uguale larghezza con un varco in mezzo: cosi' il varco cade
+// esattamente al centro della barra, e la casa centrata non finisce sopra
+// nessuno.
+const attorno = (sx, dx, casa)=> `<span class="gruppo">${sx}</span><span class="vuoto"></span><span class="gruppo">${dx}</span>${casa}`;
+const barra = (dentro, extra='')=> `<div class="quadro"><nav class="dune-nav" style="${extra}">
+  <div class="dune-blur"></div><div class="dune-color"></div>
+  <div class="dune-grain dune-grain-coarse"></div><div class="dune-grain dune-grain-fine"></div>
+  <div class="dune-nav-items">${dentro}</div></nav></div>`;
+
+const varianti = [];
+
+// OGGI — 6 tondi uguali, la casa terza da sinistra.
+varianti.push(['oggi · com\'e\' adesso', '',
+  btn('dune-btn-moon', LUNA) + btn('dune-btn-light', ARCHIVIO) +
+  btn('dune-btn-light dune-btn-home', CASA) + btn('dune-btn-light', STATS) +
+  btn('dune-btn-light', IDEE) + btn('dune-btn-light', GEAR)]);
+
+// A — la casa esce dalla fila e sale sopra la capsula, al centro esatto.
+varianti.push(['A · la casa sale sopra la barra',
+  'La casa e\' un disco d\'oro da 58 al centro esatto, un gradino sopra la capsula. Gli altri cinque restano tondi chiari, tre a sinistra e due a destra.',
+  attorno(btn('dune-btn-moon', LUNA) + btn('dune-btn-light', ARCHIVIO) + btn('dune-btn-light', STATS),
+          btn('dune-btn-light', IDEE) + btn('dune-btn-light', GEAR),
+          btn('casa-alta', CASA))]);
+
+// B — casa al centro esatto, dentro la capsula, in oro pieno.
+varianti.push(['B · casa d\'oro al centro, dentro la barra',
+  'Stessa fila di adesso, ma la casa e\' spostata al centro esatto e riempita d\'oro: resta dentro la capsula, non sporge.',
+  attorno(btn('dune-btn-moon', LUNA) + btn('dune-btn-light', ARCHIVIO) + btn('dune-btn-light', STATS),
+          btn('dune-btn-light', IDEE) + btn('dune-btn-light', GEAR),
+          btn('casa-oro', CASA))]);
+
+// C — cinque tondi: la luna torna a fare il pulsante flottante come su desktop.
+varianti.push(['C · cinque tondi, simmetria perfetta',
+  'La luna esce dalla barra (torna il pulsante flottante che ha gia\' su schermo grande): due a sinistra, la casa, due a destra. Il centro e\' un centro vero.',
+  btn('dune-btn-light', ARCHIVIO) + btn('dune-btn-light', STATS) +
+  btn('dune-btn-light dune-btn-home casa-oro-piccola', CASA) +
+  btn('dune-btn-light', IDEE) + btn('dune-btn-light', GEAR)]);
+
+// D — la casa e' l'unico tondo scuro: inchiostro e oro.
+varianti.push(['D · casa d\'inchiostro al centro',
+  'Il contrario della B: al centro il disco scuro dell\'app (quello della luna e dello Scriptment) con la casa in oro. Vince per contrasto, non per dimensione.',
+  attorno(btn('dune-btn-moon', LUNA) + btn('dune-btn-light', ARCHIVIO) + btn('dune-btn-light', STATS),
+          btn('dune-btn-light', IDEE) + btn('dune-btn-light', GEAR),
+          btn('casa-inchiostro', CASA))]);
+
+document.getElementById('qui').innerHTML = varianti.map(([t,n,dentro])=>
+  `<div class="tit"><span>${t}</span><i></i></div>` +
+  (n ? `<div class="nota">${n}</div>` : '') + barra(dentro)).join('');
+</script>
+<style>
+  /* Il posto vuoto in mezzo alla fila: tiene il varco in cui si infila la casa
+     centrata, cosi' gli altri cinque non le finiscono sotto. */
+  .vuoto{width:64px;flex-shrink:0}
+  .gruppo{flex:1;display:flex;align-items:center;justify-content:space-around;min-width:0}
+  .dune-nav-items{position:absolute}
+  .casa-alta,.casa-oro,.casa-inchiostro{
+    position:absolute;left:50%;transform:translateX(-50%);
+  }
+  .casa-alta{
+    width:58px;height:58px;bottom:16px;
+    background:linear-gradient(160deg,#f4cf5e,#dda412);
+    border:1.5px solid rgba(120,86,10,.35);
+    box-shadow:0 6px 18px rgba(90,60,10,.32);
+    color:#3a2a06;
+  }
+  .casa-alta .dune-home-svg{width:32px;height:32px}
+  .casa-oro{
+    width:50px;height:50px;
+    background:linear-gradient(160deg,#f4cf5e,#dda412);
+    border:1.5px solid rgba(120,86,10,.35);
+    box-shadow:0 3px 10px rgba(90,60,10,.26);
+    color:#3a2a06;
+  }
+  .casa-inchiostro{
+    width:52px;height:52px;
+    background:linear-gradient(135deg,#241c14,#120d08);
+    border:1.5px solid rgba(220,170,70,.4);
+    box-shadow:0 3px 12px rgba(0,0,0,.3);
+    color:#f0c068;
+  }
+  .casa-inchiostro .dune-home-svg{width:28px;height:28px}
+  .casa-oro-piccola{background:linear-gradient(160deg,#f4cf5e,#dda412);border:1.5px solid rgba(120,86,10,.35);color:#3a2a06}
+</style>
+</body></html>

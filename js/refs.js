@@ -1380,12 +1380,18 @@ function etichettaCartella(f){
 // La riga di un tag. Vive in due posti — dentro l'elenco dei tag e nella
 // scheda References quando si sta cercando — e scriverla due volte avrebbe
 // voluto dire tenerne allineate due.
-function rigaTag(t, i){
-  return `<div class="refs-folder-row refs-tag-row${i % 2 ? ' scura' : ''}" onclick="window.openTag('${perOnclick(t.nome)}')">
+function rigaTag(t){
+  return `<div class="refs-folder-row refs-tag-row" onclick="window.openTag('${perOnclick(t.nome)}')">
       <span class="refs-mono mt">#</span>
       <span class="refs-folder-name">${esc(t.nome)}</span>
     </div>`;
 }
+
+// Il foglio che raccoglie un gruppo di righe (vedi .refs-scheda in refs.css):
+// una scheda per categoria, non una per cartella. Sono gli stessi materiali
+// dei blocchi della scheda progetto, ed e' il modo in cui l'app dice gia'
+// "elenco di voci che si toccano".
+const scheda = dentro => dentro ? `<div class="refs-scheda">${dentro}</div>` : '';
 
 function renderTagList(){
   const el = document.getElementById('refs-folder-browser');
@@ -1399,7 +1405,7 @@ function renderTagList(){
   } else if(!tags.length){
     html = `<div class="refs-folders-empty">Nessun tag corrisponde a "${esc(_folderQuery.trim())}".</div>`;
   } else {
-    html = tags.map(rigaTag).join('');
+    html = scheda(tags.map(rigaTag).join(''));
   }
   if(el._html !== html){ el._html = html; el.innerHTML = html; }
 }
@@ -1435,19 +1441,13 @@ function renderFolderBrowser(){
   // cosa che si legge davvero. I conteggi restano sulle barre di sezione, dove
   // contano CARTELLE e TAG: quello si', dice quanto e' grande l'archivio.
   //
-  // Le righe si alternano di tinta (vedi .scura in refs.css): due sabbie a un
-  // soffio di distanza, chiara e scura a righe alterne. Con dieci nomi uno
-  // sotto l'altro e tutti lo stesso fondo, l'occhio che scende perdeva il rigo
-  // e apriva la cartella sbagliata; la fascia dice dove finisce una riga senza
-  // bisogno di disegnare una linea.
-  //
-  // E niente piu' "⋯": Rinomina/Elimina si aprono TENENDO PREMUTO (vedi
+  // Niente piu' "⋯": Rinomina/Elimina si aprono TENENDO PREMUTO (vedi
   // wireRigheCartelle). Il bottone era un bersaglio da otto pixel accanto a un
   // bersaglio largo lo schermo — si sbagliava a premere in un verso e
   // nell'altro — e le miniature qui sotto usano gia' lo stesso gesto: un modo
   // solo per dire "questa cosa qui, cosa ci posso fare".
-  const righeCartelle = folders => folders.map((f,i)=>`
-      <div class="refs-folder-row${i % 2 ? ' scura' : ''}" data-folder-id="${f.id}">
+  const righeCartelle = folders => folders.map(f=>`
+      <div class="refs-folder-row" data-folder-id="${f.id}">
         <span class="refs-mono">${esc(sigla(f))}</span>
         <span class="refs-folder-name">${etichettaCartella(f)}</span>
       </div>`).join('');
@@ -1472,8 +1472,7 @@ function renderFolderBrowser(){
       // L'occhiello si scrive solo se ce n'e' piu' d'uno: con una categoria
       // sola ripeterebbe la parola che sta gia' sulla scheda sopra.
       if(persone.length > 1) html += barra(g.category, g.folders.length);
-      html += righeCartelle(filtra(g.folders));
-      if(!q) html += rigaAggiungi(g.category, 'artista');
+      html += scheda(righeCartelle(filtra(g.folders)) + (q ? '' : rigaAggiungi(g.category, 'artista')));
     });
   } else {
     // ── REFERENCES ──
@@ -1487,8 +1486,7 @@ function renderFolderBrowser(){
     // resta corta: due cose, non venti.
     spazi.forEach(g=>{
       html += barra(g.category, g.folders.length);
-      html += righeCartelle(filtra(g.folders));
-      if(!q) html += rigaAggiungi(g.category, 'cartella');
+      html += scheda(righeCartelle(filtra(g.folders)) + (q ? '' : rigaAggiungi(g.category, 'cartella')));
     });
     // CERCANDO, la porta si apre da sola. Con un testo scritto nel campo non ha
     // senso mostrare "Tutti i tag": chi cerca "folla" vuole vedere il tag
@@ -1500,14 +1498,14 @@ function renderFolderBrowser(){
     html += barra('Tag', (trovati || tags).length);
     if(trovati){
       html += trovati.length
-        ? trovati.map(rigaTag).join('')
+        ? scheda(trovati.map(rigaTag).join(''))
         : `<div class="refs-folders-empty">Nessun tag corrisponde a "${esc(_folderQuery.trim())}".</div>`;
     } else {
-      html += `<div class="refs-folder-row refs-tag-row refs-tag-porta" onclick="window.openTagList()">
+      html += scheda(`<div class="refs-folder-row refs-tag-row refs-tag-porta" onclick="window.openTagList()">
           <span class="refs-mono mt">#</span>
           <span class="refs-folder-name">Tutti i tag</span>
           <span class="refs-folder-count"></span>
-        </div>`;
+        </div>`);
     }
   }
 

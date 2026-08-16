@@ -277,18 +277,44 @@ module.exports = () => suite("References — artisti e menu contestuali", {"banc
   ok('la cartella si apre', entrato.grid, entrato);
   ok('e nessun menu si mette in mezzo', !entrato.menu, entrato);
 
-  sezione('le righe si alternano di tinta');
-  // Due sabbie a un soffio di distanza: con dieci nomi in colonna e un fondo
-  // solo, l'occhio che scorreva perdeva il rigo e apriva la cartella accanto.
+  sezione('le righe stanno in una scheda sola, come nella scheda progetto');
+  // Terza versione dell'elenco. Righe nude su fondo sabbia: l'occhio che
+  // scorreva perdeva il rigo. Righe a tinte alterne: si seguiva il rigo, ma il
+  // colore diventava la cosa piu' visibile della pagina. Ora un foglio quasi
+  // bianco — gli stessi materiali dei blocchi della scheda progetto — e un
+  // capello fra una riga e l'altra.
   await apri();
-  const tinte = await page.evaluate(()=> Array.from(
-    document.querySelectorAll('.refs-folder-row[data-folder-id]'))
-    .map(r=> getComputedStyle(r).backgroundColor));
-  ok('due tinte in tutto, non una sola', new Set(tinte).size === 2, tinte);
-  ok('e si alternano riga per riga',
-     tinte.every((c,i)=> i === 0 || c !== tinte[i-1]), tinte);
-  ok('nessuna delle due e\' trasparente',
-     tinte.every(c=> !/^rgba\(0, 0, 0, 0\)$/.test(c)), tinte);
+  const foglio = await page.evaluate(()=>{
+    const s = document.querySelectorAll('.refs-scheda');
+    const righe = Array.from(document.querySelectorAll('.refs-folder-row[data-folder-id]'));
+    const st = s[0] ? getComputedStyle(s[0]) : null;
+    return {
+      schede: s.length,
+      tutteDentro: righe.every(r=> !!r.closest('.refs-scheda')),
+      fondoScheda: st ? st.backgroundColor : null,
+      bordoScheda: st ? st.borderTopWidth : null,
+      angoli: st ? parseFloat(st.borderRadius) : null,
+      tinteRighe: Array.from(new Set(righe.map(r=> getComputedStyle(r).backgroundColor))),
+      capelli: righe.map(r=> parseFloat(getComputedStyle(r).borderBottomWidth)),
+      ultimaSenzaCapello: (()=>{
+        const dentro = Array.from(document.querySelectorAll('.refs-scheda'))
+          .map(x=> x.lastElementChild);
+        return dentro.every(x=> parseFloat(getComputedStyle(x).borderBottomWidth) === 0);
+      })(),
+    };
+  });
+  ok('una scheda per categoria, non una per cartella', foglio.schede === 1, foglio);
+  ok('e tutte le righe stanno dentro', foglio.tutteDentro, foglio);
+  ok('il foglio e\' quasi bianco', foglio.fondoScheda === 'rgb(254, 252, 248)', foglio);
+  ok('col suo bordo e i suoi angoli tondi',
+     parseFloat(foglio.bordoScheda) > 0 && foglio.angoli >= 12, foglio);
+  ok('le righe non hanno piu\' un colore loro',
+     foglio.tinteRighe.length === 1 && /rgba\(0, 0, 0, 0\)/.test(foglio.tinteRighe[0]),
+     foglio.tinteRighe);
+  ok('fra una riga e l\'altra c\'e\' un capello',
+     foglio.capelli.slice(0, -1).every(v=> v > 0 && v <= 1.5), foglio.capelli);
+  ok('e l\'ultima riga della scheda non lo tira nel vuoto',
+     foglio.ultimaSenzaCapello, foglio);
 
   sezione('i menu contestuali: parole corte e un\'icona per voce');
   await apri();
