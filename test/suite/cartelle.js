@@ -110,33 +110,38 @@ module.exports = () => suite("References — artisti e menu contestuali", {"banc
   ok('le righe non sono piu\' schede col bordo',
      dischi.every(d=> d.bordi.startsWith('0px')), dischi.map(d=>d.bordi));
 
-  sezione('Artists e References sono due linguette di uno schedario');
-  // Erano due parole con un trattino sotto: dicevano "titolo", non "scomparto".
-  // Adesso sono linguette, e a farle funzionare e' il colore: quella accesa ha
-  // lo stesso fondo dell'elenco sotto e nessun bordo in basso, quindi si salda
-  // alla pagina.
-  const linguette = await page.evaluate(()=>{
+  sezione('Artists e References sono un interruttore, non due pulsanti');
+  // Terza versione. Due parole con un trattino sotto dicevano "titolo" e non
+  // "scelta"; le linguette di schedario erano una metafora carina e ingombrante
+  // (strette sembravano bottoni schiacciati, alte rubavano mezzo schermo).
+  // Resta una vaschetta incassata con dentro una pastiglia d'oro che scorre.
+  const interruttore = await page.evaluate(()=>{
     const leggi = el=>{
       const s = getComputedStyle(el);
-      return { fondo:s.backgroundColor, angoli:s.borderTopLeftRadius,
-               sotto:parseFloat(s.borderBottomWidth), colore:s.color };
+      return { fondo:s.backgroundColor, sfumatura:s.backgroundImage,
+               tondo:parseFloat(s.borderRadius), colore:s.color,
+               ombra:s.boxShadow };
     };
-    const a = document.getElementById('refs-axis-artists');
-    const r = document.getElementById('refs-axis-references');
-    return { attiva: leggi(a), spenta: leggi(r),
-             elenco: getComputedStyle(document.querySelector('.refs-scroll')).backgroundColor };
+    const vasca = getComputedStyle(document.querySelector('.refs-axis-vasca'));
+    return {
+      attiva: leggi(document.getElementById('refs-axis-artists')),
+      spenta: leggi(document.getElementById('refs-axis-references')),
+      vasca: { tondo: parseFloat(vasca.borderRadius), ombra: vasca.boxShadow,
+               fondo: vasca.backgroundColor },
+    };
   });
-  ok('la linguetta accesa ha il fondo dell\'elenco sotto',
-     linguette.attiva.fondo === linguette.elenco, linguette);
-  ok('e non tira nessun filo che la stacchi',
-     linguette.attiva.sotto === 0, linguette);
-  ok('quella spenta e\' di un altro tono',
-     linguette.spenta.fondo !== linguette.attiva.fondo, linguette);
-  ok('e tutte e due hanno gli angoli tondi in alto',
-     parseFloat(linguette.attiva.angoli) >= 12 && parseFloat(linguette.spenta.angoli) >= 12,
-     linguette);
-  ok('il nome della scheda accesa e\' piu\' scuro',
-     linguette.attiva.colore !== linguette.spenta.colore, linguette);
+  ok('la pastiglia accesa e\' d\'oro',
+     /gradient/.test(interruttore.attiva.sfumatura) &&
+     /244, 207, 94|221, 164, 23/.test(interruttore.attiva.sfumatura), interruttore.attiva);
+  ok('quella spenta non ha nessun fondo',
+     /rgba\(0, 0, 0, 0\)/.test(interruttore.spenta.fondo) &&
+     interruttore.spenta.sfumatura === 'none', interruttore.spenta);
+  ok('e sull\'oro il nome si scrive in inchiostro',
+     interruttore.attiva.colore !== interruttore.spenta.colore, interruttore);
+  ok('la vaschetta e\' incassata (ombra interna)',
+     /inset/.test(interruttore.vasca.ombra), interruttore.vasca);
+  ok('ed e\' tutta tonda, pastiglia compresa',
+     interruttore.vasca.tondo >= 20 && interruttore.attiva.tondo >= 20, interruttore);
 
   sezione('niente piu\' "Senza cartella"');
   // Tolta su richiesta: tutto finisce sempre in una cartella o sotto un tag, e

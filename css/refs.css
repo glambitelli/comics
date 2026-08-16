@@ -95,30 +95,31 @@
    separatore, e sembrava che il primo artista fosse disegnato diverso. Il
    passaggio di tono fra il fondo delle schede e quello dell'elenco basta gia'
    a dividerli. */
-/* LINGUETTE DI CARTELLA, che in un archivio non e' una metafora: sono due
-   scomparti di uno schedario, e ci si sta dentro uno alla volta.
+/* UN INTERRUTTORE, e nessuna metafora. Prima erano due parole con un trattino
+   sotto (dicevano "titolo", non "scelta"), poi due linguette di schedario:
+   la cartella si e' rivelata un'idea carina e sbagliata — strette sembravano
+   due bottoni schiacciati, alte rubavano mezzo schermo per una scelta che si
+   fa in mezzo secondo.
 
-   Il trucco che le fa funzionare e' il COLORE, non gli angoli tondi: la
-   linguetta accesa ha lo stesso identico fondo dell'elenco che le sta sotto
-   (#efe6d4) e nessun bordo in basso, quindi si salda alla pagina — sei
-   dentro quella. Quella spenta e' un tono piu' scura e resta indietro, come
-   una scheda ancora nel raccoglitore. Due righe di testo con un trattino
-   sotto, che e' quello che c'era prima, dicevano "titolo" e non "scomparto". */
-.refs-axis{display:none;background:var(--sand);flex-shrink:0;gap:6px;padding:9px 14px 0}
-.refs-axis.show{display:flex}
+   Quello che resta e' una vaschetta incassata nella sabbia con dentro una
+   pastiglia d'oro che scorre da una parte all'altra. L'oro e' lo stesso dei
+   dischi delle iniziali, l'incasso e' un'ombra interna: due segni, e si vede
+   subito che le scelte sono due e in quale si e'. */
+.refs-axis{display:none;background:var(--sand);flex-shrink:0;padding:2px 14px 12px}
+.refs-axis.show{display:block}
+.refs-axis-vasca{
+  display:flex;gap:4px;padding:4px;border-radius:999px;
+  background:#e4d9c0;box-shadow:inset 0 1px 3px rgba(120,96,50,.18);
+}
 .refs-axis-tab{
-  flex:1;cursor:pointer;
-  background:#e4d9c0;border:1.5px solid #dccdae;border-bottom:none;
-  border-radius:14px 14px 0 0;
+  flex:1;cursor:pointer;background:none;border:none;border-radius:999px;
   font-family:'Nunito',sans-serif;font-size:13.5px;font-weight:700;color:#8a7248;
-  padding:10px 0 11px;line-height:1.2;position:relative;
-  transition:background .15s,color .15s;
+  padding:11px 0;line-height:1.2;
+  transition:background .18s,color .18s,box-shadow .18s;
 }
 .refs-axis-tab.active{
-  background:#efe6d4;border-color:#e2d5b6;color:var(--ink);
-  /* Un pelo piu' in basso della sua cornice: copre il filo di confine con
-     l'elenco e completa la saldatura. */
-  margin-bottom:-1px;padding-bottom:12px;
+  background:linear-gradient(160deg,#f4cf5e,#dda412);color:#2a2412;
+  box-shadow:0 2px 8px rgba(160,120,20,.28);
 }
 
 /* ── LA BARRA DI SEZIONE ──
