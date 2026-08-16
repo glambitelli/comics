@@ -38,11 +38,25 @@
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
 .card-meta{font-size:12px;color:var(--ink3);margin-top:2px;font-weight:500;line-height:1.45}
-.card-sub{font-size:10px;color:var(--ink3);margin-top:2px;font-weight:400;line-height:1.5;min-height:15px}
-/* La scadenza sta con le date, non con lo stato. Quando e' passata si accende:
-   e' l'unica informazione della scheda che chiede di fare qualcosa. */
-.card-scad{font-weight:600}
-.card-scad.oltre{color:var(--rame)}
+/* Altezza FISSA e non minima: dentro questa riga ci finisce anche la pastiglia
+   della scadenza, che e' piu' alta del testo. Con un'altezza libera, la scheda
+   di un progetto scaduto sarebbe cresciuta di due pixel rispetto alle altre —
+   cioe' lo stesso difetto di prima, in piccolo. */
+.card-sub{
+  font-size:10.5px;color:var(--ink3);margin-top:3px;font-weight:400;
+  height:19px;line-height:19px;
+}
+/* LA SCADENZA sta con le date, non con lo stato. Passata, diventa una
+   pastiglia: a 10px in color rame — com'era — si leggeva solo sapendo gia'
+   cosa c'era scritto. E' l'unica informazione della scheda che chiede di fare
+   qualcosa, e sono gli stessi colori con cui la scheda progetto segnala una
+   velocita' fuori strada (.vel-alert.bad). */
+.card-scad{font-weight:700;font-size:11px;color:var(--ink2)}
+.card-scad.oltre{
+  display:inline-block;vertical-align:middle;
+  background:var(--coral-pale);color:#8a3020;
+  border-radius:8px;padding:0 8px;line-height:17px;
+}
 .card-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0}
 .card-pct{font-size:18px;font-weight:700}
 .new-btn{width:100%;padding:16px;border-radius:var(--r);border:2px dashed var(--sand3);background:transparent;color:var(--ink3);font-family:'Nunito',sans-serif;font-size:14px;font-weight:600;cursor:pointer;margin-top:4px;transition:border-color .2s,color .2s}

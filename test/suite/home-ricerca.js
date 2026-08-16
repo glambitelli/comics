@@ -123,7 +123,15 @@ module.exports = () => suite("Home — la ricerca progetti compare quando serve"
       // La scadenza passata si vede, e si vede che e' passata.
       scaduta: (()=>{
         const el = schede[0].querySelector('.card-scad');
-        return el ? { testo: el.textContent, acceso: el.classList.contains('oltre') } : null;
+        if(!el) return null;
+        const r = el.getBoundingClientRect();
+        const riga = schede[0].querySelector('.card-sub').getBoundingClientRect();
+        return { testo: el.textContent, acceso: el.classList.contains('oltre'),
+                 // A 10px in color rame si leggeva solo sapendo gia' cosa
+                 // c'era scritto: ora e' una pastiglia, e deve starci DENTRO
+                 // la riga, non finire tagliata dai puntini.
+                 corpo: parseFloat(getComputedStyle(el).fontSize),
+                 intera: r.right <= riga.right + 1 && r.width > 60 };
       })(),
       // La riga di stato non se la porta piu' dietro.
       statoPulito: !/scaduto/i.test(schede[0].querySelector('.card-meta').textContent),
@@ -131,9 +139,12 @@ module.exports = () => suite("Home — la ricerca progetti compare quando serve"
   });
   ok('tutte e tre alte uguale', new Set(altezze.alte).size === 1, altezze.alte);
   ok('nessuna riga va a capo',
-     altezze.righe.every(([m,s])=> m <= 20 && s <= 18), altezze.righe);
+     altezze.righe.every(([m,s])=> m <= 20 && s <= 20), altezze.righe);
   ok('la scadenza sta con le date e si accende quando e\' passata',
      altezze.scaduta && /scaduto/i.test(altezze.scaduta.testo) && altezze.scaduta.acceso,
+     altezze.scaduta);
+  ok('e si legge: pastiglia intera, non tagliata',
+     altezze.scaduta && altezze.scaduta.intera && altezze.scaduta.corpo >= 11,
      altezze.scaduta);
   ok('e non e\' piu\' in mezzo alla riga di stato', altezze.statoPulito, altezze);
 

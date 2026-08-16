@@ -49,7 +49,10 @@ export function renderHome(){
     const dStr = daysLeft!==null?(daysLeft<0?`${Math.abs(daysLeft)}gg scaduto`:`${daysLeft}gg`):'';
     const bgColor = p.color||'#4ab8d8';
 
-    const createdDate = p.createdAt ? new Date(p.createdAt).toLocaleDateString('it-IT',{day:'numeric',month:'long',year:'numeric'}) : '';
+    // Mese abbreviato ("12 giu 2026") e non per esteso: su questa riga ci sta
+    // anche la scadenza, e con "12 giugno 2026" la riga finiva coi puntini
+    // proprio sulla scadenza — cioe' sull'unica cosa che chiedeva attenzione.
+    const createdDate = p.createdAt ? new Date(p.createdAt).toLocaleDateString('it-IT',{day:'numeric',month:'short',year:'numeric'}) : '';
 
     let currentTav = null;
     if(getPhaseIndex(p) >= 2){
@@ -97,7 +100,7 @@ export function renderHome(){
       <div class="card-info">
         <div class="card-title">${p.title}</div>
         <div class="card-meta">${metaLine}</div>
-        <div class="card-sub">${createdDate ? `Iniziato il ${createdDate}` : ''}${createdDate && scadenza ? ' · ' : ''}${scadenza}</div>
+        <div class="card-sub">${scadenza}${scadenza && createdDate ? ' · ' : ''}${createdDate ? `dal ${createdDate}` : ''}</div>
       </div>
       <div class="card-right">
         <div class="card-pct" style="color:${bgColor}">${pct}%</div>
