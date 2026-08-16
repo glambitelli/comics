@@ -1,5 +1,5 @@
 // Service Worker — cache file statici locali, Firebase sempre da rete
-const CACHE = 'inkflow-static-v227';
+const CACHE = 'inkflow-static-v228';
 const SHARE_CACHE = 'inkflow-share-inbox';
 // Cache dei file .cbz/.cbr scaricati da Drive: gestita da js/drive.js, va
 // PRESERVATA tra i deploy (altrimenti a ogni aggiornamento riscaricheresti
@@ -141,6 +141,16 @@ self.addEventListener('notificationclick', e => {
 });
 
 self.addEventListener('message', e => {
+  // "Che versione stai servendo?" — la risposta la da' chi i file li serve
+  // davvero, cioe' questo service worker, non la pagina che potrebbe essere
+  // vecchia. Serve a leggere la versione in fondo alla home e sapere a colpo
+  // d'occhio se un aggiornamento e' arrivato o se si sta ancora guardando la
+  // copia in cache (vedi mostraVersione in main.js).
+  if(e.data&&e.data.type==='VERSIONE'){
+    const porta = e.ports && e.ports[0];
+    if(porta) porta.postMessage(CACHE.replace('inkflow-static-',''));
+    return;
+  }
   if(e.data&&e.data.type==='SCHEDULE_NOTIFICATION'){
     const {title,body,delay}=e.data;
     setTimeout(()=>{

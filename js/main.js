@@ -567,6 +567,31 @@ window.goHomeFromLogo = goHomeAlways;
 loadUserData();
 initNotifications();
 
+// LA VERSIONE CHE STA GIRANDO DAVVERO, scritta in fondo alla home e alla sera
+// al posto del "v1.0.0" fisso che non ha mai voluto dire niente.
+//
+// A chiederla e' la pagina, ma a rispondere e' il SERVICE WORKER: e' lui che
+// serve i file, quindi e' l'unico che sa quale copia si sta guardando. Serve a
+// una cosa sola, e concreta: quando qualcosa "non e' cambiato" si guarda li' e
+// si sa subito se e' arrivato l'aggiornamento o se il telefono sta ancora
+// servendo la copia vecchia — invece di ricaricare a caso.
+function mostraVersione(){
+  const scrivi = v=> document.querySelectorAll('.app-vers').forEach(e=> e.textContent = v);
+  if(!('serviceWorker' in navigator)) return;
+  // reg.active e non navigator.serviceWorker.controller: al primissimo avvio
+  // (o subito dopo un aggiornamento) il service worker e' gia' attivo ma non
+  // ha ancora "preso in carico" questa pagina, e il controller e' nullo. Chi
+  // risponde e' comunque lui.
+  navigator.serviceWorker.ready.then(reg=>{
+    const sw = reg.active || navigator.serviceWorker.controller;
+    if(!sw) return;
+    const canale = new MessageChannel();
+    canale.port1.onmessage = e=>{ if(e.data) scrivi(e.data); };
+    sw.postMessage({ type:'VERSIONE' }, [canale.port2]);
+  }).catch(()=>{});
+}
+mostraVersione();
+
 // Precarica stats.js in un momento di inattività: è un modulo pigro (si
 // scarica al primo tap su "Stats"), ma è anche tra i più usati. Ogni fetch
 // dei moduli passa dal service worker in modalità "network-first" (i deploy

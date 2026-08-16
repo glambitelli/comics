@@ -199,6 +199,11 @@ body.is-touch .refs-scroll{padding-bottom:calc(172px + var(--safe-bot)) !importa
 .section-title{font-size:46px;font-weight:700;color:var(--ink);letter-spacing:-.01em;font-family:'Castoro',serif;line-height:1;margin-bottom:2px;position:relative;z-index:2}
 /* min-height uguale alla .home-sub-row della home (che ospita anche la lente):
    senza, l'header di stats/references risultava più basso di quello della home. */
+/* La versione che sta girando DAVVERO (la scrive main.js chiedendola al
+   service worker, vedi mostraVersione): serve a distinguere in un colpo
+   d'occhio un aggiornamento arrivato da una copia vecchia ancora in cache —
+   la domanda "ma l'hai ricaricata?" ha bisogno di una risposta guardabile. */
+.app-vers{margin-left:6px;opacity:.4;font-size:8px;letter-spacing:.06em}
 .section-sub{font-size:9px;color:var(--ink3);font-weight:400;letter-spacing:.12em;text-transform:lowercase;position:relative;z-index:2;min-height:20px;display:flex;align-items:center}
 
 /* Messaggio di resa della schermata d'avvio: compare solo se dopo otto
