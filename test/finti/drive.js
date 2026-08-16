@@ -24,3 +24,4 @@ export function daRicollegare(){ return false; }
 // js/drive.js). Qui non c'e' niente da scaricare, ma la funzione deve esistere:
 // refs.js la chiama entrando nell'archivio.
 export function prepareDriveAuth(){ return Promise.resolve(false); }
+export function resumeDriveConnect(){ return Promise.resolve(false); }

@@ -11,7 +11,7 @@ import { promptModal, promptCampi, confirmModal, actionMenu } from './dialogs.js
 import {
   isDriveConfigured, isDriveConnected, connectDrive, disconnectDrive,
   driveAccountEmail, onDriveAuthChange, listDriveAlbumsForFolder,
-  ensureDriveConnected, daRicollegare, prepareDriveAuth,
+  ensureDriveConnected, daRicollegare, prepareDriveAuth, resumeDriveConnect,
 } from './drive.js';
 import {
   ZOOM_IN, ZOOM_MAX, panGain, edgeSpring, EDGE_COMMIT, EDGE_HANDOFF,
@@ -759,6 +759,18 @@ export function startRefsListener(){
     // Solo il download della libreria, appena l'archivio entra in scena:
     // quando poi si tocca "Ricollega" non c'e' piu' niente da aspettare.
     prepareDriveAuth();
+    // E il recupero del rientro da Google: se un collegamento era cominciato e
+    // la risposta si e' persa per strada (vedi resumeDriveConnect in drive.js),
+    // lo si finisce qui, tornando sull'app. Solo entro tre minuti dal tocco e
+    // solo se un tentativo c'era davvero: senza quel segno non parte niente.
+    const riprendiDrive = ()=>{
+      if(document.hidden) return;
+      resumeDriveConnect().then(ok=>{
+        if(ok) setUploadStatus('ok', 'Google Drive collegato ✓');
+      });
+    };
+    document.addEventListener('visibilitychange', riprendiDrive);
+    riprendiDrive();
     // Qui NON si chiede piu' niente a Google. Il rinnovo automatico che c'era
     // prima faceva comparire da sola la pagina di accesso appena si entrava
     // in References (vedi la nota in drive.js): adesso il collegamento parte

@@ -63,4 +63,68 @@ module.exports = () => suite("Drive — la finestra di Google parte dal tocco", 
   ok('ed e\' arrivata solo dopo l\'attesa della libreria',
      impreparata[0] && impreparata[0].dopoMs > 300, impreparata);
 
+  sezione('se la risposta di Google si perde, al rientro si finisce il lavoro');
+  // Il sintomo: la schermata di Google si apre, l'accesso va a buon fine, si
+  // torna sull'app e il pannello dice ancora "Nessun account". Il permesso c'e'
+  // — tanto che aprendo un albo Drive risultava collegato — ma la risposta e'
+  // tornata verso una pagina che il telefono aveva nel frattempo ricaricato o
+  // congelato. Qui si riproduce alla lettera: richiesta partita, risposta mai
+  // arrivata, pagina ricaricata.
+  await page.goto(base + '/test/banco/drive-gesto.html');
+  await page.waitForFunction(()=> window.__ready === true, { timeout: 15000 });
+  await page.evaluate(async ()=>{
+    localStorage.removeItem('inkflow-drive-token');
+    window.__esito = 'silenzio';
+    await window.drive.prepareDriveAuth();
+  });
+  await page.click('#collega');
+  await page.waitForTimeout(200);
+  const perso = await page.evaluate(()=> ({
+    chiamate: window.__chiamate.length,
+    collegato: window.drive.isDriveConnected(),
+    segno: !!localStorage.getItem('inkflow-drive-in-corso'),
+  }));
+  ok('dopo il tocco l\'account non risulta collegato', !perso.collegato, perso);
+  ok('ma resta scritto che un tentativo era in corso', perso.segno, perso);
+
+  // La pagina riparte da zero: e' il punto in cui prima si perdeva tutto.
+  await page.goto(base + '/test/banco/drive-gesto.html');
+  await page.waitForFunction(()=> window.__ready === true, { timeout: 15000 });
+  const ripreso = await page.evaluate(async ()=>{
+    window.__esito = 'ok';                 // la sessione Google ora e' calda
+    const fatto = await window.drive.resumeDriveConnect();
+    return { fatto, collegato: window.drive.isDriveConnected(),
+             chiamate: window.__chiamate,
+             segno: !!localStorage.getItem('inkflow-drive-in-corso') };
+  });
+  ok('al rientro il collegamento si completa da solo', ripreso.fatto && ripreso.collegato, ripreso);
+  ok('e lo fa in silenzio, senza rimettere davanti Google',
+     ripreso.chiamate.length === 1 && ripreso.chiamate[0].opts.prompt === '', ripreso.chiamate);
+  ok('il segno del tentativo viene cancellato', !ripreso.segno, ripreso);
+
+  sezione('ma senza un tentativo in corso non parte proprio niente');
+  // E' la regola di sempre: nessuna schermata di Google che compaia da sola.
+  // Il recupero vale solo come coda di un tocco recente.
+  const aFreddo = await page.evaluate(async ()=>{
+    localStorage.removeItem('inkflow-drive-token');
+    localStorage.removeItem('inkflow-drive-in-corso');
+    window.__chiamate = [];
+    const fatto = await window.drive.resumeDriveConnect();
+    return { fatto, chiamate: window.__chiamate.length };
+  });
+  ok('resumeDriveConnect non chiede niente', aFreddo.chiamate === 0 && !aFreddo.fatto, aFreddo);
+
+  sezione('e nemmeno se il tentativo e\' di mezz\'ora fa');
+  // Tre minuti: oltre, non e' piu' "sto tornando da Google", e' un'altra
+  // sessione. Riprendere li' vorrebbe dire far comparire Google dal nulla.
+  const vecchio = await page.evaluate(async ()=>{
+    localStorage.setItem('inkflow-drive-in-corso', String(Date.now() - 30*60*1000));
+    window.__chiamate = [];
+    const fatto = await window.drive.resumeDriveConnect();
+    return { fatto, chiamate: window.__chiamate.length,
+             segno: !!localStorage.getItem('inkflow-drive-in-corso') };
+  });
+  ok('un tentativo vecchio non si riprende', !vecchio.fatto && vecchio.chiamate === 0, vecchio);
+  ok('e il segno scaduto si butta via', !vecchio.segno, vecchio);
+
 });

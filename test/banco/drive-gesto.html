@@ -36,6 +36,11 @@ function montaGoogleFinto(){
             dopoMs: Date.now() - (window.__premuto || 0),
           });
           setTimeout(()=>{
+            // 'silenzio' = la risposta non torna mai. E' quello che succede
+            // quando il telefono ricarica o congela la pagina mentre si e'
+            // sulla schermata di Google: il permesso viene dato, ma non c'e'
+            // piu' nessuno ad aspettare la risposta.
+            if(window.__esito === 'silenzio') return;
             if(window.__esito === 'ok') _cb && _cb({ access_token:'t', expires_in:3600 });
             else _err && _err({ message:'popup_closed' });
           }, 10);

@@ -223,9 +223,66 @@ export function prepareDriveAuth(){
 // niente se il consenso c'e' gia', la scelta dell'account o la schermata di
 // consenso se serve. Il silenzioso resta dov'e' utile davvero, cioe' nel
 // rinnovo automatico del token (vedi ensureDriveConnected).
+// "C'e' un collegamento cominciato e non ancora finito", con l'ora in cui e'
+// cominciato. Sta in localStorage e non in una variabile perche' deve
+// sopravvivere proprio al caso per cui esiste: la pagina che riparte.
+const PENDING_KEY = 'inkflow-drive-in-corso';
+const PENDING_MS = 3 * 60 * 1000;
+
+function segnaTentativo(){ try{ localStorage.setItem(PENDING_KEY, String(Date.now())); }catch(e){} }
+function chiudiTentativo(){ try{ localStorage.removeItem(PENDING_KEY); }catch(e){} }
+function tentativoInSospeso(){
+  try{
+    const t = parseInt(localStorage.getItem(PENDING_KEY), 10);
+    if(t && Date.now() - t < PENDING_MS) return true;
+    if(t) chiudiTentativo();          // troppo vecchio: non e' piu' un ritorno
+  }catch(e){}
+  return false;
+}
+
 export async function connectDrive(){
   if(!isDriveConfigured()) throw new Error('Google Drive non ancora configurato (vedi le istruzioni in js/drive.js).');
-  return await requestToken(null);
+  segnaTentativo();
+  try{
+    const t = await requestToken(null);
+    chiudiTentativo();
+    return t;
+  }catch(e){
+    // Il segno NON si cancella qui. Un errore puo' voler dire "annullato", ma
+    // anche "la finestra si e' chiusa e la risposta non e' mai tornata", ed e'
+    // il secondo caso che va recuperato al rientro (vedi resumeDriveConnect).
+    throw e;
+  }
+}
+
+// ── IL RIENTRO DA GOOGLE ──
+// Sintomo: la schermata di Google si apriva, l'accesso andava a buon fine, si
+// tornava su Inkflow e il pannello diceva ancora "Nessun account". Poi bastava
+// aprire un albo di Otomo e Drive risultava collegato.
+//
+// La spiegazione sta in quella differenza. La finestra di Google e' una
+// finestra a parte, e la risposta torna alla pagina che l'ha aperta: se nel
+// frattempo il telefono quella pagina l'ha ricaricata o congelata — su Android
+// succede di continuo quando si passa a un'altra scheda — la risposta non
+// trova piu' nessuno ad aspettarla. Il token e' stato concesso, ma l'app non
+// l'ha mai visto. Aprire un albo funzionava perche' quella strada usa il
+// rinnovo silenzioso, che con la sessione Google ormai calda riesce al primo
+// colpo.
+//
+// Quindi: al rientro, se un tentativo era in corso, si finisce il lavoro per
+// conto suo con lo stesso rinnovo silenzioso. Non e' "partire da soli" — la
+// regola di ensureDriveConnected resta intatta — e' completare un gesto che
+// l'utente ha fatto meno di tre minuti fa e che si e' rotto per strada.
+export async function resumeDriveConnect(){
+  if(!isDriveConfigured()) return false;
+  if(!tentativoInSospeso()) return false;
+  if(isDriveConnected()){ chiudiTentativo(); return false; }
+  const fatto = await requestToken('').then(()=> true).catch(()=> false);
+  // In un verso o nell'altro il tentativo e' concluso: se il rinnovo
+  // silenzioso non ce l'ha fatta vuol dire che da Google non e' arrivato
+  // niente, e insistere ad ogni rientro sarebbe un agguato.
+  chiudiTentativo();
+  return fatto;
 }
 
 // Garantisce (senza interazione, se possibile) un token valido: usa quello in
