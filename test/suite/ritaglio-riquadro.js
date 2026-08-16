@@ -292,4 +292,45 @@ module.exports = () => suite("Ritaglio — maniglie del riquadro e peso del file
   const dopoStrappo = await page.evaluate(()=> window.__salvati);
   ok('il riquadro tirato prima dello strappo si conferma lo stesso', dopoStrappo === 1, dopoStrappo);
 
+  console.log('\n── salvare un ritaglio fra i riferimenti, con un tag ──');
+  // La seconda strada dell'archivio: invece di una cartella si sceglie COSA
+  // mostra. Il ritaglio non eredita l'artista da cui stai leggendo — sono due
+  // modi alternativi di archiviare — ma la provenienza se la porta dietro.
+  await page.evaluate(()=>{ window.__tag = ['folla che cammina','persone sedute']; });
+  await accendiRitaglio();
+  await disegna(60, 120, 340, 460);
+  await page.waitForTimeout(700);
+  const pastiglia = await page.evaluate(()=>{
+    const b = document.querySelector('[data-act="tagdest"]');
+    return b ? { c: b.textContent.trim(), prima: b === b.parentElement.firstElementChild } : null;
+  });
+  ok('nella capsula c\'e\' la pastiglia References',
+     pastiglia && /references/i.test(pastiglia.c), pastiglia);
+  ok('ed e\' la prima della riga', pastiglia && pastiglia.prima, pastiglia);
+
+  // Il banco del lettore usa un dialogs.js finto: il menu non si disegna, si
+  // REGISTRA (vedi test/finti/dialogs.js). Alla prova serve sapere quali voci
+  // vengono offerte e poterne scegliere una — non come sono disegnate, che e'
+  // gia' provato altrove.
+  const menuTag = await page.evaluate(async ()=>{
+    window.__menu = null;
+    document.querySelector('[data-act="tagdest"]').dispatchEvent(new MouseEvent('click',{bubbles:true}));
+    await new Promise(r=>setTimeout(r,250));
+    return window.__menu || [];
+  });
+  ok('propone i tag gia\' usati', menuTag.some(v=>/folla che cammina/.test(v)), menuTag);
+  ok('e "Nuovo tag" per inventarne uno', menuTag.some(v=>/nuovo tag/i.test(v)), menuTag);
+
+  await page.evaluate(async ()=>{
+    window.__salvati = 0; window.__ultimoSalvato = null;
+    window.__scegliVoce('folla che cammina');
+  });
+  await page.waitForTimeout(1500);
+  const conTag = await page.evaluate(()=> ({ n: window.__salvati, u: window.__ultimoSalvato,
+    toast: (document.querySelector('.ar-toast')||{}).textContent }));
+  ok('scegliendo il tag il ritaglio si salva subito', conTag.n === 1, conTag);
+  ok('col tag scritto addosso',
+     conTag.u && (conTag.u.tags||[]).includes('folla che cammina'), conTag);
+  ok('e il banner dice dove e\' finito', /folla che cammina/.test(conTag.toast||''), conTag);
+
 });

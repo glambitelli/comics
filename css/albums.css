@@ -553,4 +553,12 @@ body.is-touch .ar-nav{display:none} /* su mobile si naviga con swipe/tap */
 .ar-clip-cat{
   background:rgba(245,240,232,.07);border-color:transparent;color:var(--sand3);
 }
+/* "References" e' la prima della riga e non e' una categoria come le altre:
+   porta ai TAG invece che alle cartelle. L'oro la stacca quel tanto che basta
+   a farla notare senza gridare — e' la strada nuova, e se non si vede non la
+   si prende. */
+.ar-clip-tag{
+  color:var(--gold-pale);border-color:rgba(232,200,120,.3);
+  background:rgba(232,200,120,.10);
+}
 .ar-clip-cat:hover{background:rgba(245,240,232,.13)}

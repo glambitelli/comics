@@ -28,13 +28,13 @@ import { unzipSync } from './vendor/fflate.js';
 import {
   addRefBlob, getActiveFolderId, findExactAlbumMatch, createAlbumDoc,
   updateAlbumLastPage, updateAlbumSourceName, getAlbumById, findAlbumByDriveId,
-  clipDestinations, clipCategories, getFolderName, rememberClipDest,
+  clipDestinations, clipCategories, getFolderName, rememberClipDest, tagSuggeriti,
 } from './refs.js';
 import { uploadToCloudinary } from './cloudinary.js';
 import { getDriveAlbumFile, ensureDriveConnected, isDownloadCancelled } from './drive.js';
 import { openRemoteZipSource, openBlobZipSource } from './zipremote.js';
 import { haptic } from './state.js';
-import { actionMenu } from './dialogs.js';
+import { actionMenu, promptModal } from './dialogs.js';
 import {
   ZOOM_IN, ZOOM_MAX, panGain, edgeSpring, EDGE_COMMIT, EDGE_HANDOFF,
   panLimits as limitiPan, clampTo, ZOOM_TRANSITION,
@@ -787,6 +787,7 @@ function buildReaderDOM(){
     // "conferma" e poi "scegli dove".
     else if(act === 'confirmclip'){ if(ov._clipConfirm) ov._clipConfirm(b.dataset.dest || null); }
     else if(act === 'catdest'){ e.stopPropagation(); if(ov._clipCatDests) ov._clipCatDests(b, +b.dataset.cat); }
+    else if(act === 'tagdest'){ e.stopPropagation(); if(ov._clipTagDests) ov._clipTagDests(b); }
     else if(act === 'canceldl') cancelAlbumDownload();
   });
 
@@ -1993,7 +1994,15 @@ function wireClip(ov){
     // stessa forma con due artisti e con cinquanta — e da lì si raggiunge
     // qualunque sottocartella, anche una mai usata.
     if(moreWrap){
-      moreWrap.innerHTML = cats.map((c,i)=>
+      // "References" sta sulla riga delle categorie perche' E' una categoria,
+      // solo fatta di tag invece che di cartelle: sceglierla vuol dire "questo
+      // non lo archivio sotto un autore, lo archivio per cosa mostra". Il
+      // ritaglio non eredita la cartella da cui stai leggendo (vedi
+      // exportCropAndSave) — ma la provenienza se la porta dietro lo stesso,
+      // quindi da dove viene non si perde comunque.
+      moreWrap.innerHTML =
+        `<button class="ar-clip-dest ar-clip-cat ar-clip-tag" data-act="tagdest" title="Salva fra i riferimenti, con un tag">References ›</button>`
+        + cats.map((c,i)=>
         `<button class="ar-clip-dest ar-clip-cat" data-act="catdest" data-cat="${i}" title="Sfoglia ${escAttr(c.category)}">${escAttr(c.category)} ›</button>`
       ).join('');
       moreWrap._cats = cats;
@@ -2011,6 +2020,25 @@ function wireClip(ov){
   };
 
   // Sottocartelle di una categoria, per raggiungerne una qualunque.
+  // Scegliendo "References" si sceglie un TAG, e il tag e' la destinazione:
+  // il ritaglio si salva subito dopo, con un tocco solo come per le cartelle.
+  ov._clipTagDests = (anchorEl)=>{
+    const suggeriti = tagSuggeriti(8);
+    const actions = suggeriti.map(t=>({
+      label: t, icon: 'tag',
+      onSelect: ()=>{ if(ov._clipConfirm) ov._clipConfirm({ tag: t }); },
+    }));
+    actions.push({
+      label: 'Nuovo tag…', icon: 'piu',
+      onSelect: async ()=>{
+        const t = await promptModal('Nuovo tag', '', 'es. folla che cammina');
+        if(!t) return;
+        if(ov._clipConfirm) ov._clipConfirm({ tag: t });
+      },
+    });
+    actionMenu(anchorEl, actions);
+  };
+
   ov._clipCatDests = (anchorEl, idx)=>{
     const cats = (moreWrap && moreWrap._cats) || [];
     const c = cats[idx];
@@ -2304,7 +2332,11 @@ function wireClip(ov){
     _anticipo = null;
     showConfirm(false);
   };
-  ov._clipConfirm = async (destFolderId)=>{
+  // `scelta` e' l'id di una cartella (le pastiglie di sempre) OPPURE
+  // { tag } quando si e' passati da "References". Un solo parametro invece di
+  // due perche' sono alternative, non opzioni che si sommano: un ritaglio o lo
+  // archivi sotto un autore o lo archivi per cosa mostra.
+  ov._clipConfirm = async (scelta)=>{
     // Se il riquadro è a schermo ma la selezione in memoria si è persa — un
     // gesto interrotto dal sistema, il menu lungo di Android che ruba il
     // touchend — si riparte da quello che si VEDE invece di non fare niente.
@@ -2330,7 +2362,7 @@ function wireClip(ov){
     // quello nascosto.
     const img = readerImg();
     if(!img) return;
-    await commitClip(img, sel, layer, destFolderId, pronto, tavola);
+    await commitClip(img, sel, layer, scelta, pronto, tavola);
     box.hidden = true;
   };
 
@@ -2373,7 +2405,7 @@ function geometriaRitaglio(img, sel, layer){
 }
 
 // Ritaglia il rettangolo selezionato dalla pagina a piena risoluzione.
-async function commitClip(img, sel, layer, destFolderId, pronto, tavola){
+async function commitClip(img, sel, layer, scelta, pronto, tavola){
   const g = geometriaRitaglio(img, sel, layer);
   if(!g){ toast('Riquadro fuori dalla pagina, riprova.', true); toggleClip(false); return; }
 
@@ -2385,7 +2417,7 @@ async function commitClip(img, sel, layer, destFolderId, pronto, tavola){
   // davanti. L'elemento a schermo è a piena risoluzione (il conto del crop
   // usa già il suo naturalWidth/naturalHeight), quindi il risultato non
   // cambia di un pixel.
-  const done = exportCropAndSave(img, g.cx, g.cy, g.cw, g.ch, destFolderId, pronto, tavola);
+  const done = exportCropAndSave(img, g.cx, g.cy, g.cw, g.ch, scelta, pronto, tavola);
   // La modalità ritaglio si chiude SUBITO: il caricamento su Cloudinary
   // prosegue in sottofondo e si annuncia da solo col banner. Prima l'intera
   // interfaccia restava bloccata per tutta la durata della rete.
@@ -2500,7 +2532,10 @@ async function preparaRitaglio(sourceImg, cx, cy, cw, ch){
 //
 // `pronto` è la preparazione avviata mentre si sceglieva la destinazione (vedi
 // anticipaRitaglio in wireClip): se c'è, qui non si aspetta niente.
-async function exportCropAndSave(sourceImg, cx, cy, cw, ch, destFolderId, pronto, tavola){
+async function exportCropAndSave(sourceImg, cx, cy, cw, ch, scelta, pronto, tavola){
+  // Una cartella o un tag: vedi ov._clipConfirm.
+  const tag = (scelta && typeof scelta === 'object' && scelta.tag) ? scelta.tag : null;
+  const destFolderId = (typeof scelta === 'string' && scelta) ? scelta : null;
   toast(tavola ? 'Salvataggio della tavola…' : 'Ritaglio in corso…', false, true);
 
   // Provenienza e destinazione lette ORA, non dopo l'upload: da quando il
@@ -2508,7 +2543,12 @@ async function exportCropAndSave(sourceImg, cx, cy, cw, ch, destFolderId, pronto
   // corso, e _idx sarebbe quello nuovo — il frammento si porterebbe dietro il
   // numero di pagina sbagliato.
   const sourceFolderId = getActiveFolderId();
-  const folderId = destFolderId || sourceFolderId;
+  // Col tag scelto il ritaglio NON eredita la cartella dell'artista da cui stai
+  // leggendo: sono due modi alternativi di archiviare, e infilarlo anche sotto
+  // l'autore vorrebbe dire vederlo comparire in un posto che non hai scelto.
+  // La provenienza pero' resta scritta qui sotto, quindi da dove viene non si
+  // perde in nessun caso.
+  const folderId = tag ? null : (destFolderId || sourceFolderId);
   const provenance = {
     opera: _albumName,
     pagina: _idx + 1,
@@ -2544,14 +2584,15 @@ async function exportCropAndSave(sourceImg, cx, cy, cw, ch, destFolderId, pronto
     toast('Ritaglio in corso… ' + pct + '%', false, true);
   };
 
-  let id = await addRefBlob(blob, { folderId, source: 'clip', provenance, w, h, onProgress: avanzamento, tavola });
+  const tags = tag ? [tag] : null;
+  let id = await addRefBlob(blob, { folderId, source: 'clip', provenance, w, h, onProgress: avanzamento, tavola, tags });
   // Rete di sicurezza sul formato: se il caricamento non riesce col WebP si
   // riprova UNA volta in JPEG. Il preset di Cloudinary è fuori da questo
   // repository e potrebbe non accettarlo: meglio un ritaglio più pesante che
   // un ritaglio perso, e senza doverlo scoprire dall'utente.
   if(!id && webp){
     const ripiego = await encode('image/jpeg', 0.88);
-    if(ripiego) id = await addRefBlob(ripiego, { folderId, source: 'clip', provenance, w, h, onProgress: avanzamento, tavola });
+    if(ripiego) id = await addRefBlob(ripiego, { folderId, source: 'clip', provenance, w, h, onProgress: avanzamento, tavola, tags });
   }
   if(id){
     haptic('done');
@@ -2562,8 +2603,9 @@ async function exportCropAndSave(sourceImg, cx, cy, cw, ch, destFolderId, pronto
     // non compare fra i ritagli, e senza dirlo si va a cercarla dove non c'e'.
     const destName = destFolderId ? getFolderName(destFolderId) : null;
     const dove = tavola ? ' · Tavole' : '';
-    toast(destName ? ('Salvato in ' + destName + dove + ' \u2713')
-                   : (tavola ? 'Tavola salvata \u2713' : 'Frammento salvato \u2713'));
+    toast(tag ? ('Salvato in ' + tag + ' \u2713')
+              : destName ? ('Salvato in ' + destName + dove + ' \u2713')
+              : (tavola ? 'Tavola salvata \u2713' : 'Frammento salvato \u2713'));
   }
   else { toast(tavola ? 'Salvataggio della tavola fallito.' : 'Salvataggio del frammento fallito.', true); }
 }

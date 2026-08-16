@@ -41,7 +41,7 @@ function exposeLazy(path, names){
 
 exposeLazy('./refs.js', ['refsBackToFolders','openRefLightbox','closeRefLightbox',
   'nextRefImage','prevRefImage','refsImageMenu','deleteRefImageWithUndo',
-  'openFolderBrowser','openAllGrid','openFolder','promptNewFolder',
+  'openFolderBrowser','openAllGrid','openFolder','openTag','promptNewFolder','promptTagImage',
   'promptRenameFolder','promptDeleteFolder','refsFolderMenu','setFolderTab','albumShelfMenu',
   'connectDriveAndSync','disconnectDriveUI','toggleRefsProfile','closeRefsProfile',
   'refsFolderSearch','refsAlbumsSearch','refsGridSortMenu','refsAlbumsSortMenu',
@@ -168,6 +168,13 @@ async function openRefsScreenAtFolder(id){
 async function openRefsScreenAtAll(){
   const refs = await prepRefsScreen();
   refs.openAllGrid();
+}
+// Un tag e' un posto come una cartella, e come una cartella deve poterlo
+// riaprire il tasto Indietro: senza questa, tornando su un tag si finiva sulla
+// home invece che dove si era.
+async function openRefsScreenAtTag(tag){
+  const refs = await prepRefsScreen();
+  refs.openTag(tag);
 }
 function closeRefsScreen(){
   document.getElementById('screen-refs').classList.remove('active');
@@ -402,6 +409,7 @@ async function showScreen(view, id){
     else if(view === 'refs'){ await openRefsScreen(); }
     else if(view === 'refs-folder' && id){ await openRefsScreenAtFolder(id); }
     else if(view === 'refs-all'){ await openRefsScreenAtAll(); }
+    else if(view === 'refs-tag' && id){ await openRefsScreenAtTag(id); }
     else if(view === 'evening'){ enterEveningImpl(); }   // la tenda la mette chi ha premuto
     else { // home (o stato sconosciuto)
       if(document.body.classList.contains('evening-mode')) exitEveningImpl();

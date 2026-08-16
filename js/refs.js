@@ -28,8 +28,9 @@ let _albums = [];        // cache locale scaffale albi {id, folderId, title, cov
 let _refsUnsub = null;
 let _foldersUnsub = null;
 let _albumsUnsub = null;
-let _view = 'folders';           // 'folders' | 'all' | 'folder'
+let _view = 'folders';           // 'folders' | 'all' | 'folder' | 'tag'
 let _activeFolderId = null;
+let _activeTag = null;           // il tag aperto, quando _view === 'tag'
 // Dentro una cartella vera convivono TRE assi: gli albi (fumetti da .cbr/.cbz),
 // i ritagli (pezzi di pagina) e le tavole (pagine intere). Nelle viste "All" e
 // "senza cartella" i tab non compaiono: lì si guardano solo immagini, tutte
@@ -98,6 +99,13 @@ function genId(){
   return Date.now().toString(36) + Math.random().toString(36).slice(2,8);
 }
 function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+// Un nome che finisce DENTRO un onclick inline, cioe' dentro una stringa
+// JavaScript dentro un attributo HTML: due livelli di virgolette, e un tag
+// scritto da chi usa l'app puo' contenerle entrambe. Prima si sfuggiva solo
+// l'apice, e un tag con dentro un apostrofo — "l'attesa" — rompeva l'attributo.
+function perOnclick(s){
+  return esc(String(s||'').replace(/\\/g, '\\\\').replace(/'/g, "\\'"));
+}
 
 // ── PRE-GENERAZIONE DELLA MINIATURA ──
 // Cloudinary crea una variante ridimensionata solo quando qualcuno gliela
@@ -170,7 +178,7 @@ export async function addRefImage(file, source='file', folderId=null, tavola=cur
 // così il frammento sa da dove viene.
 export async function addRefBlob(blob, opts={}){
   if(!blob) return null;
-  const { folderId=null, source='clip', provenance=null, w=null, h=null, onProgress=null, tavola=false } = opts;
+  const { folderId=null, source='clip', provenance=null, w=null, h=null, onProgress=null, tavola=false, tags=null } = opts;
   const id = genId();
   try{
     // L'estensione segue il formato vero del blob: da quando i ritagli
@@ -190,6 +198,8 @@ export async function addRefBlob(blob, opts={}){
       w, h, bytes: blob.size,
       // In quale dei due scaffali della cartella finisce (vedi isTavola).
       tavola: !!tavola,
+      // Cosa c'e' dentro, se lo si e' detto al momento del ritaglio.
+      tags: Array.isArray(tags) ? tags.map(normTag).filter(Boolean) : [],
     };
     if(provenance) data.provenance = provenance;
     await setDoc(doc(db, REFS_COL, id), data);
@@ -342,6 +352,76 @@ export async function addRefImages(fileList, source='file', folderId=currentUplo
 
 export async function deleteRefImage(id){
   await deleteDoc(doc(db, REFS_COL, id));
+}
+
+// ── I TAG — il secondo asse dell'archivio ──────────────────────────────────
+//
+// Una cartella risponde a "CHI l'ha disegnato". Un tag risponde a "COSA c'e'
+// dentro": folla che cammina, macchina parcheggiata, persone sedute. Sono due
+// domande diverse e finora l'app sapeva rispondere solo alla prima — per
+// ritrovare una posa bisognava ricordarsi da quale autore l'avevi presa, che e'
+// esattamente il lavoro che un archivio dovrebbe risparmiare.
+//
+// I TAG NON SOSTITUISCONO LA CARTELLA, si aggiungono. Un ritaglio preso da
+// Otomo resta fra i suoi e in piu' compare sotto "folla che cammina": se il tag
+// fosse un POSTO, per metterlo li' bisognerebbe tirarlo fuori dall'autore e si
+// perderebbe la provenienza, che di un archivio di riferimenti e' meta' del
+// valore. Cosi' invece lo si trova da entrambe le parti.
+//
+// Non c'e' nessuna collezione di tag: l'elenco si RICAVA dalle immagini (vedi
+// tuttiITag). Un tag esiste finche' qualcosa lo porta, e sparisce da solo
+// quando l'ultima immagine che lo aveva se ne va — che per un'etichetta e'
+// il comportamento giusto, e toglie di mezzo un archivio di nomi vuoti da
+// mantenere.
+export function tagsOf(r){ return Array.isArray(r && r.tags) ? r.tags : []; }
+
+// Il nome si salva COME LO SCRIVI ("Folla che cammina"), ma i confronti si
+// fanno su una chiave normalizzata: senza, "folla" e "Folla " sarebbero due
+// tag diversi che nell'elenco si vedono uguali.
+export function normTag(t){ return String(t||'').trim().replace(/\s+/g,' '); }
+const chiaveTag = t => normTag(t).toLowerCase();
+
+// Tutti i tag in circolazione, col numero di immagini. Ordinati per quantita'
+// e poi per nome: i soggetti su cui stai lavorando davvero salgono in cima da
+// soli, senza doverli fissare a mano.
+export function tuttiITag(){
+  const m = new Map();
+  _refs.forEach(r=> tagsOf(r).forEach(t=>{
+    const k = chiaveTag(t);
+    if(!k) return;
+    const v = m.get(k);
+    if(v) v.n++; else m.set(k, { nome: normTag(t), n: 1 });
+  }));
+  return Array.from(m.values()).sort((a,b)=> b.n - a.n || a.nome.localeCompare(b.nome));
+}
+
+// I tag da proporre come scorciatoia al momento del ritaglio: i piu' usati.
+export function tagSuggeriti(n = 8){ return tuttiITag().slice(0, n).map(t=>t.nome); }
+
+export function refHaTag(r, tag){
+  const k = chiaveTag(tag);
+  return tagsOf(r).some(t=> chiaveTag(t) === k);
+}
+
+export function setRefTags(id, tags){
+  const puliti = [];
+  (tags||[]).forEach(t=>{
+    const n = normTag(t);
+    if(n && !puliti.some(x=> chiaveTag(x) === chiaveTag(n))) puliti.push(n);
+  });
+  setDoc(doc(db, REFS_COL, id), { tags: puliti }, {merge:true});
+}
+
+// Accende o spegne un tag su un'immagine. Chi chiama non deve sapere se c'era
+// gia': e' la stessa voce di menu che serve a metterlo e a toglierlo.
+export function toggleRefTag(id, tag){
+  const r = _refs.find(x=>x.id===id);
+  if(!r) return;
+  const n = normTag(tag);
+  if(!n) return;
+  const attuali = tagsOf(r);
+  const giaCe = attuali.some(t=> chiaveTag(t) === chiaveTag(n));
+  setRefTags(id, giaCe ? attuali.filter(t=> chiaveTag(t) !== chiaveTag(n)) : attuali.concat(n));
 }
 
 export function assignRefToFolder(id, folderId){
@@ -712,19 +792,31 @@ function clearSearchInputs(){
 }
 
 export function openFolderBrowser(){
-  _view = 'folders'; _activeFolderId = null;
+  _view = 'folders'; _activeFolderId = null; _activeTag = null;
   _folderQuery = '';
   clearSearchInputs();
   renderRefsScreen();
 }
 export function openAllGrid(){
-  _view = 'all'; _activeFolderId = null;
+  _view = 'all'; _activeFolderId = null; _activeTag = null;
   clearSearchInputs();
   if(window.__navSync) window.__navSync('refs-all', null);
   renderRefsScreen();
 }
+// Aprire un tag e' come aprire una cartella, ma il contenuto lo decide
+// l'etichetta e non il contenitore: le immagini restano dove sono.
+export function openTag(tag){
+  const n = normTag(tag);
+  if(!n) return;
+  _view = 'tag'; _activeFolderId = null; _activeTag = n;
+  _albumQuery = '';
+  clearSearchInputs();
+  if(window.__navSync) window.__navSync('refs-tag', n);
+  renderRefsScreen();
+}
+
 export function openFolder(id){
-  _view = 'folder'; _activeFolderId = id;
+  _view = 'folder'; _activeFolderId = id; _activeTag = null;
   // La ricerca degli albi resta legata a dove sei: portarsela dietro da una
   // cartella all'altra nasconderebbe albi senza che se ne veda il motivo.
   _albumQuery = '';
@@ -927,6 +1019,7 @@ export function renderRefsScreen(){
       const nameEl = document.getElementById('refs-breadcrumb-name');
       if(nameEl){
         if(_view === 'all') nameEl.textContent = 'All';
+        else if(_view === 'tag') nameEl.textContent = _activeTag || '';
         else{
           const f = _folders.find(x=>x.id===_activeFolderId);
           nameEl.textContent = f ? f.name : 'Senza cartella';
@@ -1126,6 +1219,7 @@ function renderAlbumsShelf(){
 // raggruppamento quando volevi un artista. Ora il primo e' una CARTELLA col
 // piu' ("aggiungi qui dentro"), il secondo delle RIGHE IMPILATE col piu'
 // ("aggiungi un raggruppamento"), e il secondo sta anche staccato dall'elenco.
+const PIU_ICON = `<svg viewBox="0 0 24 24" width="17" height="17"><path d="M12 5.5v13M5.5 12h13" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"/></svg>`;
 const CARTELLA_PIU = `<svg viewBox="0 0 24 24" width="16" height="16"><path d="M3.5 6.8A1.3 1.3 0 0 1 4.8 5.5h4.4l1.8 1.8h7.2a1.3 1.3 0 0 1 1.3 1.3v8.6a1.3 1.3 0 0 1-1.3 1.3H4.8a1.3 1.3 0 0 1-1.3-1.3Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M12 11v5M9.5 13.5h5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>`;
 const GRIGLIA_ICON = `<svg viewBox="0 0 24 24" width="16" height="16"><rect x="4" y="4" width="7" height="7" rx="1.4" fill="none" stroke="currentColor" stroke-width="1.7"/><rect x="13" y="4" width="7" height="7" rx="1.4" fill="none" stroke="currentColor" stroke-width="1.7"/><rect x="4" y="13" width="7" height="7" rx="1.4" fill="none" stroke="currentColor" stroke-width="1.7"/><rect x="13" y="13" width="7" height="7" rx="1.4" fill="none" stroke="currentColor" stroke-width="1.7"/></svg>`;
 
@@ -1180,6 +1274,31 @@ function renderFolderBrowser(){
     html += `<div class="refs-folders-empty">Ancora nessuna cartella. Crea la prima categoria (es. "Artists" o "Study") per iniziare a organizzare le tue reference.</div>`;
   }
 
+  // I TAG si mostrano DOPO gli artisti e prima di tutto il resto.
+  //
+  // L'ordine non e' estetico: entrando in archivio la domanda e' quasi sempre
+  // "di chi" (e allora scendi fra gli artisti) oppure "cosa mi serve" (e allora
+  // scendi fra i riferimenti). Study viene dopo perche' e' il posto dove le
+  // cose finiscono quando hai gia' deciso di studiarle, non quello da cui si
+  // parte a cercare.
+  const tags = tuttiITag();
+  const sezioneTag = ()=>{
+    if(!tags.length) return '';
+    const visibili = q ? tags.filter(t=> t.nome.toLowerCase().includes(q)) : tags;
+    if(!visibili.length) return '';
+    return `<div class="refs-cat-row">
+        <span class="refs-cat-name">References</span>
+        <span class="refs-cat-rule"></span>
+      </div>` +
+      visibili.map(t=>`
+        <div class="refs-folder-row refs-tag-row" onclick="window.openTag('${perOnclick(t.nome)}')">
+          <span class="refs-mono mt">#</span>
+          <span class="refs-folder-name">${esc(t.nome)}</span>
+          <span class="refs-folder-count">${t.n}</span>
+        </div>`).join('');
+  };
+  let tagFatti = false;
+
   let shown = 0;
   cats.forEach((folders, category)=>{
     const visible = q ? folders.filter(f=>f.name.toLowerCase().includes(q)) : folders;
@@ -1188,15 +1307,9 @@ function renderFolderBrowser(){
     // Il "+" sta nell'intestazione della categoria: aggiungere un artista e'
     // un'azione DI QUELLA categoria, e messa li' non costa nemmeno una riga.
     const persone = categoriaDiPersone(category);
-    // Ordine: nome, capello, pulsante. Il "+" finisce all'estremita' destra,
-    // dove il pollice arriva senza spostare la mano e dove non si confonde con
-    // l'occhiello che sta leggendo.
     html += `<div class="refs-cat-row">
       <span class="refs-cat-name">${esc(category)}</span>
       <span class="refs-cat-rule"></span>
-      <button class="refs-cat-add" onclick="window.promptNewFolder('${esc(category).replace(/'/g,"\\'")}')"
-              aria-label="${persone ? 'Aggiungi artista' : 'Aggiungi cartella in '+esc(category)}"
-              title="${persone ? 'Aggiungi artista' : 'Aggiungi cartella'}">${CARTELLA_PIU}</button>
     </div>`;
     visible.forEach(f=>{
       html += `<div class="refs-folder-row" onclick="window.openFolder('${f.id}')">
@@ -1206,7 +1319,17 @@ function renderFolderBrowser(){
         <button class="refs-folder-menu" onclick="event.stopPropagation();window.refsFolderMenu('${f.id}',this)" aria-label="Altro">⋯</button>
       </div>`;
     });
+    // Riga in coda, alta come le altre e con scritto cosa fa: il "+" nudo
+    // nell'occhiello era un bersaglio da 30px, meta' di quello che un dito
+    // chiede, e per giunta bisognava indovinare cosa aggiungesse.
+    html += `<button class="refs-add-row" onclick="window.promptNewFolder('${perOnclick(category)}')">
+      <span class="refs-add-cerchio">${PIU_ICON}</span>
+      <span class="refs-add-txt">Aggiungi ${persone ? 'artista' : 'cartella'}</span>
+    </button>`;
+    // Subito dopo l'ultima categoria di persone.
+    if(persone && !tagFatti){ html += sezioneTag(); tagFatti = true; }
   });
+  if(!tagFatti) html += sezioneTag();
 
   if(cats.size > 0 && q && shown === 0){
     html += `<div class="refs-folders-empty">Nessuna cartella corrisponde a "${esc(_folderQuery.trim())}".</div>`;
@@ -1273,6 +1396,12 @@ function sortRefsList(list){
 }
 
 function rawGridList(){
+  // Un tag pesca DA TUTTO l'archivio, cartella per cartella: e' proprio la sua
+  // ragione d'essere — "fammi vedere tutte le folle che camminano", non "fammi
+  // vedere le folle di Otomo".
+  if(_view === 'tag'){
+    return _refs.filter(r=> refHaTag(r, _activeTag));
+  }
   if(_view === 'folder'){
     // Dentro una cartella vera il tab decide anche COSA si vede: pezzi di
     // pagina fra i ritagli, pagine intere fra le tavole. Fuori (All, "senza
@@ -2281,12 +2410,41 @@ export function refsImageMenu(anchorEl, imageId){
   // lunga di tutta l'app per dire una cosa di due parole.
   actionMenu(anchorEl, [
     { label:'Collega a progetto', icon:'progetto', onSelect:()=>promptLinkProject(id, anchorEl) },
+    { label:'Tag', icon:'tag', onSelect:()=>promptTagImage(id, anchorEl) },
     { label:'Sposta', icon:'cartella', onSelect:()=>promptMoveImage(id, anchorEl) },
     { label: eTavola ? 'Segna come ritaglio' : 'Segna come tavola',
       icon: eTavola ? 'ritaglio' : 'tavola',
       onSelect:()=>{ setRefTavola(id, !eTavola); haptic('done'); } },
     { label:'Elimina', icon:'elimina', danger:true, onSelect:()=>deleteRefImageWithUndo(id) },
   ]);
+}
+
+// Il menu dei tag di un'immagine: quelli che ci sono gia' con la spunta, tutti
+// gli altri sotto, e in coda la possibilita' di inventarne uno. Ogni voce
+// accende o spegne, come il menu dei progetti — per metterne due lo si riapre.
+export function promptTagImage(id, anchorEl){
+  const r = _refs.find(x=>x.id===id);
+  if(!r) return;
+  const suoi = tagsOf(r);
+  const tutti = tuttiITag().map(t=>t.nome);
+  // I suoi in cima: sono quelli su cui si torna a mettere le mani, e con
+  // trenta tag in circolazione cercarli in mezzo agli altri sarebbe assurdo.
+  const ordinati = suoi.concat(tutti.filter(t=> !refHaTag(r, t)));
+  const actions = ordinati.map(t=>({
+    label: (refHaTag(r, t) ? '✓ ' : '') + t,
+    icon: 'tag',
+    onSelect: ()=>{ toggleRefTag(id, t); haptic('tap'); },
+  }));
+  actions.push({
+    label: 'Nuovo tag…', icon: 'piu',
+    onSelect: async ()=>{
+      const t = await promptModal('Nuovo tag', '', 'es. folla che cammina');
+      if(!t) return;
+      toggleRefTag(id, t);
+      haptic('done');
+    },
+  });
+  actionMenu(anchorEl, actions);
 }
 
 function promptMoveImage(id, anchorEl){

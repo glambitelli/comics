@@ -8,7 +8,7 @@
 export function addRefBlob(blob, opts = {}){
   window.__salvati = (window.__salvati || 0) + 1;
   window.__ultimoSalvato = { w: opts.w, h: opts.h, byte: blob && blob.size, quando: performance.now(),
-                             tavola: !!opts.tavola };
+                             tavola: !!opts.tavola, tags: opts.tags || null };
   const passi = window.__salita || 0;
   if(!passi || !opts.onProgress) return Promise.resolve('id');
   const totale = 1000;
@@ -32,3 +32,5 @@ export function clipDestinations(){ return window.__dests || []; }
 export function clipCategories(){ return window.__cats || []; }
 export function getFolderName(){ return ''; }
 export function rememberClipDest(){}
+// I tag proposti nella capsula del ritaglio: la prova li detta da window.
+export function tagSuggeriti(){ return window.__tag || []; }

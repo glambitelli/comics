@@ -156,6 +156,32 @@
 /* Il disco di "Senza cartella" non e' una cartella e non prende un metallo:
    resta di carta, con dentro il glifo della griglia. */
 .refs-mono.mq{background:var(--sand2);color:#8a7248}
+/* E nemmeno un tag: non e' una persona ne' un contenitore, e mettergli un
+   metallo lo farebbe sembrare una cartella. Cancelletto su carta scura. */
+.refs-mono.mt{background:#e9dfc8;color:#8a7248;font-size:16px;font-weight:700}
+.refs-tag-row .refs-folder-name{font-weight:600}
+
+/* ── AGGIUNGI ──
+   Era un "+" di 16px in un bersaglio da 30, appeso all'occhiello della
+   categoria: sotto i 48px che un dito chiede, e per giunta muto — bisognava
+   indovinare cosa aggiungesse. Ora e' una riga alta come le cartelle, larga
+   quanto lo schermo, con scritto cosa fa. Sta in CODA alla sua categoria,
+   dov'e' anche il posto giusto per leggerla: "questi sono gli artisti… e qui
+   se ne aggiunge uno". */
+.refs-add-row{
+  display:flex;align-items:center;gap:12px;width:100%;
+  padding:12px 4px;background:none;border:none;cursor:pointer;
+  font-family:'Nunito',sans-serif;text-align:left;
+}
+.refs-add-cerchio{
+  width:36px;height:36px;border-radius:50%;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  background:#f7ecd2;color:var(--ottone);
+  box-shadow:inset 0 0 0 1.5px #e2cca8;
+  transition:background .15s,transform .1s;
+}
+.refs-add-txt{font-size:14px;font-weight:700;color:var(--ottone)}
+.refs-add-row:active .refs-add-cerchio{background:#f0dfba;transform:scale(.92)}
 .refs-folder-name{flex:1;min-width:0;font-size:14.5px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .refs-folder-count{font-size:12px;font-weight:600;color:var(--ink3)}
 .refs-folder-menu{background:none;border:none;color:var(--ink3);font-size:15px;line-height:1;padding:6px 2px 6px 6px;margin:-6px 0;cursor:pointer;flex-shrink:0}

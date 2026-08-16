@@ -116,30 +116,33 @@ module.exports = () => suite("References — artisti e menu contestuali", {"banc
      senza.dopo && /senza cartella/i.test(senza.testo) && /1/.test(senza.testo), senza);
   await apri();
 
-  sezione('ogni categoria ha il suo "+"');
-  const piu = await page.evaluate(()=> Array.from(document.querySelectorAll('.refs-cat-row')).map(r=>({
-    categoria: r.querySelector('.refs-cat-name').textContent.trim(),
-    haPiu: !!r.querySelector('.refs-cat-add'),
-    etichetta: (r.querySelector('.refs-cat-add')||{}).ariaLabel,
-  })));
-  ok('c\'e\' un "+" su ogni categoria', piu.length === 2 && piu.every(p=>p.haPiu), piu);
+  sezione('aggiungere una cartella e\' una riga, non un "+" da 30 pixel');
+  const aggiungi = await page.evaluate(()=> Array.from(document.querySelectorAll('.refs-add-row')).map(b=>{
+    const r = b.getBoundingClientRect();
+    return { testo: b.textContent.trim(), largo: Math.round(r.width), alto: Math.round(r.height) };
+  }));
+  ok('c\'e\' una riga per categoria', aggiungi.length === 2, aggiungi);
   ok('sotto Artists dice "artista", non "cartella"',
-     /artista/i.test(piu.find(p=>p.categoria==='ARTISTS'||p.categoria==='Artists').etichetta||''), piu);
+     aggiungi.some(a=>/aggiungi artista/i.test(a.testo)), aggiungi);
+  ok('e sotto Study dice "cartella"',
+     aggiungi.some(a=>/aggiungi cartella/i.test(a.testo)), aggiungi);
+  // La ragione della modifica: il bersaglio. 30px erano meta' di quello che un
+  // dito chiede.
+  ok('il bersaglio e\' alto almeno 48px e largo tutto',
+     aggiungi.every(a=> a.alto >= 48 && a.largo > 300), aggiungi);
+  ok('e il "+" appeso all\'occhiello non c\'e\' piu\'',
+     !(await page.evaluate(()=> !!document.querySelector('.refs-cat-add'))), null);
+
   const fondo = await page.evaluate(()=>{
     const barra = document.getElementById('refs-folder-toolbar');
     const nuova = barra ? barra.querySelector('button[aria-label="Nuova categoria"]') : null;
-    // I due glifi devono restare DIVERSI: sono le due azioni che si
-    // scambiavano di posto nella testa di chi guardava.
-    const gCat = document.querySelector('.refs-cat-add svg').innerHTML;
     return {
       rigaInFondo: !!document.querySelector('.refs-new-folder-row'),
       nellaBarra: !!nuova,
-      uguali: nuova ? gCat === nuova.querySelector('svg').innerHTML : null,
     };
   });
   ok('sotto l\'ultima cartella non c\'e\' piu\' niente', !fondo.rigaInFondo, fondo);
   ok('"Nuova categoria" e\' salita nella barra della ricerca', fondo.nellaBarra, fondo);
-  ok('e ha un\'icona DIVERSA da quella del "+" di categoria', fondo.uguali === false, fondo);
 
   sezione('il modulo di un artista chiede due campi');
   // Niente `await` sulla promessa che torna: il modale resta aperto in attesa
