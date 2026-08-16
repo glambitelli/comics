@@ -1,0 +1,104 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8">
+<title>mockup — schede, terza tornata (senza cartelle)</title>
+<link rel="stylesheet" href="/css/variables.css">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Castoro:ital@0;1&display=swap');
+  body{margin:0;background:#efe6d4;font-family:'Nunito',sans-serif;padding:12px 0 30px}
+  .tit{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#8a7248;
+       margin:24px 14px 4px;display:flex;align-items:center;gap:8px}
+  .tit span{background:#f5ecd8;border:1px solid #e0d4b4;border-radius:20px;padding:3px 10px}
+  .tit i{flex:1;height:1.5px;background:#dccca0;font-style:normal}
+  .nota{font-size:11.5px;color:#8a7248;margin:0 18px 8px;line-height:1.45}
+
+  .quadro{background:var(--sand);overflow:hidden}
+  .cerca{display:flex;align-items:center;gap:8px;padding:10px 16px 12px;background:var(--sand)}
+  .campo{flex:1;height:34px;background:var(--white);border:1.5px solid var(--sand2);border-radius:20px}
+  .nuvola{width:34px;height:34px;border-radius:50%;background:var(--white);border:1.5px solid var(--sand2)}
+  .sotto{background:#efe6d4;padding:14px}
+  .carta{position:relative;background:var(--white);border:1.5px solid var(--sand2);border-radius:18px;
+         overflow:hidden;box-shadow:0 2px 10px rgba(74,184,216,.08)}
+  .carta::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;
+                 background:linear-gradient(90deg,var(--sand3),var(--gold),var(--sand3))}
+  .riga{display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--sand)}
+  .riga:last-child{border-bottom:none}
+  .disco{width:36px;height:36px;border-radius:50%;background:#e2b62c;color:#2a2412;font-size:12.5px;
+         font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .nome{flex:1;font-size:14.5px;font-weight:700;color:var(--ink)}
+  .chev{color:var(--sand3);font-size:17px;font-weight:700}
+  button{font-family:inherit;cursor:pointer}
+
+  /* ── L · un titolo solo, che si scambia ── */
+  .l{display:flex;align-items:center;gap:12px;padding:6px 18px 16px;background:var(--sand)}
+  .l h2{margin:0;font-family:'Castoro',serif;font-size:30px;font-weight:400;color:var(--ink);line-height:1}
+  .l .altro{font-size:12.5px;font-weight:700;color:#a08c5c;display:flex;align-items:center;gap:5px;
+            background:none;border:none;padding:6px 0 0}
+  .l .cresci{flex:1}
+  .l .punti{display:flex;gap:5px;padding-top:10px}
+  .l .punti i{width:7px;height:7px;border-radius:50%;background:#dccca0}
+  .l .punti i.on{background:var(--gold)}
+
+  /* ── M · una barra sola, mezza accesa ── */
+  .m{margin:4px 14px 14px;display:flex;border-radius:12px;overflow:hidden;
+     box-shadow:0 3px 12px rgba(26,20,16,.20)}
+  .m button{flex:1;border:none;padding:14px 0;font-size:12px;font-weight:800;letter-spacing:.16em;
+            text-transform:uppercase;background:linear-gradient(135deg,#2a2018,#1a1410);color:rgba(240,224,180,.5)}
+  .m .on{background:linear-gradient(135deg,#e6bb2e,#d9a417);color:#2a2412}
+
+  /* ── N · due nomi e un filo lungo ── */
+  .n{display:flex;align-items:baseline;gap:16px;padding:4px 18px 14px;background:var(--sand)}
+  .n button{background:none;border:none;padding:0;font-size:15px;font-weight:700;color:#b6a274;position:relative}
+  .n .on{color:var(--ink)}
+  .n .on::before{content:'';position:absolute;left:-13px;top:6px;width:7px;height:7px;border-radius:50%;
+                 background:var(--gold)}
+  .n .filo{flex:1;height:0;border-top:1.5px solid #dccca0;transform:translateY(-4px)}
+
+  /* ── O · indice numerato ── */
+  .o{display:flex;gap:0;padding:6px 14px 0;background:var(--sand)}
+  .o button{flex:1;background:none;border:none;text-align:left;padding:6px 4px 12px;position:relative;
+            border-bottom:3px solid #e2d5b6}
+  .o small{display:block;font-family:'Castoro',serif;font-size:12px;color:#c0ab7c;margin-bottom:3px}
+  .o span{font-size:15px;font-weight:700;color:#a89871}
+  .o .on{border-bottom-color:var(--gold)}
+  .o .on small{color:var(--ottone)}
+  .o .on span{color:var(--ink)}
+
+  /* ── P · pastiglia d'oro dentro la vaschetta ── */
+  .p{margin:2px 14px 14px;display:flex;gap:4px;padding:4px;border-radius:999px;
+     background:#e4d9c0;box-shadow:inset 0 1px 3px rgba(120,96,50,.18)}
+  .p button{flex:1;border:none;background:none;border-radius:999px;padding:11px 0;
+            font-size:13.5px;font-weight:700;color:#8a7248}
+  .p .on{background:linear-gradient(160deg,#f4cf5e,#dda412);color:#2a2412;
+         box-shadow:0 2px 8px rgba(160,120,20,.28)}
+</style>
+</head><body>
+<div id="qui"></div>
+<script>
+const ELENCO = `<div class="sotto"><div class="carta">
+  ${[['KO','KON'],['OT','OTOMO Katsuhiro']].map(([s,n])=>`
+    <div class="riga"><span class="disco">${s}</span><span class="nome">${n}</span><span class="chev">›</span></div>`).join('')}
+</div></div>`;
+const CERCA = `<div class="cerca"><div class="campo"></div><div class="nuvola"></div></div>`;
+const varianti = [
+  ['L · un titolo solo, che si scambia',
+   'Niente due voci: c\'e\' il nome di dove sei, grande in Castoro. Accanto, piccolo, quello dell\'altro scomparto: si tocca (o si striscia) e si scambiano di posto. I due pallini dicono quanti sono e dove sei.',
+   `<div class="l"><h2>Artists</h2><button class="altro">References ›</button><span class="cresci"></span>
+      <span class="punti"><i class="on"></i><i></i></span></div>`],
+  ['M · una barra sola, mezza accesa',
+   'Un unico blocco come le barre STUDY/TAG: meta\' inchiostro, meta\' oro. La meta\' d\'oro e\' dove sei. Tocchi l\'altra meta\' e l\'oro ci scorre dentro.',
+   `<div class="m"><button class="on">Artists</button><button>References</button></div>`],
+  ['N · due nomi e un filo lungo',
+   'Nessuna scatola: i due nomi affiancati, un pallino d\'oro davanti a quello acceso, e un filo che corre fino al bordo destro a chiudere la riga.',
+   `<div class="n"><button class="on">Artists</button><button>References</button><span class="filo"></span></div>`],
+  ['O · indice numerato',
+   'Come l\'indice di un volume: 01 e 02 in Castoro sopra i nomi, e sotto un rigo spesso che si accende d\'oro su quello in cui sei.',
+   `<div class="o"><button class="on"><small>01</small><span>Artists</span></button>
+      <button><small>02</small><span>References</span></button></div>`],
+  ['P · pastiglia d\'oro',
+   'Una vaschetta incassata nella sabbia e una pastiglia d\'oro che ci scorre dentro. Nessuna metafora, solo un interruttore — e l\'oro e\' quello dei dischi.',
+   `<div class="p"><button class="on">Artists</button><button>References</button></div>`],
+];
+document.getElementById('qui').innerHTML = varianti.map(([t,n,schede])=>
+  `<div class="tit"><span>${t}</span><i></i></div>` + (n?`<div class="nota">${n}</div>`:'') +
+  `<div class="quadro">${CERCA}${schede}${ELENCO}</div>`).join('');
+</script>
+</body></html>
