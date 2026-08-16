@@ -137,18 +137,23 @@ body.idea-editor-open .dune-nav{display:none}
 }
 .dune-btn:active{transform:scale(.87)}
 .dune-btn-light{background:#fffbf2;border:1px solid rgba(160,120,50,.22);box-shadow:0 2px 6px rgba(90,60,20,.18)}
-/* LA CASA E' L'UNICO TONDO D'ORO, ed e' al centro di cinque (vedi il commento
+/* LA CASA E' L'UNICO TONDO SCURO, ed e' al centro di cinque (vedi il commento
    nel markup). Prima era chiara come le altre e larga quattro pixel di piu':
-   una differenza che non si vedeva. L'oro e' quello della barra stessa, un
-   grado piu' saturo, cosi' il tondo si stacca dal fondo senza diventare un
-   corpo estraneo. */
+   una differenza che non si vedeva.
+
+   Inchiostro e oro, cioe' i due colori con cui l'app dice "questa e' la cosa
+   importante": il tondo della luna, il pulsante dello Scriptment, la testata
+   dei modali. Vince per contrasto e non per dimensione — su una barra di
+   tondi chiari, l'unico scuro non si puo' sbagliare. L'oro pieno, provato
+   prima, si confondeva col fondo d'ambra della capsula. */
 .dune-btn-home{
-  width:50px;height:50px;
-  background:linear-gradient(160deg,#f4cf5e,#dda412);
-  border:1.5px solid rgba(120,86,10,.35);
-  box-shadow:0 3px 10px rgba(90,60,10,.26);
-  color:#3a2a06;
+  width:52px;height:52px;
+  background:linear-gradient(135deg,#241c14,#120d08);
+  border:1.5px solid rgba(220,170,70,.4);
+  box-shadow:0 3px 12px rgba(0,0,0,.3);
+  color:#f0c068;
 }
+.dune-btn-home .dune-home-svg{width:28px;height:28px}
 
 /* Glifi bilanciati otticamente (dimensioni diverse per pareggiare la resa) */
 .dune-g-gear{font-size:29px;line-height:1}
@@ -163,9 +168,13 @@ body.evening-mode.is-touch .dune-color{background:rgba(30,22,10,.46);border-colo
    pulito, in tono con il cielo notturno della schermata. */
 body.evening-mode.is-touch .dune-grain{display:none}
 body.evening-mode.is-touch .dune-btn-light{background:rgba(255,248,232,.12);border-color:rgba(232,200,120,.2);color:#e8c878;box-shadow:none}
-/* La casa resta d'oro anche di sera: e' l'unico punto fermo della barra, e
-   spegnerla insieme alle altre vorrebbe dire perdere il centro proprio quando
-   lo schermo e' tutto scuro. */
+/* Di sera la barra diventa vetro scuro e un tondo nero su fondo nero
+   sparirebbe: alla casa resta l'inchiostro, ma il filo d'oro attorno si
+   accende. E' lo stesso trattamento del tondo della luna sulla home. */
+body.evening-mode.is-touch .dune-btn-home{
+  border-color:rgba(240,200,120,.62);
+  box-shadow:0 0 0 1px rgba(0,0,0,.35);
+}
 
 /* Nascondi pulsanti flottanti desktop su touch (restano nella dune-nav) */
 body.is-touch #btn-refs,
