@@ -157,14 +157,37 @@ module.exports = () => suite("References — artisti e menu contestuali", {"banc
 
   const fondo = await page.evaluate(()=>{
     const barra = document.getElementById('refs-folder-toolbar');
-    const nuova = barra ? barra.querySelector('button[aria-label="Nuova categoria"]') : null;
     return {
       rigaInFondo: !!document.querySelector('.refs-new-folder-row'),
-      nellaBarra: !!nuova,
+      nellaBarra: !!barra.querySelector('button[aria-label="Nuova categoria"]'),
+      // Al posto suo, nella barra, c'e' la nuvola di Drive: prima galleggiava
+      // sopra l'elenco e toccava il bordo della scheda degli artisti.
+      nuvola: !!barra.querySelector('#refs-profile-btn'),
+      nuvolaFerma: barra.contains(document.querySelector('.refs-profile')),
+      conCategorie: !!document.querySelector('.refs-cat-nuova'),
     };
   });
   ok('sotto l\'ultima cartella non c\'e\' piu\' niente', !fondo.rigaInFondo, fondo);
-  ok('"Nuova categoria" e\' salita nella barra della ricerca', fondo.nellaBarra, fondo);
+  ok('e "Nuova categoria" non occupa piu\' la barra', !fondo.nellaBarra, fondo);
+  ok('al suo posto c\'e\' la nuvola di Drive', fondo.nuvola && fondo.nuvolaFerma, fondo);
+  ok('e con delle categorie gia\' fatte non si propone di crearne',
+     !fondo.conCategorie, fondo);
+
+  sezione('ma se una scheda e\' vuota, la categoria si crea da li\'');
+  // Tolto il pulsante fisso, resta un solo modo di fare una categoria — ed e'
+  // l'unico momento in cui serve. Senza questa via, un archivio nuovo non
+  // potrebbe avere nemmeno il suo "Artists".
+  const vuota = await page.evaluate(async ()=>{
+    window.seminaCartelle([]);
+    await new Promise(r=>setTimeout(r,250));
+    const b = document.querySelector('.refs-cat-nuova');
+    return { c1e: !!b, testo: b ? b.textContent.trim() : null,
+             alto: b ? Math.round(b.getBoundingClientRect().height) : 0 };
+  });
+  ok('a scheda vuota compare "Nuova categoria"', vuota.c1e, vuota);
+  ok('e dice cosa fa', /nuova categoria/i.test(vuota.testo || ''), vuota);
+  ok('con un bersaglio che il dito prende', vuota.alto >= 44, vuota);
+  await apri();
 
   sezione('il modulo di un artista chiede due campi');
   // Niente `await` sulla promessa che torna: il modale resta aperto in attesa

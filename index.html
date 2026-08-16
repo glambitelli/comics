@@ -161,38 +161,6 @@
     <div class="section-sub">visual archive</div>
     <input type="file" id="refs-file-input" accept="image/*" multiple style="display:none"/>
   </div>
-  <!-- Bollino profilo/Drive, flottante in basso a destra (come il FAB della
-       home); il pannello si apre verso l'alto. -->
-  <div class="refs-profile">
-    <button id="refs-profile-btn" class="refs-profile-btn" onclick="window.toggleRefsProfile()" aria-label="Profilo e spazio"></button>
-    <!-- IL VELO STA QUI DENTRO, e non fuori come prima. Fuori era un fratello
-         del bollino: il bollino e il suo pannello vivono a z-index 60, il velo
-         stava a 230, e quindi il velo copriva ANCHE il pannello. Tutto quello
-         che si toccava li' sopra — "Ricollega Google Drive" compreso — finiva
-         sul velo, che ha un solo mestiere: chiudere. Da fuori sembrava un
-         pulsante morto (il pannello si chiudeva, e basta). Da dentro il
-         gruppo, invece, il velo resta sotto al pannello e copre solo il resto
-         della schermata, che e' quello che deve fare. -->
-    <div id="refs-profile-backdrop" class="refs-profile-backdrop" hidden onclick="window.closeRefsProfile()"></div>
-    <div id="refs-profile-panel" class="refs-profile-panel" hidden>
-      <div class="rp-head">
-        <div class="rp-avatar" id="rp-avatar"></div>
-        <div class="rp-id">
-          <div class="rp-id-name" id="rp-id-name">Profilo</div>
-          <div class="rp-id-sub" id="rp-id-sub"></div>
-        </div>
-      </div>
-      <div class="rp-section">
-        <div class="rp-section-label">Google Drive</div>
-        <div id="rp-drive"></div>
-      </div>
-      <div class="rp-section">
-        <div class="rp-section-label">Spazio immagini</div>
-        <div class="rp-storage-line"><span id="rp-storage-label">—</span></div>
-        <div class="rp-storage-track"><div id="rp-storage-fill" class="rp-storage-fill" style="width:0%"></div></div>
-      </div>
-    </div>
-  </div>
   <div id="refs-upload-status" class="refs-upload-status"></div>
   <div id="refs-breadcrumb" class="refs-breadcrumb" onclick="window.refsBackToFolders()" style="display:none">
     <span class="refs-breadcrumb-back">‹</span>
@@ -208,13 +176,39 @@
       <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M15.2 15.2 20 20" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
       <input id="refs-folder-search-input" type="text" placeholder="Cerca…" oninput="window.refsFolderSearch(this.value)" aria-label="Cerca nell'archivio">
     </div>
-    <!-- Creare una categoria e' un gesto RARO — se ne fanno due o tre in tutta
-         la vita dell'archivio — e stava in fondo all'elenco come se fosse una
-         cartella fra le altre. Sale qui nella barra, accanto alla ricerca,
-         dove sta la roba di servizio: l'elenco resta fatto solo di cartelle. -->
-    <button class="refs-sort-btn" onclick="window.promptNewFolder()" aria-label="Nuova categoria" title="Nuova categoria">
-      <svg viewBox="0 0 24 24" width="15" height="15"><path d="M4 7h16M4 12h16M4 17h9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M17.5 15.5v5M15 18h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-    </button>
+    <!-- IL BOLLINO DI DRIVE STA QUI, nella barra, al posto del "+ categoria"
+         che se n'e' andato. Prima galleggiava in basso a destra sopra
+         l'elenco: toccava il bordo della scheda degli artisti e copriva
+         l'ultima riga. Qui e' fermo, non copre niente, ed e' accanto alla
+         ricerca — dove sta la roba di servizio della schermata. -->
+    <div class="refs-profile">
+      <button id="refs-profile-btn" class="refs-profile-btn" onclick="window.toggleRefsProfile()" aria-label="Profilo e spazio"></button>
+      <!-- IL VELO STA QUI DENTRO, e non fuori come prima. Fuori era un
+           fratello del bollino, con uno z-index piu' alto: copriva ANCHE il
+           pannello, e ogni tocco li' sopra — "Ricollega Google Drive"
+           compreso — lo prendeva lui, che ha un solo mestiere: chiudere. Da
+           fuori sembrava un pulsante morto. Da dentro il gruppo il velo resta
+           sotto al pannello e copre solo il resto della schermata. -->
+      <div id="refs-profile-backdrop" class="refs-profile-backdrop" hidden onclick="window.closeRefsProfile()"></div>
+      <div id="refs-profile-panel" class="refs-profile-panel" hidden>
+        <div class="rp-head">
+          <div class="rp-avatar" id="rp-avatar"></div>
+          <div class="rp-id">
+            <div class="rp-id-name" id="rp-id-name">Profilo</div>
+            <div class="rp-id-sub" id="rp-id-sub"></div>
+          </div>
+        </div>
+        <div class="rp-section">
+          <div class="rp-section-label">Google Drive</div>
+          <div id="rp-drive"></div>
+        </div>
+        <div class="rp-section">
+          <div class="rp-section-label">Spazio immagini</div>
+          <div class="rp-storage-line"><span id="rp-storage-label">—</span></div>
+          <div class="rp-storage-track"><div id="rp-storage-fill" class="rp-storage-fill" style="width:0%"></div></div>
+        </div>
+      </div>
+    </div>
   </div>
   <!-- I DUE ASSI DELL'ARCHIVIO, come schede. Si passa da una all'altra con un
        tocco o con uno swipe (vedi setArchivio in refs.js). Compaiono solo

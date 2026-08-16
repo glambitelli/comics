@@ -18,6 +18,13 @@ const { suite } = require('../motore.js');
 module.exports = () => suite("Drive — il pannello lascia passare il tocco", {"banco": "/test/banco/tavole.html"}, async ({ page, ok, sezione }) => {
 
   sezione('col pannello aperto, sotto il dito c\'e\' il pulsante');
+  // La nuvola vive nella barra della ricerca, che esiste solo nell'elenco
+  // delle cartelle: prima si apre quello, se no si misurerebbe un pulsante
+  // dentro una barra nascosta.
+  await page.evaluate(()=>{
+    window.seminaCartelle([{ id:'a1', category:'Artists', cognome:'Otomo', name:'Otomo' }]);
+  });
+  await page.waitForTimeout(300);
   await page.evaluate(()=>{
     window.__driveConfigurato = true;   // cosi' il pulsante viene disegnato
     window.__collegaChiesto = 0;

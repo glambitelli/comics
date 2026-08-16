@@ -1462,11 +1462,22 @@ function renderFolderBrowser(){
       <span class="refs-add-cerchio">${PIU_ICON}</span>
     </button>`;
 
+  // Creare una CATEGORIA e' un gesto che si fa due o tre volte in tutta la vita
+  // di un archivio, e aveva un pulsante fisso nella barra della ricerca: spazio
+  // permanente (e il posto migliore della schermata, ora della nuvola di Drive)
+  // per una cosa che non si tocca mai. Resta dove serve davvero — quando una
+  // scheda e' vuota, cioe' l'unico momento in cui una categoria non c'e' e va
+  // per forza creata.
+  const bottoneCategoria = ()=> `<button class="refs-cat-nuova" onclick="window.promptNewFolder()">
+      <span class="refs-add-cerchio">${PIU_ICON}</span><span>Nuova categoria</span>
+    </button>`;
+
   let html = '';
 
   if(_asse === 'artists'){
     if(!persone.length){
-      html += `<div class="refs-folders-empty">Ancora nessun artista. Crea la categoria "Artists" dal pulsante in alto a destra, e poi aggiungi chi vuoi tenere sott'occhio.</div>`;
+      html += `<div class="refs-folders-empty">Ancora nessun artista: crea la categoria “Artists” e mettici chi vuoi tenere sott'occhio.</div>`;
+      html += bottoneCategoria();
     }
     persone.forEach(g=>{
       // L'occhiello si scrive solo se ce n'e' piu' d'uno: con una categoria
@@ -1488,6 +1499,9 @@ function renderFolderBrowser(){
       html += barra(g.category, g.folders.length);
       html += scheda(righeCartelle(filtra(g.folders)) + (q ? '' : rigaAggiungi(g.category, 'cartella')));
     });
+    // Nessuno spazio ancora (niente "Study"): qui la categoria va creata, e
+    // questo e' l'unico posto da cui si puo' fare.
+    if(!spazi.length && !q) html += bottoneCategoria();
     // CERCANDO, la porta si apre da sola. Con un testo scritto nel campo non ha
     // senso mostrare "Tutti i tag": chi cerca "folla" vuole vedere il tag
     // "folla", non un pulsante che lo porta a un elenco in cui cercarlo di

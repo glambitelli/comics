@@ -218,6 +218,18 @@
 .refs-folder-count{font-size:12px;font-weight:600;color:var(--ink3)}
 
 .refs-folders-empty{font-size:12.5px;color:var(--ink3);line-height:1.6;padding:10px 4px 4px}
+/* "Nuova categoria": non piu' un tondo fisso nella barra, ma una riga
+   tratteggiata che compare solo a scheda vuota (vedi bottoneCategoria in
+   refs.js). Tratteggiata come il "+" dei riferimenti nella scheda progetto:
+   e' il segno che quel posto e' ancora da riempire. */
+.refs-cat-nuova{
+  display:flex;align-items:center;gap:12px;width:100%;
+  padding:10px 12px;margin:6px 0 14px;
+  background:none;border:1.5px dashed var(--sand2);border-radius:var(--r);
+  color:#9a8458;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;
+  cursor:pointer;transition:background .15s;
+}
+.refs-cat-nuova:active{background:var(--sand)}
 
 .refs-drop-hint{display:flex;align-items:center;gap:9px;background:#fdf6e4;border:1.5px dashed #d8c090;border-radius:12px;padding:10px 14px;font-size:12px;color:#a8925c;margin-bottom:14px;line-height:1.4}
 .refs-drop-hint strong{color:#8a6a30}
@@ -405,23 +417,27 @@ body.is-touch .refs-lightbox-nav{display:none}
 /* ── PROFILO: avatar in alto a destra + pannello (stile "account Google") ──
    Raccoglie stato Drive e spazio Cloudinary, unici per tutta l'app: tolti
    dal flusso di References, che così resta pulito. */
-/* Flottante in basso a destra, come il FAB "nuovo progetto" della home.
-   Su touch la barra-duna copre l'angolo, quindi si alza (stesso offset). */
-.refs-profile{position:absolute;right:22px;bottom:calc(22px + var(--safe-bot));z-index:60}
-body.is-touch .refs-profile{bottom:calc(104px + var(--safe-bot))}
+/* NELLA BARRA, non piu' flottante. Il disco galleggiava in basso a destra come
+   il FAB della home, e li' finiva addosso alla scheda degli artisti: toccava
+   il bordo e copriva l'ultima riga, che e' esattamente il difetto per cui i
+   pulsanti flottanti costano cari su una schermata piena. Adesso e' un tondo
+   della barra, accanto alla ricerca, dove prima stava "Nuova categoria". */
+.refs-profile{position:relative;z-index:60;flex-shrink:0;line-height:0}
 .refs-profile-btn{
-  position:relative;z-index:2;width:50px;height:50px;border-radius:50%;cursor:pointer;
+  position:relative;z-index:2;width:34px;height:34px;border-radius:50%;cursor:pointer;
   display:flex;align-items:center;justify-content:center;
-  background:var(--white);border:1.5px solid var(--sand3);color:var(--ink3);
-  box-shadow:0 4px 14px rgba(26,20,16,.2);
-  transition:transform .12s,box-shadow .15s,color .15s,border-color .15s;
+  background:var(--white);border:1.5px solid var(--sand2);color:#8a7248;
+  transition:transform .1s,color .15s,border-color .15s;
 }
+/* Stesse misure del pulsante che sostituisce (.refs-sort-btn): la barra ha
+   una riga sola e un tondo piu' grosso la farebbe crescere. */
+.refs-profile-btn svg{width:19px;height:19px}
 .refs-profile-btn:active{transform:scale(.92)}
 /* Collegato a Drive: glifo azzurro + pallino verde di stato in alto a destra. */
 .refs-profile-btn.connected{color:var(--sky-deep);border-color:var(--sky)}
 .refs-profile-btn.connected::after{
-  content:'';position:absolute;top:2px;right:2px;width:11px;height:11px;border-radius:50%;
-  background:var(--green);border:2px solid var(--white);
+  content:'';position:absolute;top:-1px;right:-1px;width:9px;height:9px;border-radius:50%;
+  background:var(--green);border:1.5px solid var(--sand);
 }
 .rp-initial{font-family:'Nunito',sans-serif;font-weight:800;font-size:16px;line-height:1}
 
@@ -431,13 +447,15 @@ body.is-touch .refs-profile{bottom:calc(104px + var(--safe-bot))}
    gruppo continuano a valere i 60 di .refs-profile, che e' quanto basta per
    stare sopra il resto della schermata. */
 .refs-profile-backdrop{position:fixed;inset:0;z-index:1;background:transparent}
-/* Si apre verso l'ALTO, ancorato sopra il bollino. */
+/* Si apre verso il BASSO, appeso sotto il bollino: adesso il bollino sta in
+   cima alla schermata, e un pannello che si aprisse verso l'alto uscirebbe
+   dallo schermo. */
 .refs-profile-panel{
-  position:absolute;bottom:60px;right:0;z-index:2;
+  position:absolute;top:44px;right:0;z-index:2;
   width:min(300px,calc(100vw - 44px));
   background:var(--white);border-radius:16px;overflow:hidden;
   box-shadow:0 16px 44px rgba(26,20,16,.3);border:1px solid var(--sand2);
-  transform-origin:bottom right;transform:scale(.9) translateY(6px);opacity:0;
+  transform-origin:top right;transform:scale(.9) translateY(-6px);opacity:0;
   transition:transform .18s ease,opacity .16s ease;
 }
 .refs-profile-panel.open{transform:scale(1) translateY(0);opacity:1}
