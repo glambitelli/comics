@@ -4,9 +4,16 @@ export function getDriveAlbumFile(){ return Promise.resolve(null); }
 export function ensureDriveConnected(){ return Promise.resolve(false); }
 export function driveRangeFetch(){ return Promise.reject(new Error('niente Drive nel banco')); }
 export function isDownloadCancelled(e){ return !!(e && e.cancelled); }
-export function isDriveConfigured(){ return false; }
+// Di norma "non configurato": la maggior parte delle prove non vuole vedere
+// niente di Drive. Una prova che deve premere il pulsante lo accende con
+// window.__driveConfigurato = true, e poi guarda __collegaChiesto per sapere
+// se il tocco e' arrivato davvero fin qui.
+export function isDriveConfigured(){ return window.__driveConfigurato === true; }
 export function isDriveConnected(){ return false; }
-export function connectDrive(){ return Promise.resolve(); }
+export function connectDrive(){
+  window.__collegaChiesto = (window.__collegaChiesto || 0) + 1;
+  return Promise.resolve();
+}
 export function disconnectDrive(){}
 export function driveAccountEmail(){ return null; }
 export function onDriveAuthChange(){}

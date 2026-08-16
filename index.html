@@ -165,6 +165,15 @@
        home); il pannello si apre verso l'alto. -->
   <div class="refs-profile">
     <button id="refs-profile-btn" class="refs-profile-btn" onclick="window.toggleRefsProfile()" aria-label="Profilo e spazio"></button>
+    <!-- IL VELO STA QUI DENTRO, e non fuori come prima. Fuori era un fratello
+         del bollino: il bollino e il suo pannello vivono a z-index 60, il velo
+         stava a 230, e quindi il velo copriva ANCHE il pannello. Tutto quello
+         che si toccava li' sopra — "Ricollega Google Drive" compreso — finiva
+         sul velo, che ha un solo mestiere: chiudere. Da fuori sembrava un
+         pulsante morto (il pannello si chiudeva, e basta). Da dentro il
+         gruppo, invece, il velo resta sotto al pannello e copre solo il resto
+         della schermata, che e' quello che deve fare. -->
+    <div id="refs-profile-backdrop" class="refs-profile-backdrop" hidden onclick="window.closeRefsProfile()"></div>
     <div id="refs-profile-panel" class="refs-profile-panel" hidden>
       <div class="rp-head">
         <div class="rp-avatar" id="rp-avatar"></div>
@@ -184,7 +193,6 @@
       </div>
     </div>
   </div>
-  <div id="refs-profile-backdrop" class="refs-profile-backdrop" hidden onclick="window.closeRefsProfile()"></div>
   <div id="refs-upload-status" class="refs-upload-status"></div>
   <div id="refs-breadcrumb" class="refs-breadcrumb" onclick="window.refsBackToFolders()" style="display:none">
     <span class="refs-breadcrumb-back">‹</span>

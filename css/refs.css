@@ -408,7 +408,7 @@ body.is-touch .refs-lightbox-nav{display:none}
 .refs-profile{position:absolute;right:22px;bottom:calc(22px + var(--safe-bot));z-index:60}
 body.is-touch .refs-profile{bottom:calc(104px + var(--safe-bot))}
 .refs-profile-btn{
-  position:relative;width:50px;height:50px;border-radius:50%;cursor:pointer;
+  position:relative;z-index:2;width:50px;height:50px;border-radius:50%;cursor:pointer;
   display:flex;align-items:center;justify-content:center;
   background:var(--white);border:1.5px solid var(--sand3);color:var(--ink3);
   box-shadow:0 4px 14px rgba(26,20,16,.2);
@@ -423,10 +423,15 @@ body.is-touch .refs-profile{bottom:calc(104px + var(--safe-bot))}
 }
 .rp-initial{font-family:'Nunito',sans-serif;font-weight:800;font-size:16px;line-height:1}
 
-.refs-profile-backdrop{position:fixed;inset:0;z-index:230;background:transparent}
+/* Numeri BASSI, e per forza: il velo e il pannello ora stanno nello stesso
+   gruppo (vedi il commento nel markup), e li' dentro l'unica cosa che conta e'
+   che il velo sia sotto — sotto il pannello e sotto il bollino. Fuori dal
+   gruppo continuano a valere i 60 di .refs-profile, che e' quanto basta per
+   stare sopra il resto della schermata. */
+.refs-profile-backdrop{position:fixed;inset:0;z-index:1;background:transparent}
 /* Si apre verso l'ALTO, ancorato sopra il bollino. */
 .refs-profile-panel{
-  position:absolute;bottom:60px;right:0;z-index:240;
+  position:absolute;bottom:60px;right:0;z-index:2;
   width:min(300px,calc(100vw - 44px));
   background:var(--white);border-radius:16px;overflow:hidden;
   box-shadow:0 16px 44px rgba(26,20,16,.3);border:1px solid var(--sand2);

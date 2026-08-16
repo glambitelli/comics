@@ -43,7 +43,8 @@ window.refs = refs;
 // Gli onclick inline dei tab chiamano un globale: nell'app lo mette main.js.
 ['setFolderTab','refsBackToFolders','refsImageMenu','openFolder','openAllGrid','openTag','openTagList','setArchivio','promptTagImage',
  'openRefLightbox','closeRefLightbox','deleteRefImageWithUndo','refsFolderMenu',
- 'promptNewFolder','promptLinkProjectFromLightbox','toggleRefsProfile','closeRefsProfile'].forEach(n=>{
+ 'promptNewFolder','promptLinkProjectFromLightbox','toggleRefsProfile','closeRefsProfile',
+ 'connectDriveAndSync','disconnectDriveUI'].forEach(n=>{
   window[n] = (...a)=> Promise.resolve(refs).then(m=> m[n] && m[n](...a));
 });
 
