@@ -155,7 +155,7 @@ async function getTokenClient(){
 //                     quando a chiedere e' stato l'utente premendo un pulsante.
 function requestToken(prompt){
   return new Promise((resolve, reject)=>{
-    getTokenClient().then(client=>{
+    const parti = (client)=>{
       client.callback = async (resp)=>{
         if(!resp || resp.error){
           reject(new Error(resp && (resp.error_description || resp.error) || 'Accesso a Drive non riuscito.'));
@@ -182,8 +182,31 @@ function requestToken(prompt){
       // Con prompt null non si passa proprio la chiave: `{prompt: undefined}`
       // e "nessun override" non sono la stessa cosa per la libreria di Google.
       client.requestAccessToken(prompt === null ? {} : { prompt });
-    }).catch(reject);
+    };
+    // SENZA ATTENDERE, se il client c'e' gia'. E' il punto in cui il pulsante
+    // "Ricollega" continuava a non funzionare: qui prima c'era sempre un
+    // getTokenClient().then(...), e quel `then` la prima volta aspetta il
+    // download della libreria di Google (un tag <script> verso accounts.
+    // google.com, sul telefono anche qualche secondo). Quando la libreria
+    // arrivava, il tocco era ormai scaduto — il browser tiene buona
+    // l'"attivazione" per pochi secondi — e la finestra di Google veniva
+    // bloccata in silenzio: nessuna schermata, nessun errore, account ancora
+    // scollegato. Con il client gia' pronto (vedi prepareDriveAuth) la
+    // richiesta parte DENTRO il gesto, che e' l'unica condizione che il
+    // browser guarda.
+    if(_tokenClient) parti(_tokenClient);
+    else getTokenClient().then(parti).catch(reject);
   });
+}
+
+// Scarica la libreria di Google e prepara il client SENZA chiedere niente:
+// nessuna finestra, nessuna schermata, nessun token. Serve solo a fare in
+// tempo, cosi' quando il dito arriva sul pulsante non c'e' piu' niente da
+// aspettare. Si chiama entrando nell'archivio e aprendo il pannello Drive
+// (vedi refs.js); ripeterla non costa niente, il client si crea una volta.
+export function prepareDriveAuth(){
+  if(!isDriveConfigured()) return Promise.resolve(false);
+  return getTokenClient().then(()=> true).catch(()=> false);
 }
 
 // Tap su "Collega Drive". UNA SOLA chiamata, e senza preferenze sul prompt.

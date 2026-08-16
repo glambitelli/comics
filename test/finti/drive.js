@@ -13,3 +13,7 @@ export function onDriveAuthChange(){}
 export function listDriveAlbumsForFolder(){ return Promise.resolve([]); }
 export function initDriveAuth(){}
 export function daRicollegare(){ return false; }
+// Nell'app scarica la libreria di Google in anticipo (vedi prepareDriveAuth in
+// js/drive.js). Qui non c'e' niente da scaricare, ma la funzione deve esistere:
+// refs.js la chiama entrando nell'archivio.
+export function prepareDriveAuth(){ return Promise.resolve(false); }

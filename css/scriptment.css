@@ -29,8 +29,11 @@
 }
 
 /* ── Overlay a tutto schermo ── */
+/* Stessa regola dell'editor delle idee: si scrive, quindi il foglio si ferma
+   dove comincia la tastiera (--vv-h, vedi seguiTastiera in dialogs.js). */
 .scriptment-overlay{
-  position:fixed;inset:0;z-index:300;display:none;
+  position:fixed;left:0;right:0;top:var(--vv-top,0px);height:var(--vv-h,100%);
+  z-index:300;display:none;
 }
 .scriptment-overlay.open{display:block}
 .scriptment-blur{

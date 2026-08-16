@@ -11,7 +11,7 @@ import { promptModal, promptCampi, confirmModal, actionMenu } from './dialogs.js
 import {
   isDriveConfigured, isDriveConnected, connectDrive, disconnectDrive,
   driveAccountEmail, onDriveAuthChange, listDriveAlbumsForFolder,
-  ensureDriveConnected, daRicollegare,
+  ensureDriveConnected, daRicollegare, prepareDriveAuth,
 } from './drive.js';
 import {
   ZOOM_IN, ZOOM_MAX, panGain, edgeSpring, EDGE_COMMIT, EDGE_HANDOFF,
@@ -713,10 +713,25 @@ export async function syncDriveAlbumsForFolder(folderId){
 }
 
 let _driveAuthHooked = false;
+// Una riga sotto il pulsante, dentro il pannello. Il messaggio andava a finire
+// nella striscia di stato in cima alla schermata (setUploadStatus), che col
+// pannello Drive aperto sta dietro: se il collegamento falliva, chi aveva
+// premuto vedeva soltanto un pulsante che non faceva niente.
+function esitoDrive(testo, errore){
+  const drive = document.getElementById('rp-drive');
+  if(!drive) return;
+  let n = drive.querySelector('.rp-esito');
+  if(!n){ n = document.createElement('div'); n.className = 'rp-note rp-esito'; drive.appendChild(n); }
+  n.textContent = testo || '';
+  n.classList.toggle('errore', !!errore);
+}
+
 export async function connectDriveAndSync(){
   try{
+    esitoDrive('Apro Google…');
     await connectDrive();
     haptic('done');
+    esitoDrive('');
     // Tornando dalla pagina di Google lo schermo cambiava e basta, di scatto.
     // Una riga di conferma dice che il viaggio e' finito bene, ed e' anche il
     // modo di chiudere il gesto invece di lasciarlo cadere.
@@ -724,6 +739,7 @@ export async function connectDriveAndSync(){
     renderRefsScreen();
     if(_view === 'folder' && _activeFolderId) syncDriveAlbumsForFolder(_activeFolderId);
   }catch(e){
+    esitoDrive(e.message || 'Collegamento a Drive fallito.', true);
     setUploadStatus('error', e.message || 'Collegamento a Drive fallito.');
   }
 }
@@ -740,6 +756,9 @@ export function startRefsListener(){
     // Se il token scade o viene revocato a metà sessione, il bottone/badge
     // Drive nello scaffale deve aggiornarsi da solo al prossimo render.
     onDriveAuthChange(()=>renderRefsScreen());
+    // Solo il download della libreria, appena l'archivio entra in scena:
+    // quando poi si tocca "Ricollega" non c'e' piu' niente da aspettare.
+    prepareDriveAuth();
     // Qui NON si chiede piu' niente a Google. Il rinnovo automatico che c'era
     // prima faceva comparire da sola la pagina di accesso appena si entrava
     // in References (vedi la nota in drive.js): adesso il collegamento parte
@@ -1228,6 +1247,11 @@ export function toggleRefsProfile(){
   const back = document.getElementById('refs-profile-backdrop');
   if(!panel) return;
   const open = !panel.classList.contains('open');
+  // Aprendo il pannello si comincia a scaricare la libreria di Google, cosi'
+  // e' gia' pronta quando il dito arriva sul pulsante: la finestra di Google
+  // si apre solo se parte DENTRO il tocco (vedi prepareDriveAuth in drive.js).
+  // Qui non si chiede niente a nessuno, si scarica e basta.
+  if(open) prepareDriveAuth();
   renderProfile(); // rinfresca prima di mostrarlo
   panel.hidden = false; if(back) back.hidden = false;
   requestAnimationFrame(()=>{

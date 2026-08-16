@@ -13,8 +13,16 @@
    la tenda del passaggio notte (.velo-notte, 9800), che deve poter coprire
    anche lui. Il menu contestuale (9600) resta sotto: se un modale si apre da
    una sua voce, il menu e' gia' chiuso. */
-.modal-overlay{position:fixed;inset:0;background:rgba(26,20,16,.55);backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px);display:none;align-items:center;justify-content:center;z-index:9700}
+/* Alto quanto la parte di schermo che la tastiera NON copre (--vv-h/--vv-top,
+   vedi seguiTastiera in dialogs.js): senza, il foglio si centrava rispetto a
+   uno schermo di cui la tastiera nascondeva la meta' bassa, e in "Nuovo
+   artista" il campo del cognome finiva sotto i tasti. E se anche la parte
+   visibile non basta, si scorre: overflow-y sul velo e margine automatico sul
+   foglio, che e' la coppia che tiene il foglio centrato quando ci sta e lo
+   lascia scorrere per intero quando non ci sta. */
+.modal-overlay{position:fixed;left:0;right:0;top:var(--vv-top,0px);height:var(--vv-h,100%);background:rgba(26,20,16,.55);backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px);display:none;align-items:center;justify-content:center;overflow-y:auto;overscroll-behavior:contain;padding:12px 0;z-index:9700}
 .modal-overlay.open{display:flex}
+.modal-overlay > *{margin:auto}
 .modal,.confirm-modal{
   position:relative;background:var(--white);border-radius:20px;
   width:calc(100% - 40px);max-width:440px;padding-bottom:20px;

@@ -449,6 +449,12 @@ body.is-touch .refs-profile{bottom:calc(104px + var(--safe-bot))}
 .rp-section+.rp-section{border-top:1px solid var(--sand2)}
 .rp-section-label{font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--ink3);margin-bottom:9px}
 .rp-note{font-size:12px;color:var(--ink3)}
+/* L'esito del collegamento, scritto dove si e' premuto: la striscia di stato
+   in cima alla schermata resta dietro al pannello, e un errore che non si vede
+   equivale a un pulsante rotto. */
+.rp-esito{margin-top:8px;line-height:1.45}
+.rp-esito.errore{color:var(--rame);font-weight:600}
+.rp-esito:empty{display:none}
 .rp-btn{
   display:inline-flex;align-items:center;gap:7px;
   font-family:'Nunito',sans-serif;font-size:12.5px;font-weight:700;cursor:pointer;

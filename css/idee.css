@@ -115,8 +115,13 @@ body.is-touch .idee-scroll{padding-bottom:calc(110px + var(--safe-bot))}
 /* ── EDITOR A TUTTO SCHERMO ──
    Un'idea si rilegge e si allunga: dentro una finestrella non si fa né l'uno
    né l'altro. Sale dal basso come gli altri fogli dell'app. */
+/* L'altezza e' quella della parte visibile, non dello schermo (--vv-h, vedi
+   seguiTastiera in dialogs.js): qui dentro si scrive sempre, e con la tastiera
+   alzata il fondo del testo — cioe' la riga su cui sta il cursore — finiva
+   sotto i tasti. */
 .idea-editor{
-  position:fixed;inset:0;z-index:210;display:flex;flex-direction:column;
+  position:fixed;left:0;right:0;top:var(--vv-top,0px);height:var(--vv-h,100%);
+  z-index:210;display:flex;flex-direction:column;
   background:var(--sand);
   transform:translateY(100%);transition:transform .3s cubic-bezier(.32,.72,0,1);
   pointer-events:none;

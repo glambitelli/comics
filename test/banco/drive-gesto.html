@@ -1,0 +1,80 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8">
+<title>banco di prova — il tocco che apre Google</title>
+</head><body>
+<!-- Un pulsante VERO, che si preme con un clic vero: e' l'unico modo di
+     misurare la cosa che conta, cioe' se la richiesta a Google parte dentro il
+     gesto di chi ha premuto o dopo.
+
+     Di finto c'e' solo la rete. La libreria di Google (GIS) qui non si puo'
+     scaricare, ma sul telefono ci mette il suo tempo — ed e' proprio quel
+     tempo il difetto da riprodurre: js/drive.js e' QUELLO VERO e crede
+     davvero di star aspettando un <script> che arriva dalla rete. -->
+<button id="collega" type="button">Ricollega Google Drive</button>
+<script type="module">
+window.__chiamate = [];
+window.__esito = 'ok';         // 'ok' | 'errore'
+window.__ritardoGis = 700;     // quanto ci mette ad "arrivare" la libreria
+window.__gisChieste = 0;
+window.__gesto = false;
+let _cb = null, _err = null;
+
+function montaGoogleFinto(){
+  window.google = { accounts: { oauth2: {
+    initTokenClient(){
+      return {
+        set callback(f){ _cb = f; },  get callback(){ return _cb; },
+        set error_callback(f){ _err = f; }, get error_callback(){ return _err; },
+        requestAccessToken(opts){
+          // La domanda a cui serve rispondere: la finestra di Google la sta
+          // chiedendo il dito di chi ha premuto, o del codice che si e'
+          // svegliato dopo? Il browser guarda esattamente questo, e quando la
+          // risposta e' "dopo" blocca tutto senza dire niente.
+          window.__chiamate.push({
+            opts: opts ? Object.assign({}, opts) : null,
+            dentroIlGesto: window.__gesto === true,
+            attivazione: navigator.userActivation ? navigator.userActivation.isActive : null,
+            dopoMs: Date.now() - (window.__premuto || 0),
+          });
+          setTimeout(()=>{
+            if(window.__esito === 'ok') _cb && _cb({ access_token:'t', expires_in:3600 });
+            else _err && _err({ message:'popup_closed' });
+          }, 10);
+        },
+      };
+    },
+  }}};
+}
+
+// La libreria non si scarica: si intercetta il tag <script> prima che parta e
+// si fa "arrivare" dopo __ritardoGis millisecondi, come farebbe la rete.
+const appendVero = document.head.appendChild.bind(document.head);
+document.head.appendChild = (el)=>{
+  if(el.tagName === 'SCRIPT' && /gsi\/client/.test(el.src || '')){
+    window.__gisChieste++;
+    setTimeout(()=>{ montaGoogleFinto(); el.onload && el.onload(); }, window.__ritardoGis);
+    return el;
+  }
+  return appendVero(el);
+};
+
+// L'email e' cosmetica: la sua richiesta non deve uscire.
+window.fetch = ()=> Promise.resolve({ ok:false });
+
+const drive = await import('/js/drive.js');
+window.drive = drive;
+
+// Il pulsante dell'app: un onclick che chiama connectDrive e basta (vedi
+// renderProfile in refs.js). Le due righe attorno servono solo a marcare cosa
+// e' "dentro il gesto": tutto quello che avviene mentre il gestore del clic e'
+// ancora in esecuzione.
+document.getElementById('collega').addEventListener('click', ()=>{
+  window.__premuto = Date.now();
+  window.__gesto = true;
+  drive.connectDrive().then(()=>{ window.__collegato = true; })
+                      .catch(e=>{ window.__errore = e.message; });
+  window.__gesto = false;
+});
+
+window.__ready = true;
+</script>
+</body></html>

@@ -4,6 +4,38 @@
 // volta e riusati; risolvono una Promise, si usano con await esattamente
 // come le controparti native.
 
+// ── LA TASTIERA NON DEVE COPRIRE QUELLO CHE SI STA SCRIVENDO ──
+// Sul telefono la tastiera non rimpicciolisce la pagina: le si siede sopra. La
+// finestra "vera" resta alta come prima, quindi un foglio centrato con
+// position:fixed si centra rispetto a uno schermo di cui meta' non si vede
+// piu' — ed e' esattamente quello che succedeva aprendo "Nuovo artista": il
+// campo COGNOME finiva sotto i tasti e si scriveva alla cieca.
+//
+// Il browser pero' la porzione ancora visibile la sa: e' visualViewport. Qui
+// si copia in due variabili CSS (--vv-h, --vv-top) e i fogli a tutto schermo
+// che contengono campi da scrivere ci si appoggiano invece che a inset:0 —
+// modali, editor delle idee, scriptment (vedi modals.css, idee.css,
+// scriptment.css). Quando la tastiera non c'e' le variabili valgono
+// esattamente lo schermo intero, quindi non cambia niente.
+//
+// Vive qui e parte da sola all'import: dialogs.js e' il modulo dei fogli
+// sovrapposti, e ogni schermata che ne apre uno lo carica gia'.
+function seguiTastiera(){
+  const vv = window.visualViewport;
+  if(!vv) return;
+  const applica = ()=>{
+    const r = document.documentElement.style;
+    r.setProperty('--vv-h', vv.height + 'px');
+    // offsetTop non e' sempre zero: con la pagina ingrandita col pinch la
+    // porzione visibile e' anche spostata, e un foglio fisso deve seguirla.
+    r.setProperty('--vv-top', (vv.offsetTop || 0) + 'px');
+  };
+  applica();
+  vv.addEventListener('resize', applica);
+  vv.addEventListener('scroll', applica);
+}
+seguiTastiera();
+
 let _promptOverlay, _promptInput, _promptTitle, _promptOkBtn, _promptResolve;
 function ensurePromptModal(){
   if(_promptOverlay) return;
