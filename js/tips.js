@@ -7,7 +7,16 @@
 // James Cameron (MasterClass, intervista Charlie Rose, Variety); Quentin Tarantino (interviste Creative Screenwriting, Far Out);
 // Katsuhiro Otomo (Exploring Akira, Anime News Network, Paul Gravett, ScreenRant); Satoshi Kon (Midnight Eye, Animation Obsessive, All the Anime);
 // Daisuke Igarashi (du9, Wikipedia, CartoonWiki, Anime News Network); John Carpenter (AZQuotes, BrainyQuote, Mental Floss);
-// Sergio Leone (American Film 1984 via Scraps from the Loft, AZQuotes, Bookey)
+// Sergio Leone (American Film 1984 via Scraps from the Loft, AZQuotes, Bookey);
+// Chuck Jones ("Chuck Amuck", 1989 — la frase dei centomila disegni è di un suo
+//   maestro, che Jones racconta nel libro; le altre sono sue);
+// Pablo Picasso (attribuzioni diffuse: Wikiquote segnala "inspiration exists"
+//   come non tracciata a una fonte primaria: restano frasi che gli si attribuiscono);
+// Gustav Klimt ("Commento a un autoritratto inesistente", via Neue Galerie);
+// Milt Kahl e Glen Keane (interviste raccolte da Animator Island e A-Z Quotes);
+// Masamune Shirow (intervista SMCA, catalogo 1994);
+// Naoki Urasawa (incontro a Japan House Los Angeles, gennaio 2019);
+// Osamu Tezuka (raccolte Wikiquote / Lib Quotes)
 const TIPS = [
   { text:"Prima di disegnare, liberati dei sentimenti profondi — odio, felicità, ambizione: bloccano la creatività.", author:"Moebius" },
   { text:"È fondamentale educare la mano: addestrala finché non obbedisce senza sforzo, così potrà esprimere pienamente le tue idee.", author:"Moebius" },
@@ -60,6 +69,28 @@ const TIPS = [
   { text:"Ci sono i registi, e ci sono gli autori. Ho sempre pensato di essere più un autore che un regista.", author:"Sergio Leone" },
   { text:"Un film che parla solo agli intellettuali è come una ciambella senza l'impasto intorno: deve arrivare a tutti, o non è cinema.", author:"Sergio Leone" },
   { text:"I miei primi piani nascono dal circo di quando ero bambino: le espressioni esagerate dicono più di mille parole.", author:"Sergio Leone" },
+  // ── Chuck Jones ──
+  { text:"Ognuno di noi ha dentro centomila brutti disegni: prima li tiri fuori, prima cominci a disegnare bene.", author:"Chuck Jones" },
+  { text:"La commedia è gente strana in situazioni normali; la farsa è gente normale in situazioni strane.", author:"Chuck Jones" },
+  { text:"Bugs Bunny è chi vorremmo essere. Daffy Duck è chi siamo davvero.", author:"Chuck Jones" },
+  // ── Pablo Picasso ──
+  { text:"L'ispirazione esiste, ma deve trovarti al lavoro.", author:"Pablo Picasso" },
+  { text:"Io non cerco: trovo.", author:"Pablo Picasso" },
+  // ── Gustav Klimt ──
+  { text:"Chi vuole sapere qualcosa di me — come artista, l'unica cosa che conti — guardi con attenzione i miei quadri.", author:"Gustav Klimt" },
+  // ── Milt Kahl ──
+  { text:"Non è che io disegni tanto bene: è che smetto di provarci più tardi degli altri.", author:"Milt Kahl" },
+  { text:"In animazione non c'è niente di più difficile che non far fare niente a un personaggio: il movimento è la nostra materia.", author:"Milt Kahl" },
+  // ── Glen Keane ──
+  { text:"Non disegno perché vedo qualcosa nella testa: disegno per riuscire a vederlo.", author:"Glen Keane" },
+  // ── Masamune Shirow ──
+  { text:"Disegnare solo storie serie mi lascia cupo, solo commedie mi lascia insoddisfatto: mi servono tutte e due.", author:"Masamune Shirow" },
+  { text:"Un terzo dei fumetti sui miei scaffali sono occidentali: i dialoghi non li capisco, guardo i disegni.", author:"Masamune Shirow" },
+  // ── Naoki Urasawa ──
+  { text:"Su un settimanale devi far venire voglia di girare la pagina: l'ultima vignetta e' tutto.", author:"Naoki Urasawa" },
+  // ── Osamu Tezuka ──
+  { text:"I fumetti sono una lingua internazionale: attraversano i confini e le generazioni.", author:"Osamu Tezuka" },
+  { text:"Il manga è sentimento, resistenza, pathos, amore, meraviglia. Una conclusione non c'è ancora.", author:"Osamu Tezuka" },
 ];
 
 export function getTodayTip(){
