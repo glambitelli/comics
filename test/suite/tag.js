@@ -54,15 +54,35 @@ module.exports = () => suite("References — i tag", {"banco": "/test/banco/tavo
   await page.waitForTimeout(300);
   s = await stato();
   ok('la scheda attiva e\' References', /references/i.test(s.scheda||''), s);
-  ok('la prima sezione sono i Tag', /tag/i.test(s.sezioni[0]||''), s);
-  ok('e Study viene dopo, dentro la stessa scheda',
-     s.sezioni.findIndex(x=>/study/i.test(x)) > 0, s);
-  ok('ci sono tre tag', s.tag.length === 3, s.tag);
-  ok('col numero di immagini che li portano',
-     s.tag.find(t=>/folla/.test(t.nome)).n === '3', s.tag);
-  ok('e il piu\' usato sta in cima', /folla/.test(s.tag[0].nome), s.tag);
-  ok('e la cartella di Study e\' qui, non fra gli artisti',
+  ok('la prima sezione e\' Study', /study/i.test(s.sezioni[0]||''), s);
+  ok('e i Tag vengono dopo', s.sezioni.findIndex(x=>/^tag$/i.test(x)) > 0, s);
+  ok('la cartella di Study e\' qui, non fra gli artisti',
      s.cartelle.some(c=>/hands/i.test(c)) && !s.cartelle.some(c=>/otomo/i.test(c)), s);
+  // I tag non si elencano qui: c'e' una porta sola, e l'elenco sta dentro.
+  ok('dei tag c\'e\' una riga sola, la porta',
+     s.tag.length === 1 && /tutti i tag/i.test(s.tag[0].nome), s.tag);
+  ok('con quanti ne trovera\' dentro', s.tag[0].n === '3', s.tag);
+
+  sezione('entrando nella porta c\'e\' l\'elenco vero');
+  await page.evaluate(()=>{ window.openTagList(); });
+  await page.waitForTimeout(300);
+  const dentroTag = await page.evaluate(()=>({
+    righe: Array.from(document.querySelectorAll('.refs-tag-row')).map(r=>({
+      nome: r.querySelector('.refs-folder-name').textContent.trim(),
+      n: r.querySelector('.refs-folder-count').textContent.trim(),
+    })),
+    briciola: (document.getElementById('refs-breadcrumb-name')||{}).textContent,
+    schede: document.getElementById('refs-axis').classList.contains('show'),
+  }));
+  ok('ci sono tre tag', dentroTag.righe.length === 3, dentroTag.righe);
+  ok('col numero di immagini che li portano',
+     dentroTag.righe.find(t=>/folla/.test(t.nome)).n === '3', dentroTag.righe);
+  ok('e il piu\' usato sta in cima', /folla/.test(dentroTag.righe[0].nome), dentroTag.righe);
+  ok('la briciola dice dove sei', /tag/i.test(dentroTag.briciola||''), dentroTag);
+  ok('e le schede spariscono: qui sotto non c\'e\' nessun Artists',
+     !dentroTag.schede, dentroTag);
+  await page.evaluate(()=>{ window.refs.openFolderBrowser(); window.setArchivio('references'); });
+  await page.waitForTimeout(250);
 
   sezione('le sezioni sono barre intere, non pastiglie');
   const barra = await page.evaluate(()=>{
@@ -101,6 +121,8 @@ module.exports = () => suite("References — i tag", {"banco": "/test/banco/tavo
   await page.waitForTimeout(250);
 
   sezione('aprendo un tag si pesca da TUTTE le cartelle');
+  await page.evaluate(()=>{ window.openTagList(); });
+  await page.waitForTimeout(250);
   await page.evaluate(()=>{ window.openTag('folla che cammina'); });
   await page.waitForTimeout(300);
   const dentro = await page.evaluate(()=>({
@@ -185,8 +207,7 @@ module.exports = () => suite("References — i tag", {"banco": "/test/banco/tavo
   sezione('senza tag la sezione lo dice, invece di sparire');
   await page.evaluate(()=>{
     window.refs.getRefs().forEach(r=> r.tags = []);
-    window.refs.openFolderBrowser();
-    window.setArchivio('references');
+    window.refs.openTagList();
   });
   await page.waitForTimeout(300);
   const vuota = await page.evaluate(()=>({

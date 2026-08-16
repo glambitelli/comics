@@ -41,7 +41,7 @@ function exposeLazy(path, names){
 
 exposeLazy('./refs.js', ['refsBackToFolders','openRefLightbox','closeRefLightbox',
   'nextRefImage','prevRefImage','refsImageMenu','deleteRefImageWithUndo',
-  'openFolderBrowser','openAllGrid','openFolder','openTag','setArchivio','promptNewFolder','promptTagImage',
+  'openFolderBrowser','openAllGrid','openFolder','openTag','openTagList','setArchivio','promptNewFolder','promptTagImage',
   'promptRenameFolder','promptDeleteFolder','refsFolderMenu','setFolderTab','albumShelfMenu',
   'connectDriveAndSync','disconnectDriveUI','toggleRefsProfile','closeRefsProfile',
   'refsFolderSearch','refsAlbumsSearch','refsGridSortMenu','refsAlbumsSortMenu',
@@ -410,6 +410,7 @@ async function showScreen(view, id){
     else if(view === 'refs-folder' && id){ await openRefsScreenAtFolder(id); }
     else if(view === 'refs-all'){ await openRefsScreenAtAll(); }
     else if(view === 'refs-tag' && id){ await openRefsScreenAtTag(id); }
+    else if(view === 'refs-tags'){ const r = await prepRefsScreen(); r.openTagList(); }
     else if(view === 'evening'){ enterEveningImpl(); }   // la tenda la mette chi ha premuto
     else { // home (o stato sconosciuto)
       if(document.body.classList.contains('evening-mode')) exitEveningImpl();

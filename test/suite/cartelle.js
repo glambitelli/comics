@@ -126,8 +126,9 @@ module.exports = () => suite("References — artisti e menu contestuali", {"banc
     return { testo: b.textContent.trim(), largo: Math.round(r.width), alto: Math.round(r.height) };
   }));
   ok('nella scheda Artists c\'e\' la sua riga', aggiungi.length === 1, aggiungi);
-  ok('e dice "artista", non "cartella"',
-     /aggiungi artista/i.test(aggiungi[0].testo), aggiungi);
+  // Niente parole: il "+" in coda a un elenco di artisti non puo' voler dire
+  // altro, e l'etichetta ripeteva quello che c'e' scritto sulla scheda sopra.
+  ok('e non ci sono scritte', aggiungi[0].testo === '', aggiungi);
   // La ragione della modifica: il bersaglio. 30px erano meta' di quello che un
   // dito chiede.
   ok('il bersaglio e\' alto almeno 48px e largo tutto',
@@ -138,10 +139,14 @@ module.exports = () => suite("References — artisti e menu contestuali", {"banc
   const rigaStudy = await page.evaluate(async ()=>{
     window.setArchivio('references');
     await new Promise(r=>setTimeout(r,250));
-    return Array.from(document.querySelectorAll('.refs-add-row')).map(b=>b.textContent.trim());
+    return Array.from(document.querySelectorAll('.refs-add-row'))
+      .map(b=>({ etichetta: b.getAttribute('aria-label'), alto: Math.round(b.getBoundingClientRect().height) }));
   });
-  ok('e dentro References quella di Study dice "cartella"',
-     rigaStudy.some(t=>/aggiungi cartella/i.test(t)), rigaStudy);
+  ok('e dentro References ce n\'e\' una per Study', rigaStudy.length === 1, rigaStudy);
+  // Muta a schermo, ma non per chi naviga con lo screen reader.
+  ok('che a parole dice cosa aggiunge',
+     /cartella/i.test(rigaStudy[0].etichetta||''), rigaStudy);
+  ok('ed e\' alta come le altre', rigaStudy[0].alto >= 48, rigaStudy);
   await apri();
 
   const fondo = await page.evaluate(()=>{

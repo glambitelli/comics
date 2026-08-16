@@ -248,6 +248,26 @@ export function actionMenu(anchorEl, actions){
     // dello schermo e non insegue l'elemento da cui e' uscito, quindi restando
     // aperto si ritroverebbe a puntare a una riga diversa da quella scelta.
     if(e.type !== 'scroll' && _actionMenuEl && _actionMenuEl.contains(e.target)) return;
+    // IL TOCCO CHE CHIUDE NON FA ANCHE ALTRO.
+    //
+    // Con un menu aperto, toccare fuori significa una cosa sola: "lascia
+    // perdere". Prima il tocco chiudeva il menu E arrivava a quello che c'era
+    // sotto — si toccava per annullare e ci si ritrovava dentro una cartella,
+    // o su un'altra schermata. Un menu aperto e' una domanda: finche' non hai
+    // risposto, il resto dell'app non deve rispondere al posto tuo.
+    //
+    // Il pointerdown si ferma qui, e si ingoia anche il click che ne seguira':
+    // fermare il solo pointerdown non basta, il browser manda il click lo
+    // stesso ed e' quello che fa scattare i gestori. Il timer toglie
+    // l'ascoltatore se il click non arriva mai (un trascinamento, un gesto
+    // annullato dal sistema): senza, resterebbe appeso a mangiarsi il primo
+    // click vero.
+    if(e.type === 'pointerdown'){
+      e.stopPropagation();
+      const ingoia = ev=>{ ev.stopPropagation(); ev.preventDefault(); };
+      document.addEventListener('click', ingoia, { capture:true, once:true });
+      setTimeout(()=> document.removeEventListener('click', ingoia, true), 500);
+    }
     closeActionMenu();
   };
   // Il giro di ritardo resta: se il menu e' stato aperto DA un click (il "⋯"),

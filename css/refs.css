@@ -168,14 +168,21 @@
    metallo lo farebbe sembrare una cartella. Cancelletto su carta scura. */
 .refs-mono.mt{background:#e9dfc8;color:#8a7248;font-size:16px;font-weight:700}
 .refs-tag-row .refs-folder-name{font-weight:600}
+/* La porta dell'elenco tag: stessa riga delle altre ma con la freccia, perche'
+   non apre delle immagini — apre un altro elenco. Senza, in mezzo alle
+   cartelle di Study sembrava un tag solo chiamato "Tutti i tag". */
+.refs-tag-porta .refs-folder-name{font-weight:700;color:var(--ink)}
+.refs-tag-porta .refs-folder-count::after{
+  content:'›';margin-left:8px;font-size:15px;font-weight:700;color:var(--sand3);
+}
 
 /* ── AGGIUNGI ──
    Era un "+" di 16px in un bersaglio da 30, appeso all'occhiello della
-   categoria: sotto i 48px che un dito chiede, e per giunta muto — bisognava
-   indovinare cosa aggiungesse. Ora e' una riga alta come le cartelle, larga
-   quanto lo schermo, con scritto cosa fa. Sta in CODA alla sua categoria,
-   dov'e' anche il posto giusto per leggerla: "questi sono gli artisti… e qui
-   se ne aggiunge uno". */
+   categoria: sotto i 48px che un dito chiede. Ora e' una RIGA alta come le
+   cartelle e larga quanto lo schermo — il bersaglio e' quello, ed era il
+   problema — ma senza parole: il solo "+" allineato ai dischi sopra, in coda a
+   un elenco di artisti, non puo' voler dire nient'altro. La versione con
+   scritto "Aggiungi artista" ripeteva la parola che sta gia' sulla scheda. */
 .refs-add-row{
   display:flex;align-items:center;gap:12px;width:100%;
   padding:12px 4px;background:none;border:none;cursor:pointer;
@@ -188,7 +195,6 @@
   box-shadow:inset 0 0 0 1.5px #e2cca8;
   transition:background .15s,transform .1s;
 }
-.refs-add-txt{font-size:14px;font-weight:700;color:var(--ottone)}
 .refs-add-row:active .refs-add-cerchio{background:#f0dfba;transform:scale(.92)}
 .refs-folder-name{flex:1;min-width:0;font-size:14.5px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .refs-folder-count{font-size:12px;font-weight:600;color:var(--ink3)}

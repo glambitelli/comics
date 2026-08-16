@@ -824,6 +824,17 @@ export function openAllGrid(){
   if(window.__navSync) window.__navSync('refs-all', null);
   renderRefsScreen();
 }
+// L'elenco di tutti i tag: un posto in cui si ENTRA, non una lista appesa in
+// fondo a References. Cosi' i tag non si confondono con le cartelle di Study,
+// che come righe si somigliano ma sono un'altra cosa.
+export function openTagList(){
+  _view = 'tags'; _activeFolderId = null; _activeTag = null;
+  _folderQuery = '';
+  clearSearchInputs();
+  if(window.__navSync) window.__navSync('refs-tags', null);
+  renderRefsScreen();
+}
+
 // Aprire un tag e' come aprire una cartella, ma il contenuto lo decide
 // l'etichetta e non il contenitore: le immagini restano dove sono.
 export function openTag(tag){
@@ -861,7 +872,7 @@ export function openFolder(id){
 // o cronologia non disponibile) mostra la lista e basta.
 export function refsBackToFolders(){
   const st = history.state;
-  if(st && (st.view === 'refs-folder' || st.view === 'refs-all')){
+  if(st && (st.view === 'refs-folder' || st.view === 'refs-all' || st.view === 'refs-tags' || st.view === 'refs-tag')){
     history.back();
   } else {
     openFolderBrowser();
@@ -1058,11 +1069,20 @@ export function renderRefsScreen(){
   const folderToolbar = document.getElementById('refs-folder-toolbar');
   if(!browserEl || !galleryEl) return;
 
-  if(_view === 'folders'){
+  if(_view === 'folders' || _view === 'tags'){
     browserEl.style.display = 'block';
     if(folderToolbar) folderToolbar.style.display = 'flex';
     galleryEl.style.display = 'none';
-    if(crumb) crumb.style.display = 'none';
+    // L'elenco dei tag e' un LIVELLO SOTTO l'archivio: si vede la briciola per
+    // tornare indietro, e le schede spariscono — li' dentro non c'e' nessun
+    // "Artists" in cui passare.
+    if(crumb){
+      crumb.style.display = _view === 'tags' ? 'flex' : 'none';
+      if(_view === 'tags'){
+        const nameEl = document.getElementById('refs-breadcrumb-name');
+        if(nameEl) nameEl.textContent = 'Tag';
+      }
+    }
     // I tab appartengono alla cartella aperta: uscendo vanno nascosti qui,
     // perché renderFolderTabs() (che se ne occupa) gira solo dentro la
     // galleria. Senza questo restavano visibili ma orfani dei loro pannelli:
@@ -1070,9 +1090,9 @@ export function renderRefsScreen(){
     const tabs = document.getElementById('refs-tabs');
     if(tabs) tabs.classList.remove('show');
     const assi = document.getElementById('refs-axis');
-    if(assi) assi.classList.add('show');
+    if(assi) assi.classList.toggle('show', _view === 'folders');
     wireSwipeAssi();
-    renderFolderBrowser();
+    if(_view === 'tags') renderTagList(); else renderFolderBrowser();
   } else {
     browserEl.style.display = 'none';
     if(folderToolbar) folderToolbar.style.display = 'none';
@@ -1320,6 +1340,28 @@ function etichettaCartella(f){
        + (f.nome ? `<span class="rf-nome">${esc(f.nome)}</span>` : '');
 }
 
+function renderTagList(){
+  const el = document.getElementById('refs-folder-browser');
+  if(!el) return;
+  const q = _folderQuery.trim().toLowerCase();
+  const tutti = tuttiITag();
+  const tags = q ? tutti.filter(t=> t.nome.toLowerCase().includes(q)) : tutti;
+  let html = '';
+  if(!tutti.length){
+    html = `<div class="refs-folders-empty">Nessun tag ancora. Ritagliando una tavola scegli “References” e dagli un tag — “folla che cammina”, “macchina parcheggiata” — e da qui lo ritrovi in un tocco.</div>`;
+  } else if(!tags.length){
+    html = `<div class="refs-folders-empty">Nessun tag corrisponde a "${esc(_folderQuery.trim())}".</div>`;
+  } else {
+    html = tags.map(t=>`
+      <div class="refs-folder-row refs-tag-row" onclick="window.openTag('${perOnclick(t.nome)}')">
+        <span class="refs-mono mt">#</span>
+        <span class="refs-folder-name">${esc(t.nome)}</span>
+        <span class="refs-folder-count">${t.n}</span>
+      </div>`).join('');
+  }
+  if(el._html !== html){ el._html = html; el.innerHTML = html; }
+}
+
 function renderFolderBrowser(){
   const el = document.getElementById('refs-folder-browser');
   if(!el) return;
@@ -1353,9 +1395,14 @@ function renderFolderBrowser(){
         <button class="refs-folder-menu" onclick="event.stopPropagation();window.refsFolderMenu('${f.id}',this)" aria-label="Altro">⋯</button>
       </div>`).join('');
 
-  const rigaAggiungi = (category, chi)=> `<button class="refs-add-row" onclick="window.promptNewFolder('${perOnclick(category)}')">
+  // Senza parole. La riga resta alta e larga quanto le altre — il bersaglio e'
+  // quello, ed era il problema da risolvere — ma dice quello che ha da dire col
+  // solo "+" allineato ai dischi sopra: in coda a un elenco di artisti, un piu'
+  // non puo' voler dire nient'altro. L'etichetta "Aggiungi artista" ripeteva
+  // la parola che sta gia' sulla scheda in cima.
+  const rigaAggiungi = (category, chi)=> `<button class="refs-add-row" onclick="window.promptNewFolder('${perOnclick(category)}')"
+      aria-label="Aggiungi ${chi} in ${esc(category)}" title="Aggiungi ${chi}">
       <span class="refs-add-cerchio">${PIU_ICON}</span>
-      <span class="refs-add-txt">Aggiungi ${chi}</span>
     </button>`;
 
   let html = '';
@@ -1373,26 +1420,26 @@ function renderFolderBrowser(){
     });
   } else {
     // ── REFERENCES ──
-    // Prima i TAG, che sono il modo in cui si cerca; poi gli spazi, che sono
-    // dove le cose finiscono. E' l'ordine del gesto: filtro per "folla che
-    // cammina", trovo, e poi eventualmente sposto in Study.
-    const tags = filtra(tuttiITag());
-    html += barra('Tag', tags.length);
-    if(!tags.length){
-      html += `<div class="refs-folders-empty">Nessun tag ancora. Ritagliando una tavola scegli “References” e dagli un tag — “folla che cammina”, “macchina parcheggiata” — e da qui lo ritrovi in un tocco.</div>`;
-    }
-    html += tags.map(t=>`
-      <div class="refs-folder-row refs-tag-row" onclick="window.openTag('${perOnclick(t.nome)}')">
-        <span class="refs-mono mt">#</span>
-        <span class="refs-folder-name">${esc(t.nome)}</span>
-        <span class="refs-folder-count">${t.n}</span>
-      </div>`).join('');
-
+    // Prima gli spazi (Study), poi la porta dei tag. E i tag NON si elencano
+    // qui: si apre una riga sola e l'elenco sta dentro.
+    //
+    // Il motivo e' che tag e cartelle di studio si somigliano come righe ma non
+    // sono la stessa cosa — le une sono etichette, le altre contenitori — e
+    // messe di seguito nella stessa pagina si confondevano. Con una porta,
+    // l'elenco dei tag diventa un posto in cui si entra, e la scheda References
+    // resta corta: due cose, non venti.
     spazi.forEach(g=>{
       html += barra(g.category, g.folders.length);
       html += righeCartelle(filtra(g.folders));
       if(!q) html += rigaAggiungi(g.category, 'cartella');
     });
+    const tags = tuttiITag();
+    html += barra('Tag', tags.length);
+    html += `<div class="refs-folder-row refs-tag-row refs-tag-porta" onclick="window.openTagList()">
+        <span class="refs-mono mt">#</span>
+        <span class="refs-folder-name">Tutti i tag</span>
+        <span class="refs-folder-count">${tags.length}</span>
+      </div>`;
   }
 
   // Confronto sul contenuto vero: una firma "furba" (es. la lunghezza) manca
