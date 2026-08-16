@@ -1,0 +1,40 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8">
+<title>banco di prova — accesso a Google Drive</title>
+</head><body>
+<script type="module">
+// js/drive.js e' QUELLO VERO. Di finto c'e' solo la libreria di Google, che
+// qui non si puo' caricare (e che comunque aprirebbe una finestra vera): si
+// mette in window.google PRIMA dell'import, e loadGis la trova gia' pronta e
+// non scarica niente.
+//
+// Il client finto registra ogni chiamata a requestAccessToken con le opzioni
+// ricevute, e risponde come decide la prova: successo, errore, o silenzio.
+window.__chiamate = [];
+window.__esito = 'ok';        // 'ok' | 'errore'
+let _cb = null, _err = null;
+window.google = { accounts: { oauth2: {
+  initTokenClient(cfg){
+    return {
+      set callback(f){ _cb = f; },  get callback(){ return _cb; },
+      set error_callback(f){ _err = f; }, get error_callback(){ return _err; },
+      requestAccessToken(opts){
+        window.__chiamate.push(opts ? Object.assign({}, opts) : null);
+        // Asincrono come quello vero: e' proprio questo che porta la seconda
+        // chiamata fuori dal gesto dell'utente.
+        setTimeout(()=>{
+          if(window.__esito === 'ok') _cb && _cb({ access_token:'t', expires_in:3600 });
+          else _err && _err({ message:'popup_closed' });
+        }, 10);
+      },
+    };
+  },
+}}};
+// L'email e' cosmetica e la vera implementazione la chiede a Google: qui la
+// richiesta non deve uscire.
+window.fetch = ()=> Promise.resolve({ ok:false });
+
+const drive = await import('/js/drive.js');
+window.drive = drive;
+window.__ready = true;
+</script>
+</body></html>

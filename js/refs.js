@@ -1328,17 +1328,6 @@ function sigla(f){
   return base.slice(0, 2).toUpperCase();
 }
 
-// Quale dei cinque metalli tocca a questa cartella (vedi .refs-mono nel CSS).
-// Si conta sull'ID e non sulla posizione nell'elenco: l'ID non cambia mai,
-// quindi il colore di una cartella e' suo per sempre — ed e' esattamente
-// questo che permette di riconoscerla senza leggerla. Legandolo alla posizione
-// sarebbe bastato aggiungere un artista in cima per ricolorare tutto sotto.
-function metalloDi(f){
-  const s = String(f.id || f.name || '');
-  let h = 0;
-  for(let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 100000;
-  return h % 5;
-}
 
 // Come si scrive il nome di una cartella nell'elenco. Un artista si compone di
 // due pezzi con due pesi diversi — COGNOME che ancora la riga, nome che la
@@ -1359,7 +1348,6 @@ function rigaTag(t){
   return `<div class="refs-folder-row refs-tag-row" onclick="window.openTag('${perOnclick(t.nome)}')">
       <span class="refs-mono mt">#</span>
       <span class="refs-folder-name">${esc(t.nome)}</span>
-      <span class="refs-folder-count">${t.n}</span>
     </div>`;
 }
 
@@ -1405,11 +1393,15 @@ function renderFolderBrowser(){
       ${n != null ? `<span class="refs-sec-n">${n}</span>` : ''}
     </div>`;
 
+  // Niente numeri sulle righe. Quanti ritagli ci sono dentro una cartella non
+  // fa prendere nessuna decisione — non ci si entra perche' sono trentotto —
+  // ed erano trenta cifre a schermo che rubavano l'occhio ai nomi, che sono la
+  // cosa che si legge davvero. I conteggi restano sulle barre di sezione, dove
+  // contano CARTELLE e TAG: quello si', dice quanto e' grande l'archivio.
   const righeCartelle = folders => folders.map(f=>`
       <div class="refs-folder-row" onclick="window.openFolder('${f.id}')">
-        <span class="refs-mono m${metalloDi(f)}">${esc(sigla(f))}</span>
+        <span class="refs-mono">${esc(sigla(f))}</span>
         <span class="refs-folder-name">${etichettaCartella(f)}</span>
-        <span class="refs-folder-count">${countInFolder(f.id)}</span>
         <button class="refs-folder-menu" onclick="event.stopPropagation();window.refsFolderMenu('${f.id}',this)" aria-label="Altro">⋯</button>
       </div>`).join('');
 
@@ -1467,7 +1459,7 @@ function renderFolderBrowser(){
       html += `<div class="refs-folder-row refs-tag-row refs-tag-porta" onclick="window.openTagList()">
           <span class="refs-mono mt">#</span>
           <span class="refs-folder-name">Tutti i tag</span>
-          <span class="refs-folder-count">${tags.length}</span>
+          <span class="refs-folder-count"></span>
         </div>`;
     }
   }

@@ -84,7 +84,14 @@
    nell'altro. Stesso disegno dei tab dentro una cartella (Albi/Ritagli/Tavole)
    — sono la stessa idea a un livello piu' alto, e inventarle diverse
    sarebbe stato un secondo linguaggio per la stessa cosa. */
-.refs-axis{display:none;background:var(--sand);border-bottom:1px solid #e8dcc0;flex-shrink:0}
+/* Niente filo sotto le schede. C'era, ed era il "primo artista con la barra
+   piu' spessa": quella riga non e' un separatore fra due cartelle, e' il bordo
+   delle schede — piu' lungo (arriva ai margini dello schermo, le altre no) e di
+   un altro colore. Attaccata sopra alla prima riga si leggeva come il suo
+   separatore, e sembrava che il primo artista fosse disegnato diverso. Il
+   passaggio di tono fra il fondo delle schede e quello dell'elenco basta gia'
+   a dividerli. */
+.refs-axis{display:none;background:var(--sand);flex-shrink:0}
 .refs-axis.show{display:flex}
 .refs-axis-tab{
   flex:1;background:none;border:none;cursor:pointer;
@@ -141,31 +148,29 @@
   transition:background .12s;
 }
 .refs-folder-row:active{background:rgba(255,255,255,.55)}
-/* IL DISCO con le iniziali. E' l'appiglio: scorrendo l'elenco si trova la riga
-   dal disco, non leggendo — quindi il colore deve CAMBIARE da una cartella
-   all'altra, altrimenti fa da decorazione e basta.
+/* L'ultima riga di un gruppo non tira il filo: sotto non c'e' un'altra
+   cartella, c'e' il "+" o la sezione dopo, e un capello sospeso nel vuoto
+   sembra un errore. */
+.refs-folder-row:has(+ .refs-add-row),
+.refs-folder-row:last-child{border-bottom:none}
+/* IL DISCO con le iniziali: oro pieno, inchiostro scuro sopra. Sono
+   esattamente i due colori del riquadro "Task di stasera" (#e2b62c su #2a2412,
+   vedi .microtask-box in project.css) — non una tinta nuova inventata qui.
    
-   Cinque metalli caldi, tutti gia' nella palette (vedi variables.css): l'oro
-   del task di stasera, l'oro sabbia, l'ottone, il rame, il bronzo. La prima
-   versione ne usava cinque tinte fredde — blu, verde, grigio-azzurro — e in
-   mezzo a una schermata di sabbia e ottone erano cinque macchie estranee.
-   
-   Quale tocchi a chi lo decide l'ID della cartella (vedi metalloDi in
-   refs.js), non la sua posizione: un artista aggiunto in cima non deve
-   ricolorare tutto l'elenco sotto di se'. Il colore di una cartella e' suo per
-   sempre, ed e' questo che lo rende riconoscibile. */
+   TUTTI UGUALI, e ci si e' arrivati per esclusione. Prima ogni cartella aveva
+   un colore diverso: cinque tinte fredde (stonavano in mezzo alla sabbia), poi
+   cinque metalli caldi (in palette, ma un elenco a scalare di marroni sembra
+   un degrade' e non un'informazione). Il colore non stava dicendo niente che
+   le due lettere non dicessero gia' meglio. Un oro solo, e la riga la si
+   riconosce dalle iniziali. */
 .refs-mono{
   width:36px;height:36px;border-radius:50%;flex-shrink:0;
   display:flex;align-items:center;justify-content:center;
+  background:#e2b62c;color:#2a2412;
   font-size:12.5px;font-weight:800;letter-spacing:.03em;line-height:1;
 }
-.refs-mono.m0{background:#e2b62c;color:#2a2412}   /* oro */
-.refs-mono.m1{background:#c2a869;color:#2a2412}   /* oro sabbia */
-.refs-mono.m2{background:#a8763c;color:#fdf6e4}   /* ottone */
-.refs-mono.m3{background:#9a5a34;color:#fdf6e4}   /* rame */
-.refs-mono.m4{background:#6e4c2e;color:#fdf6e4}   /* bronzo */
-/* E nemmeno un tag: non e' una persona ne' un contenitore, e mettergli un
-   metallo lo farebbe sembrare una cartella. Cancelletto su carta scura. */
+/* Un tag non e' ne' una persona ne' un contenitore: niente oro, che qui vuol
+   dire "cartella". Cancelletto su carta, piu' quieto. */
 .refs-mono.mt{background:#e9dfc8;color:#8a7248;font-size:16px;font-weight:700}
 .refs-tag-row .refs-folder-name{font-weight:600}
 /* La porta dell'elenco tag: stessa riga delle altre ma con la freccia, perche'

@@ -34,7 +34,6 @@ module.exports = () => suite("References — i tag", {"banco": "/test/banco/tavo
     sezioni: Array.from(document.querySelectorAll('.refs-sec-nome')).map(e=>e.textContent.trim()),
     tag: Array.from(document.querySelectorAll('.refs-tag-row')).map(r=>({
       nome: r.querySelector('.refs-folder-name').textContent.trim(),
-      n: r.querySelector('.refs-folder-count').textContent.trim(),
     })),
     cartelle: Array.from(document.querySelectorAll('.refs-folder-row:not(.refs-tag-row) .refs-folder-name'))
       .map(e=>e.textContent.trim()),
@@ -61,7 +60,13 @@ module.exports = () => suite("References — i tag", {"banco": "/test/banco/tavo
   // I tag non si elencano qui: c'e' una porta sola, e l'elenco sta dentro.
   ok('dei tag c\'e\' una riga sola, la porta',
      s.tag.length === 1 && /tutti i tag/i.test(s.tag[0].nome), s.tag);
-  ok('con quanti ne trovera\' dentro', s.tag[0].n === '3', s.tag);
+  // Il conteggio dei TAG resta sulla barra: dice quanto e' grande l'archivio.
+  // Quello delle immagini sulle righe se n'e' andato — non faceva prendere
+  // nessuna decisione e rubava l'occhio ai nomi.
+  ok('la barra dice quanti tag ci sono', s.sezioni.length >= 2, s.sezioni);
+  ok('ma sulle righe non ci sono numeri di immagini',
+     !(await page.evaluate(()=> Array.from(document.querySelectorAll('.refs-folder-row .refs-folder-count'))
+        .some(e=> /\d/.test(e.textContent)))), null);
 
   sezione('entrando nella porta c\'e\' l\'elenco vero');
   await page.evaluate(()=>{ window.openTagList(); });
@@ -69,14 +74,11 @@ module.exports = () => suite("References — i tag", {"banco": "/test/banco/tavo
   const dentroTag = await page.evaluate(()=>({
     righe: Array.from(document.querySelectorAll('.refs-tag-row')).map(r=>({
       nome: r.querySelector('.refs-folder-name').textContent.trim(),
-      n: r.querySelector('.refs-folder-count').textContent.trim(),
     })),
     briciola: (document.getElementById('refs-breadcrumb-name')||{}).textContent,
     schede: document.getElementById('refs-axis').classList.contains('show'),
   }));
   ok('ci sono tre tag', dentroTag.righe.length === 3, dentroTag.righe);
-  ok('col numero di immagini che li portano',
-     dentroTag.righe.find(t=>/folla/.test(t.nome)).n === '3', dentroTag.righe);
   ok('e il piu\' usato sta in cima', /folla/.test(dentroTag.righe[0].nome), dentroTag.righe);
   ok('la briciola dice dove sei', /tag/i.test(dentroTag.briciola||''), dentroTag);
   ok('e le schede spariscono: qui sotto non c\'e\' nessun Artists',

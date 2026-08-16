@@ -97,10 +97,16 @@ module.exports = () => suite("References — artisti e menu contestuali", {"banc
   const hands = (await righeVisibili()).find(d=>/hands/i.test(d.testo));
   await vaiA('artists');
   ok('e da chi un cognome non ce l\'ha, dal nome', hands && hands.sigla === 'HA', hands);
-  // Il colore deve CAMBIARE: e' l'appiglio per riconoscere la riga senza
-  // leggerla. Tutti uguali sarebbe decorazione.
-  ok('i dischi non sono tutti dello stesso colore',
-     new Set(dischi.map(d=>d.sfondo)).size > 1, dischi.map(d=>d.sfondo));
+  // Un oro solo, quello del task di stasera: il colore per cartella non diceva
+  // niente che le due lettere non dicessero gia' meglio, e un elenco a scalare
+  // di marroni sembrava un degrade'.
+  ok('i dischi sono tutti dello stesso oro',
+     new Set(dischi.map(d=>d.sfondo)).size === 1, dischi.map(d=>d.sfondo));
+  ok('ed e\' quello del task di stasera',
+     dischi[0].sfondo === 'rgb(226, 182, 44)', dischi[0]);
+  ok('e sulle righe non ci sono numeri',
+     !(await page.evaluate(()=> Array.from(document.querySelectorAll('.refs-folder-row'))
+        .some(r=> /\d/.test(r.textContent)))), null);
   ok('le righe non sono piu\' schede col bordo',
      dischi.every(d=> d.bordi.startsWith('0px')), dischi.map(d=>d.bordi));
 

@@ -147,8 +147,12 @@ async function getTokenClient(){
   return _tokenClient;
 }
 
-// Chiede un token. `prompt` vuoto = silenzioso (riesce solo se la sessione
-// Google è viva e il consenso già dato); 'consent' mostra la schermata.
+// Chiede un token.
+//   prompt = ''     → silenzioso: riesce solo se la sessione Google è viva e il
+//                     consenso è già stato dato. Serve al rinnovo automatico.
+//   prompt = null   → nessuna preferenza: e' Google a decidere cosa mostrare
+//                     (scelta account, consenso, niente). E' la forma giusta
+//                     quando a chiedere e' stato l'utente premendo un pulsante.
 function requestToken(prompt){
   return new Promise((resolve, reject)=>{
     getTokenClient().then(client=>{
@@ -175,17 +179,30 @@ function requestToken(prompt){
       client.error_callback = (err)=>{
         reject(new Error((err && err.message) || 'Accesso a Drive annullato.'));
       };
-      client.requestAccessToken({ prompt });
+      // Con prompt null non si passa proprio la chiave: `{prompt: undefined}`
+      // e "nessun override" non sono la stessa cosa per la libreria di Google.
+      client.requestAccessToken(prompt === null ? {} : { prompt });
     }).catch(reject);
   });
 }
 
-// Tap su "Collega Drive": prima si tenta in silenzio (se il consenso c'è già
-// il collegamento è immediato, senza schermate), altrimenti si chiede.
+// Tap su "Collega Drive". UNA SOLA chiamata, e senza preferenze sul prompt.
+//
+// Prima si tentava il silenzioso e, se falliva, si riprovava con 'consent'.
+// Sembrava furbo — niente schermata quando il consenso c'era gia' — ed era
+// rotto proprio nel caso che conta: il secondo tentativo parte da dentro una
+// callback asincrona, cioe' FUORI dal gesto dell'utente, e il browser blocca
+// la finestra di Google come blocca qualunque popup non chiesto da un tocco.
+// Risultato: si premeva "Ricollega Google Drive" e non succedeva niente —
+// nessuna schermata, nessun errore, l'account restava scollegato.
+//
+// Con una chiamata sola dentro il gesto e' Google a decidere cosa mostrare:
+// niente se il consenso c'e' gia', la scelta dell'account o la schermata di
+// consenso se serve. Il silenzioso resta dov'e' utile davvero, cioe' nel
+// rinnovo automatico del token (vedi ensureDriveConnected).
 export async function connectDrive(){
   if(!isDriveConfigured()) throw new Error('Google Drive non ancora configurato (vedi le istruzioni in js/drive.js).');
-  try{ return await requestToken(''); }
-  catch(e){ return await requestToken('consent'); }
+  return await requestToken(null);
 }
 
 // Garantisce (senza interazione, se possibile) un token valido: usa quello in
