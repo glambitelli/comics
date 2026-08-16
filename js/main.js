@@ -5,6 +5,7 @@ import { togglePhase, toggleStep, selectTav, addSfida, addTodo, toggleTodo, clea
 import { addScene, updateScene, deleteScene, autoResize, saveStoryField, updateCharCount, toggleSubsection, addCharacter, deleteCharacter, toggleCharCard, autoResizeAll, toggleScreenplay, addSceneText, deleteSceneText, extractAllFromScript } from './story.js';
 import { updatePlanner, applyPlanner, openPlannerModal, closePlannerModal } from './planner.js';
 import { initNotifications, saveReminderSettings, testNotification } from './notifications.js';
+import { closeActionMenu } from './dialogs.js';
 import { openSettings, closeSettings, closeSettingsUI, resetStarsConfirm, closeStarsConfirm, doResetStars, exportBackup, importBackup, resetStreakConfirm, closeStreakConfirm, doResetStreak, onSoundToggle, onSoundPackChange } from './settings.js';
 window.onSoundToggle=onSoundToggle; window.onSoundPackChange=onSoundPackChange;
 import { renderHome, openNewModal, closeModal, createProject, openCardMenu, exportProjectJSON, confirmDeleteProject, openColorPicker, closeColorPicker, selectProjectColor, filterProjects, attachCardDrag, applyProjectOrder, startSandstorm, getScriptment } from './home.js';
@@ -89,6 +90,12 @@ import { getTodayTip } from './tips.js';
 
 // ── Navigazione centralizzata: chiude tutte le schermate prima di aprirne una ──
 function hideAllScreens(){
+  // Un menu contestuale aperto NON deve sopravvivere a un cambio di schermata.
+  // Si chiude da solo al tocco fuori, ma il tasto Indietro del telefono non e'
+  // un tocco: premendolo con un menu aperto ci si ritrovava il "Rinomina /
+  // Elimina" di una cartella di References appoggiato sopra le schede della
+  // home, ancora funzionante e riferito a una cosa non piu' a schermo.
+  closeActionMenu();
   ['screen-home','screen-project','screen-stats','screen-evening','screen-refs','screen-idee'].forEach(id=>{
     const el = document.getElementById(id);
     if(el) el.classList.remove('active');

@@ -1169,19 +1169,12 @@ function renderFolderBrowser(){
   const cats = foldersByCategory();
   const q = _folderQuery.trim().toLowerCase();
 
-  // "All" è una scorciatoia fissa, non un risultato di ricerca: resta sempre
-  // in cima, cercare "kon" non deve farla sparire insieme alle cartelle.
-  //
-  // È anche l'unico elemento forte della pagina: nero-sabbia e oro, lo stesso
-  // dei pulsanti principali e della modalità sera. Serve un punto in cui
-  // l'occhio si appoggia entrando — prima erano tutti riquadri bianchi dello
-  // stesso peso e la schermata non aveva un capo.
-  let html = `
-    <div class="refs-quicklink" onclick="window.openAllGrid()">
-      <span class="refs-quicklink-ico">${GRIGLIA_ICON}</span>
-      <span class="refs-quicklink-lbl">Tutte le immagini</span>
-      <span class="refs-quicklink-count">${_refs.length}</span>
-    </div>`;
+  // Niente piu' "Tutte le immagini" in cima: mescolate, 93 immagini di tre
+  // artisti diversi non sono una vista, sono un mucchio — e chi cerca qualcosa
+  // parte sempre da CHI l'ha disegnato. Il nero non se n'e' andato con lei: e'
+  // passato agli occhielli delle categorie, che sono il vero scheletro della
+  // pagina (vedi .refs-cat-name nel CSS).
+  let html = '';
 
   if(cats.size === 0){
     html += `<div class="refs-folders-empty">Ancora nessuna cartella. Crea la prima categoria (es. "Artists" o "Study") per iniziare a organizzare le tue reference.</div>`;
@@ -1217,6 +1210,24 @@ function renderFolderBrowser(){
 
   if(cats.size > 0 && q && shown === 0){
     html += `<div class="refs-folders-empty">Nessuna cartella corrisponde a "${esc(_folderQuery.trim())}".</div>`;
+  }
+
+  // Le immagini senza cartella — quelle condivise dal telefono prima di
+  // averle archiviate — compaiono in coda SOLO se ce ne sono. Senza questa
+  // riga sarebbero irraggiungibili: era "Tutte le immagini" l'unica strada che
+  // ci portava, e toglierla senza rimpiazzarla avrebbe creato un buco in cui
+  // le foto sparivano davvero.
+  const orfane = _refs.filter(r=>!r.folderId).length;
+  if(orfane && !q){
+    html += `<div class="refs-cat-row">
+      <span class="refs-cat-name">Da archiviare</span>
+      <span class="refs-cat-rule"></span>
+    </div>
+    <div class="refs-folder-row" onclick="window.openFolder(null)">
+      <span class="refs-mono mq">${GRIGLIA_ICON}</span>
+      <span class="refs-folder-name">Senza cartella</span>
+      <span class="refs-folder-count">${orfane}</span>
+    </div>`;
   }
 
   // Sotto l'ultima cartella non c'e' piu' niente. "Nuova categoria" e' salita

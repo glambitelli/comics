@@ -129,4 +129,24 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
   ok('a riposo e\' trasparente e non intercetta i tocchi',
      dopo.opacita < 0.02 && dopo.tocchi === 'none', dopo);
 
+  console.log('\n── un menu contestuale non sopravvive a un cambio di schermata ──');
+  // Il tasto Indietro del telefono non e' un tocco: premendolo con un menu
+  // aperto ci si ritrovava il "Rinomina / Elimina" di una cartella appoggiato
+  // sopra le schede della home, ancora funzionante e riferito a una cosa che
+  // non era piu' a schermo.
+  const sopravvive = await page.evaluate(async ()=>{
+    const d = await import('/js/dialogs.js');
+    d.actionMenu(document.querySelector('.dune-nav') || document.body, [
+      { label:'Rinomina', icon:'rinomina', onSelect(){} },
+      { label:'Elimina', icon:'elimina', danger:true, onSelect(){} },
+    ]);
+    await new Promise(r=>setTimeout(r,120));
+    const aperto = !!document.querySelector('.ink-action-menu');
+    window.openStats();                       // passa da hideAllScreens
+    await new Promise(r=>setTimeout(r,250));
+    return { aperto, dopo: !!document.querySelector('.ink-action-menu') };
+  });
+  ok('il menu si apre', sopravvive.aperto, sopravvive);
+  ok('e cambiando schermata se ne va', !sopravvive.dopo, sopravvive);
+
 });

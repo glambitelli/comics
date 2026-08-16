@@ -86,18 +86,35 @@ module.exports = () => suite("References — artisti e menu contestuali", {"banc
   ok('le righe non sono piu\' schede col bordo',
      dischi.every(d=> d.bordi.startsWith('0px')), dischi.map(d=>d.bordi));
 
-  sezione('e un solo blocco forte in cima');
+  sezione('il nero sta negli occhielli, non in una barra in cima');
   const cima = await page.evaluate(()=>{
-    const q = document.querySelector('.refs-quicklink');
-    const st = getComputedStyle(q);
+    const et = document.querySelector('.refs-cat-name');
+    const st = getComputedStyle(et);
     return {
-      etichetta: q.querySelector('.refs-quicklink-lbl').textContent.trim(),
+      barra: !!document.querySelector('.refs-quicklink'),
       scuro: st.backgroundImage.includes('gradient'),
-      conteggio: getComputedStyle(q.querySelector('.refs-quicklink-count')).color,
+      pastiglia: parseFloat(st.borderRadius) >= 10,
     };
   });
-  ok('dice cosa fa, non "All"', /tutte le immagini/i.test(cima.etichetta), cima);
-  ok('ed e\' il nero-oro dei pulsanti principali', cima.scuro, cima);
+  ok('la barra "Tutte le immagini" non c\'e\' piu\'', !cima.barra, cima);
+  ok('e le categorie sono pastiglie nere', cima.scuro && cima.pastiglia, cima);
+
+  sezione('le immagini senza cartella restano raggiungibili');
+  // Toglierla senza rimpiazzarla avrebbe creato un buco: era "Tutte le
+  // immagini" l'unica strada verso le foto non ancora archiviate.
+  const senza = await page.evaluate(()=>{
+    const prima = !!document.querySelector('.refs-mono.mq');
+    const c = document.createElement('canvas'); c.width = 8; c.height = 8;
+    window.refs.getRefs().push({ id:'x1', url:c.toDataURL('image/png'), folderId:null, projectIds:[] });
+    window.refs.renderRefsScreen();
+    const riga = document.querySelector('.refs-mono.mq');
+    return { prima, dopo: !!riga,
+             testo: riga ? riga.closest('.refs-folder-row').textContent.trim() : null };
+  });
+  ok('senza orfane la riga non compare', !senza.prima, senza);
+  ok('con un\'orfana compare, e dice quante sono',
+     senza.dopo && /senza cartella/i.test(senza.testo) && /1/.test(senza.testo), senza);
+  await apri();
 
   sezione('ogni categoria ha il suo "+"');
   const piu = await page.evaluate(()=> Array.from(document.querySelectorAll('.refs-cat-row')).map(r=>({
@@ -259,6 +276,22 @@ module.exports = () => suite("References — artisti e menu contestuali", {"banc
     return !document.querySelector('.ink-action-menu');
   });
   ok('toccando altrove il menu se ne va', chiuso, chiuso);
+
+  sezione('e scorrendo il menu si toglie di mezzo');
+  // Il menu e' ancorato a un punto fisso dello schermo e non insegue la riga
+  // da cui e' uscito: restando aperto durante uno scorrimento finirebbe per
+  // puntare a una cartella diversa da quella scelta.
+  await apri();
+  const dopoScroll = await page.evaluate(async ()=>{
+    await window.refsFolderMenu('a1', document.querySelector('.refs-folder-menu'));
+    await new Promise(r=>setTimeout(r,200));
+    const prima = !!document.querySelector('.ink-action-menu');
+    document.querySelector('.refs-scroll').dispatchEvent(new Event('scroll', {bubbles:true}));
+    await new Promise(r=>setTimeout(r,150));
+    return { prima, dopo: !!document.querySelector('.ink-action-menu') };
+  });
+  ok('aperto prima dello scorrimento', dopoScroll.prima, dopoScroll);
+  ok('e chiuso dopo', !dopoScroll.dopo, dopoScroll);
 
   sezione('e scegliere una voce funziona ancora');
   const scelto = await page.evaluate(async ()=>{

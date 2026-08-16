@@ -242,14 +242,19 @@ export function actionMenu(anchorEl, actions){
   // NUOVO. E chi tocca dentro il menu viene lasciato passare, altrimenti la
   // voce sparirebbe da sotto il dito prima che il suo click arrivi.
   _fuoriMenu = (e)=>{
-    if(_actionMenuEl && _actionMenuEl.contains(e.target)) return;
+    // Uno scorrimento lo chiude sempre: il menu e' ancorato a un punto fisso
+    // dello schermo e non insegue l'elemento da cui e' uscito, quindi restando
+    // aperto si ritroverebbe a puntare a una riga diversa da quella scelta.
+    if(e.type !== 'scroll' && _actionMenuEl && _actionMenuEl.contains(e.target)) return;
     closeActionMenu();
   };
   // Il giro di ritardo resta: se il menu e' stato aperto DA un click (il "⋯"),
   // registrare subito significherebbe raccogliere il pointerdown di quello
   // stesso gesto nei browser che li riordinano.
   setTimeout(()=>{
-    if(_fuoriMenu) document.addEventListener('pointerdown', _fuoriMenu, true);
+    if(!_fuoriMenu) return;
+    document.addEventListener('pointerdown', _fuoriMenu, true);
+    document.addEventListener('scroll', _fuoriMenu, true);
   }, 0);
 }
 let _fuoriMenu = null;
@@ -264,6 +269,7 @@ export function closeActionMenu(){
   // per le idee: anche quelli delle cartelle in References.
   if(_fuoriMenu){
     document.removeEventListener('pointerdown', _fuoriMenu, true);
+    document.removeEventListener('scroll', _fuoriMenu, true);
     _fuoriMenu = null;
   }
   if(_actionMenuEl){ _actionMenuEl.remove(); _actionMenuEl=null; }

@@ -69,30 +69,25 @@
    disco d'oro con le iniziali a fare da appiglio all'occhio, e un solo blocco
    forte in cima. Meno inchiostro, piu' roba a schermo, e un carattere.
 
-   IL BLOCCO IN ALTO. Nero-sabbia e oro, come i pulsanti principali e la
-   modalita' sera: entrando l'occhio si appoggia li' e poi scende. Prima non
-   c'era nessun capo, e la pagina cominciava ovunque. */
-.refs-quicklink{
-  display:flex;align-items:center;gap:12px;cursor:pointer;
-  background:linear-gradient(135deg,#2a2018,#1a1410);
-  border-radius:14px;padding:13px 15px;margin-bottom:4px;
-  box-shadow:0 4px 16px rgba(26,20,16,.22);
-  transition:transform .1s;
-}
-.refs-quicklink:active{transform:scale(.99)}
-.refs-quicklink-ico{
-  width:30px;height:30px;border-radius:8px;flex-shrink:0;
-  display:flex;align-items:center;justify-content:center;
-  background:rgba(232,200,120,.14);color:var(--oro);
-}
-.refs-quicklink-lbl{flex:1;font-size:14.5px;font-weight:700;color:#f5ecd8}
-.refs-quicklink-count{font-size:13px;font-weight:800;color:var(--oro)}
+   IL NERO STA NEGLI OCCHIELLI. C'era un blocco "Tutte le immagini" in cima,
+   nero e oro, che dava alla pagina un capo da cui partire. La vista che apriva
+   pero' non serviva a niente — novantatre immagini di tre artisti diversi
+   mescolate non sono un elenco, sono un mucchio — e una barra grossa in cima
+   alla schermata per una scorciatoia che non si usa e' il peggio dei due
+   mondi. Il nero e' rimasto ed e' passato dove serve davvero: alle CATEGORIE,
+   che sono lo scheletro vero della pagina. Ora l'occhio scende di pastiglia in
+   pastiglia, e ogni pastiglia dice a chi appartengono le righe sotto. */
 
-/* L'occhiello della categoria: il nome, poi il pulsante, poi un capello che
-   tira fino al bordo. La riga cosi' non "finisce" con una parola sospesa a
-   meta' — e il filo la lega alle righe sotto, invece di lasciarla galleggiare. */
-.refs-cat-row{display:flex;align-items:baseline;gap:9px;margin:20px 4px 3px}
-.refs-cat-name{font-size:10.5px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:#9a8458}
+/* L'occhiello della categoria: pastiglia nera, un capello che tira fino al
+   bordo, il pulsante in fondo. Il filo lega la pastiglia alle righe sotto
+   invece di lasciarla galleggiare. */
+.refs-cat-row{display:flex;align-items:center;gap:10px;margin:22px 2px 6px}
+.refs-cat-name{
+  font-size:9.5px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;
+  background:linear-gradient(135deg,#2a2018,#1a1410);color:var(--oro);
+  border-radius:20px;padding:5px 12px;line-height:1;
+  box-shadow:0 2px 8px rgba(26,20,16,.18);
+}
 .refs-cat-rule{flex:1;height:1px;background:var(--sand2)}
 /* Il "+" della categoria: discreto quanto l'occhiello accanto a cui vive — non
    deve competere con le cartelle, che sono la cosa da guardare — ma con
@@ -158,6 +153,9 @@
 .refs-mono.m2{background:#a8763c;color:#fdf6e4}   /* ottone */
 .refs-mono.m3{background:#9a5a34;color:#fdf6e4}   /* rame */
 .refs-mono.m4{background:#6e4c2e;color:#fdf6e4}   /* bronzo */
+/* Il disco di "Senza cartella" non e' una cartella e non prende un metallo:
+   resta di carta, con dentro il glifo della griglia. */
+.refs-mono.mq{background:var(--sand2);color:#8a7248}
 .refs-folder-name{flex:1;min-width:0;font-size:14.5px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .refs-folder-count{font-size:12px;font-weight:600;color:var(--ink3)}
 .refs-folder-menu{background:none;border:none;color:var(--ink3);font-size:15px;line-height:1;padding:6px 2px 6px 6px;margin:-6px 0;cursor:pointer;flex-shrink:0}
