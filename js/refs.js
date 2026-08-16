@@ -1091,12 +1091,23 @@ const CLOUDINARY_FREE_BYTES = 25 * 1024 * 1024 * 1024;
 // sotto l'header): l'interfaccia References resta più pulita.
 function updateStorageIndicator(){
   const label = document.getElementById('rp-storage-label');
+  const liberi = document.getElementById('rp-storage-free');
   const fill = document.getElementById('rp-storage-fill');
   if(!label || !fill) return;
   const used = _refs.reduce((sum,r)=> sum + (typeof r.bytes==='number' ? r.bytes : 0), 0);
   const mb = used / (1024*1024);
   const pct = Math.min(100, (used / CLOUDINARY_FREE_BYTES) * 100);
-  label.textContent = '~' + (mb < 0.1 ? '<0.1' : mb.toFixed(1)) + ' MB su 25 GB';
+  // Due numeri agli estremi della riga. Quello che conta davvero e' il secondo
+  // — quanto ancora ci sta — ed e' anche il titolo della sezione: "spazio
+  // disponibile". I megabyte usati restano perche' senza di loro la barretta
+  // qui sotto non si sa a cosa si riferisca.
+  // Il circa e il minore non stanno insieme ("~<0.1 MB" si legge due volte per
+  // capirlo): sotto il decimo di mega si scrive solo il minore.
+  label.textContent = (mb < 0.1 ? '<0.1' : '~' + mb.toFixed(1)) + ' MB usati';
+  if(liberi){
+    const gb = Math.max(0, CLOUDINARY_FREE_BYTES - used) / (1024*1024*1024);
+    liberi.textContent = (gb >= 10 ? Math.round(gb) : gb.toFixed(1)) + ' GB liberi';
+  }
   fill.style.width = Math.max(pct, used>0 ? 0.3 : 0) + '%';
   fill.classList.toggle('warn', pct > 80);
 }

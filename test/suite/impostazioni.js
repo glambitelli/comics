@@ -134,4 +134,67 @@ module.exports = () => suite("Impostazioni — il pannello dice solo quello che 
      !dopoX.pannello && dopoX.barra !== 'none', dopoX);
   ok('e non lascia il pannello nella cronologia', dopoX.stato !== 'settings', dopoX);
 
+  sezione('le Statistiche sono uscite dalla barra e stanno qui');
+  // La barra in fondo e' passata a cinque tondi con la casa al centro, e le
+  // statistiche — che si guardano ogni tanto, non ogni giorno — hanno lasciato
+  // il posto. Se il pannello non le portasse da nessuna parte, sarebbero
+  // semplicemente sparite dall'app.
+  await apri();
+  const voce = await page.evaluate(()=>{
+    const b = document.querySelector('.settings-vai');
+    const r = b ? b.getBoundingClientRect() : null;
+    return { c1e: !!b, testo: b ? b.textContent.trim() : null,
+             alto: r ? Math.round(r.height) : 0,
+             primo: !!(b && b.closest('.settings-body').firstElementChild.contains(b)) };
+  });
+  ok('nel pannello c\'e\' la voce Statistiche',
+     voce.c1e && /statistiche/i.test(voce.testo||''), voce);
+  ok('sta in cima, prima di tutto il resto', voce.primo, voce);
+  ok('ed e\' alta abbastanza da premerla', voce.alto >= 44, voce);
+
+  const andata = await page.evaluate(async ()=>{
+    document.querySelector('.settings-vai').dispatchEvent(new MouseEvent('click',{bubbles:true}));
+    await new Promise(r=>setTimeout(r,600));
+    return {
+      stats: document.getElementById('screen-stats').classList.contains('active'),
+      pannello: document.getElementById('settings-panel').classList.contains('open'),
+      barra: getComputedStyle(document.getElementById('dune-nav')).display,
+    };
+  });
+  ok('toccandola si aprono le statistiche', andata.stats, andata);
+  ok('e il pannello si chiude dietro di se\'', !andata.pannello, andata);
+  ok('con la barra in fondo che torna al suo posto', andata.barra !== 'none', andata);
+
+  // Le statistiche PRENDONO IL POSTO del pannello nella cronologia: Indietro
+  // deve riportare alla home, non riaprire un pannello che si e' appena
+  // chiuso — sarebbe un giro a vuoto.
+  const indietro = await page.evaluate(async ()=>{
+    history.back();
+    await new Promise(r=>setTimeout(r,700));
+    return { home: document.getElementById('screen-home').classList.contains('active'),
+             pannello: document.getElementById('settings-panel').classList.contains('open'),
+             stats: document.getElementById('screen-stats').classList.contains('active') };
+  });
+  ok('e Indietro riporta alla home', indietro.home && !indietro.stats, indietro);
+  ok('senza far riapparire le impostazioni', !indietro.pannello, indietro);
+
+  sezione('e in fondo restano cinque tondi, con la casa al centro');
+  const barra = await page.evaluate(()=>{
+    const items = document.querySelector('.dune-nav-items').getBoundingClientRect();
+    const bt = Array.from(document.querySelectorAll('.dune-nav-items .dune-btn'));
+    const casa = document.querySelector('.dune-btn-home').getBoundingClientRect();
+    return {
+      quanti: bt.length,
+      etichette: bt.map(b=> b.getAttribute('aria-label')),
+      scarto: Math.abs((casa.left + casa.width/2) - (items.left + items.width/2)),
+      chiara: getComputedStyle(document.querySelector('.dune-btn-home')).backgroundColor,
+    };
+  });
+  ok('i tondi sono cinque', barra.quanti === 5, barra);
+  ok('e le statistiche non sono piu\' fra loro',
+     !barra.etichette.includes('Statistiche'), barra.etichette);
+  ok('la casa e\' quella di sempre, chiara come le altre',
+     barra.chiara === 'rgb(255, 251, 242)', barra);
+  ok('e cade sul centro della barra', barra.scarto < 6, barra);
+
 });

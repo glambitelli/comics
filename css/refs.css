@@ -422,7 +422,12 @@ body.is-touch .refs-lightbox-nav{display:none}
    il bordo e copriva l'ultima riga, che e' esattamente il difetto per cui i
    pulsanti flottanti costano cari su una schermata piena. Adesso e' un tondo
    della barra, accanto alla ricerca, dove prima stava "Nuova categoria". */
-.refs-profile{position:relative;z-index:60;flex-shrink:0;line-height:0}
+/* Niente line-height:0 qui, per quanto comodo sembri per togliere lo spazio
+   sotto il bottone: il pannello e' figlio di questo gruppo, e quello zero si
+   ereditava fin dentro le sue righe di testo — etichetta e cifre dello spazio
+   finivano una sopra l'altra. Il tondo e' un figlio flex, e da flex lo spazio
+   fantasma non c'e' comunque. */
+.refs-profile{position:relative;z-index:60;flex-shrink:0;display:flex}
 .refs-profile-btn{
   position:relative;z-index:2;width:34px;height:34px;border-radius:50%;cursor:pointer;
   display:flex;align-items:center;justify-content:center;
@@ -489,7 +494,17 @@ body.is-touch .refs-lightbox-nav{display:none}
 .rp-btn-primary:active{background:#c0e8f8}
 .rp-btn-ghost{background:transparent;border:1px solid var(--sand3);color:var(--ink2)}
 .rp-btn-ghost:active{background:var(--sand)}
-.rp-storage-line{display:flex;justify-content:space-between;font-size:12px;font-weight:700;color:var(--ink2);margin-bottom:7px}
+/* Due cifre alle estremita' della riga — quanto si e' usato, quanto resta —
+   invece di una stringa sola ("~20.0 MB su 25 GB") appoggiata a sinistra: la
+   riga sta larga quanto il pannello e con un valore solo sembrava monca.
+   line-height esplicito perche' e' testo, e il testo deve avere la sua altezza
+   qualunque cosa provi a ereditare da sopra. */
+.rp-storage-line{
+  display:flex;justify-content:space-between;align-items:baseline;gap:10px;
+  font-size:12.5px;font-weight:700;color:var(--ink2);line-height:1.4;
+  margin-bottom:9px;
+}
+.rp-storage-free{font-weight:600;color:var(--ink3)}
 .rp-storage-track{height:5px;background:var(--sand2);border-radius:3px;overflow:hidden}
 .rp-storage-fill{height:100%;background:linear-gradient(90deg,#e0a810,#f0c020);border-radius:3px;transition:width .3s}
 .rp-storage-fill.warn{background:linear-gradient(90deg,#c85838,#e07838)}

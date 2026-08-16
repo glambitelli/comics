@@ -71,6 +71,20 @@ body.is-touch .settings-panel{ padding-bottom:var(--safe-bot); }
   padding:13px 14px;box-shadow:0 2px 8px rgba(40,30,15,.05);
 }
 
+/* Una scheda che e' tutta un pulsante: si tocca e si va da un'altra parte
+   (le Statistiche). Ha il vestito di .settings-card — stesso foglio, stesso
+   bordo — piu' la freccia in coda, che e' il segno che qui non si accende
+   niente: si esce. */
+.settings-vai{
+  display:flex;align-items:center;gap:12px;width:100%;
+  background:var(--white);border:1.5px solid var(--sand2);border-radius:14px;
+  padding:13px 14px;box-shadow:0 2px 8px rgba(40,30,15,.05);
+  font-family:'Nunito',sans-serif;text-align:left;cursor:pointer;
+  transition:background .15s;
+}
+.settings-vai:active{background:var(--sand)}
+.settings-chev{font-size:19px;font-weight:700;color:var(--sand3);line-height:1;flex-shrink:0}
+
 /* Riga: icona · voce (+ didascalia) · controllo */
 .settings-row{display:flex;align-items:center;gap:12px}
 .settings-row + .settings-row{margin-top:12px}

@@ -217,6 +217,21 @@ function toggleEvening(){
   }
 }
 window.openStats=openStats;
+// Dalle Impostazioni alle Statistiche (le statistiche sono uscite dalla barra
+// in fondo). Il pannello si chiude a mano con closeSettingsUI e NON con
+// closeSettings: quella passa dalla cronologia (history.back), e il ritorno
+// arriva dopo — cioe' a schermata Statistiche gia' aperta, che si porterebbe
+// via. Il posto in cronologia del pannello viene RIUSATO dalle statistiche,
+// cosi' Indietro da li' torna alla home invece di riaprire un pannello che
+// non c'e' piu'.
+window.vaiAStatistiche=()=>{
+  closeSettingsUI();
+  const s = history.state;
+  if(s && s.view === 'settings'){
+    try{ history.replaceState({ view:'stats', id:null, depth:s.depth }, ''); }catch(e){}
+  }
+  openStats();   // navPush vede che lo stato e' gia' 'stats' e non ne aggiunge
+};
 window.closeStats=closeStats;
 window.toggleSettings=toggleSettings;
 
