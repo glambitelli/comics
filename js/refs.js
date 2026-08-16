@@ -1127,7 +1127,6 @@ function renderAlbumsShelf(){
 // piu' ("aggiungi qui dentro"), il secondo delle RIGHE IMPILATE col piu'
 // ("aggiungi un raggruppamento"), e il secondo sta anche staccato dall'elenco.
 const CARTELLA_PIU = `<svg viewBox="0 0 24 24" width="16" height="16"><path d="M3.5 6.8A1.3 1.3 0 0 1 4.8 5.5h4.4l1.8 1.8h7.2a1.3 1.3 0 0 1 1.3 1.3v8.6a1.3 1.3 0 0 1-1.3 1.3H4.8a1.3 1.3 0 0 1-1.3-1.3Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M12 11v5M9.5 13.5h5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>`;
-const CATEGORIA_PIU = `<svg viewBox="0 0 24 24" width="15" height="15"><path d="M4 7h16M4 12h16M4 17h9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M17.5 15.5v5M15 18h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>`;
 const GRIGLIA_ICON = `<svg viewBox="0 0 24 24" width="16" height="16"><rect x="4" y="4" width="7" height="7" rx="1.4" fill="none" stroke="currentColor" stroke-width="1.7"/><rect x="13" y="4" width="7" height="7" rx="1.4" fill="none" stroke="currentColor" stroke-width="1.7"/><rect x="4" y="13" width="7" height="7" rx="1.4" fill="none" stroke="currentColor" stroke-width="1.7"/><rect x="13" y="13" width="7" height="7" rx="1.4" fill="none" stroke="currentColor" stroke-width="1.7"/></svg>`;
 
 // Le due lettere del disco d'oro. Si prendono dal cognome quando c'e' — e'
@@ -1138,6 +1137,18 @@ const GRIGLIA_ICON = `<svg viewBox="0 0 24 24" width="16" height="16"><rect x="4
 function sigla(f){
   const base = (f.cognome || f.name || '?').trim();
   return base.slice(0, 2).toUpperCase();
+}
+
+// Quale dei cinque metalli tocca a questa cartella (vedi .refs-mono nel CSS).
+// Si conta sull'ID e non sulla posizione nell'elenco: l'ID non cambia mai,
+// quindi il colore di una cartella e' suo per sempre — ed e' esattamente
+// questo che permette di riconoscerla senza leggerla. Legandolo alla posizione
+// sarebbe bastato aggiungere un artista in cima per ricolorare tutto sotto.
+function metalloDi(f){
+  const s = String(f.id || f.name || '');
+  let h = 0;
+  for(let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 100000;
+  return h % 5;
 }
 
 // Come si scrive il nome di una cartella nell'elenco. Un artista si compone di
@@ -1196,7 +1207,7 @@ function renderFolderBrowser(){
     </div>`;
     visible.forEach(f=>{
       html += `<div class="refs-folder-row" onclick="window.openFolder('${f.id}')">
-        <span class="refs-mono">${esc(sigla(f))}</span>
+        <span class="refs-mono m${metalloDi(f)}">${esc(sigla(f))}</span>
         <span class="refs-folder-name">${etichettaCartella(f)}</span>
         <span class="refs-folder-count">${countInFolder(f.id)}</span>
         <button class="refs-folder-menu" onclick="event.stopPropagation();window.refsFolderMenu('${f.id}',this)" aria-label="Altro">⋯</button>
@@ -1208,12 +1219,10 @@ function renderFolderBrowser(){
     html += `<div class="refs-folders-empty">Nessuna cartella corrisponde a "${esc(_folderQuery.trim())}".</div>`;
   }
 
-  // In fondo resta solo la categoria: le cartelle si aggiungono dal "+" della
-  // loro categoria, qui sotto ci sarebbero state due volte.
-  html += `<button class="refs-new-folder-row" onclick="window.promptNewFolder()">
-    <span class="refs-new-folder-ico">${CATEGORIA_PIU}</span>
-    <span>Nuova categoria</span>
-  </button>`;
+  // Sotto l'ultima cartella non c'e' piu' niente. "Nuova categoria" e' salita
+  // nella barra della ricerca (vedi index.html): in fondo all'elenco sembrava
+  // una cartella come le altre, e per giunta era l'unica riga che non portava
+  // da nessuna parte.
 
   // Confronto sul contenuto vero: una firma "furba" (es. la lunghezza) manca
   // i casi in cui cambia il testo ma non la misura, tipo una cartella

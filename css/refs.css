@@ -135,37 +135,34 @@
   transition:background .12s;
 }
 .refs-folder-row:active{background:rgba(255,255,255,.55)}
-/* IL DISCO D'ORO con le iniziali. E' l'appiglio: scorrendo l'elenco si trova
-   la riga dal disco, non leggendo. L'oro e' quello del task di stasera
-   (#e2b62c, vedi .microtask-box) e l'inchiostro sopra e' quello scuro dello
-   stesso riquadro — non un colore nuovo inventato per questa schermata.
-   Un tempo qui c'era un colore diverso per cartella: piu' riconoscibile, ma
-   erano cinque tinte fredde in mezzo a una palette calda e stonavano. */
+/* IL DISCO con le iniziali. E' l'appiglio: scorrendo l'elenco si trova la riga
+   dal disco, non leggendo — quindi il colore deve CAMBIARE da una cartella
+   all'altra, altrimenti fa da decorazione e basta.
+   
+   Cinque metalli caldi, tutti gia' nella palette (vedi variables.css): l'oro
+   del task di stasera, l'oro sabbia, l'ottone, il rame, il bronzo. La prima
+   versione ne usava cinque tinte fredde — blu, verde, grigio-azzurro — e in
+   mezzo a una schermata di sabbia e ottone erano cinque macchie estranee.
+   
+   Quale tocchi a chi lo decide l'ID della cartella (vedi metalloDi in
+   refs.js), non la sua posizione: un artista aggiunto in cima non deve
+   ricolorare tutto l'elenco sotto di se'. Il colore di una cartella e' suo per
+   sempre, ed e' questo che lo rende riconoscibile. */
 .refs-mono{
   width:36px;height:36px;border-radius:50%;flex-shrink:0;
   display:flex;align-items:center;justify-content:center;
-  background:#e2b62c;color:#2a2412;
   font-size:12.5px;font-weight:800;letter-spacing:.03em;line-height:1;
 }
+.refs-mono.m0{background:#e2b62c;color:#2a2412}   /* oro */
+.refs-mono.m1{background:#c2a869;color:#2a2412}   /* oro sabbia */
+.refs-mono.m2{background:#a8763c;color:#fdf6e4}   /* ottone */
+.refs-mono.m3{background:#9a5a34;color:#fdf6e4}   /* rame */
+.refs-mono.m4{background:#6e4c2e;color:#fdf6e4}   /* bronzo */
 .refs-folder-name{flex:1;min-width:0;font-size:14.5px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .refs-folder-count{font-size:12px;font-weight:600;color:var(--ink3)}
 .refs-folder-menu{background:none;border:none;color:var(--ink3);font-size:15px;line-height:1;padding:6px 2px 6px 6px;margin:-6px 0;cursor:pointer;flex-shrink:0}
 
 .refs-folders-empty{font-size:12.5px;color:var(--ink3);line-height:1.6;padding:10px 4px 4px}
-/* "Nuova categoria" non e' una cartella e non deve sembrarlo: centrata, col
-   bordo tratteggiato, staccata dall'elenco. Prima era un riquadro identico
-   alle cartelle con dentro lo stesso "+" del pulsante di categoria, e le due
-   azioni si scambiavano di posto nella testa di chi guardava. */
-.refs-new-folder-row{
-  display:flex;align-items:center;justify-content:center;gap:9px;width:100%;
-  background:none;border:1.5px dashed var(--sand3);border-radius:12px;
-  margin-top:22px;padding:12px;
-  font-family:'Nunito',sans-serif;font-size:12.5px;font-weight:700;color:#a8925c;
-  cursor:pointer;transition:background .15s,border-color .15s;
-}
-.refs-new-folder-row:active{background:var(--sand);border-color:var(--ottone)}
-.refs-new-folder-ico{display:flex;align-items:center;justify-content:center;color:#c8b090;flex-shrink:0;line-height:0}
-.refs-new-folder-ico svg{width:100%;height:100%;display:block}
 
 .refs-drop-hint{display:flex;align-items:center;gap:9px;background:#fdf6e4;border:1.5px dashed #d8c090;border-radius:12px;padding:10px 14px;font-size:12px;color:#a8925c;margin-bottom:14px;line-height:1.4}
 .refs-drop-hint strong{color:#8a6a30}

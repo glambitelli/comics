@@ -188,6 +188,11 @@ export function actionMenu(anchorEl, actions){
   // Le voci distruttive si staccano dalle altre con un filo, invece di essere
   // una riga uguale alle altre col testo rosso: "Elimina" e "Rinomina" non
   // sono due scelte dello stesso peso, e messe in fila lo sembravano.
+  // Fuori schermo finche' non si sa dove va: l'altezza si puo' misurare solo
+  // dopo averlo messo nel documento, e un menu appoggiato per un fotogramma in
+  // fondo alla pagina prima di saltare al suo posto e' l'altra meta' del
+  // lampeggio.
+  _actionMenuEl.style.top = '-9999px';
   _actionMenuEl.innerHTML = actions.map((a,i)=>{
     const ico = a.icon && ICONE[a.icon]
       ? `<svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true">${ICONE[a.icon]}</svg>`
@@ -223,10 +228,31 @@ export function actionMenu(anchorEl, actions){
   _actionMenuEl.querySelectorAll('button').forEach(btn=>{
     btn.onclick = (e)=>{ e.stopPropagation(); closeActionMenu(); actions[+btn.dataset.i].onSelect(); };
   });
-  // Un click fuori dal menu lo chiude. Il ritardo di un giro serve a non farlo
-  // chiudere dal click stesso che l'ha aperto.
-  setTimeout(()=> document.addEventListener('click', closeActionMenu), 0);
+  // SI CHIUDE AL POINTERDOWN FUORI, NON AL CLICK.
+  //
+  // Il difetto era visibile e assurdo: aprendo il menu col tocco prolungato su
+  // un ritaglio, il menu appariva e spariva subito — "lampeggia". Il motivo:
+  // il menu nasce mentre il dito e' ANCORA GIU' (il tocco prolungato scatta a
+  // 480ms), e quando il dito si stacca il browser manda comunque un click, che
+  // il menu interpretava come "hai toccato fuori" e si chiudeva da solo. Il
+  // gesto che apriva il menu era anche quello che lo chiudeva.
+  //
+  // Col pointerdown il problema non esiste: la pressione che ha aperto il menu
+  // e' gia' avvenuta, quindi il prossimo pointerdown e' per forza un tocco
+  // NUOVO. E chi tocca dentro il menu viene lasciato passare, altrimenti la
+  // voce sparirebbe da sotto il dito prima che il suo click arrivi.
+  _fuoriMenu = (e)=>{
+    if(_actionMenuEl && _actionMenuEl.contains(e.target)) return;
+    closeActionMenu();
+  };
+  // Il giro di ritardo resta: se il menu e' stato aperto DA un click (il "⋯"),
+  // registrare subito significherebbe raccogliere il pointerdown di quello
+  // stesso gesto nei browser che li riordinano.
+  setTimeout(()=>{
+    if(_fuoriMenu) document.addEventListener('pointerdown', _fuoriMenu, true);
+  }, 0);
 }
+let _fuoriMenu = null;
 export function closeActionMenu(){
   // L'ascoltatore va tolto SEMPRE, anche quando il menu si chiude scegliendo
   // una voce. Prima era registrato con {once:true} e basta: scegliendo una
@@ -236,6 +262,9 @@ export function closeActionMenu(){
   // quell'ascoltatore vecchio, che finalmente scattava — un "⋯" che non
   // risponde, apparentemente a caso. Vale per tutti i menu dell'app, non solo
   // per le idee: anche quelli delle cartelle in References.
-  document.removeEventListener('click', closeActionMenu);
+  if(_fuoriMenu){
+    document.removeEventListener('pointerdown', _fuoriMenu, true);
+    _fuoriMenu = null;
+  }
   if(_actionMenuEl){ _actionMenuEl.remove(); _actionMenuEl=null; }
 }

@@ -79,8 +79,10 @@ module.exports = () => suite("References — artisti e menu contestuali", {"banc
      dischi.find(d=>/otomo/i.test(d.nome)).sigla === 'OT', dischi);
   ok('e da chi un cognome non ce l\'ha, dal nome',
      dischi.find(d=>/hands/i.test(d.nome)).sigla === 'HA', dischi);
-  ok('sono tutti dello stesso oro, non cinque tinte diverse',
-     new Set(dischi.map(d=>d.sfondo)).size === 1, dischi.map(d=>d.sfondo));
+  // Il colore deve CAMBIARE: e' l'appiglio per riconoscere la riga senza
+  // leggerla. Tutti uguali sarebbe decorazione.
+  ok('i dischi non sono tutti dello stesso colore',
+     new Set(dischi.map(d=>d.sfondo)).size > 1, dischi.map(d=>d.sfondo));
   ok('le righe non sono piu\' schede col bordo',
      dischi.every(d=> d.bordi.startsWith('0px')), dischi.map(d=>d.bordi));
 
@@ -107,17 +109,20 @@ module.exports = () => suite("References — artisti e menu contestuali", {"banc
   ok('sotto Artists dice "artista", non "cartella"',
      /artista/i.test(piu.find(p=>p.categoria==='ARTISTS'||p.categoria==='Artists').etichetta||''), piu);
   const fondo = await page.evaluate(()=>{
-    const b = document.querySelector('.refs-new-folder-row');
-    const st = getComputedStyle(b);
-    // I due glifi devono essere DIVERSI: e' tutto il punto della modifica.
+    const barra = document.getElementById('refs-folder-toolbar');
+    const nuova = barra ? barra.querySelector('button[aria-label="Nuova categoria"]') : null;
+    // I due glifi devono restare DIVERSI: sono le due azioni che si
+    // scambiavano di posto nella testa di chi guardava.
     const gCat = document.querySelector('.refs-cat-add svg').innerHTML;
-    const gNuova = b.querySelector('svg').innerHTML;
-    return { testo: b.textContent.trim(), tratteggio: st.borderTopStyle,
-             uguali: gCat === gNuova };
+    return {
+      rigaInFondo: !!document.querySelector('.refs-new-folder-row'),
+      nellaBarra: !!nuova,
+      uguali: nuova ? gCat === nuova.querySelector('svg').innerHTML : null,
+    };
   });
-  ok('in fondo resta solo "Nuova categoria"', /categoria/i.test(fondo.testo), fondo);
-  ok('col bordo tratteggiato, staccata dalle cartelle', fondo.tratteggio === 'dashed', fondo);
-  ok('e con un\'icona DIVERSA da quella del "+" di categoria', !fondo.uguali, fondo);
+  ok('sotto l\'ultima cartella non c\'e\' piu\' niente', !fondo.rigaInFondo, fondo);
+  ok('"Nuova categoria" e\' salita nella barra della ricerca', fondo.nellaBarra, fondo);
+  ok('e ha un\'icona DIVERSA da quella del "+" di categoria', fondo.uguali === false, fondo);
 
   sezione('il modulo di un artista chiede due campi');
   // Niente `await` sulla promessa che torna: il modale resta aperto in attesa
@@ -218,5 +223,59 @@ module.exports = () => suite("References — artisti e menu contestuali", {"banc
      vociImg.voci.every(v=> !v.includes('…')), vociImg.voci);
   ok('la piu\' lunga sta sotto i venti caratteri', vociImg.lunga <= 20, vociImg);
   ok('e ognuna ha la sua icona', vociImg.icone.every(Boolean), vociImg);
+
+  sezione('il menu aperto col tocco prolungato non lampeggia');
+  // Il difetto: il menu nasceva mentre il dito era ancora giu' (480ms di
+  // pressione), e il click che il browser manda al distacco veniva letto come
+  // "toccato fuori" — il gesto che apriva il menu era anche quello che lo
+  // chiudeva. Qui si riproduce il gesto INTERO, rilascio compreso.
+  await page.evaluate(()=>{ window.semina(2,1); window.refs.openFolder('F1'); });
+  await page.waitForTimeout(300);
+  const sopravvive = await page.evaluate(async ()=>{
+    const el = document.querySelector('.refs-thumb');
+    const r = el.getBoundingClientRect();
+    const x = r.left + r.width/2, y = r.top + r.height/2;
+    const t = ()=> [new Touch({identifier:1, target:el, clientX:x, clientY:y})];
+    el.dispatchEvent(new PointerEvent('pointerdown',{pointerId:1,clientX:x,clientY:y,bubbles:true}));
+    el.dispatchEvent(new TouchEvent('touchstart',{bubbles:true,touches:t(),targetTouches:t()}));
+    await new Promise(r=>setTimeout(r,600));            // il tocco prolungato scatta
+    const apertoDurante = !!document.querySelector('.ink-action-menu');
+    // Il dito si stacca: touchend, pointerup e il click che ne consegue.
+    el.dispatchEvent(new TouchEvent('touchend',{bubbles:true,touches:[],targetTouches:[]}));
+    el.dispatchEvent(new PointerEvent('pointerup',{pointerId:1,clientX:x,clientY:y,bubbles:true}));
+    el.dispatchEvent(new MouseEvent('click',{bubbles:true,clientX:x,clientY:y}));
+    await new Promise(r=>setTimeout(r,200));
+    return { apertoDurante, apertoDopo: !!document.querySelector('.ink-action-menu'),
+             lightbox: document.getElementById('refs-lightbox').classList.contains('open') };
+  });
+  ok('il menu compare tenendo premuto', sopravvive.apertoDurante, sopravvive);
+  ok('e RESTA aperto quando il dito si stacca', sopravvive.apertoDopo, sopravvive);
+  ok('senza aprire anche l\'immagine sotto', !sopravvive.lightbox, sopravvive);
+
+  sezione('ma un tocco vero fuori lo chiude');
+  const chiuso = await page.evaluate(async ()=>{
+    document.body.dispatchEvent(new PointerEvent('pointerdown',{pointerId:2,clientX:5,clientY:5,bubbles:true}));
+    await new Promise(r=>setTimeout(r,150));
+    return !document.querySelector('.ink-action-menu');
+  });
+  ok('toccando altrove il menu se ne va', chiuso, chiuso);
+
+  sezione('e scegliere una voce funziona ancora');
+  const scelto = await page.evaluate(async ()=>{
+    await window.refsImageMenu(document.querySelector('.refs-thumb'), 'r0');
+    await new Promise(r=>setTimeout(r,200));
+    const b = Array.from(document.querySelectorAll('.ink-action-menu button'))
+      .find(x=>/come tavola/i.test(x.textContent));
+    window.__scritture = [];
+    // Il dito preme SULLA voce: il pointerdown dentro il menu non deve
+    // smontarlo prima che il click arrivi.
+    b.dispatchEvent(new PointerEvent('pointerdown',{pointerId:3,bubbles:true}));
+    b.dispatchEvent(new MouseEvent('click',{bubbles:true}));
+    await new Promise(r=>setTimeout(r,200));
+    return { chiuso: !document.querySelector('.ink-action-menu'),
+             scritto: (window.__scritture||[]).some(s=>s.id === 'r0') };
+  });
+  ok('la voce si preme e il menu si chiude', scelto.chiuso, scelto);
+  ok('e l\'azione parte davvero', scelto.scritto, scelto);
 
 });
