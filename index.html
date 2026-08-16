@@ -875,18 +875,22 @@
     <filter id="dune-sand-coarse"><feTurbulence type="fractalNoise" baseFrequency="0.7" numOctaves="3" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/><feComponentTransfer><feFuncA type="linear" slope="1.4"/></feComponentTransfer></filter>
     <filter id="dune-sand-fine"><feTurbulence type="fractalNoise" baseFrequency="1.4" numOctaves="4" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/><feComponentTransfer><feFuncA type="linear" slope="1.1"/></feComponentTransfer></filter>
   </svg>
+  <!-- CINQUE TONDI, E LA CASA AL CENTRO ESATTO.
+       Erano sei e la casa stava terza: con un numero pari non esiste un
+       centro, e il tasto per tornare a casa — che e' quello che si preme piu'
+       spesso — sembrava uno dei tanti. Cinque hanno un centro vero, ed e' suo:
+       due a sinistra (statistiche, archivio), due a destra (idee,
+       impostazioni). La luna esce dalla barra e torna il disco scuro in basso
+       a destra nella home (vedi #btn-evening), dove la sera si va comunque per
+       chiudere la giornata. -->
   <div class="dune-nav-items">
-    <button class="dune-btn dune-btn-moon" onclick="toggleEvening()" aria-label="Modalità sera" id="dune-moon-btn">
-      <svg class="dune-moon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2a10 10 0 1 0 7.5 16.6A8 8 0 0 1 13 2Z" fill="#f0c068"/></svg>
-      <span class="dune-sun-glyph">✷</span>
-    </button>
+    <button class="dune-btn dune-btn-light" onclick="openStats()" aria-label="Statistiche"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="20" x2="6" y2="13"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="18" y1="20" x2="18" y2="9"/></svg></button>
     <button class="dune-btn dune-btn-light" onclick="openRefsScreen()" aria-label="References">
       <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><rect x="3" y="4" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="8" cy="9.5" r="1.6" fill="currentColor"/><path d="M4 16 L9 11 L13 15 L16 12 L20 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </button>
-    <button class="dune-btn dune-btn-light dune-btn-home" onclick="goHome()" aria-label="Home">
+    <button class="dune-btn dune-btn-home" onclick="goHome()" aria-label="Home">
       <svg class="dune-home-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3L2 11h2.3v9a1 1 0 0 0 1 1H10v-6h4v6h4.7a1 1 0 0 0 1-1v-9H22L12 3Z" fill="currentColor"/></svg>
     </button>
-    <button class="dune-btn dune-btn-light" onclick="openStats()" aria-label="Statistiche"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="20" x2="6" y2="13"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="18" y1="20" x2="18" y2="9"/></svg></button>
     <button class="dune-btn dune-btn-light" onclick="openIdee()" aria-label="Idee" title="Idee">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2Z"/></svg>
     </button>
