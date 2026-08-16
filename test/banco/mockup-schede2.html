@@ -1,0 +1,108 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8">
+<title>mockup — schede, seconda tornata</title>
+<link rel="stylesheet" href="/css/variables.css">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Castoro:ital@0;1&display=swap');
+  body{margin:0;background:#efe6d4;font-family:'Nunito',sans-serif;padding:12px 0 30px}
+  .tit{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#8a7248;
+       margin:24px 14px 4px;display:flex;align-items:center;gap:8px}
+  .tit span{background:#f5ecd8;border:1px solid #e0d4b4;border-radius:20px;padding:3px 10px}
+  .tit i{flex:1;height:1.5px;background:#dccca0;font-style:normal}
+  .nota{font-size:11.5px;color:#8a7248;margin:0 18px 8px;line-height:1.45}
+
+  .quadro{background:var(--sand);overflow:hidden}
+  .cerca{display:flex;align-items:center;gap:8px;padding:10px 16px 12px;background:var(--sand);
+         border-bottom:1px solid #e8dcc0}
+  .campo{flex:1;height:34px;background:var(--white);border:1.5px solid var(--sand2);border-radius:20px}
+  .nuvola{width:34px;height:34px;border-radius:50%;background:var(--white);border:1.5px solid var(--sand2)}
+  .sotto{background:#efe6d4;padding:14px}
+  .carta{position:relative;background:var(--white);border:1.5px solid var(--sand2);border-radius:18px;
+         overflow:hidden;box-shadow:0 2px 10px rgba(74,184,216,.08)}
+  .carta::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;
+                 background:linear-gradient(90deg,var(--sand3),var(--gold),var(--sand3))}
+  .riga{display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--sand)}
+  .riga:last-child{border-bottom:none}
+  .disco{width:36px;height:36px;border-radius:50%;background:#e2b62c;color:#2a2412;font-size:12.5px;
+         font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .nome{flex:1;font-size:14.5px;font-weight:700;color:var(--ink)}
+  .chev{color:var(--sand3);font-size:17px;font-weight:700}
+  button{font-family:inherit;cursor:pointer}
+
+  /* ── E · linguette ALTE col filo d'oro ── */
+  .e{display:flex;gap:8px;padding:12px 14px 0;background:var(--sand)}
+  .e button{flex:1;height:52px;background:#e6dcc4;border:1.5px solid #dccdae;border-bottom:none;
+            border-radius:16px 16px 0 0;font-size:14.5px;font-weight:700;color:#8a7248;position:relative}
+  .e .on{background:#efe6d4;border-color:#e2d5b6;color:var(--ink);height:58px;margin-bottom:-1px}
+  .e .on::before{content:'';position:absolute;top:0;left:14px;right:14px;height:3px;border-radius:2px;
+                 background:linear-gradient(90deg,var(--sand3),var(--gold),var(--sand3))}
+
+  /* ── F · la scheda sporge dallo schedario ── */
+  .f{display:flex;align-items:flex-end;gap:0;padding:14px 14px 0;background:var(--sand)}
+  .f button{flex:1;background:#e6dcc4;border:1.5px solid #dccdae;border-bottom:none;
+            font-size:14px;font-weight:700;color:#8a7248;height:42px;
+            border-radius:0 18px 0 0}
+  .f button:first-child{border-radius:18px 0 0 0}
+  .f .on{background:#efe6d4;border-color:#e2d5b6;color:var(--ink);height:60px;
+         box-shadow:0 -3px 10px rgba(40,30,15,.07);margin-bottom:-1px;font-size:15px}
+
+  /* ── G · fascia d'inchiostro e linguetta di carta ── */
+  .g{background:linear-gradient(135deg,#2a2018,#1a1410);padding:10px 12px 0;display:flex;gap:8px}
+  .g button{flex:1;height:46px;background:none;border:none;color:rgba(240,224,180,.65);
+            font-size:14.5px;font-weight:700;border-radius:14px 14px 0 0}
+  .g .on{background:#efe6d4;color:var(--ink);box-shadow:0 -2px 10px rgba(0,0,0,.25)}
+
+  /* ── H · due titoli e un rigo disegnato ── */
+  .h{display:flex;align-items:flex-end;gap:18px;padding:14px 18px 0;background:var(--sand)}
+  .h button{background:none;border:none;padding:0 2px 10px;font-family:'Castoro',serif;
+            font-size:19px;font-weight:400;color:#b6a274;position:relative;letter-spacing:.01em}
+  .h .on{color:var(--ink)}
+  .h .on::after{content:'';position:absolute;left:0;right:0;bottom:2px;height:6px;
+    background:radial-gradient(ellipse at 50% 0,rgba(226,182,44,.85) 0 60%,rgba(226,182,44,0) 70%);
+    border-radius:3px;}
+  .h .cresci{flex:1;height:1.5px;background:#dccca0;margin-bottom:14px}
+  .h-filo{height:1.5px;background:#dccca0;margin:0 0 0}
+
+  /* ── I · schedario vero: linguetta + costola cucita ── */
+  .i{display:flex;gap:10px;padding:12px 14px 0;background:var(--sand)}
+  .i button{flex:1;height:54px;background:#e9dfc8;border:1.5px solid #dccdae;border-bottom:none;
+            border-radius:16px 16px 0 0;font-size:14px;font-weight:700;color:#8a7248;position:relative}
+  .i .on{background:#efe6d4;border-color:#cdb98c;color:var(--ink)}
+  /* filo cucito: due righine dentro il bordo, come una cucitura sul cartoncino */
+  .i .on::before{content:'';position:absolute;inset:5px 8px auto;height:0;
+                 border-top:1px dashed rgba(160,120,40,.55)}
+  .i .on::after{content:'';position:absolute;left:50%;transform:translateX(-50%);bottom:6px;
+                width:26px;height:3px;border-radius:2px;background:var(--gold)}
+</style>
+</head><body>
+<div id="qui"></div>
+<script>
+const ELENCO = `<div class="sotto"><div class="carta">
+  ${[['KO','KON'],['OT','OTOMO Katsuhiro']].map(([s,n])=>`
+    <div class="riga"><span class="disco">${s}</span><span class="nome">${n}</span><span class="chev">›</span></div>`).join('')}
+</div></div>`;
+const CERCA = `<div class="cerca"><div class="campo"></div><div class="nuvola"></div></div>`;
+const due = (cl, extra='')=> `<div class="${cl}"><button class="on">Artists</button><button>References</button>${extra}</div>`;
+const varianti = [
+  ['oggi · le linguette strette', '',
+   `<div class="e" style="--x:0"><button class="on" style="height:44px">Artists</button><button style="height:40px">References</button></div>`],
+  ['E · le stesse, ma alte e col filo d\'oro',
+   'Stessa idea di adesso con piu\' respiro: 58px la linguetta accesa, e sul suo bordo superiore corre il filo dorato che c\'e\' anche sulla scheda sotto.',
+   due('e')],
+  ['F · la scheda sporge dallo schedario',
+   'Le due linguette sono attaccate e formano un blocco unico; quella accesa e\' molto piu\' alta e sporge, come una scheda tirata su dal raccoglitore. Angoli tondi solo agli estremi.',
+   due('f')],
+  ['G · fascia d\'inchiostro',
+   'Il nastro dietro le linguette diventa scuro come le barre di sezione, e quella accesa e\' un cartoncino chiaro che ci si appoggia sopra e scende nell\'elenco.',
+   due('g')],
+  ['H · due titoli e un rigo di matita',
+   'Niente scatole: i due nomi in Castoro, quello acceso sottolineato da una sfumatura d\'oro (un rigo passato a mano) e un filo che corre fino al bordo.',
+   due('h', '<span class="cresci"></span>')],
+  ['I · cartoncino cucito',
+   'Linguette alte 54px, quella accesa ha la cucitura tratteggiata dentro il bordo e un trattino d\'oro in basso, come l\'etichetta di uno schedario.',
+   due('i')],
+];
+document.getElementById('qui').innerHTML = varianti.map(([t,n,schede])=>
+  `<div class="tit"><span>${t}</span><i></i></div>` + (n?`<div class="nota">${n}</div>`:'') +
+  `<div class="quadro">${CERCA}${schede}${ELENCO}</div>`).join('');
+</script>
+</body></html>
