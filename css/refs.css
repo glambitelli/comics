@@ -152,10 +152,21 @@
    carta e il capello fra l'uno e l'altro basta perche' e' l'unica linea
    rimasta. */
 .refs-scheda{
-  background:var(--white);border:1.5px solid var(--sand2);border-radius:var(--r);
+  position:relative;
+  background:var(--white);border:1.5px solid var(--sand2);border-radius:18px;
   overflow:hidden;box-shadow:0 2px 10px rgba(74,184,216,.08);
   margin-bottom:14px;
 }
+/* IL FILO D'ORO in testa al foglio. Non e' un ornamento inventato qui: e' lo
+   stesso filetto che sta in cima ai modali (.modal::before) e alle
+   intestazioni delle schermate. Con gli angoli piu' tondi (18 invece di 14) e'
+   tutto quello che serviva a togliere alla scheda l'aria di foglio bianco
+   appoggiato li' — la scheda spartana era giusta di struttura e muta di tono. */
+.refs-scheda::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,var(--sand3),var(--gold),var(--sand3));
+}
+.refs-scheda > .refs-folder-row:first-child{padding-top:15px}
 .refs-folder-row{
   display:flex;align-items:center;gap:12px;cursor:pointer;
   padding:12px 14px;border-bottom:1px solid var(--sand);
@@ -163,6 +174,14 @@
 }
 .refs-folder-row:last-child{border-bottom:none}
 .refs-folder-row:active{background:var(--sand)}
+/* La freccia in coda: la riga PORTA da qualche parte — dentro una cartella,
+   dentro un tag — e senza di lei un elenco di nomi su carta poteva anche
+   sembrare una lista da leggere. Sta sulle righe che navigano; la riga del
+   "+", che non e' una .refs-folder-row, resta pulita. */
+.refs-folder-row::after{
+  content:'›';flex-shrink:0;
+  font-size:17px;font-weight:700;line-height:1;color:var(--sand3);
+}
 /* IL DISCO con le iniziali: oro pieno, inchiostro scuro sopra. Sono
    esattamente i due colori del riquadro "Task di stasera" (#e2b62c su #2a2412,
    vedi .microtask-box in project.css) — non una tinta nuova inventata qui.
@@ -183,13 +202,11 @@
    dire "cartella". Cancelletto su carta, piu' quieto. */
 .refs-mono.mt{background:#e9dfc8;color:#8a7248;font-size:16px;font-weight:700}
 .refs-tag-row .refs-folder-name{font-weight:600}
-/* La porta dell'elenco tag: stessa riga delle altre ma con la freccia, perche'
-   non apre delle immagini — apre un altro elenco. Senza, in mezzo alle
-   cartelle di Study sembrava un tag solo chiamato "Tutti i tag". */
+/* La porta dell'elenco tag: stessa riga delle altre, col nome in grassetto
+   pieno perche' non apre delle immagini — apre un altro elenco. La freccia
+   ce l'ha come tutte le righe (vedi .refs-folder-row::after): una volta era
+   solo sua, ed era il segno che la distingueva. */
 .refs-tag-porta .refs-folder-name{font-weight:700;color:var(--ink)}
-.refs-tag-porta .refs-folder-count::after{
-  content:'›';margin-left:8px;font-size:15px;font-weight:700;color:var(--sand3);
-}
 
 /* ── AGGIUNGI ──
    Era un "+" di 16px in un bersaglio da 30, appeso all'occhiello della

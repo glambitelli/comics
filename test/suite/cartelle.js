@@ -339,6 +339,46 @@ module.exports = () => suite("References — artisti e menu contestuali", {"banc
   ok('e l\'ultima riga della scheda non lo tira nel vuoto',
      foglio.ultimaSenzaCapello, foglio);
 
+  sezione('con il filo d\'oro in cima e la freccia in coda');
+  // La scheda nuda era giusta di struttura e muta di tono. I due dettagli che
+  // le danno voce vengono da roba gia' in casa: il filetto dei modali e la
+  // freccia che dice "di qui si entra".
+  const tono = await page.evaluate(()=>{
+    const s = document.querySelector('.refs-scheda');
+    const filo = getComputedStyle(s, '::before');
+    const riga = document.querySelector('.refs-folder-row[data-folder-id]');
+    const frec = getComputedStyle(riga, '::after');
+    const piu = document.querySelector('.refs-add-row');
+    return {
+      filoAlto: parseFloat(filo.height),
+      filoOro: /gradient/.test(filo.backgroundImage) && /226, 182, 44|240, 192, 32/.test(filo.backgroundImage),
+      angoli: parseFloat(getComputedStyle(s).borderRadius),
+      freccia: (frec.content || '').replace(/["']/g, ''),
+      // La riga del "+" non porta da nessuna parte: niente freccia.
+      frecciaSulPiu: (getComputedStyle(piu, '::after').content || 'none') !== 'none',
+      // Una sola freccia per riga: la porta dei tag ne aveva una tutta sua.
+      doppiaSullaPorta: (()=>{
+        window.setArchivio('references');
+        return null;   // controllato sotto, dopo il render
+      })(),
+    };
+  });
+  ok('il filo in cima e\' alto tre pixel', tono.filoAlto === 3, tono);
+  ok('ed e\' d\'oro come quello dei modali', tono.filoOro, tono);
+  ok('gli angoli sono piu\' tondi di prima', tono.angoli >= 18, tono);
+  ok('ogni riga finisce con la freccia', tono.freccia === '›', tono);
+  ok('tranne quella del "+", che non porta da nessuna parte',
+     !tono.frecciaSulPiu, tono);
+
+  await page.waitForTimeout(250);
+  const porta = await page.evaluate(()=>{
+    const p = document.querySelector('.refs-tag-porta');
+    return p ? p.textContent.replace(/\s/g,'') : null;
+  });
+  ok('e la porta dei tag non ne ha due', porta !== null && !/››/.test(porta), porta);
+  await vaiA('artists');
+  await apri();
+
   sezione('i menu contestuali: parole corte e un\'icona per voce');
   await apri();
   const menuCartella = await page.evaluate(async ()=>{
