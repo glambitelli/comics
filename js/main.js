@@ -41,7 +41,7 @@ function exposeLazy(path, names){
 
 exposeLazy('./refs.js', ['refsBackToFolders','openRefLightbox','closeRefLightbox',
   'nextRefImage','prevRefImage','refsImageMenu','deleteRefImageWithUndo',
-  'openFolderBrowser','openAllGrid','openFolder','openTag','promptNewFolder','promptTagImage',
+  'openFolderBrowser','openAllGrid','openFolder','openTag','setArchivio','promptNewFolder','promptTagImage',
   'promptRenameFolder','promptDeleteFolder','refsFolderMenu','setFolderTab','albumShelfMenu',
   'connectDriveAndSync','disconnectDriveUI','toggleRefsProfile','closeRefsProfile',
   'refsFolderSearch','refsAlbumsSearch','refsGridSortMenu','refsAlbumsSortMenu',

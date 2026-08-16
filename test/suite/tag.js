@@ -29,25 +29,76 @@ module.exports = () => suite("References — i tag", {"banco": "/test/banco/tavo
     await page.waitForTimeout(300);
   };
 
-  sezione('la sezione References elenca i tag, non le cartelle');
-  await semina();
-  const elenco = await page.evaluate(()=>{
-    const righe = Array.from(document.querySelectorAll('.refs-tag-row')).map(r=>({
+  const stato = ()=> page.evaluate(()=>({
+    scheda: (document.querySelector('.refs-axis-tab.active')||{}).textContent,
+    sezioni: Array.from(document.querySelectorAll('.refs-sec-nome')).map(e=>e.textContent.trim()),
+    tag: Array.from(document.querySelectorAll('.refs-tag-row')).map(r=>({
       nome: r.querySelector('.refs-folder-name').textContent.trim(),
       n: r.querySelector('.refs-folder-count').textContent.trim(),
-    }));
-    const occhielli = Array.from(document.querySelectorAll('.refs-cat-name')).map(e=>e.textContent.trim());
-    return { righe, occhielli };
-  });
-  ok('c\'e\' un occhiello "References"',
-     elenco.occhielli.some(o=>/^references$/i.test(o)), elenco.occhielli);
-  ok('sta dopo gli artisti e prima di Study',
-     elenco.occhielli.indexOf('References') > elenco.occhielli.indexOf('Artists')
-     && elenco.occhielli.indexOf('References') < elenco.occhielli.indexOf('Study'), elenco.occhielli);
-  ok('ci sono tre tag', elenco.righe.length === 3, elenco.righe);
+    })),
+    cartelle: Array.from(document.querySelectorAll('.refs-folder-row:not(.refs-tag-row) .refs-folder-name'))
+      .map(e=>e.textContent.trim()),
+  }));
+
+  sezione('due schede: Artists e References');
+  await semina();
+  let s = await stato();
+  ok('si apre su Artists', /artists/i.test(s.scheda||''), s);
+  ok('e li\' ci sono solo gli artisti',
+     s.cartelle.length === 2 && !s.tag.length, s);
+  ok('Study non e\' una scheda a se\'',
+     !s.sezioni.some(x=>/study/i.test(x)), s);
+
+  sezione('dentro References ci sono i tag, e Study e\' una sua sottosezione');
+  await page.evaluate(()=>{ window.setArchivio('references'); });
+  await page.waitForTimeout(300);
+  s = await stato();
+  ok('la scheda attiva e\' References', /references/i.test(s.scheda||''), s);
+  ok('la prima sezione sono i Tag', /tag/i.test(s.sezioni[0]||''), s);
+  ok('e Study viene dopo, dentro la stessa scheda',
+     s.sezioni.findIndex(x=>/study/i.test(x)) > 0, s);
+  ok('ci sono tre tag', s.tag.length === 3, s.tag);
   ok('col numero di immagini che li portano',
-     elenco.righe.find(r=>/folla/.test(r.nome)).n === '3', elenco.righe);
-  ok('e il piu\' usato sta in cima', /folla/.test(elenco.righe[0].nome), elenco.righe);
+     s.tag.find(t=>/folla/.test(t.nome)).n === '3', s.tag);
+  ok('e il piu\' usato sta in cima', /folla/.test(s.tag[0].nome), s.tag);
+  ok('e la cartella di Study e\' qui, non fra gli artisti',
+     s.cartelle.some(c=>/hands/i.test(c)) && !s.cartelle.some(c=>/otomo/i.test(c)), s);
+
+  sezione('le sezioni sono barre intere, non pastiglie');
+  const barra = await page.evaluate(()=>{
+    const b = document.querySelector('.refs-sec');
+    const r = b.getBoundingClientRect();
+    const c = b.parentElement.getBoundingClientRect();
+    return { larga: Math.round(r.width), contenitore: Math.round(c.width),
+             scura: getComputedStyle(b).backgroundImage.includes('gradient') };
+  });
+  ok('la barra occupa tutta la larghezza',
+     Math.abs(barra.larga - barra.contenitore) < 2, barra);
+  ok('ed e\' nera', barra.scura, barra);
+
+  sezione('lo swipe cambia scheda');
+  const swipe = await page.evaluate(async ()=>{
+    const el = document.getElementById('refs-folder-browser');
+    const t = (x,y)=> [new Touch({identifier:1, target:el, clientX:x, clientY:y})];
+    // Da destra verso sinistra: si va avanti, cioe' verso References.
+    el.dispatchEvent(new TouchEvent('touchstart',{bubbles:true,touches:t(300,400),targetTouches:t(300,400)}));
+    el.dispatchEvent(new TouchEvent('touchend',{bubbles:true,touches:[],targetTouches:[],changedTouches:t(300,400)}));
+    await new Promise(r=>setTimeout(r,60));
+    // Indietro: verso Artists.
+    el.dispatchEvent(new TouchEvent('touchstart',{bubbles:true,touches:t(80,400),targetTouches:t(80,400)}));
+    el.dispatchEvent(new TouchEvent('touchend',{bubbles:true,touches:[],targetTouches:[],changedTouches:t(300,410)}));
+    await new Promise(r=>setTimeout(r,250));
+    const dopoDestra = (document.querySelector('.refs-axis-tab.active')||{}).textContent;
+    // Uno scorrimento in diagonale NON deve cambiare scheda.
+    el.dispatchEvent(new TouchEvent('touchstart',{bubbles:true,touches:t(200,300),targetTouches:t(200,300)}));
+    el.dispatchEvent(new TouchEvent('touchend',{bubbles:true,touches:[],targetTouches:[],changedTouches:t(260,500)}));
+    await new Promise(r=>setTimeout(r,250));
+    return { dopoDestra, dopoDiagonale: (document.querySelector('.refs-axis-tab.active')||{}).textContent };
+  });
+  ok('scorrendo verso destra si torna su Artists', /artists/i.test(swipe.dopoDestra||''), swipe);
+  ok('ma uno scroll storto non cambia niente', /artists/i.test(swipe.dopoDiagonale||''), swipe);
+  await page.evaluate(()=>{ window.setArchivio('references'); });
+  await page.waitForTimeout(250);
 
   sezione('aprendo un tag si pesca da TUTTE le cartelle');
   await page.evaluate(()=>{ window.openTag('folla che cammina'); });
@@ -131,17 +182,44 @@ module.exports = () => suite("References — i tag", {"banco": "/test/banco/tavo
   ok('un tag solo, non due', doppioni.length === 1, doppioni);
   ok('e conta anche quello scritto storto', doppioni[0].n === 4, doppioni);
 
-  sezione('senza tag la sezione non esiste');
+  sezione('senza tag la sezione lo dice, invece di sparire');
   await page.evaluate(()=>{
     window.refs.getRefs().forEach(r=> r.tags = []);
     window.refs.openFolderBrowser();
+    window.setArchivio('references');
   });
-  await page.waitForTimeout(250);
+  await page.waitForTimeout(300);
   const vuota = await page.evaluate(()=>({
-    occhielli: Array.from(document.querySelectorAll('.refs-cat-name')).map(e=>e.textContent.trim()),
     righe: document.querySelectorAll('.refs-tag-row').length,
+    testo: (document.querySelector('.refs-folders-empty')||{}).textContent || '',
   }));
-  ok('niente occhiello References se non c\'e\' nessun tag',
-     !vuota.occhielli.some(o=>/references/i.test(o)) && vuota.righe === 0, vuota);
+  ok('nessun tag in elenco', vuota.righe === 0, vuota);
+  // Sparire lascerebbe la scheda muta: e' l'unico punto in cui si spiega da
+  // dove arrivano i tag, ed e' quando non ce n'e' ancora nessuno.
+  ok('ma la scheda spiega come se ne fa uno', /ritagliando/i.test(vuota.testo), vuota);
+
+  sezione('un\'immagine taggata lo dice anche in griglia');
+  await page.evaluate(()=>{
+    window.refs.getRefs().find(r=>r.id==='i1').tags = ['folla che cammina'];
+    window.refs.openFolder('a1');
+  });
+  await page.waitForTimeout(300);
+  const badge = await page.evaluate(()=>{
+    const t = document.querySelector('.refs-thumb[data-id="i1"] .refs-thumb-tag');
+    const senza = document.querySelector('.refs-thumb[data-id="i2"] .refs-thumb-tag');
+    if(!t) return { c: null };
+    const r = t.getBoundingClientRect(), th = t.parentElement.getBoundingClientRect();
+    return {
+      c: t.textContent.trim(),
+      // Piccolo e in un angolo: non deve disturbare l'immagine.
+      quota: +(r.width * r.height / (th.width * th.height)).toFixed(3),
+      inAlto: r.top - th.top < 10,
+      altre: !!senza,
+    };
+  });
+  ok('c\'e\' un cancelletto sulla miniatura taggata', badge.c === '#', badge);
+  ok('e non su quella senza tag', badge.altre === false, badge);
+  ok('e\' piccolo — meno del 5% della miniatura', badge.quota < 0.05, badge);
+  ok('e sta in un angolo', badge.inAlto, badge);
 
 });

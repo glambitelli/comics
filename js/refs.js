@@ -31,6 +31,18 @@ let _albumsUnsub = null;
 let _view = 'folders';           // 'folders' | 'all' | 'folder' | 'tag'
 let _activeFolderId = null;
 let _activeTag = null;           // il tag aperto, quando _view === 'tag'
+// L'ARCHIVIO HA DUE ASSI, e sono due schede.
+//
+// "Artists" risponde a chi l'ha disegnato, "References" a cosa c'e' dentro.
+// Prima stavano una sotto l'altra nella stessa pagina, separate da occhielli:
+// scorrendo si passava da un criterio all'altro senza accorgersene, e la
+// schermata sembrava un elenco di elenchi. Come schede invece si sta in uno o
+// nell'altro, e ci si passa con un gesto.
+//
+// STUDY VIVE DENTRO REFERENCES, non e' un terzo asse: e' il posto dove
+// finisce un riferimento quando decidi di studiarlo — arriva DOPO aver
+// filtrato per tag, non prima.
+let _asse = 'artists';           // 'artists' | 'references'
 // Dentro una cartella vera convivono TRE assi: gli albi (fumetti da .cbr/.cbz),
 // i ritagli (pezzi di pagina) e le tavole (pagine intere). Nelle viste "All" e
 // "senza cartella" i tab non compaiono: lì si guardano solo immagini, tutte
@@ -139,7 +151,7 @@ function warmDerived(url, w = THUMB_W){
 // ── SALVATAGGIO IMMAGINE ──
 // Cattura sempre istantanea e senza cartella: si archivia dopo, dal lightbox,
 // così drag&drop/incolla/condivisione restano al primo colpo.
-export async function addRefImage(file, source='file', folderId=null, tavola=currentUploadIsTavola()){
+export async function addRefImage(file, source='file', folderId=null, tavola=currentUploadIsTavola(), tags=currentUploadTags()){
   if(!file || !file.type || !file.type.startsWith('image/')){
     console.warn('addRefImage: file non immagine ignorato', file&&file.type);
     return null;
@@ -161,6 +173,7 @@ export async function addRefImage(file, source='file', folderId=null, tavola=cur
       addedAt: serverTimestamp(),
       w, h, bytes: blob.size,
       tavola: !!tavola,
+      tags: Array.isArray(tags) ? tags.map(normTag).filter(Boolean) : [],
     };
     await setDoc(doc(db, REFS_COL, id), data);
     return id;
@@ -323,6 +336,13 @@ function currentUploadFolderId(){
 // filtro della griglia la mandava nell'altro scaffale, davanti agli occhi di
 // chi l'aveva appena lasciata cadere. Il posto dove stai È la risposta alla
 // domanda "dove la metto", esattamente come lo è già la cartella.
+// Un'immagine aggiunta MENTRE si sta guardando un tag nasce con quel tag —
+// stesso principio della cartella. E' anche la rete che tiene: da quando
+// "Senza cartella" non c'e' piu', un'immagine senza cartella E senza tag non
+// avrebbe nessuna strada per farsi ritrovare.
+function currentUploadTags(){
+  return (_view === 'tag' && _activeTag) ? [_activeTag] : null;
+}
 function currentUploadIsTavola(){
   return _view === 'folder' && !!_activeFolderId && _folderTab === 'tavole';
 }
@@ -334,10 +354,11 @@ export async function addRefImages(fileList, source='file', folderId=currentUplo
   // scansioni dura decine di secondi e nulla vieta di cambiare tab nel mezzo —
   // meta' finirebbero in uno scaffale e meta' nell'altro.
   const tavola = currentUploadIsTavola();
+  const tags = currentUploadTags();
   setUploadStatus('loading', files.length===1 ? 'Caricamento in corso…' : `Caricamento di ${files.length} immagini…`);
   let ok=0;
   for(const f of files){
-    const id = await addRefImage(f, source, folderId, tavola);
+    const id = await addRefImage(f, source, folderId, tavola, tags);
     if(id) ok++;
   }
   if(ok===0){
@@ -847,6 +868,45 @@ export function refsBackToFolders(){
   }
 }
 
+export function setArchivio(asse){
+  if(asse !== 'artists' && asse !== 'references') return;
+  if(_asse === asse) return;
+  _asse = asse;
+  // La ricerca vale per l'asse in cui e' stata scritta: portarsela dietro
+  // farebbe sembrare vuoto l'altro.
+  _folderQuery = '';
+  const cerca = document.getElementById('refs-folder-search-input');
+  if(cerca) cerca.value = '';
+  renderRefsScreen();
+}
+export function asseAttivo(){ return _asse; }
+
+// ── PASSARE DA UN ASSE ALL'ALTRO COL DITO ──
+// Uno swipe orizzontale sull'elenco cambia scheda. La soglia guarda anche la
+// componente VERTICALE: senza, scorrendo l'elenco in diagonale — che e' come
+// si scorre davvero, il pollice non fa linee dritte — si cambiava scheda per
+// sbaglio. Deve essere un movimento chiaramente laterale, non uno scroll
+// storto: da qui il doppio del verticale.
+const SWIPE_MIN = 55;
+export function wireSwipeAssi(){
+  const el = document.getElementById('refs-folder-browser');
+  if(!el || el._swipe) return;
+  el._swipe = true;
+  let x0 = 0, y0 = 0, attivo = false;
+  el.addEventListener('touchstart', e=>{
+    if(e.touches.length !== 1){ attivo = false; return; }
+    x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; attivo = true;
+  }, { passive:true });
+  el.addEventListener('touchend', e=>{
+    if(!attivo) return;
+    attivo = false;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - x0, dy = t.clientY - y0;
+    if(Math.abs(dx) < SWIPE_MIN || Math.abs(dx) < Math.abs(dy) * 2) return;
+    setArchivio(dx < 0 ? 'references' : 'artists');
+  }, { passive:true });
+}
+
 export function setFolderTab(tab){
   if(tab !== 'albi' && tab !== 'ritagli' && tab !== 'tavole') return;
   if(_folderTab === tab) return;
@@ -1009,10 +1069,15 @@ export function renderRefsScreen(){
     // si vedevano "Albi/Ritagli" nell'elenco cartelle, e non cliccabili.
     const tabs = document.getElementById('refs-tabs');
     if(tabs) tabs.classList.remove('show');
+    const assi = document.getElementById('refs-axis');
+    if(assi) assi.classList.add('show');
+    wireSwipeAssi();
     renderFolderBrowser();
   } else {
     browserEl.style.display = 'none';
     if(folderToolbar) folderToolbar.style.display = 'none';
+    const assi = document.getElementById('refs-axis');
+    if(assi) assi.classList.remove('show');
     galleryEl.style.display = 'block';
     if(crumb){
       crumb.style.display = 'flex';
@@ -1220,8 +1285,6 @@ function renderAlbumsShelf(){
 // piu' ("aggiungi qui dentro"), il secondo delle RIGHE IMPILATE col piu'
 // ("aggiungi un raggruppamento"), e il secondo sta anche staccato dall'elenco.
 const PIU_ICON = `<svg viewBox="0 0 24 24" width="17" height="17"><path d="M12 5.5v13M5.5 12h13" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"/></svg>`;
-const CARTELLA_PIU = `<svg viewBox="0 0 24 24" width="16" height="16"><path d="M3.5 6.8A1.3 1.3 0 0 1 4.8 5.5h4.4l1.8 1.8h7.2a1.3 1.3 0 0 1 1.3 1.3v8.6a1.3 1.3 0 0 1-1.3 1.3H4.8a1.3 1.3 0 0 1-1.3-1.3Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M12 11v5M9.5 13.5h5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>`;
-const GRIGLIA_ICON = `<svg viewBox="0 0 24 24" width="16" height="16"><rect x="4" y="4" width="7" height="7" rx="1.4" fill="none" stroke="currentColor" stroke-width="1.7"/><rect x="13" y="4" width="7" height="7" rx="1.4" fill="none" stroke="currentColor" stroke-width="1.7"/><rect x="4" y="13" width="7" height="7" rx="1.4" fill="none" stroke="currentColor" stroke-width="1.7"/><rect x="13" y="13" width="7" height="7" rx="1.4" fill="none" stroke="currentColor" stroke-width="1.7"/></svg>`;
 
 // Le due lettere del disco d'oro. Si prendono dal cognome quando c'e' — e'
 // quello che si ha in testa cercando un disegnatore — altrimenti dal nome
@@ -1262,106 +1325,84 @@ function renderFolderBrowser(){
   if(!el) return;
   const cats = foldersByCategory();
   const q = _folderQuery.trim().toLowerCase();
+  const filtra = arr => q ? arr.filter(x=> (x.name || x.nome || '').toLowerCase().includes(q)) : arr;
 
-  // Niente piu' "Tutte le immagini" in cima: mescolate, 93 immagini di tre
-  // artisti diversi non sono una vista, sono un mucchio — e chi cerca qualcosa
-  // parte sempre da CHI l'ha disegnato. Il nero non se n'e' andato con lei: e'
-  // passato agli occhielli delle categorie, che sono il vero scheletro della
-  // pagina (vedi .refs-cat-name nel CSS).
-  let html = '';
-
-  if(cats.size === 0){
-    html += `<div class="refs-folders-empty">Ancora nessuna cartella. Crea la prima categoria (es. "Artists" o "Study") per iniziare a organizzare le tue reference.</div>`;
-  }
-
-  // I TAG si mostrano DOPO gli artisti e prima di tutto il resto.
-  //
-  // L'ordine non e' estetico: entrando in archivio la domanda e' quasi sempre
-  // "di chi" (e allora scendi fra gli artisti) oppure "cosa mi serve" (e allora
-  // scendi fra i riferimenti). Study viene dopo perche' e' il posto dove le
-  // cose finiscono quando hai gia' deciso di studiarle, non quello da cui si
-  // parte a cercare.
-  const tags = tuttiITag();
-  const sezioneTag = ()=>{
-    if(!tags.length) return '';
-    const visibili = q ? tags.filter(t=> t.nome.toLowerCase().includes(q)) : tags;
-    if(!visibili.length) return '';
-    return `<div class="refs-cat-row">
-        <span class="refs-cat-name">References</span>
-        <span class="refs-cat-rule"></span>
-      </div>` +
-      visibili.map(t=>`
-        <div class="refs-folder-row refs-tag-row" onclick="window.openTag('${perOnclick(t.nome)}')">
-          <span class="refs-mono mt">#</span>
-          <span class="refs-folder-name">${esc(t.nome)}</span>
-          <span class="refs-folder-count">${t.n}</span>
-        </div>`).join('');
-  };
-  let tagFatti = false;
-
-  let shown = 0;
+  // Le categorie si dividono in due mondi. Quelle di PERSONE (vedi
+  // categoriaDiPersone) stanno nella scheda Artists; tutte le altre — Study
+  // compresa — sono SPAZI dentro References, cioe' posti dove un riferimento
+  // finisce quando decidi di farci qualcosa. Non e' una divisione estetica: e'
+  // il motivo per cui si apre l'archivio. O cerchi un autore, o cerchi una cosa.
+  const persone = [], spazi = [];
   cats.forEach((folders, category)=>{
-    const visible = q ? folders.filter(f=>f.name.toLowerCase().includes(q)) : folders;
-    if(!visible.length) return;
-    shown += visible.length;
-    // Il "+" sta nell'intestazione della categoria: aggiungere un artista e'
-    // un'azione DI QUELLA categoria, e messa li' non costa nemmeno una riga.
-    const persone = categoriaDiPersone(category);
-    html += `<div class="refs-cat-row">
-      <span class="refs-cat-name">${esc(category)}</span>
-      <span class="refs-cat-rule"></span>
+    (categoriaDiPersone(category) ? persone : spazi).push({ category, folders });
+  });
+
+  // La barra intera invece della pastiglia: e' larga quanto la pagina e non si
+  // confonde con le righe sotto. Le pastiglie nere, provate prima, sembravano
+  // etichette appiccicate in mezzo all'elenco.
+  const barra = (titolo, n)=> `<div class="refs-sec">
+      <span class="refs-sec-nome">${esc(titolo)}</span>
+      ${n != null ? `<span class="refs-sec-n">${n}</span>` : ''}
     </div>`;
-    visible.forEach(f=>{
-      html += `<div class="refs-folder-row" onclick="window.openFolder('${f.id}')">
+
+  const righeCartelle = folders => folders.map(f=>`
+      <div class="refs-folder-row" onclick="window.openFolder('${f.id}')">
         <span class="refs-mono m${metalloDi(f)}">${esc(sigla(f))}</span>
         <span class="refs-folder-name">${etichettaCartella(f)}</span>
         <span class="refs-folder-count">${countInFolder(f.id)}</span>
         <button class="refs-folder-menu" onclick="event.stopPropagation();window.refsFolderMenu('${f.id}',this)" aria-label="Altro">⋯</button>
-      </div>`;
-    });
-    // Riga in coda, alta come le altre e con scritto cosa fa: il "+" nudo
-    // nell'occhiello era un bersaglio da 30px, meta' di quello che un dito
-    // chiede, e per giunta bisognava indovinare cosa aggiungesse.
-    html += `<button class="refs-add-row" onclick="window.promptNewFolder('${perOnclick(category)}')">
+      </div>`).join('');
+
+  const rigaAggiungi = (category, chi)=> `<button class="refs-add-row" onclick="window.promptNewFolder('${perOnclick(category)}')">
       <span class="refs-add-cerchio">${PIU_ICON}</span>
-      <span class="refs-add-txt">Aggiungi ${persone ? 'artista' : 'cartella'}</span>
+      <span class="refs-add-txt">Aggiungi ${chi}</span>
     </button>`;
-    // Subito dopo l'ultima categoria di persone.
-    if(persone && !tagFatti){ html += sezioneTag(); tagFatti = true; }
-  });
-  if(!tagFatti) html += sezioneTag();
 
-  if(cats.size > 0 && q && shown === 0){
-    html += `<div class="refs-folders-empty">Nessuna cartella corrisponde a "${esc(_folderQuery.trim())}".</div>`;
+  let html = '';
+
+  if(_asse === 'artists'){
+    if(!persone.length){
+      html += `<div class="refs-folders-empty">Ancora nessun artista. Crea la categoria "Artists" dal pulsante in alto a destra, e poi aggiungi chi vuoi tenere sott'occhio.</div>`;
+    }
+    persone.forEach(g=>{
+      // L'occhiello si scrive solo se ce n'e' piu' d'uno: con una categoria
+      // sola ripeterebbe la parola che sta gia' sulla scheda sopra.
+      if(persone.length > 1) html += barra(g.category, g.folders.length);
+      html += righeCartelle(filtra(g.folders));
+      if(!q) html += rigaAggiungi(g.category, 'artista');
+    });
+  } else {
+    // ── REFERENCES ──
+    // Prima i TAG, che sono il modo in cui si cerca; poi gli spazi, che sono
+    // dove le cose finiscono. E' l'ordine del gesto: filtro per "folla che
+    // cammina", trovo, e poi eventualmente sposto in Study.
+    const tags = filtra(tuttiITag());
+    html += barra('Tag', tags.length);
+    if(!tags.length){
+      html += `<div class="refs-folders-empty">Nessun tag ancora. Ritagliando una tavola scegli “References” e dagli un tag — “folla che cammina”, “macchina parcheggiata” — e da qui lo ritrovi in un tocco.</div>`;
+    }
+    html += tags.map(t=>`
+      <div class="refs-folder-row refs-tag-row" onclick="window.openTag('${perOnclick(t.nome)}')">
+        <span class="refs-mono mt">#</span>
+        <span class="refs-folder-name">${esc(t.nome)}</span>
+        <span class="refs-folder-count">${t.n}</span>
+      </div>`).join('');
+
+    spazi.forEach(g=>{
+      html += barra(g.category, g.folders.length);
+      html += righeCartelle(filtra(g.folders));
+      if(!q) html += rigaAggiungi(g.category, 'cartella');
+    });
   }
-
-  // Le immagini senza cartella — quelle condivise dal telefono prima di
-  // averle archiviate — compaiono in coda SOLO se ce ne sono. Senza questa
-  // riga sarebbero irraggiungibili: era "Tutte le immagini" l'unica strada che
-  // ci portava, e toglierla senza rimpiazzarla avrebbe creato un buco in cui
-  // le foto sparivano davvero.
-  const orfane = _refs.filter(r=>!r.folderId).length;
-  if(orfane && !q){
-    html += `<div class="refs-cat-row">
-      <span class="refs-cat-name">Da archiviare</span>
-      <span class="refs-cat-rule"></span>
-    </div>
-    <div class="refs-folder-row" onclick="window.openFolder(null)">
-      <span class="refs-mono mq">${GRIGLIA_ICON}</span>
-      <span class="refs-folder-name">Senza cartella</span>
-      <span class="refs-folder-count">${orfane}</span>
-    </div>`;
-  }
-
-  // Sotto l'ultima cartella non c'e' piu' niente. "Nuova categoria" e' salita
-  // nella barra della ricerca (vedi index.html): in fondo all'elenco sembrava
-  // una cartella come le altre, e per giunta era l'unica riga che non portava
-  // da nessuna parte.
 
   // Confronto sul contenuto vero: una firma "furba" (es. la lunghezza) manca
   // i casi in cui cambia il testo ma non la misura, tipo una cartella
   // rinominata con un nome della stessa lunghezza.
   if(el._html !== html){ el._html = html; el.innerHTML = html; }
+  const tabArtists = document.getElementById('refs-axis-artists');
+  const tabRefs = document.getElementById('refs-axis-references');
+  if(tabArtists) tabArtists.classList.toggle('active', _asse === 'artists');
+  if(tabRefs) tabRefs.classList.toggle('active', _asse === 'references');
 }
 
 export function refsFolderMenu(id, btnEl){
@@ -1484,7 +1525,7 @@ export function renderRefsGrid(){
   // In coda anche lo scaffale: cambia la forma delle tessere E la larghezza
   // della sorgente, quindi due elenchi identici vanno comunque ridisegnati.
   const sig = (mostraTavole ? 'T|' : 'R|')
-    + list.map(r=>r.id+':'+r.url+':'+projectIdsOf(r).join(',')).join('|');
+    + list.map(r=>r.id+':'+r.url+':'+projectIdsOf(r).join(',')+':'+tagsOf(r).join(',')).join('|');
   if(grid.dataset.sig === sig) return;
   grid.dataset.sig = sig;
 
@@ -1498,10 +1539,17 @@ export function renderRefsGrid(){
     const suoi = projectIdsOf(r).map(pid => projects.find(p=>p.id===pid)).filter(Boolean);
     const proj = suoi[0] || null;
     const dot = proj ? `<span class="refs-thumb-linkdot" style="background:${proj.color||'#4ab8d8'}" title="${esc(suoi.map(p=>p.title||'').join(' · '))}"></span>` : '';
+    // Un cancelletto piccolo nell'angolo alto: dice "questa e' anche fra i
+    // riferimenti" senza rubare niente all'immagine. Sta all'angolo OPPOSTO al
+    // puntino del progetto — sono due informazioni diverse e non devono
+    // sembrare la stessa cosa vista due volte.
+    const suoiTag = tagsOf(r);
+    const tag = suoiTag.length
+      ? `<span class="refs-thumb-tag" title="${esc(suoiTag.join(' · '))}">#</span>` : '';
     return `
     <div class="refs-thumb"${forma(r)} data-id="${r.id}">
       <img src="${cldResize(r.url, mostraTavole ? TAVOLA_W : THUMB_W)}" loading="lazy" decoding="async" alt=""/>
-      ${dot}
+      ${dot}${tag}
     </div>
   `;
   }).join('');

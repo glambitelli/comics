@@ -204,6 +204,13 @@
       <svg viewBox="0 0 24 24" width="15" height="15"><path d="M4 7h16M4 12h16M4 17h9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M17.5 15.5v5M15 18h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
     </button>
   </div>
+  <!-- I DUE ASSI DELL'ARCHIVIO, come schede. Si passa da una all'altra con un
+       tocco o con uno swipe (vedi setArchivio in refs.js). Compaiono solo
+       nell'elenco: dentro una cartella o dentro un tag comandano i tab loro. -->
+  <div id="refs-axis" class="refs-axis">
+    <button class="refs-axis-tab" id="refs-axis-artists" onclick="window.setArchivio('artists')" type="button">Artists</button>
+    <button class="refs-axis-tab" id="refs-axis-references" onclick="window.setArchivio('references')" type="button">References</button>
+  </div>
   <div class="refs-scroll">
     <div id="refs-folder-browser" class="refs-folder-browser"></div>
     <div id="refs-gallery-view" style="display:none">

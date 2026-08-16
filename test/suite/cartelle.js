@@ -12,9 +12,22 @@ module.exports = () => suite("References — artisti e menu contestuali", {"banc
     { id:'s1', category:'Study',   name:'Hands' },
   ];
   const apri = async ()=>{
-    await page.evaluate(c=> window.seminaCartelle(c), CARTELLE);
+    await page.evaluate(c=>{ window.seminaCartelle(c); window.setArchivio('artists'); }, CARTELLE);
     await page.waitForTimeout(300);
   };
+  // Le cartelle di Study vivono nella scheda References (vedi tag.js): per
+  // guardarle bisogna passare di la'.
+  const vaiA = async asse=>{
+    await page.evaluate(a=>{ window.setArchivio(a); }, asse);
+    await page.waitForTimeout(250);
+  };
+  const righeVisibili = ()=> page.evaluate(()=> Array.from(document.querySelectorAll('.refs-folder-row')).map(r=>{
+    const m = r.querySelector('.refs-mono');
+    return { testo: r.querySelector('.refs-folder-name').textContent.trim(),
+             sigla: m ? m.textContent : null,
+             semplice: !!r.querySelector('.rf-semplice'),
+             sfondo: m ? getComputedStyle(m).backgroundColor : null };
+  }));
 
   sezione('un artista si scrive COGNOME + nome');
   await apri();
@@ -46,7 +59,7 @@ module.exports = () => suite("References — artisti e menu contestuali", {"banc
   // escono.
   const otomo   = righe.find(r=> r.cognome === 'Otomo');
   const vecchia = righe.find(r=> r.testo === 'MOEBIUS');
-  const soggetto = righe.find(r=> r.testo === 'Hands');
+
   ok('il cognome e il nome sono due pezzi distinti',
      otomo && otomo.nome === 'Katsuhiro', otomo);
   ok('solo il cognome e\' in maiuscolo', otomo && otomo.maiuscolo === 'uppercase', otomo);
@@ -57,8 +70,11 @@ module.exports = () => suite("References — artisti e menu contestuali", {"banc
      && otomo.stessoPeso && otomo.stessoColore, otomo);
   ok('una cartella vecchia resta una riga sola',
      vecchia && vecchia.semplice && vecchia.cognome === null, vecchia);
+  await vaiA('references');
+  const soggetto = (await righeVisibili()).find(r=> r.testo === 'Hands');
   ok('e cosi\' anche quelle che non sono persone',
      soggetto && soggetto.semplice, soggetto);
+  await vaiA('artists');
 
   sezione('la rubrica: un disco con le iniziali per ogni cartella');
   const dischi = await page.evaluate(()=> Array.from(document.querySelectorAll('.refs-folder-row')).map(r=>{
@@ -77,8 +93,10 @@ module.exports = () => suite("References — artisti e menu contestuali", {"banc
   ok('ogni riga ha il suo disco', dischi.every(d=> !!d.sigla), dischi);
   ok('con DUE lettere, prese dal cognome',
      dischi.find(d=>/otomo/i.test(d.nome)).sigla === 'OT', dischi);
-  ok('e da chi un cognome non ce l\'ha, dal nome',
-     dischi.find(d=>/hands/i.test(d.nome)).sigla === 'HA', dischi);
+  await vaiA('references');
+  const hands = (await righeVisibili()).find(d=>/hands/i.test(d.testo));
+  await vaiA('artists');
+  ok('e da chi un cognome non ce l\'ha, dal nome', hands && hands.sigla === 'HA', hands);
   // Il colore deve CAMBIARE: e' l'appiglio per riconoscere la riga senza
   // leggerla. Tutti uguali sarebbe decorazione.
   ok('i dischi non sono tutti dello stesso colore',
@@ -86,34 +104,20 @@ module.exports = () => suite("References — artisti e menu contestuali", {"banc
   ok('le righe non sono piu\' schede col bordo',
      dischi.every(d=> d.bordi.startsWith('0px')), dischi.map(d=>d.bordi));
 
-  sezione('il nero sta negli occhielli, non in una barra in cima');
-  const cima = await page.evaluate(()=>{
-    const et = document.querySelector('.refs-cat-name');
-    const st = getComputedStyle(et);
-    return {
-      barra: !!document.querySelector('.refs-quicklink'),
-      scuro: st.backgroundImage.includes('gradient'),
-      pastiglia: parseFloat(st.borderRadius) >= 10,
-    };
-  });
-  ok('la barra "Tutte le immagini" non c\'e\' piu\'', !cima.barra, cima);
-  ok('e le categorie sono pastiglie nere', cima.scuro && cima.pastiglia, cima);
-
-  sezione('le immagini senza cartella restano raggiungibili');
-  // Toglierla senza rimpiazzarla avrebbe creato un buco: era "Tutte le
-  // immagini" l'unica strada verso le foto non ancora archiviate.
+  sezione('niente piu\' "Senza cartella"');
+  // Tolta su richiesta: tutto finisce sempre in una cartella o sotto un tag, e
+  // una riga che nella pratica non compare mai e' solo un'altra cosa da
+  // leggere. La rete di sicurezza si e' spostata a monte: un'immagine aggiunta
+  // dentro un tag nasce con quel tag (vedi currentUploadTags in refs.js).
   const senza = await page.evaluate(()=>{
-    const prima = !!document.querySelector('.refs-mono.mq');
     const c = document.createElement('canvas'); c.width = 8; c.height = 8;
     window.refs.getRefs().push({ id:'x1', url:c.toDataURL('image/png'), folderId:null, projectIds:[] });
     window.refs.renderRefsScreen();
-    const riga = document.querySelector('.refs-mono.mq');
-    return { prima, dopo: !!riga,
-             testo: riga ? riga.closest('.refs-folder-row').textContent.trim() : null };
+    return { riga: !!document.querySelector('.refs-mono.mq'),
+             testo: document.getElementById('refs-folder-browser').textContent };
   });
-  ok('senza orfane la riga non compare', !senza.prima, senza);
-  ok('con un\'orfana compare, e dice quante sono',
-     senza.dopo && /senza cartella/i.test(senza.testo) && /1/.test(senza.testo), senza);
+  ok('la riga non compare piu\'', !senza.riga, senza.riga);
+  ok('e nemmeno la sua sezione', !/senza cartella/i.test(senza.testo), null);
   await apri();
 
   sezione('aggiungere una cartella e\' una riga, non un "+" da 30 pixel');
@@ -121,17 +125,24 @@ module.exports = () => suite("References — artisti e menu contestuali", {"banc
     const r = b.getBoundingClientRect();
     return { testo: b.textContent.trim(), largo: Math.round(r.width), alto: Math.round(r.height) };
   }));
-  ok('c\'e\' una riga per categoria', aggiungi.length === 2, aggiungi);
-  ok('sotto Artists dice "artista", non "cartella"',
-     aggiungi.some(a=>/aggiungi artista/i.test(a.testo)), aggiungi);
-  ok('e sotto Study dice "cartella"',
-     aggiungi.some(a=>/aggiungi cartella/i.test(a.testo)), aggiungi);
+  ok('nella scheda Artists c\'e\' la sua riga', aggiungi.length === 1, aggiungi);
+  ok('e dice "artista", non "cartella"',
+     /aggiungi artista/i.test(aggiungi[0].testo), aggiungi);
   // La ragione della modifica: il bersaglio. 30px erano meta' di quello che un
   // dito chiede.
   ok('il bersaglio e\' alto almeno 48px e largo tutto',
      aggiungi.every(a=> a.alto >= 48 && a.largo > 300), aggiungi);
   ok('e il "+" appeso all\'occhiello non c\'e\' piu\'',
      !(await page.evaluate(()=> !!document.querySelector('.refs-cat-add'))), null);
+
+  const rigaStudy = await page.evaluate(async ()=>{
+    window.setArchivio('references');
+    await new Promise(r=>setTimeout(r,250));
+    return Array.from(document.querySelectorAll('.refs-add-row')).map(b=>b.textContent.trim());
+  });
+  ok('e dentro References quella di Study dice "cartella"',
+     rigaStudy.some(t=>/aggiungi cartella/i.test(t)), rigaStudy);
+  await apri();
 
   const fondo = await page.evaluate(()=>{
     const barra = document.getElementById('refs-folder-toolbar');

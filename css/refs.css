@@ -69,37 +69,48 @@
    disco d'oro con le iniziali a fare da appiglio all'occhio, e un solo blocco
    forte in cima. Meno inchiostro, piu' roba a schermo, e un carattere.
 
-   IL NERO STA NEGLI OCCHIELLI. C'era un blocco "Tutte le immagini" in cima,
-   nero e oro, che dava alla pagina un capo da cui partire. La vista che apriva
-   pero' non serviva a niente — novantatre immagini di tre artisti diversi
-   mescolate non sono un elenco, sono un mucchio — e una barra grossa in cima
-   alla schermata per una scorciatoia che non si usa e' il peggio dei due
-   mondi. Il nero e' rimasto ed e' passato dove serve davvero: alle CATEGORIE,
-   che sono lo scheletro vero della pagina. Ora l'occhio scende di pastiglia in
-   pastiglia, e ogni pastiglia dice a chi appartengono le righe sotto. */
+   IL NERO SCANDISCE LE SEZIONI. C'era un blocco "Tutte le immagini" in cima:
+   la vista che apriva non serviva a niente, ma la BARRA funzionava — dava alla
+   pagina un capo da cui partire. Il nero e' quindi rimasto e ha cambiato
+   mestiere: adesso e' l'intestazione delle sezioni (vedi .refs-sec). Nel mezzo
+   si e' provata la versione a pastiglia, piu' discreta e proprio per questo
+   sbagliata: piccola e infilata fra le righe, sembrava un'etichetta appiccicata
+   all'elenco invece di scandirlo. */
 
-/* L'occhiello della categoria: pastiglia nera, un capello che tira fino al
-   bordo, il pulsante in fondo. Il filo lega la pastiglia alle righe sotto
-   invece di lasciarla galleggiare. */
-.refs-cat-row{display:flex;align-items:center;gap:10px;margin:22px 2px 6px}
-.refs-cat-name{
-  font-size:9.5px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;
-  background:linear-gradient(135deg,#2a2018,#1a1410);color:var(--oro);
-  border-radius:20px;padding:5px 12px;line-height:1;
-  box-shadow:0 2px 8px rgba(26,20,16,.18);
+/* ── LE DUE SCHEDE DELL'ARCHIVIO ──
+   Artists e References sono due modi di cercare, non due pezzi della stessa
+   pagina: uno sotto l'altro, separati da un occhiello, scorrendo si passava da
+   un criterio all'altro senza accorgersene. Come schede si sta in uno o
+   nell'altro. Stesso disegno dei tab dentro una cartella (Albi/Ritagli/Tavole)
+   — sono la stessa idea a un livello piu' alto, e inventarle diverse
+   sarebbe stato un secondo linguaggio per la stessa cosa. */
+.refs-axis{display:none;background:var(--sand);border-bottom:1px solid #e8dcc0;flex-shrink:0}
+.refs-axis.show{display:flex}
+.refs-axis-tab{
+  flex:1;background:none;border:none;cursor:pointer;
+  font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;color:var(--ink3);
+  padding:11px 0 10px;border-bottom:2.5px solid transparent;line-height:1.2;
+  transition:color .15s,border-color .15s;
 }
-.refs-cat-rule{flex:1;height:1px;background:var(--sand2)}
-/* Il "+" della categoria: discreto quanto l'occhiello accanto a cui vive — non
-   deve competere con le cartelle, che sono la cosa da guardare — ma con
-   un'area di tocco da dito vera, presa coi margini negativi invece che con la
-   dimensione, cosi' non allarga la riga. */
-.refs-cat-add{
-  flex-shrink:0;display:flex;align-items:center;justify-content:center;
-  background:none;border:none;cursor:pointer;color:#b8a078;
-  padding:7px;margin:-7px 0 -7px 0;line-height:0;
-  transition:color .15s,transform .1s;
+.refs-axis-tab.active{color:var(--ink);border-bottom-color:var(--coral)}
+
+/* ── LA BARRA DI SEZIONE ──
+   Larga quanto la pagina, nera e oro. Le pastiglie provate prima erano piu'
+   discrete e proprio per questo sbagliate: piccole e infilate in mezzo alle
+   righe, sembravano etichette appiccicate all'elenco invece di scandirlo.
+   Una barra intera separa, una pastiglia galleggia. */
+.refs-sec{
+  display:flex;align-items:center;gap:10px;
+  background:linear-gradient(135deg,#2a2018,#1a1410);
+  border-radius:12px;padding:11px 15px;margin:20px 0 8px;
+  box-shadow:0 3px 12px rgba(26,20,16,.20);
 }
-.refs-cat-add:active{color:var(--ottone);transform:scale(.88)}
+.refs-sec:first-child{margin-top:4px}
+.refs-sec-nome{
+  flex:1;font-size:11px;font-weight:800;letter-spacing:.18em;
+  text-transform:uppercase;color:var(--oro);line-height:1;
+}
+.refs-sec-n{font-size:12px;font-weight:800;color:var(--oro);opacity:.65}
 
 /* ── IL NOME DI UN ARTISTA ──
    Cognome in maiuscolo, nome com'e' scritto, stesso carattere di tutte le
@@ -153,9 +164,6 @@
 .refs-mono.m2{background:#a8763c;color:#fdf6e4}   /* ottone */
 .refs-mono.m3{background:#9a5a34;color:#fdf6e4}   /* rame */
 .refs-mono.m4{background:#6e4c2e;color:#fdf6e4}   /* bronzo */
-/* Il disco di "Senza cartella" non e' una cartella e non prende un metallo:
-   resta di carta, con dentro il glifo della griglia. */
-.refs-mono.mq{background:var(--sand2);color:#8a7248}
 /* E nemmeno un tag: non e' una persona ne' un contenitore, e mettergli un
    metallo lo farebbe sembrare una cartella. Cancelletto su carta scura. */
 .refs-mono.mt{background:#e9dfc8;color:#8a7248;font-size:16px;font-weight:700}
@@ -196,6 +204,18 @@
 /* Promemoria muto: colorato come il progetto a cui il ritaglio è agganciato
    (vedi renderRefsGrid in refs.js), senza dover aprire l'immagine per saperlo. */
 .refs-thumb-linkdot{position:absolute;bottom:5px;right:5px;width:9px;height:9px;border-radius:50%;border:1.5px solid #fefcf8;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+/* Il cancelletto: piccolo, in alto a sinistra, su un dischetto scuro perche'
+   su una scansione bianca un glifo chiaro sparirebbe. Deve dire "questa sta
+   anche fra i riferimenti" e poi togliersi di mezzo — se si notasse piu' del
+   disegno avrebbe gia' fallito. */
+.refs-thumb-tag{
+  position:absolute;top:4px;left:4px;
+  width:16px;height:16px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(26,20,16,.55);color:var(--gold-pale);
+  font-size:11px;font-weight:800;line-height:1;
+  backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);
+}
 .refs-thumb:active{transform:scale(.94)}
 .refs-thumb img{width:100%;height:100%;object-fit:cover;display:block}
 
