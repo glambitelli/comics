@@ -28,14 +28,32 @@ module.exports = () => suite("Idee — taccuino, ordine a mano, menu della sched
   console.log('\n── a taccuino vuoto ──');
   let s = await stato();
   ok('non ci sono schede', s.n === 0, s);
-  ok('e si spiega a cosa serve la schermata', s.vuoto, s);
+  ok('e lo stato vuoto lo dice in tre parole', s.vuoto, s);
   const spento = await page.evaluate(()=> document.getElementById('idee-nuovo-salva').classList.contains('pronto'));
   ok('il pulsante Salva e\' spento finche\' non si scrive', spento === false, spento);
 
+  console.log('\n── e la casella dice cosa farci ──');
+  // Era un rettangolo bianco alto e muto, con un pulsante grigio appeso a
+  // destra: non si capiva ne' cosa scriverci ne' cosa fosse quel bottone.
+  const riposo = await page.evaluate(()=>{
+    const box = document.getElementById('idee-nuovo-testo');
+    const piede = document.getElementById('idee-nuovo-salva').parentElement;
+    return { invito: box.placeholder,
+             piede: !piede.hidden,
+             alta: Math.round(document.querySelector('.idee-nuovo').getBoundingClientRect().height) };
+  });
+  ok('c\'e\' scritto cosa farci', /scrivi/i.test(riposo.invito || ''), riposo);
+  ok('e il pulsante non sta li\' spento a occupare posto', !riposo.piede, riposo);
+  ok('la casella e\' una riga, non un foglio', riposo.alta <= 70, riposo);
+
   console.log('\n── si butta giu\' un pensiero ──');
   await scrivi('Il ladro di ombre');
-  const acceso = await page.evaluate(()=> document.getElementById('idee-nuovo-salva').classList.contains('pronto'));
-  ok('scrivendo, il pulsante si accende', acceso === true, acceso);
+  const acceso = await page.evaluate(()=> ({
+    pronto: document.getElementById('idee-nuovo-salva').classList.contains('pronto'),
+    piede: !document.getElementById('idee-nuovo-salva').parentElement.hidden,
+  }));
+  ok('scrivendo, il pulsante compare e si accende',
+     acceso.pronto === true && acceso.piede === true, acceso);
   await salva();
   s = await stato();
   ok('l\'idea compare subito in elenco', s.n === 1 && s.titoli[0] === 'Il ladro di ombre', s);

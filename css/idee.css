@@ -32,15 +32,24 @@ body.is-touch .idee-scroll{padding-bottom:calc(110px + var(--safe-bot))}
   background:var(--white);border:1.5px solid var(--sand2);border-radius:14px;
   padding:12px 13px;margin-bottom:14px;box-shadow:0 2px 8px rgba(40,30,15,.05);
 }
+/* Alta due righe scarse e non di piu': a casella vuota il taccuino deve
+   sembrare una riga su cui scrivere, non un foglio bianco da riempire. Cresce
+   col testo (vedi aggiorna in idee.js). */
 .idee-nuovo textarea{
   width:100%;border:none;outline:none;background:none;resize:none;overflow-y:auto;
   font-family:'Nunito',sans-serif;font-size:15px;line-height:1.55;color:var(--ink);
-  min-height:46px;display:block;
+  min-height:26px;display:block;
 }
 .idee-nuovo textarea::placeholder{color:var(--ink3);opacity:.85}
-.idee-nuovo-piede{display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-top:2px}
-/* A casella vuota il pulsante c'è ma è spento: un bottone che compare e
-   scompare fa saltare l'altezza della scheda a ogni carattere. */
+.idee-nuovo-piede{display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-top:8px}
+/* IL PIEDE COMPARE SOLO QUANDO C'E' QUALCOSA DA SALVARE. Prima stava li'
+   sempre, spento, e a casella vuota la scheda era un rettangolo bianco alto
+   con un pulsante grigio appeso a destra: nessuno capiva ne' cosa scriverci
+   (il posto e' vuoto) ne' cosa fosse quel bottone. Adesso a riposo si vede una
+   riga con scritto "Scrivi un'idea…", e il pulsante arriva col primo
+   carattere. Il saltello in altezza c'e', ma succede una volta sola e nel
+   momento in cui si sta gia' guardando la casella. */
+.idee-nuovo-piede[hidden]{display:none}
 .idee-salva{
   border:none;border-radius:10px;padding:8px 18px;cursor:pointer;
   font-family:'Nunito',sans-serif;font-size:13.5px;font-weight:700;

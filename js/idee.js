@@ -161,11 +161,14 @@ export function renderIdee(){
   if(!lista) return;
 
   if(!_idee.length){
+    // Tre parole e un glifo. La spiegazione lunga ("qui finiscono i pensieri
+    // che ti passano per la testa: una battuta, una scena, un titolo") diceva a
+    // chi ha aperto il taccuino una cosa che sapeva gia', e la ripeteva ogni
+    // volta che il taccuino tornava vuoto. Cosa scriverci lo dice la casella
+    // qui sopra, dove si scrive davvero.
     lista.innerHTML = `<div class="idee-vuoto">
       <div class="idee-vuoto-glifo">✦</div>
-      <p>Qui finiscono i pensieri che ti passano per la testa:
-      una battuta, una scena, un titolo.</p>
-      <p class="idee-vuoto-hint">Scrivi qui sopra e tocca Salva.</p>
+      <p>Nessuna idea, per ora.</p>
     </div>`;
     return;
   }
@@ -251,9 +254,11 @@ export function initIdee(){
   const salva = document.getElementById('idee-nuovo-salva');
   // Il pulsante Salva compare solo quando c'è qualcosa da salvare: a casella
   // vuota è un invito a un'azione che non si può fare.
+  const piede = salva.parentElement;
   const aggiorna = ()=>{
     const c = box.value.trim().length > 0;
     salva.classList.toggle('pronto', c);
+    piede.hidden = !c;
     // Cresce col testo invece di far scorrere dentro una finestrella di due
     // righe: un'idea lunga si deve poter rileggere tutta mentre la si scrive.
     box.style.height = 'auto';
