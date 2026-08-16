@@ -1,0 +1,64 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8">
+<title>mockup — righe artisti</title>
+<link rel="stylesheet" href="/css/variables.css">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Castoro:ital@0;1&display=swap');
+  body{margin:0;background:#efe6d4;font-family:'Nunito',sans-serif;padding:14px 14px 30px}
+  .tit{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#8a7248;
+       margin:22px 0 9px;display:flex;align-items:center;gap:8px}
+  .tit:first-child{margin-top:2px}
+  .tit span{background:#f5ecd8;border:1px solid #e0d4b4;border-radius:20px;padding:3px 10px}
+  .tit i{flex:1;height:1.5px;background:#dccca0;font-style:normal}
+  .disco{width:36px;height:36px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;
+         justify-content:center;background:#e2b62c;color:#2a2412;font-size:12.5px;font-weight:800;letter-spacing:.03em}
+  .nome{flex:1;font-size:14.5px;font-weight:700;color:var(--ink)}
+  .nome b{font-weight:700;text-transform:uppercase}
+  .nome em{font-style:normal;font-weight:700}
+  .riga{display:flex;align-items:center;gap:12px}
+  .piu{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+       background:#f7ecd2;color:var(--ottone);box-shadow:inset 0 0 0 1.5px #e2cca8;font-size:19px;line-height:0}
+
+  /* A — SCHEDA UNICA, come i blocchi della scheda progetto */
+  .a{background:#fefcf8;border:1.5px solid var(--sand2);border-radius:14px;overflow:hidden;
+     box-shadow:0 2px 10px rgba(74,184,216,.08)}
+  .a .riga{padding:12px 14px;border-bottom:1px solid var(--sand)}
+  .a .riga:last-child{border-bottom:none}
+
+  /* B — UNA SCHEDA PER ARTISTA */
+  .b .riga{background:#fefcf8;border:1.5px solid var(--sand2);border-radius:14px;padding:11px 12px;
+           margin-bottom:8px;box-shadow:0 2px 10px rgba(74,184,216,.08)}
+
+  /* C — ALTERNATO QUASI BIANCO */
+  .c{background:#fefcf8;border:1.5px solid var(--sand2);border-radius:14px;overflow:hidden;
+     box-shadow:0 2px 10px rgba(74,184,216,.08)}
+  .c .riga{padding:12px 14px}
+  .c .riga:nth-child(even){background:#f7f1e3}
+
+  /* D — SCRIPTMENT: inchiostro e oro */
+  .d{border-radius:14px;overflow:hidden;border:1px solid rgba(240,200,90,.30);
+     box-shadow:0 3px 14px rgba(0,0,0,.18);background:linear-gradient(135deg,#221a10,#0d0a05)}
+  .d .riga{padding:12px 14px;border-bottom:1px solid rgba(240,200,90,.14)}
+  .d .riga:last-child{border-bottom:none}
+  .d .nome{color:#f0e6d0}
+  .d .nome b{color:#f0c84e;font-family:'Castoro',serif;font-weight:400;letter-spacing:.02em}
+  .d .disco{background:none;color:#f0c84e;box-shadow:inset 0 0 0 1.5px rgba(240,200,90,.45)}
+  .d .piu{background:none;color:#f0c84e;box-shadow:inset 0 0 0 1.5px rgba(240,200,90,.3)}
+</style>
+</head><body>
+<div id="qui"></div>
+<script>
+const GENTE = [['KO','KON',''],['OT','OTOMO','Katsuhiro'],['PR','PROVA','Test'],['ZI','ZINI','Luca'],['TA','TANIGUCHI','Jiro']];
+const righe = ()=> GENTE.map(([s,c,n])=>`
+  <div class="riga"><span class="disco">${s}</span>
+    <span class="nome"><b>${c}</b>${n ? ' <em>'+n+'</em>' : ''}</span></div>`).join('')
+  + `<div class="riga"><span class="piu">+</span></div>`;
+const varianti = [
+  ['A · scheda unica, righe divise da un capello', 'a'],
+  ['B · una scheda per artista', 'b'],
+  ['C · alternato quasi bianco', 'c'],
+  ['D · inchiostro e oro (scriptment)', 'd'],
+];
+document.getElementById('qui').innerHTML = varianti.map(([t,cl])=>
+  `<div class="tit"><span>${t}</span><i></i></div><div class="${cl}">${righe()}</div>`).join('');
+</script>
+</body></html>
