@@ -108,14 +108,48 @@ module.exports = () => suite("References — Ritagli e Tavole dentro una cartell
   ok('e la sorgente torna quella piccola', formaR.sorgente === 300, formaR);
   await tocca('tavole');
 
-  sezione('sulla griglia non c\'e\' nessun campo di ricerca');
-  // Tolto apposta: un ritaglio non ha un nome da ricordare. Resta l'ordinamento.
-  const barra = await page.evaluate(()=>({
-    campo: !!document.getElementById('refs-grid-search-input'),
-    ordina: !!document.querySelector('#refs-images-pane .refs-sort-btn'),
+  sezione('sopra le immagini non c\'e\' piu\' niente da scavalcare');
+  // Si entra in una cartella per vedere le IMMAGINI, e prima fra il nome e la
+  // prima miniatura c'erano una riga col solo pulsante "Ordina" e un riquadro
+  // che spiega come trascinare un file e incollare con ⌘V — due gesti che sul
+  // telefono non esistono nemmeno. Ordina e' salito nella riga del nome,
+  // l'avviso resta solo su schermo grande.
+  const barra = await page.evaluate(()=>{
+    document.body.classList.add('is-touch');
+    const griglia = document.getElementById('refs-grid').getBoundingClientRect();
+    const tabs = document.getElementById('refs-tabs').getBoundingClientRect();
+    const ordina = document.getElementById('refs-crumb-sort');
+    return {
+      campo: !!document.getElementById('refs-grid-search-input'),
+      barraSopra: !!document.querySelector('#refs-images-pane .refs-toolbar'),
+      avviso: getComputedStyle(document.querySelector('.refs-drop-hint')).display,
+      ordinaNelNome: !!(ordina && !ordina.hidden &&
+                        ordina.closest('#refs-breadcrumb')),
+      // Le miniature cominciano subito sotto i tab: niente in mezzo.
+      distanza: Math.round(griglia.top - tabs.bottom),
+    };
+  });
+  ok('il campo di ricerca non c\'e\' (un ritaglio non ha un nome da ricordare)',
+     !barra.campo, barra);
+  ok('e nemmeno la riga con il solo "Ordina"', !barra.barraSopra, barra);
+  ok('l\'avviso "trascina qui" sul telefono non compare',
+     barra.avviso === 'none', barra);
+  ok('"Ordina" e\' nella riga del nome cartella', barra.ordinaNelNome, barra);
+  ok('e le immagini cominciano subito sotto i tab',
+     barra.distanza >= 0 && barra.distanza < 30, barra);
+
+  sezione('ma sullo scaffale degli albi quel pulsante si toglie di mezzo');
+  // Li' la griglia non e' a schermo, e lo scaffale ha il suo ordinamento
+  // accanto alla ricerca: due "Ordina" nella stessa schermata direbbero di
+  // ordinare due cose diverse senza dire quale.
+  await tocca('albi');
+  const suGliAlbi = await page.evaluate(()=>({
+    nascosto: document.getElementById('refs-crumb-sort').hidden,
+    quelloDegliAlbi: !!document.querySelector('#refs-albums-pane .refs-sort-btn'),
   }));
-  ok('il campo non c\'e\' piu\'', !barra.campo, barra);
-  ok('ma il pulsante Ordina resta', barra.ordina, barra);
+  ok('nella riga del nome sparisce', suGliAlbi.nascosto, suGliAlbi);
+  ok('e resta solo quello degli albi', suGliAlbi.quelloDegliAlbi, suGliAlbi);
+  await tocca('tavole');
   await tocca('ritagli');
   s = await stato();
   ok('e si vedono tutti i ritagli', s.inGriglia.length === 3, s);

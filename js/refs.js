@@ -1137,6 +1137,9 @@ export function renderRefsScreen(){
         if(nameEl) nameEl.textContent = 'Tag';
       }
     }
+    // Nell'elenco dei tag non c'e' nessuna griglia da ordinare.
+    const ordina = document.getElementById('refs-crumb-sort');
+    if(ordina) ordina.hidden = true;
     // I tab appartengono alla cartella aperta: uscendo vanno nascosti qui,
     // perché renderFolderTabs() (che se ne occupa) gira solo dentro la
     // galleria. Senza questo restavano visibili ma orfani dei loro pannelli:
@@ -1180,6 +1183,14 @@ function renderFolderTabs(){
 
   const inRealFolder = (_view === 'folder' && !!_activeFolderId && folderHaTab(_activeFolderId));
   tabs.classList.toggle('show', inRealFolder);
+
+  // "Ordina" vive nella riga del nome (vedi il markup): riguarda la griglia di
+  // immagini, quindi sullo scaffale degli albi — che ha il suo, accanto alla
+  // ricerca — si toglie di mezzo invece di restare li' a ordinare qualcosa che
+  // non e' a schermo.
+  const ordina = document.getElementById('refs-crumb-sort');
+  const suGliAlbi = inRealFolder && _folderTab === 'albi';
+  if(ordina) ordina.hidden = suGliAlbi;
 
   if(!inRealFolder){
     albumsPane.style.display = 'none';
