@@ -1441,9 +1441,12 @@ function renderFolderBrowser(){
   // La barra intera invece della pastiglia: e' larga quanto la pagina e non si
   // confonde con le righe sotto. Le pastiglie nere, provate prima, sembravano
   // etichette appiccicate in mezzo all'elenco.
-  const barra = (titolo, n)=> `<div class="refs-sec">
+  // Solo il nome. Il conteggio accanto a "STUDY" o a "TAG" non faceva prendere
+  // nessuna decisione — non si entra in una sezione perche' sono sette — ed era
+  // una cifra in mezzo a una barra che serve a scandire, non a informare. E'
+  // la stessa ragione per cui i numeri sono spariti dalle righe delle cartelle.
+  const barra = titolo => `<div class="refs-sec">
       <span class="refs-sec-nome">${esc(titolo)}</span>
-      ${n != null ? `<span class="refs-sec-n">${n}</span>` : ''}
     </div>`;
 
   // Niente numeri sulle righe. Quanti ritagli ci sono dentro una cartella non
@@ -1493,7 +1496,7 @@ function renderFolderBrowser(){
     persone.forEach(g=>{
       // L'occhiello si scrive solo se ce n'e' piu' d'uno: con una categoria
       // sola ripeterebbe la parola che sta gia' sulla scheda sopra.
-      if(persone.length > 1) html += barra(g.category, g.folders.length);
+      if(persone.length > 1) html += barra(g.category);
       html += scheda(righeCartelle(filtra(g.folders)) + (q ? '' : rigaAggiungi(g.category, 'artista')));
     });
   } else {
@@ -1507,7 +1510,7 @@ function renderFolderBrowser(){
     // l'elenco dei tag diventa un posto in cui si entra, e la scheda References
     // resta corta: due cose, non venti.
     spazi.forEach(g=>{
-      html += barra(g.category, g.folders.length);
+      html += barra(g.category);
       html += scheda(righeCartelle(filtra(g.folders)) + (q ? '' : rigaAggiungi(g.category, 'cartella')));
     });
     // Nessuno spazio ancora (niente "Study"): qui la categoria va creata, e
@@ -1520,7 +1523,7 @@ function renderFolderBrowser(){
     // scheda.
     const tags = tuttiITag();
     const trovati = q ? tags.filter(t=> t.nome.toLowerCase().includes(q)) : null;
-    html += barra('Tag', (trovati || tags).length);
+    html += barra('Tag');
     if(trovati){
       html += trovati.length
         ? scheda(trovati.map(rigaTag).join(''))

@@ -110,7 +110,7 @@
          quando i progetti sono tanti (vedi SOGLIA_CERCA in home.js). -->
     <div id="search-bar" class="home-search" style="display:none">
       <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M15.2 15.2 20 20" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
-      <input id="search-input" type="text" placeholder="Cerca progetto…" oninput="filterProjects(this.value)" aria-label="Cerca progetto"/>
+      <input id="search-input" type="text" oninput="filterProjects(this.value)" aria-label="Cerca progetto"/>
     </div>
     <button class="home-new-add" onclick="openNewModal()" aria-label="Nuovo progetto">+</button>
   </div>
@@ -132,7 +132,7 @@
   </div>
   <div class="idee-scroll">
     <div class="idee-nuovo">
-      <textarea id="idee-nuovo-testo" rows="2" placeholder="Una battuta, una scena, un titolo…"></textarea>
+      <textarea id="idee-nuovo-testo" rows="2" aria-label="Nuova idea"></textarea>
       <div class="idee-nuovo-piede">
         <button class="idee-salva" id="idee-nuovo-salva" type="button">Salva</button>
       </div>
@@ -174,7 +174,7 @@
   <div id="refs-folder-toolbar" class="refs-toolbar" style="display:none">
     <div class="refs-search">
       <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M15.2 15.2 20 20" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
-      <input id="refs-folder-search-input" type="text" placeholder="Cerca…" oninput="window.refsFolderSearch(this.value)" aria-label="Cerca nell'archivio">
+      <input id="refs-folder-search-input" type="text" oninput="window.refsFolderSearch(this.value)" aria-label="Cerca nell'archivio">
     </div>
     <!-- IL BOLLINO DI DRIVE STA QUI, nella barra, al posto del "+ categoria"
          che se n'e' andato. Prima galleggiava in basso a destra sopra
@@ -227,7 +227,7 @@
       <div class="refs-toolbar">
         <div class="refs-search">
           <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M15.2 15.2 20 20" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
-          <input id="refs-albums-search-input" type="text" placeholder="Cerca albo…" oninput="window.refsAlbumsSearch(this.value)" aria-label="Cerca albo">
+          <input id="refs-albums-search-input" type="text" oninput="window.refsAlbumsSearch(this.value)" aria-label="Cerca albo">
         </div>
         <button class="refs-sort-btn" onclick="window.refsAlbumsSortMenu(this)" aria-label="Ordina albi" title="Ordina">
           <svg viewBox="0 0 24 24" width="15" height="15"><path d="M7 15 L7 5 M7 5 L4 8 M7 5 L10 8" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M17 9 L17 19 M17 19 L14 16 M17 19 L20 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
