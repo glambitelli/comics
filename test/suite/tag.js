@@ -243,4 +243,64 @@ module.exports = () => suite("References — i tag", {"banco": "/test/banco/tavo
   ok('e\' piccolo — meno del 5% della miniatura', badge.quota < 0.05, badge);
   ok('e sta in un angolo', badge.inAlto, badge);
 
+  sezione('cercando, la porta si apre da sola');
+  // Chi scrive "folla" nel campo vuole vedere il tag, non un pulsante che lo
+  // porta a un elenco dove cercarlo un'altra volta.
+  await semina();
+  await page.evaluate(()=>{
+    window.setArchivio('references');
+    window.refs.refsFolderSearch('persone');
+  });
+  await page.waitForTimeout(300);
+  const cercando = await page.evaluate(()=>({
+    porta: !!document.querySelector('.refs-tag-porta'),
+    righe: Array.from(document.querySelectorAll('.refs-tag-row .refs-folder-name')).map(e=>e.textContent.trim()),
+    cartelle: Array.from(document.querySelectorAll('.refs-folder-row:not(.refs-tag-row) .refs-folder-name'))
+      .map(e=>e.textContent.trim()),
+  }));
+  ok('la porta "Tutti i tag" sparisce', !cercando.porta, cercando);
+  ok('e al suo posto c\'e\' il tag cercato',
+     cercando.righe.length === 1 && /persone sedute/.test(cercando.righe[0]), cercando);
+  ok('e le cartelle che non c\'entrano spariscono', !cercando.cartelle.length, cercando);
+
+  const senzaEsito = await page.evaluate(async ()=>{
+    window.refs.refsFolderSearch('zzz');
+    await new Promise(r=>setTimeout(r,250));
+    return { righe: document.querySelectorAll('.refs-tag-row').length,
+             testo: (document.querySelector('.refs-folders-empty')||{}).textContent || '' };
+  });
+  ok('e se non trova niente lo dice',
+     senzaEsito.righe === 0 && /nessun tag corrisponde/i.test(senzaEsito.testo), senzaEsito);
+  await page.evaluate(()=>{ window.refs.refsFolderSearch(''); });
+  await page.waitForTimeout(250);
+
+  sezione('Albi/Ritagli/Tavole solo dentro un artista');
+  // In una cartella di Study non ci sono albi ne' ci saranno mai: tre tab di
+  // cui due sempre a zero erano tre parole da scavalcare per arrivare alle foto.
+  await page.evaluate(()=>{ window.refs.openFolder('a1'); });
+  await page.waitForTimeout(300);
+  const inArtista = await page.evaluate(()=>
+    document.getElementById('refs-tabs').classList.contains('show'));
+  ok('dentro un artista i tab ci sono', inArtista, inArtista);
+
+  await page.evaluate(()=>{
+    // Una tavola e un ritaglio dentro la cartella di Study.
+    const c = document.createElement('canvas'); c.width = 8; c.height = 8;
+    const u = c.toDataURL('image/png');
+    window.refs.getRefs().push(
+      { id:'h1', url:u, folderId:'s1', projectIds:[], tags:[], tavola:false },
+      { id:'h2', url:u, folderId:'s1', projectIds:[], tags:[], tavola:true });
+    window.refs.openFolder('s1');
+  });
+  await page.waitForTimeout(300);
+  const inStudy = await page.evaluate(()=>({
+    tab: document.getElementById('refs-tabs').classList.contains('show'),
+    ids: Array.from(document.querySelectorAll('.refs-thumb')).map(e=>e.dataset.id),
+  }));
+  ok('dentro Study non ci sono', !inStudy.tab, inStudy);
+  // Senza tab non c'e' nessuno scaffale da scegliere: si deve vedere tutto,
+  // tavole comprese, altrimenti sarebbero irraggiungibili.
+  ok('e si vede tutto quello che c\'e\' dentro, tavole comprese',
+     inStudy.ids.includes('h1') && inStudy.ids.includes('h2'), inStudy);
+
 });

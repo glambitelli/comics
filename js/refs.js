@@ -545,6 +545,18 @@ export function setRefTavola(id, tavola){
   setDoc(doc(db, REFS_COL, id), { tavola: !!tavola }, {merge:true});
 }
 
+// I tab Albi/Ritagli/Tavole hanno senso SOLO dentro un artista.
+//
+// Un artista e' una persona di cui si leggono gli albi e da cui si ritaglia:
+// li' i tre scaffali dicono qualcosa. Una cartella di Study — "Hands",
+// "Heads" — non ha albi ne' mai ne avra': ci si mettono immagini e basta, e
+// tre tab di cui due sempre a zero erano solo tre parole da scavalcare per
+// arrivare alle foto.
+function folderHaTab(folderId){
+  const f = _folders.find(x=>x.id===folderId);
+  return !!f && categoriaDiPersone(f.category);
+}
+
 function countRitagliInFolder(folderId){
   return _refs.filter(r=>r.folderId===folderId && !isTavola(r)).length;
 }
@@ -1124,7 +1136,7 @@ function renderFolderTabs(){
   const imagesPane = document.getElementById('refs-images-pane');
   if(!tabs || !albumsPane || !imagesPane) return;
 
-  const inRealFolder = (_view === 'folder' && !!_activeFolderId);
+  const inRealFolder = (_view === 'folder' && !!_activeFolderId && folderHaTab(_activeFolderId));
   tabs.classList.toggle('show', inRealFolder);
 
   if(!inRealFolder){
@@ -1340,6 +1352,17 @@ function etichettaCartella(f){
        + (f.nome ? `<span class="rf-nome">${esc(f.nome)}</span>` : '');
 }
 
+// La riga di un tag. Vive in due posti — dentro l'elenco dei tag e nella
+// scheda References quando si sta cercando — e scriverla due volte avrebbe
+// voluto dire tenerne allineate due.
+function rigaTag(t){
+  return `<div class="refs-folder-row refs-tag-row" onclick="window.openTag('${perOnclick(t.nome)}')">
+      <span class="refs-mono mt">#</span>
+      <span class="refs-folder-name">${esc(t.nome)}</span>
+      <span class="refs-folder-count">${t.n}</span>
+    </div>`;
+}
+
 function renderTagList(){
   const el = document.getElementById('refs-folder-browser');
   if(!el) return;
@@ -1352,12 +1375,7 @@ function renderTagList(){
   } else if(!tags.length){
     html = `<div class="refs-folders-empty">Nessun tag corrisponde a "${esc(_folderQuery.trim())}".</div>`;
   } else {
-    html = tags.map(t=>`
-      <div class="refs-folder-row refs-tag-row" onclick="window.openTag('${perOnclick(t.nome)}')">
-        <span class="refs-mono mt">#</span>
-        <span class="refs-folder-name">${esc(t.nome)}</span>
-        <span class="refs-folder-count">${t.n}</span>
-      </div>`).join('');
+    html = tags.map(rigaTag).join('');
   }
   if(el._html !== html){ el._html = html; el.innerHTML = html; }
 }
@@ -1433,13 +1451,25 @@ function renderFolderBrowser(){
       html += righeCartelle(filtra(g.folders));
       if(!q) html += rigaAggiungi(g.category, 'cartella');
     });
+    // CERCANDO, la porta si apre da sola. Con un testo scritto nel campo non ha
+    // senso mostrare "Tutti i tag": chi cerca "folla" vuole vedere il tag
+    // "folla", non un pulsante che lo porta a un elenco in cui cercarlo di
+    // nuovo. Senza query invece resta la porta, ed e' quello che tiene corta la
+    // scheda.
     const tags = tuttiITag();
-    html += barra('Tag', tags.length);
-    html += `<div class="refs-folder-row refs-tag-row refs-tag-porta" onclick="window.openTagList()">
-        <span class="refs-mono mt">#</span>
-        <span class="refs-folder-name">Tutti i tag</span>
-        <span class="refs-folder-count">${tags.length}</span>
-      </div>`;
+    const trovati = q ? tags.filter(t=> t.nome.toLowerCase().includes(q)) : null;
+    html += barra('Tag', (trovati || tags).length);
+    if(trovati){
+      html += trovati.length
+        ? trovati.map(rigaTag).join('')
+        : `<div class="refs-folders-empty">Nessun tag corrisponde a "${esc(_folderQuery.trim())}".</div>`;
+    } else {
+      html += `<div class="refs-folder-row refs-tag-row refs-tag-porta" onclick="window.openTagList()">
+          <span class="refs-mono mt">#</span>
+          <span class="refs-folder-name">Tutti i tag</span>
+          <span class="refs-folder-count">${tags.length}</span>
+        </div>`;
+    }
   }
 
   // Confronto sul contenuto vero: una firma "furba" (es. la lunghezza) manca
@@ -1496,6 +1526,11 @@ function rawGridList(){
     // cartella") i tab non ci sono e si vede tutto insieme — lì la domanda è
     // "dov'è finita quell'immagine", e nasconderne metà sarebbe un dispetto.
     if(!_activeFolderId) return _refs.filter(r=>!r.folderId);
+    // Senza i tab non c'e' nessuno scaffale da scegliere: si vede tutto quello
+    // che la cartella contiene, tavole comprese. Filtrarle via qui le avrebbe
+    // rese invisibili, perche' non ci sarebbe stato nessun tab da toccare per
+    // andarle a prendere.
+    if(!folderHaTab(_activeFolderId)) return _refs.filter(r=>r.folderId===_activeFolderId);
     const tavole = _folderTab === 'tavole';
     return _refs.filter(r=>r.folderId===_activeFolderId && isTavola(r) === tavole);
   }
