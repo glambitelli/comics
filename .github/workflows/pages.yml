@@ -37,10 +37,6 @@ permissions:
   contents: read
   pages: write
   id-token: write
-  # Serve solo a SPEGNERE il workflow doppione di GitHub (vedi il passo
-  # "Spegni il doppione" piu' sotto). Non si scrive nient'altro con questo
-  # permesso.
-  actions: write
 
 # Un deploy alla volta. cancel-in-progress resta FALSE apposta: se la coda è
 # lenta, un deploy già in viaggio sta solo aspettando il suo turno — annullarlo
@@ -114,6 +110,16 @@ jobs:
           # non l'ha mai spostata davvero — fallisce in silenzio. Quindi qui ci
           # si limita a dirlo, una riga sola e solo quando serve: il rimedio è
           # un clic umano, non qualcosa che si possa automatizzare da dentro.
+          #
+          # E NON SI PUÒ NEMMENO METTERLO IN PAUSA. Provato il 17 agosto: si
+          # aggiunge `actions: write`, si trova il doppione fra i workflow (sta
+          # in "dynamic/pages/pages-build-deployment", quindi si riconosce dal
+          # percorso senza rischiare di spegnere questo) e gli si manda
+          #   PUT /repos/{owner}/{repo}/actions/workflows/{id}/disable
+          # La risposta è 422. Quel workflow non è un file del repository: è
+          # generato da Pages e vive finché la sorgente è un branch, quindi
+          # l'endpoint che accende e spegne i workflow non lo tocca. Vicolo
+          # cieco: sta scritto qui perché non ci si riprovi.
           TIPO=$(curl -sS \
             -H "Authorization: Bearer $GH_TOKEN" \
             -H "Accept: application/vnd.github+json" \
@@ -125,50 +131,7 @@ jobs:
                  "'pages build and deployment' di GitHub, e ogni tanto si scontrano (mail di run" \
                  "fallita, sito comunque aggiornato). Si spegne del tutto cambiando Impostazioni →" \
                  "Pages → Build and deployment → Source in 'GitHub Actions'. Serve un permesso da" \
-                 "amministratore: da qui si può solo mettere in pausa il doppione (passo dopo)."
-          fi
-
-      - name: Spegni il doppione, se GitHub lo tiene acceso
-        continue-on-error: true
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -uo pipefail
-          # LA MEZZA CURA CHE SI PUO' FARE DA QUI.
-          #
-          # Cambiare la sorgente di Pages richiede l'amministratore (vedi sopra),
-          # ma METTERE IN PAUSA un workflow richiede solo `actions: write`, che
-          # il token di Actions può avere. Il doppione è un workflow come gli
-          # altri, generato da GitHub: sta in "dynamic/pages/..." invece che in
-          # ".github/workflows/", ed è proprio da lì che lo si riconosce senza
-          # rischiare di spegnere QUESTO per sbaglio.
-          #
-          # Le tre mail di "Run failed" arrivate finora venivano tutte da lui e
-          # per motivi che non c'entrano niente con l'app: un 429 di codeload
-          # mentre scaricava un'azione, un 400 "due to in progress deployment"
-          # perché correva insieme a noi, un 503 di Pages. Il sito era
-          # aggiornato ogni volta, perché a pubblicarlo è questo workflow.
-          #
-          # Se il permesso non c'è (403) o l'endpoint cambia, il passo si limita
-          # a dirlo: continue-on-error tiene la pubblicazione fuori dai guai.
-          ID=$(curl -sS \
-            -H "Authorization: Bearer $GH_TOKEN" \
-            -H "Accept: application/vnd.github+json" \
-            "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/workflows?per_page=100" \
-            | jq -r 'first(.workflows[] | select(.path | startswith("dynamic/pages")) | select(.state=="active") | .id) // empty')
-          if [ -z "$ID" ]; then
-            echo "Nessun doppione acceso da spegnere."
-            exit 0
-          fi
-          CODICE=$(curl -sS -o /dev/null -w '%{http_code}' -X PUT \
-            -H "Authorization: Bearer $GH_TOKEN" \
-            -H "Accept: application/vnd.github+json" \
-            "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/workflows/$ID/disable")
-          if [ "$CODICE" = "204" ]; then
-            echo "::notice::Doppione 'pages build and deployment' messo in pausa: da ora pubblica solo questo workflow."
-          else
-            echo "::warning::Non sono riuscito a mettere in pausa il doppione (HTTP $CODICE)." \
-                 "Resta il rimedio umano: Impostazioni → Pages → Source → 'GitHub Actions'."
+                 "amministratore: da qui non si può fare."
           fi
 
       - uses: actions/configure-pages@v5
