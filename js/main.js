@@ -593,6 +593,27 @@ function mostraVersione(){
 }
 mostraVersione();
 
+// ── "QUESTI DATI NON BUTTARLI VIA" ──
+// Tutto quello che l'app tiene sul telefono — la copia offline di Firestore in
+// IndexedDB, gli albi scaricati da Drive (centinaia di MB), i file dell'app
+// nella cache del service worker — sta in una memoria che il browser considera
+// SACRIFICABILE: quando lo spazio scarseggia, Android puo' cancellarla senza
+// chiedere niente a nessuno. Si perde l'accesso offline, l'ultimo albo letto
+// va riscaricato, e a chi usa l'app sembra semplicemente che l'app si sia
+// dimenticata delle cose.
+//
+// persist() chiede di passare alla memoria "persistente", che non viene
+// buttata via da sola. Su Chrome per Android non compare nessuna richiesta:
+// viene concesso in silenzio alle app installate o usate spesso, e negato
+// altrimenti — quindi si chiede una volta all'avvio e non si insiste. La
+// promessa non viene mai rifiutata in modo rumoroso: se il browser non
+// supporta l'API, non succede niente.
+if(navigator.storage && navigator.storage.persist){
+  navigator.storage.persisted().then(gia=>{
+    if(!gia) return navigator.storage.persist();
+  }).catch(()=>{});
+}
+
 // Precarica stats.js in un momento di inattività: è un modulo pigro (si
 // scarica al primo tap su "Stats"), ma è anche tra i più usati. Ogni fetch
 // dei moduli passa dal service worker in modalità "network-first" (i deploy

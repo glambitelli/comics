@@ -1,7 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { loadJSON } from './state.js';
 import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager,
-         collection, doc, onSnapshot, setDoc, deleteDoc, serverTimestamp }
+         collection, doc, onSnapshot, setDoc, deleteDoc, serverTimestamp, getDocs }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -29,8 +29,12 @@ export const db = _db;
 export const COL = 'projects';
 const USER_DOC = 'inkflow_user_data';
 
-// Re-export Firestore primitives per evitare importazioni CDN duplicate
-export { collection, doc, onSnapshot, deleteDoc, setDoc, serverTimestamp };
+// Re-export Firestore primitives per evitare importazioni CDN duplicate.
+// getDocs serve al backup: legge una collezione INTERA una volta sola, invece
+// di restare in ascolto come onSnapshot. Cosi' l'esportazione non dipende da
+// quali schermate sono state aperte in questa sessione — legge tutto comunque,
+// anche le parti dell'archivio che oggi non hai ancora guardato.
+export { collection, doc, onSnapshot, deleteDoc, setDoc, serverTimestamp, getDocs };
 
 // ── CACHE LOCALE PROGETTI — per avvio istantaneo ──
 export function cacheProjects(projs){

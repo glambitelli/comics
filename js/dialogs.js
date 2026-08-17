@@ -184,6 +184,33 @@ export function confirmModal(message, options={}){
   _confirmTitle.textContent = options.title || 'Conferma';
   _confirmMsg.textContent = message;
   _confirmOkBtn.textContent = options.confirmLabel || 'Conferma';
+  // Il foglio e' lo stesso di infoModal, che si porta via "Annulla" e cambia
+  // colore al pulsante: qui si rimette com'era, se no la conferma successiva
+  // eredita la faccia dell'informazione precedente e non si puo' piu' dire di no.
+  _confirmOkBtn.className = options.safe ? 'btn-create' : 'btn-danger';
+  const annulla = _confirmOverlay.querySelector('#ink-confirm-cancel');
+  if(annulla) annulla.hidden = false;
+  _confirmOverlay.classList.add('open');
+  document.body.style.overflow='hidden';
+  return new Promise(resolve=>{ _confirmResolve = resolve; });
+}
+
+// ── UN FOGLIO CHE DICE E BASTA ──
+// Stesso foglio delle conferme, con un pulsante solo. Serve dove prima c'era
+// window.alert(): il riquadro grigio di sistema, che compare col nome del sito
+// in cima, non si puo' vestire, e sul telefono blocca tutto finche' non lo si
+// tocca. Le uniche due rimaste erano quelle del backup — cioe' proprio i
+// messaggi che uno legge quando ha appena salvato o ripristinato tutto il suo
+// archivio, il momento peggiore per sembrare un errore del browser.
+export function infoModal(messaggio, opzioni = {}){
+  ensureConfirmModal();
+  _confirmTitle.textContent = opzioni.title || 'Fatto';
+  _confirmMsg.textContent = messaggio;
+  _confirmOkBtn.textContent = opzioni.okLabel || 'Ok';
+  // L'azione qui non e' distruttiva: e' la stessa forma del pulsante che crea.
+  _confirmOkBtn.className = 'btn-create';
+  const annulla = _confirmOverlay.querySelector('#ink-confirm-cancel');
+  if(annulla) annulla.hidden = true;
   _confirmOverlay.classList.add('open');
   document.body.style.overflow='hidden';
   return new Promise(resolve=>{ _confirmResolve = resolve; });

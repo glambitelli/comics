@@ -1,54 +1,157 @@
 import { projects } from './state.js';
-import { db, COL, saveUserData, setDoc, doc, bumpDataRev } from './firebase.js';
+import { db, COL, saveUserData, setDoc, doc, bumpDataRev, collection, getDocs } from './firebase.js';
 import { getStreak } from './evening.js';
 import { restoreReminderUI } from './notifications.js';
 import { isSoundEnabled, setSoundEnabled, playSfx, SET_SUONI, setSuoniAttivo, setSuoniScegli } from './sound.js';
+import { confirmModal, infoModal } from './dialogs.js';
 
-export function exportBackup(){
-  const data = {
-    version: '1.0.0',
-    exportedAt: new Date().toISOString(),
-    projects,
-    stars: localStorage.getItem('inkflow_stars'),
-    monthly: localStorage.getItem('inkflow_monthly_stars'),
-    streak: localStorage.getItem('inkflow_streak'),
-    streakLast: localStorage.getItem('inkflow_streak_last'),
-    taskHistory: localStorage.getItem('inkflow_task_history'),
-  };
-  const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `inkflow-backup-${new Date().toISOString().slice(0,10)}.json`;
-  a.click();
-  URL.revokeObjectURL(url);
+// ── IL BACKUP — l'unica cosa che rende l'archivio davvero tuo ──
+//
+// COSA C'ERA PRIMA, E PERCHÉ NON BASTAVA. Il backup esportava i progetti e i
+// contatori delle stelle: due righe di JSON e via. Ma l'archivio visivo — i
+// ritagli, le tavole, gli artisti, gli albi, i tag, le idee — non c'era. E le
+// immagini stanno su Cloudinary, mentre i loro INDIRIZZI vivono solo qui: se
+// questo database si svuota, i file restano dove sono e diventano
+// irraggiungibili per sempre, perché nessuno sa più dove sono né a chi
+// appartengono. Il backup vecchio salvava la parte che si riscrive in un
+// pomeriggio e lasciava fuori quella che non si rifà più.
+//
+// Adesso si esportano TUTTE le collezioni, lette una per una da Firestore e
+// non dalla memoria dell'app: così il file è completo anche se in questa
+// sessione non hai mai aperto References. Aggiungere una collezione domani è
+// una riga in questo elenco.
+const COLLEZIONI = [
+  { nome:'projects',   etichetta:'progetti' },
+  { nome:'refs',       etichetta:'immagini' },
+  { nome:'refFolders', etichetta:'cartelle' },
+  { nome:'refAlbums',  etichetta:'albi' },
+  { nome:'ideas',      etichetta:'idee' },
+  { nome:'userdata',   etichetta:'stelle e streak' },
+];
+// Le impostazioni e i contatori che vivono solo su questo telefono.
+const CHIAVI_LOCALI = ['inkflow_stars','inkflow_monthly_stars','inkflow_streak',
+  'inkflow_streak_last','inkflow_task_history','inkflow_order','inkflow_secrets',
+  'inkflow_reminder_time','inkflow_reminder_enabled','inkflow_max_streak'];
+const ULTIMO_BACKUP = 'inkflow_ultimo_backup';
+
+export async function exportBackup(){
+  const btn = document.querySelector('.settings-action.backup-esporta');
+  const testo = btn ? btn.textContent : '';
+  if(btn){ btn.disabled = true; btn.textContent = 'Leggo…'; }
+  try{
+    const collezioni = {};
+    for(const c of COLLEZIONI){
+      const snap = await getDocs(collection(db, c.nome));
+      collezioni[c.nome] = snap.docs.map(d=> ({ id:d.id, ...d.data() }));
+    }
+    const locale = {};
+    CHIAVI_LOCALI.forEach(k=>{
+      const v = localStorage.getItem(k);
+      if(v !== null) locale[k] = v;
+    });
+    const dati = {
+      app: 'inkflow',
+      formato: 2,               // 1 era il backup dei soli progetti
+      versione: (document.querySelector('.app-vers')||{}).textContent || '',
+      esportatoIl: new Date().toISOString(),
+      collezioni, locale,
+    };
+    const testoFile = JSON.stringify(dati, null, 2);
+    const blob = new Blob([testoFile], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `inkflow-archivio-${new Date().toISOString().slice(0,10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    // Un giro di eventi prima di revocare: su Android il download parte in
+    // modo asincrono, e revocare subito l'indirizzo lasciava un file vuoto.
+    setTimeout(()=> URL.revokeObjectURL(url), 4000);
+    try{ localStorage.setItem(ULTIMO_BACKUP, String(Date.now())); }catch(e){}
+    mostraUltimoBackup();
+    const righe = COLLEZIONI
+      .map(c=> `${collezioni[c.nome].length} ${c.etichetta}`)
+      .join(', ');
+    await infoModal(
+      `Salvato un file con ${righe}. Tienilo dove tieni le cose che non vuoi perdere: da qui si rimette tutto com'era.`,
+      { title:'Archivio esportato' });
+  }catch(e){
+    await infoModal('Non sono riuscito a leggere l\'archivio: ' + (e && e.message ? e.message : e) +
+      '\nSe sei senza rete riprova quando torna.', { title:'Esportazione non riuscita' });
+  }finally{
+    if(btn){ btn.disabled = false; btn.textContent = testo; }
+  }
 }
 
 export function importBackup(){
   const input = document.createElement('input');
   input.type = 'file';
-  input.accept = '.json';
+  input.accept = '.json,application/json';
   input.onchange = async e => {
-    const file = e.target.files[0]; if(!file) return;
-    try {
-      const text = await file.text();
-      const data = JSON.parse(text);
-      if(!data.version || !data.projects) throw new Error('File non valido');
-      if(data.stars) localStorage.setItem('inkflow_stars', data.stars);
-      if(data.monthly) localStorage.setItem('inkflow_monthly_stars', data.monthly);
-      if(data.streak) localStorage.setItem('inkflow_streak', data.streak);
-      if(data.streakLast) localStorage.setItem('inkflow_streak_last', data.streakLast);
-      if(data.taskHistory) localStorage.setItem('inkflow_task_history', data.taskHistory);
-      for(const p of data.projects){
-        await setDoc(doc(db, COL, p.id), p);
+    const file = e.target.files[0];
+    if(!file) return;
+    try{
+      const dati = JSON.parse(await file.text());
+      // Il backup vecchio (solo progetti) si continua a leggere: chi ha un
+      // file di due mesi fa non deve scoprire che non serve più a niente.
+      const collezioni = dati.collezioni || (Array.isArray(dati.projects) ? { projects: dati.projects } : null);
+      if(!collezioni) throw new Error('non sembra un file di Inkflow');
+      const conto = COLLEZIONI
+        .filter(c=> Array.isArray(collezioni[c.nome]) && collezioni[c.nome].length)
+        .map(c=> `${collezioni[c.nome].length} ${c.etichetta}`);
+      if(!conto.length) throw new Error('il file è vuoto');
+      const quando = dati.esportatoIl ? new Date(dati.esportatoIl).toLocaleDateString('it-IT') : 'data sconosciuta';
+      // NIENTE VIENE CANCELLATO, e va detto prima: un ripristino che
+      // sostituisse l'archivio sarebbe il modo più veloce di perdere il lavoro
+      // fatto dopo l'ultimo backup.
+      const ok = await confirmModal(
+        `Il file è del ${quando} e contiene ${conto.join(', ')}. Rimetto queste cose nell'archivio: ` +
+        `quelle che ci sono già vengono riscritte com'erano nel file, le altre si aggiungono. Niente viene cancellato.`,
+        { title:'Ripristina archivio', confirmLabel:'Ripristina', safe:true });
+      if(!ok) return;
+      let scritti = 0;
+      for(const c of COLLEZIONI){
+        const arr = collezioni[c.nome];
+        if(!Array.isArray(arr)) continue;
+        for(const documento of arr){
+          const { id, ...resto } = documento;
+          if(!id) continue;
+          await setDoc(doc(db, c.nome, id), resto);
+          scritti++;
+        }
       }
-      alert(`✓ Backup ripristinato — ${data.projects.length} progetti importati`);
-      closeSettings();
-    } catch(err){
-      alert('Errore nel file di backup: '+err.message);
+      const locale = dati.locale || {};
+      Object.keys(locale).forEach(k=>{
+        if(CHIAVI_LOCALI.includes(k)){ try{ localStorage.setItem(k, locale[k]); }catch(e){} }
+      });
+      await infoModal(`Rimessi ${scritti} elementi. L'archivio si aggiorna da solo, senza riavviare.`,
+        { title:'Archivio ripristinato' });
+    }catch(err){
+      await infoModal('Non sono riuscito a leggere il file: ' + (err && err.message ? err.message : err),
+        { title:'Ripristino non riuscito' });
     }
   };
   input.click();
+}
+
+// "Ultimo backup: tre giorni fa", sotto i due pulsanti. Serve a una cosa sola:
+// un backup che non si fa mai non e' un backup, e l'unico modo perche' se ne
+// ricordi e' che la riga te lo dica quando apri le impostazioni per altro.
+export function mostraUltimoBackup(){
+  const el = document.getElementById('backup-quando');
+  if(!el) return;
+  const t = parseInt(localStorage.getItem(ULTIMO_BACKUP) || '0', 10);
+  if(!t){
+    el.textContent = 'Non hai ancora esportato niente.';
+    el.className = 'settings-note avviso';
+    return;
+  }
+  const giorni = Math.floor((Date.now() - t) / 86400000);
+  const quando = giorni === 0 ? 'oggi' : giorni === 1 ? 'ieri' : `${giorni} giorni fa`;
+  el.textContent = 'Ultimo backup: ' + quando + '.';
+  // Dopo un mese la riga si accende: non e' un allarme, e' un promemoria.
+  el.className = 'settings-note' + (giorni >= 30 ? ' avviso' : '');
 }
 
 export function openSettings(){
@@ -77,6 +180,7 @@ export function openSettings(){
   const st = document.getElementById('sound-toggle');
   if(st) st.checked = isSoundEnabled();
   riempiSetSuoni();
+  mostraUltimoBackup();
 }
 
 // Il menu dei set si costruisce dall'elenco in sound.js, non a mano

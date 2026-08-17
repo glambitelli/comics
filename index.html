@@ -797,10 +797,14 @@
       <div class="settings-section-label">Backup</div>
       <div class="settings-card">
         <div class="settings-action-row">
-          <button class="settings-action" onclick="exportBackup()">Esporta</button>
-          <button class="settings-action" onclick="importBackup()">Importa</button>
+          <button class="settings-action backup-esporta" onclick="exportBackup()">Esporta</button>
+          <button class="settings-action" onclick="importBackup()">Ripristina</button>
         </div>
-        <div class="settings-note">Comprende tutti i progetti e i dati delle stelle.</div>
+        <!-- Elencare cosa c'e' dentro non e' pignoleria: il backup di prima
+             diceva "tutti i progetti" e la gente (io) dava per scontato che
+             comprendesse anche l'archivio, che invece restava fuori. -->
+        <div class="settings-note">Progetti, artisti, ritagli e tavole, albi, tag, idee, stelle e streak: tutto in un file solo.</div>
+        <div class="settings-note" id="backup-quando"></div>
       </div>
     </div>
 

@@ -6,10 +6,23 @@ export function getFirestore(){ return {}; }
 export function initializeFirestore(){ return {}; }
 export function persistentLocalCache(){ return {}; }
 export function persistentMultipleTabManager(){ return {}; }
-export function collection(){ return {}; }
-export function doc(){ return {}; }
+// Collezione e documento si portano dietro il nome: cosi' una prova puo'
+// verificare da dove si legge e dove si scrive (serve al backup, che tocca
+// sei collezioni diverse).
+export function collection(_db, nome){ return { nome }; }
+export function doc(_db, col, id){ return { col, id }; }
 export function onSnapshot(){ return ()=>{}; }
-export function setDoc(){ return Promise.resolve(); }
+export function setDoc(ref, data){
+  (window.__scritture || (window.__scritture = [])).push({ col: ref && ref.col, id: ref && ref.id, data });
+  return Promise.resolve();
+}
 export function deleteDoc(){ return Promise.resolve(); }
+// L'archivio finto: window.__archivio = { collezione: { id: dati } }. Lo legge
+// getDocs, cioe' il backup — l'unica parte dell'app che invece di restare in
+// ascolto si prende tutto in una volta.
+export function getDocs(ref){
+  const arch = (window.__archivio || {})[ref && ref.nome] || {};
+  return Promise.resolve({ docs: Object.keys(arch).map(id=> ({ id, data: ()=> arch[id] })) });
+}
 export function serverTimestamp(){ return 0; }
 export function getDoc(){ return Promise.resolve({exists:()=>false}); }

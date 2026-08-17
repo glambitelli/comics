@@ -1,0 +1,172 @@
+// Backup — l'archivio esce da qui, e ci rientra
+//
+// È la prova più importante di tutte, e per un motivo che non c'entra con
+// l'interfaccia: le immagini stanno su Cloudinary ma i loro INDIRIZZI vivono
+// solo su Firestore. Se quel file non contiene i ritagli, il giorno che il
+// database si svuota le foto restano dove sono e non le ritrova più nessuno.
+// Quindi qui non si controlla che "il backup funzioni": si controlla che
+// dentro ci sia TUTTO, pezzo per pezzo, e che rimettendolo torni al suo posto.
+//
+// Gira sull'app vera (come impostazioni.js): il file viene scaricato davvero
+// dal browser e riletto da disco.
+const fs = require('fs');
+const path = require('path');
+const { suite } = require('../motore.js');
+
+const SDK_FINTO = fs.readFileSync(path.join(__dirname, '..', 'finti', 'firebase-sdk.js'), 'utf8');
+
+// Un archivio in miniatura, con dentro una cosa per tipo.
+const ARCHIVIO = {
+  projects:   { p1: { title:'Kara', numTav:10, phase:1 } },
+  refs:       { r1: { url:'https://res.cloudinary.com/le3bzkm8/image/upload/v1/uno.jpg',
+                      folderId:'f1', tags:['mani'], tavola:false },
+                r2: { url:'https://res.cloudinary.com/le3bzkm8/image/upload/v1/due.jpg',
+                      folderId:'f1', tavola:true } },
+  refFolders: { f1: { category:'Artists', name:'Otomo Katsuhiro', cognome:'Otomo', nome:'Katsuhiro' } },
+  refAlbums:  { a1: { folderId:'f1', title:'Akira 1', pageCount:364 } },
+  ideas:      { i1: { testo:'Una scena al mercato', ordine:0 } },
+  userdata:   { inkflow_user_data: { stars:12, streak:3 } },
+};
+
+module.exports = () => suite("Backup — l'archivio esce da qui, e ci rientra", {
+  banco: '/index.html',
+  pronto: ()=> !!document.querySelector('#settings-panel'),
+  prima: async (page)=>{
+    await page.route('**://fonts.googleapis.com/**', r=> r.fulfill({status:200, contentType:'text/css', body:''}));
+    await page.route('**://fonts.gstatic.com/**', r=> r.abort());
+    await page.route('**://www.gstatic.com/firebasejs/**', r=> r.fulfill({
+      status:200, contentType:'text/javascript', body: SDK_FINTO }));
+  },
+}, async ({ page, ok, sezione }) => {
+
+  await page.waitForTimeout(1800);
+  await page.evaluate(a=>{ window.__archivio = a; }, ARCHIVIO);
+
+  sezione('esportare scrive un file con dentro tutto l\'archivio');
+  const [scaricato] = await Promise.all([
+    page.waitForEvent('download', { timeout: 15000 }),
+    page.evaluate(async ()=>{
+      const m = await import('/js/settings.js');
+      m.exportBackup();
+    }),
+  ]);
+  const nome = scaricato.suggestedFilename();
+  const dove = await scaricato.path();
+  const dati = JSON.parse(fs.readFileSync(dove, 'utf8'));
+  ok('il file si chiama come la cosa che contiene, con la data',
+     /^inkflow-archivio-\d{4}-\d{2}-\d{2}\.json$/.test(nome), nome);
+  ok('e dice di che app e\' e in che formato', dati.app === 'inkflow' && dati.formato === 2, dati.formato);
+
+  const c = dati.collezioni || {};
+  ok('ci sono i progetti', (c.projects||[]).length === 1, c.projects);
+  ok('ci sono le immagini, tutte e due', (c.refs||[]).length === 2, c.refs);
+  ok('ci sono gli artisti', (c.refFolders||[]).length === 1, c.refFolders);
+  ok('ci sono gli albi', (c.refAlbums||[]).length === 1, c.refAlbums);
+  ok('ci sono le idee', (c.ideas||[]).length === 1, c.ideas);
+  ok('ci sono stelle e streak', (c.userdata||[]).length === 1, c.userdata);
+  // IL CONTROLLO CHE CONTA. Un backup senza gli indirizzi delle immagini e'
+  // una scatola vuota che sembra piena.
+  const uno = (c.refs||[]).find(r=> r.id === 'r1');
+  ok('e ogni immagine si porta dietro il suo indirizzo su Cloudinary',
+     !!uno && /res\.cloudinary\.com/.test(uno.url||''), uno);
+  ok('insieme a cartella e tag, se no si ritrova tutto sfuso',
+     !!uno && uno.folderId === 'f1' && Array.isArray(uno.tags) && uno.tags[0] === 'mani', uno);
+  ok('e l\'identificativo, che e\' quello che permette di rimetterla al suo posto',
+     (c.refs||[]).every(r=> !!r.id), c.refs);
+
+  sezione('e la riga sotto i pulsanti si ricorda quando l\'hai fatto');
+  const quando = await page.evaluate(()=>{
+    const el = document.getElementById('backup-quando');
+    return { testo: el ? el.textContent.trim() : null,
+             salvato: !!localStorage.getItem('inkflow_ultimo_backup') };
+  });
+  ok('la data dell\'ultimo backup viene segnata', quando.salvato, quando);
+  ok('e a schermo si legge "oggi"', /oggi/i.test(quando.testo||''), quando);
+
+  sezione('finito, lo dice con un foglio dell\'app e non col riquadro del browser');
+  const foglio = await page.evaluate(()=>{
+    const ov = document.querySelector('.modal-overlay.open');
+    if(!ov) return null;
+    const annulla = ov.querySelector('#ink-confirm-cancel');
+    return {
+      titolo: (ov.querySelector('h3')||{}).textContent || '',
+      testo: (ov.querySelector('.modal-nota')||{}).textContent || '',
+      unSoloPulsante: !annulla || annulla.hidden,
+      classePulsante: (ov.querySelector('#ink-confirm-ok')||{}).className || '',
+    };
+  });
+  ok('il foglio c\'e\'', !!foglio, foglio);
+  ok('dice cosa ha salvato, contandolo', /2 immagini/.test(foglio.testo||''), foglio);
+  ok('ha un pulsante solo: non c\'e\' niente da annullare', foglio.unSoloPulsante, foglio);
+  ok('e non e\' rosso, perche\' non ha cancellato niente',
+     /btn-create/.test(foglio.classePulsante), foglio);
+  await page.evaluate(()=> document.querySelector('.modal-overlay.open #ink-confirm-ok').click());
+  await page.waitForTimeout(250);
+
+  sezione('ripristinare rimette ogni cosa nella sua collezione');
+  // Il file appena scaricato torna dentro dall'input dei file, come farebbe
+  // uno vero pescato dalle sue cartelle.
+  await page.evaluate(()=>{ window.__scritture = []; });
+  const [scelta] = await Promise.all([
+    page.waitForEvent('filechooser', { timeout: 10000 }),
+    page.evaluate(async ()=>{
+      const m = await import('/js/settings.js');
+      m.importBackup();
+    }),
+  ]);
+  await scelta.setFiles(dove);
+  await page.waitForTimeout(400);
+  const domanda = await page.evaluate(()=>{
+    const ov = document.querySelector('.modal-overlay.open');
+    return ov ? { testo: (ov.querySelector('.modal-nota')||{}).textContent || '',
+                  titolo: (ov.querySelector('h3')||{}).textContent || '' } : null;
+  });
+  ok('prima chiede, dicendo cosa c\'e\' nel file',
+     domanda && /1 progetti|1 progetto/.test(domanda.testo) && /2 immagini/.test(domanda.testo), domanda);
+  // Chi ripristina ha spesso lavorato DOPO l'ultimo backup: se il ripristino
+  // cancellasse, quel lavoro sparirebbe senza che nessuno l'abbia chiesto.
+  ok('e promette che non cancella niente', /niente viene cancellato/i.test(domanda.testo||''), domanda);
+  await page.evaluate(()=> document.querySelector('.modal-overlay.open #ink-confirm-ok').click());
+  await page.waitForTimeout(600);
+
+  const rimesse = await page.evaluate(()=>{
+    const per = {};
+    (window.__scritture||[]).forEach(s=>{ per[s.col] = (per[s.col]||0) + 1; });
+    const img = (window.__scritture||[]).find(s=> s.col === 'refs' && s.id === 'r1');
+    return { per, img: img ? img.data : null };
+  });
+  ok('i progetti tornano fra i progetti', rimesse.per.projects === 1, rimesse.per);
+  ok('le immagini fra le immagini', rimesse.per.refs === 2, rimesse.per);
+  ok('gli artisti fra gli artisti', rimesse.per.refFolders === 1, rimesse.per);
+  ok('gli albi, le idee e i contatori al loro posto',
+     rimesse.per.refAlbums === 1 && rimesse.per.ideas === 1 && rimesse.per.userdata === 1, rimesse.per);
+  ok('e l\'immagine rimessa ha ancora il suo indirizzo',
+     rimesse.img && /res\.cloudinary\.com/.test(rimesse.img.url||''), rimesse.img);
+  // L'id NON deve finire anche dentro il documento: e' il nome del documento,
+  // non un suo campo, e duplicarlo significa ritrovarselo nei dati per sempre.
+  ok('senza portarsi l\'identificativo dentro i dati',
+     rimesse.img && rimesse.img.id === undefined, rimesse.img);
+
+  sezione('un file che non c\'entra niente non fa danni');
+  await page.evaluate(()=> document.querySelector('.modal-overlay.open #ink-confirm-ok').click());
+  await page.waitForTimeout(250);
+  const finto = path.join(require('os').tmpdir(), 'non-inkflow.json');
+  fs.writeFileSync(finto, JSON.stringify({ qualcosa:'altro' }));
+  await page.evaluate(()=>{ window.__scritture = []; });
+  const [scelta2] = await Promise.all([
+    page.waitForEvent('filechooser', { timeout: 10000 }),
+    page.evaluate(async ()=>{
+      const m = await import('/js/settings.js');
+      m.importBackup();
+    }),
+  ]);
+  await scelta2.setFiles(finto);
+  await page.waitForTimeout(400);
+  const rifiuto = await page.evaluate(()=>({
+    testo: (document.querySelector('.modal-overlay.open .modal-nota')||{}).textContent || '',
+    scritture: (window.__scritture||[]).length,
+  }));
+  ok('lo dice invece di provarci', /non sembra un file di inkflow/i.test(rifiuto.testo), rifiuto);
+  ok('e non scrive niente', rifiuto.scritture === 0, rifiuto);
+
+});
