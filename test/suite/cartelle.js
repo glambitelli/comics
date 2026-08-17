@@ -385,6 +385,24 @@ module.exports = () => suite("References — artisti e menu contestuali", {"banc
      chiede.azione === conferma.azione && chiede.annulla === conferma.annulla, [chiede, conferma]);
   ok('e l\'azione pesa il doppio di Annulla in tutti e due',
      chiede.pesi === conferma.pesi && chiede.pesi === '1-2', [chiede.pesi, conferma.pesi]);
+  // E sono fatti dello STESSO MATERIALE: le misure erano gia' identiche, ma un
+  // foglio era una parete di testo su bianco e l'altro una pila di riquadri di
+  // sabbia, e bastava quello a farli sembrare due cose diverse. La frase di una
+  // conferma sta in un riquadro come un campo.
+  const materiale = await page.evaluate(()=>{
+    const leggi = el=>{ const s = getComputedStyle(el);
+      return [s.backgroundColor, s.borderRadius, s.borderWidth, s.padding].join('|'); };
+    const nota = document.querySelector('.modal-overlay.open .modal-nota');
+    // Un campo qualsiasi, preso dal foglio che ne ha: e' il metro di paragone.
+    const campo = document.createElement('input');
+    campo.className = 'field-input';
+    document.querySelector('.modal-overlay.open .modal-body').appendChild(campo);
+    const esito = { nota: leggi(nota), campo: leggi(campo) };
+    campo.remove();
+    return esito;
+  });
+  ok('la frase della conferma e\' un riquadro come i campi',
+     materiale.nota === materiale.campo, materiale);
   await page.evaluate(()=>{
     const ov = document.querySelector('.modal-overlay.open');
     ov.querySelector('.btn-cancel').dispatchEvent(new MouseEvent('click',{bubbles:true}));
