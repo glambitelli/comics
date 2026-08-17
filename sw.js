@@ -1,5 +1,19 @@
 // Service Worker — cache file statici locali, Firebase sempre da rete
-const CACHE = 'inkflow-static-v241';
+//
+// DUE NUMERI, E FANNO DUE MESTIERI DIVERSI.
+//
+// VERSIONE e' la versione dell'app per chi la usa: cambia quando cambia cosa
+// l'app SA FARE, non a ogni ritocco. La 1.0.0 e' il 17 agosto 2026, il giorno
+// in cui l'archivio, i progetti, il lettore, i ritagli, le idee e Drive sono
+// diventati una cosa sola su cui si puo' contare.
+//
+// CACHE invece e' il numero di serie della PUBBLICAZIONE, e va alzato ad ogni
+// ritocco di CSS o JS: e' il nome della dispensa dei file, e cambiargli nome
+// e' l'unico modo per convincere il telefono a scaricare i file nuovi invece
+// di servire quelli di ieri. Alzare questo e non quello e' normale; il
+// contrario no.
+const VERSIONE = '1.0.0';
+const CACHE = 'inkflow-static-v242';
 const SHARE_CACHE = 'inkflow-share-inbox';
 // Cache dei file .cbz/.cbr scaricati da Drive: gestita da js/drive.js, va
 // PRESERVATA tra i deploy (altrimenti a ogni aggiornamento riscaricheresti
@@ -148,7 +162,9 @@ self.addEventListener('message', e => {
   // copia in cache (vedi mostraVersione in main.js).
   if(e.data&&e.data.type==='VERSIONE'){
     const porta = e.ports && e.ports[0];
-    if(porta) porta.postMessage(CACHE.replace('inkflow-static-',''));
+    // Tutti e due i numeri, in chiaro: "1.0.0 · v242". Quello a sinistra dice
+    // che app e', quello a destra se l'aggiornamento di stasera e' arrivato.
+    if(porta) porta.postMessage(VERSIONE + ' · ' + CACHE.replace('inkflow-static-',''));
     return;
   }
   if(e.data&&e.data.type==='SCHEDULE_NOTIFICATION'){

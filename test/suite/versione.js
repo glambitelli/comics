@@ -11,7 +11,12 @@ const { suite } = require('../motore.js');
 
 const SDK_FINTO = fs.readFileSync(path.join(__dirname, '..', 'finti', 'firebase-sdk.js'), 'utf8');
 const SW = fs.readFileSync(path.join(__dirname, '..', '..', 'sw.js'), 'utf8');
-const ATTESA = (SW.match(/inkflow-static-(v\d+)/) || [])[1];
+// Due numeri e due mestieri (vedi sw.js): la versione dell'app, che cambia
+// quando cambia cosa l'app sa fare, e il numero di serie della pubblicazione,
+// che cambia ad ogni ritocco. A schermo si vedono tutti e due.
+const SERIE = (SW.match(/inkflow-static-(v\d+)/) || [])[1];
+const NUMERO = (SW.match(/const VERSIONE = '([^']+)'/) || [])[1];
+const ATTESA = NUMERO + ' \u00b7 ' + SERIE;
 
 module.exports = () => suite("Versione — quella scritta e' quella che gira", {
   banco: '/index.html',
@@ -39,6 +44,8 @@ module.exports = () => suite("Versione — quella scritta e' quella che gira", {
   });
   ok('risponde, e non con un silenzio', risposta !== 'SILENZIO', risposta);
   ok('e dice la versione che sta in sw.js', risposta === ATTESA, { risposta, ATTESA });
+  ok('con il numero dell\'app davanti al numero di serie',
+     risposta.startsWith(NUMERO + ' ') && risposta.endsWith(SERIE), { risposta, NUMERO, SERIE });
 
   sezione('e la home la scrive dove prima c\'era un "v1.0.0" finto');
   await page.waitForFunction(()=>
