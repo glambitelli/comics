@@ -391,15 +391,15 @@ module.exports = () => suite("References — artisti e menu contestuali", {"banc
   });
   await page.waitForTimeout(200);
 
-  sezione('niente piu\' "⋯": Rinomina/Elimina si aprono tenendo premuto');
-  // Il bottone dei tre puntini era un bersaglio da pochi pixel appoggiato a un
-  // bersaglio largo quanto lo schermo: si sbagliava in tutti e due i versi. Il
-  // gesto e' lo stesso delle miniature (480ms), e qui si riproduce INTERO —
-  // rilascio e click compresi — perche' il click che il browser manda quando
-  // il dito si stacca non deve aprire anche la cartella sotto.
+  sezione('tenendo premuto si comincia a SCEGLIERE');
+  // Prima il tocco prolungato apriva un menu con Rinomina/Elimina, una cartella
+  // per volta: per cancellarne cinque servivano cinque gesti e cinque conferme.
+  // Adesso sceglie la riga, e le azioni sono una barra sola sopra l'elenco. Il
+  // gesto si riproduce INTERO — rilascio e click compresi — perche' il click
+  // che il browser manda quando il dito si stacca non deve aprire la cartella.
   await apri();
   const senzaPuntini = await page.evaluate(()=> !document.querySelector('.refs-folder-menu'));
-  ok('il bottone non c\'e\' piu\' su nessuna riga', senzaPuntini, senzaPuntini);
+  ok('il bottone dei tre puntini non c\'e\' su nessuna riga', senzaPuntini, senzaPuntini);
   const tenuta = await page.evaluate(async ()=>{
     const el = document.querySelector('.refs-folder-row[data-folder-id]');
     const r = el.getBoundingClientRect();
@@ -408,48 +408,120 @@ module.exports = () => suite("References — artisti e menu contestuali", {"banc
     el.dispatchEvent(new PointerEvent('pointerdown',{pointerId:3,clientX:x,clientY:y,bubbles:true}));
     el.dispatchEvent(new TouchEvent('touchstart',{bubbles:true,touches:t(),targetTouches:t()}));
     await new Promise(r=>setTimeout(r,600));
-    const durante = !!document.querySelector('.ink-action-menu');
-    // changedTouches serve davvero: la lista dei tag scorre con lo swipe fra
-    // gli assi (vedi wireSwipeAssi) e quel gestore legge da li' dove il dito
-    // si e' staccato. Un touchend senza, che il browser non manda mai, faceva
-    // esplodere il gestore in mezzo alla prova.
+    const durante = window.refs.scelti().length;
+    // changedTouches serve davvero: la pagina cambia asse con lo swipe (vedi
+    // wireSwipeAssi) e quel gestore legge da li' dove il dito si e' staccato.
     el.dispatchEvent(new TouchEvent('touchend',{bubbles:true,touches:[],targetTouches:[],changedTouches:t()}));
     el.dispatchEvent(new PointerEvent('pointerup',{pointerId:3,clientX:x,clientY:y,bubbles:true}));
     el.dispatchEvent(new MouseEvent('click',{bubbles:true,clientX:x,clientY:y}));
     await new Promise(r=>setTimeout(r,200));
     const galleria = document.getElementById('refs-gallery-view');
-    return { durante, dopo: !!document.querySelector('.ink-action-menu'),
+    return { durante, dopo: window.refs.scelti().length,
+             menu: !!document.querySelector('.ink-action-menu'),
              entrata: galleria.style.display !== 'none' };
   });
-  ok('tenendo premuto il menu compare', tenuta.durante, tenuta);
-  ok('e resta aperto quando il dito si stacca', tenuta.dopo, tenuta);
-  ok('senza entrare anche nella cartella sotto', !tenuta.entrata, tenuta);
+  ok('tenendo premuto la riga viene scelta', tenuta.durante === 1, tenuta);
+  ok('e resta scelta quando il dito si stacca', tenuta.dopo === 1, tenuta);
+  ok('nessun menu si apre piu\'', !tenuta.menu, tenuta);
+  ok('e non si entra nella cartella sotto', !tenuta.entrata, tenuta);
 
-  // IL MENU NON DEVE LAMPEGGIARE. Su Android il tocco prolungato fa scattare
-  // il nostro timer e, subito dopo, il "contextmenu" del browser: due aperture
-  // per un gesto solo, e il menu spariva e ricompariva sotto il dito. Qui si
-  // mandano tutti e due gli eventi e si controlla che il foglio a schermo sia
-  // sempre LO STESSO — non uno nuovo al posto del primo.
-  const unoSolo = await page.evaluate(async ()=>{
-    const el = document.querySelector('.refs-folder-row[data-folder-id]');
-    const primo = document.querySelector('.ink-action-menu');
-    el.dispatchEvent(new MouseEvent('contextmenu', {bubbles:true, cancelable:true}));
+  // Su Android il tocco prolungato fa scattare il nostro timer e, subito dopo,
+  // il "contextmenu" del browser: due gesti per uno solo. Se il secondo
+  // ripassasse per la stessa strada la riga verrebbe scelta e deselezionata
+  // nello stesso momento — l'equivalente del vecchio menu che lampeggiava.
+  const dopoContext = await page.evaluate(async ()=>{
+    document.querySelector('.refs-folder-row[data-folder-id]')
+      .dispatchEvent(new MouseEvent('contextmenu', {bubbles:true, cancelable:true}));
     await new Promise(r=>setTimeout(r,150));
-    const dopo = document.querySelectorAll('.ink-action-menu');
-    return { quanti: dopo.length, stesso: dopo[0] === primo };
+    return window.refs.scelti().length;
   });
-  ok('e il contextmenu di Android non ne apre un secondo',
-     unoSolo.quanti === 1, unoSolo);
-  ok('e' + '\' il foglio di prima, non uno nuovo (niente lampeggio)',
-     unoSolo.stesso, unoSolo);
-  // Il menu si chiude col dito che scende, non col click: e' proprio quello
-  // che gli impedisce di lampeggiare (vedi piu' sotto).
-  await page.evaluate(()=> document.body.dispatchEvent(
-    new PointerEvent('pointerdown',{pointerId:9,clientX:4,clientY:4,bubbles:true})));
-  // Mezzo secondo abbondante: chiudendo il menu col dito, il click che segue
-  // il distacco viene ingoiato apposta (vedi _fuoriMenu in dialogs.js), e il
-  // tocco della prova qui sotto dev'essere un tocco nuovo, non quello.
-  await page.waitForTimeout(600);
+  ok('e il contextmenu di Android non la fa saltare via', dopoContext === 1, dopoContext);
+
+  sezione('la barra delle azioni prende il posto dell\'interruttore');
+  const inScelta = await page.evaluate(()=>{
+    const barra = document.getElementById('refs-scelta');
+    const assi = document.getElementById('refs-axis');
+    return {
+      barraVisibile: getComputedStyle(barra).display !== 'none',
+      assiVisibili: getComputedStyle(assi).display !== 'none',
+      conto: document.getElementById('refs-scelta-conto').textContent.trim(),
+      rinominaSpento: document.getElementById('refs-scelta-rinomina').disabled,
+      spunte: document.querySelectorAll('.refs-spunta').length,
+      prese: document.querySelectorAll('.refs-spunta.on').length,
+    };
+  });
+  ok('la barra c\'e\' e l\'interruttore no', inScelta.barraVisibile && !inScelta.assiVisibili, inScelta);
+  ok('dice quanti ne hai presi', /1 scelto/.test(inScelta.conto), inScelta);
+  ok('con uno solo, Rinomina si puo\' premere', !inScelta.rinominaSpento, inScelta);
+  ok('e ogni riga si porta la sua spunta',
+     inScelta.spunte === 3 && inScelta.prese === 1, inScelta);
+
+  const inDue = await page.evaluate(async ()=>{
+    const righe = document.querySelectorAll('.refs-folder-row[data-folder-id]');
+    righe[1].dispatchEvent(new MouseEvent('click',{bubbles:true}));
+    await new Promise(r=>setTimeout(r,200));
+    return {
+      quanti: window.refs.scelti().length,
+      conto: document.getElementById('refs-scelta-conto').textContent.trim(),
+      rinominaSpento: document.getElementById('refs-scelta-rinomina').disabled,
+      galleria: document.getElementById('refs-gallery-view').style.display !== 'none',
+    };
+  });
+  ok('un tocco normale, mentre si sceglie, aggiunge invece di entrare',
+     inDue.quanti === 2 && !inDue.galleria, inDue);
+  ok('il conto si aggiorna', /2 scelti/.test(inDue.conto), inDue);
+  ok('e con due, Rinomina si spegne (due cartelle non hanno un nome solo)',
+     inDue.rinominaSpento, inDue);
+
+  const tolta = await page.evaluate(async ()=>{
+    const righe = document.querySelectorAll('.refs-folder-row[data-folder-id]');
+    righe[1].dispatchEvent(new MouseEvent('click',{bubbles:true}));
+    await new Promise(r=>setTimeout(r,200));
+    return window.refs.scelti().length;
+  });
+  ok('e ritoccandola la si toglie', tolta === 1, tolta);
+
+  sezione('e da li\' si cancella in un colpo solo');
+  const cancellate = await page.evaluate(async ()=>{
+    const righe = document.querySelectorAll('.refs-folder-row[data-folder-id]');
+    righe[1].dispatchEvent(new MouseEvent('click',{bubbles:true}));
+    await new Promise(r=>setTimeout(r,200));
+    window.__cancellati = [];
+    document.getElementById('refs-scelta-elimina').dispatchEvent(new MouseEvent('click',{bubbles:true}));
+    await new Promise(r=>setTimeout(r,300));
+    const ov = document.querySelector('.modal-overlay.open');
+    const domanda = ov ? ov.textContent : '';
+    if(ov) ov.querySelector('.btn-danger').dispatchEvent(new MouseEvent('click',{bubbles:true}));
+    await new Promise(r=>setTimeout(r,300));
+    return { domanda, tolte: (window.__cancellati||[]).filter(c=>c.col === 'refFolders').map(c=>c.id),
+             barra: getComputedStyle(document.getElementById('refs-scelta')).display !== 'none' };
+  });
+  ok('la conferma dice quante cartelle sta per prendere',
+     /2 cartelle/.test(cancellate.domanda), cancellate.domanda);
+  ok('e le cancella tutte e due davvero', cancellate.tolte.length === 2, cancellate);
+  ok('finito, la barra se ne va', !cancellate.barra, cancellate);
+
+  sezione('uscire dalla scelta non cancella niente');
+  await apri();
+  const uscita = await page.evaluate(async ()=>{
+    document.querySelector('.refs-folder-row[data-folder-id]')
+      .dispatchEvent(new MouseEvent('contextmenu', {bubbles:true, cancelable:true}));
+    await new Promise(r=>setTimeout(r,200));
+    const dentro = window.refs.scelti().length;
+    window.__cancellati = [];
+    document.querySelector('#refs-scelta button[aria-label="Esci dalla scelta"]')
+      .dispatchEvent(new MouseEvent('click',{bubbles:true}));
+    await new Promise(r=>setTimeout(r,250));
+    return { dentro, dopo: window.refs.scelti().length,
+             cancellate: (window.__cancellati||[]).length,
+             assi: getComputedStyle(document.getElementById('refs-axis')).display !== 'none',
+             spunte: document.querySelectorAll('.refs-spunta').length };
+  });
+  ok('la ✕ svuota la scelta', uscita.dentro === 1 && uscita.dopo === 0, uscita);
+  ok('senza toccare niente', uscita.cancellate === 0, uscita);
+  ok('e l\'interruttore torna al suo posto', uscita.assi, uscita);
+  ok('e le spunte spariscono dalle righe', uscita.spunte === 0, uscita);
+  await apri();
 
   sezione('mentre un tocco normale entra e basta');
   const entrato = await page.evaluate(async ()=>{
@@ -551,15 +623,17 @@ module.exports = () => suite("References — artisti e menu contestuali", {"banc
   await apri();
 
   sezione('i menu contestuali: parole corte e un\'icona per voce');
-  await apri();
-  const menuCartella = await page.evaluate(async ()=>{
-    await window.refsFolderMenu('a1', document.querySelector('.refs-folder-row[data-folder-id]'));
+  // Sulle CARTELLE il menu non c'e' piu' (si sceglie e si agisce dalla barra):
+  // resta sulle immagini, ed e' li' che si controlla che forma abbia.
+  await page.evaluate(()=>{ window.semina(2,1); window.refs.openFolder('F1'); });
+  await page.waitForTimeout(300);
+  const menuImmagine = await page.evaluate(async ()=>{
+    await window.refsImageMenu(document.querySelector('.refs-thumb'), 'r0');
     await new Promise(r=>setTimeout(r,200));
     const m = document.querySelector('.ink-action-menu');
     const st = getComputedStyle(m);
     const bt = Array.from(m.querySelectorAll('button'));
     return {
-      voci: window.vociMenu(),
       icone: window.iconeMenu(),
       largo: Math.round(m.getBoundingClientRect().width),
       // Le voci non si toccano piu' i bordi: il foglio ha la sua imbottitura.
@@ -569,12 +643,13 @@ module.exports = () => suite("References — artisti e menu contestuali", {"banc
       distruttivaStaccata: bt[bt.length-1].classList.contains('stacca'),
     };
   });
-  ok('due voci, entrambe con icona',
-     menuCartella.voci.length === 2 && menuCartella.icone.every(Boolean), menuCartella);
-  ok('il menu ha un\'imbottitura sua', menuCartella.imbottitura > 0, menuCartella);
+  ok('ogni voce ha la sua icona', menuImmagine.icone.every(Boolean), menuImmagine);
+  ok('il menu ha un\'imbottitura sua', menuImmagine.imbottitura > 0, menuImmagine);
   ok('un solo filetto, quello sopra "Elimina"',
-     menuCartella.filetti === 1 && menuCartella.distruttivaStaccata, menuCartella);
-  ok('e non e\' piu\' largo mezzo schermo', menuCartella.largo <= 240, menuCartella);
+     menuImmagine.filetti === 1 && menuImmagine.distruttivaStaccata, menuImmagine);
+  ok('e non e\' piu\' largo mezzo schermo', menuImmagine.largo <= 240, menuImmagine);
+  await page.evaluate(()=> window.chiudiMenu());
+  await page.waitForTimeout(150);
 
   sezione('il menu di un\'immagine dice le stesse cose con meno parole');
   await page.evaluate(()=> window.chiudiMenu());
@@ -628,12 +703,13 @@ module.exports = () => suite("References — artisti e menu contestuali", {"banc
   ok('toccando altrove il menu se ne va', chiuso, chiuso);
 
   sezione('e scorrendo il menu si toglie di mezzo');
-  // Il menu e' ancorato a un punto fisso dello schermo e non insegue la riga
-  // da cui e' uscito: restando aperto durante uno scorrimento finirebbe per
-  // puntare a una cartella diversa da quella scelta.
-  await apri();
+  // Il menu e' ancorato a un punto fisso dello schermo e non insegue la
+  // miniatura da cui e' uscito: restando aperto durante uno scorrimento
+  // finirebbe per puntare a un'immagine diversa da quella scelta.
+  await page.evaluate(()=>{ window.semina(2,1); window.refs.openFolder('F1'); });
+  await page.waitForTimeout(300);
   const dopoScroll = await page.evaluate(async ()=>{
-    await window.refsFolderMenu('a1', document.querySelector('.refs-folder-row[data-folder-id]'));
+    await window.refsImageMenu(document.querySelector('.refs-thumb'), 'r0');
     await new Promise(r=>setTimeout(r,200));
     const prima = !!document.querySelector('.ink-action-menu');
     document.querySelector('.refs-scroll').dispatchEvent(new Event('scroll', {bubbles:true}));

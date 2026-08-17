@@ -13,5 +13,11 @@ export function setDoc(ref, data){
   (window.__scritture || (window.__scritture = [])).push({ col: ref && ref.col, id: ref && ref.id, data });
   return Promise.resolve();
 }
-export function deleteDoc(){ return Promise.resolve(); }
+// Le cancellazioni si annotano come le scritture: senza, una prova poteva solo
+// verificare che l'app NON esplodesse cancellando, non che cancellasse davvero
+// la cosa giusta (vedi la scelta multipla degli artisti in cartelle.js).
+export function deleteDoc(ref){
+  (window.__cancellati || (window.__cancellati = [])).push({ col: ref && ref.col, id: ref && ref.id });
+  return Promise.resolve();
+}
 export function serverTimestamp(){ return 0; }

@@ -56,6 +56,14 @@ let _asse = 'artists';           // 'artists' | 'references'
 // archivia: chi salva non sceglie, la scelta l'ha già fatta premendo "tutta la
 // tavola" invece di tirare un riquadro.
 let _folderTab = 'ritagli';      // 'albi' | 'ritagli' | 'tavole'
+// ── SCEGLIERE PIU' ARTISTI INSIEME ──
+// Non c'e' un interruttore "modalita' scelta" da tenere acceso: la modalita' E'
+// questo insieme. Finche' e' vuoto le righe si aprono al tocco come sempre;
+// appena dentro c'e' qualcuno l'elenco diventa un elenco da spuntare e la barra
+// delle azioni prende il posto di Artists/References. Svuotandolo si torna
+// com'era: cosi' non esiste lo stato "sono in modalita' scelta ma non ho scelto
+// niente", che e' quello in cui ci si incastra e non si capisce come uscire.
+let _scelti = new Set();
 let _lastUploadError = '';
 
 // ── RICERCA E ORDINAMENTO ──
@@ -855,13 +863,17 @@ function clearSearchInputs(){
   });
 }
 
+// Cambiare schermata azzera sempre la scelta: tornare da qualche parte e
+// ritrovare tre artisti ancora spuntati — con la barra rossa gia' pronta —
+// e' il modo migliore per cancellare qualcosa che non si voleva cancellare.
 export function openFolderBrowser(){
   _view = 'folders'; _activeFolderId = null; _activeTag = null;
-  _folderQuery = '';
+  _folderQuery = ''; _scelti.clear();
   clearSearchInputs();
   renderRefsScreen();
 }
 export function openAllGrid(){
+  _scelti.clear();
   _view = 'all'; _activeFolderId = null; _activeTag = null;
   clearSearchInputs();
   if(window.__navSync) window.__navSync('refs-all', null);
@@ -871,6 +883,7 @@ export function openAllGrid(){
 // fondo a References. Cosi' i tag non si confondono con le cartelle di Study,
 // che come righe si somigliano ma sono un'altra cosa.
 export function openTagList(){
+  _scelti.clear();
   _view = 'tags'; _activeFolderId = null; _activeTag = null;
   _folderQuery = '';
   clearSearchInputs();
@@ -883,6 +896,7 @@ export function openTagList(){
 export function openTag(tag){
   const n = normTag(tag);
   if(!n) return;
+  _scelti.clear();
   _view = 'tag'; _activeFolderId = null; _activeTag = n;
   _albumQuery = '';
   clearSearchInputs();
@@ -891,6 +905,7 @@ export function openTag(tag){
 }
 
 export function openFolder(id){
+  _scelti.clear();
   _view = 'folder'; _activeFolderId = id; _activeTag = null;
   // La ricerca degli albi resta legata a dove sei: portarsela dietro da una
   // cartella all'altra nasconderebbe albi senza che se ne veda il motivo.
@@ -926,6 +941,10 @@ export function setArchivio(asse){
   if(asse !== 'artists' && asse !== 'references') return;
   if(_asse === asse) return;
   _asse = asse;
+  // Le cartelle scelte stanno nell'asse in cui sono state scelte: portarsele
+  // di la' vorrebbe dire vedere "2 scelti" con l'elenco che non ne mostra
+  // nessuno.
+  _scelti.clear();
   // La ricerca vale per l'asse in cui e' stata scritta: portarsela dietro
   // farebbe sembrare vuoto l'altro.
   _folderQuery = '';
@@ -1072,6 +1091,56 @@ export async function promptRenameFolder(id){
   ], 'Salva');
   if(!v) return;
   renameFolder(id, v[0]);
+}
+
+// ── LE AZIONI SULLE CARTELLE SCELTE ──
+// Prima Rinomina/Elimina stavano in un menu contestuale, uno alla volta: per
+// cancellare cinque artisti servivano cinque tocchi prolungati e cinque
+// conferme. Adesso si sceglie e poi si agisce, che e' l'ordine in cui la cosa
+// si pensa.
+export function toggleScelta(id){
+  if(!id) return;
+  if(_scelti.has(id)) _scelti.delete(id); else _scelti.add(id);
+  renderFolderBrowser();
+}
+export function annullaScelta(){
+  if(!_scelti.size) return;
+  _scelti.clear();
+  renderFolderBrowser();
+}
+export function scelti(){ return Array.from(_scelti); }
+
+// Rinominare vale per UNO. Due cartelle non hanno un nome solo, e un modulo che
+// chiede "il nuovo nome" per cinque artisti non vuol dire niente: il pulsante
+// resta spento finche' la scelta non e' una sola.
+export async function rinominaScelto(){
+  if(_scelti.size !== 1) return;
+  const id = Array.from(_scelti)[0];
+  _scelti.clear();
+  renderFolderBrowser();
+  await promptRenameFolder(id);
+}
+
+export async function eliminaScelti(){
+  const ids = Array.from(_scelti);
+  if(!ids.length) return;
+  const nomi = ids.map(id=> (_folders.find(f=>f.id===id)||{}).name).filter(Boolean);
+  // Quante immagini stanno per restare senza cartella: e' la sola conseguenza
+  // che non si vede a schermo, quindi e' quella che la domanda deve dire.
+  const n = ids.reduce((s,id)=> s + countInFolder(id), 0);
+  const cosa = ids.length === 1 ? `"${nomi[0]}"` : `${ids.length} cartelle`;
+  const msg = n > 0
+    ? `Eliminare ${cosa}? Le ${n} immagini al loro interno non verranno cancellate, torneranno solo senza cartella.`
+    : `Eliminare ${cosa}?`;
+  const ok = await confirmModal(msg, {
+    title: ids.length === 1 ? 'Elimina cartella' : 'Elimina cartelle',
+    confirmLabel: 'Elimina',
+  });
+  if(!ok) return;
+  _scelti.clear();
+  for(const id of ids) await deleteFolder(id);
+  haptic('done');
+  openFolderBrowser();
 }
 
 export async function promptDeleteFolder(id){
@@ -1522,11 +1591,19 @@ function renderFolderBrowser(){
   // bersaglio largo lo schermo — si sbagliava a premere in un verso e
   // nell'altro — e le miniature qui sotto usano gia' lo stesso gesto: un modo
   // solo per dire "questa cosa qui, cosa ci posso fare".
-  const righeCartelle = folders => folders.map(f=>`
-      <div class="refs-folder-row" data-folder-id="${f.id}">
+  // La spunta compare SOLO quando si sta scegliendo: a riposo l'elenco non deve
+  // portarsi dietro una colonna di cerchietti vuoti per una cosa che si fa una
+  // volta ogni tanto.
+  const scegliendo = _scelti.size > 0;
+  const righeCartelle = folders => folders.map(f=>{
+    const preso = _scelti.has(f.id);
+    return `
+      <div class="refs-folder-row${preso ? ' scelta' : ''}" data-folder-id="${f.id}">
+        ${scegliendo ? `<span class="refs-spunta${preso ? ' on' : ''}"></span>` : ''}
         <span class="refs-mono">${esc(sigla(f))}</span>
         <span class="refs-folder-name">${etichettaCartella(f)}</span>
-      </div>`).join('');
+      </div>`;
+  }).join('');
 
   // Senza parole. La riga resta alta e larga quanto le altre — il bersaglio e'
   // quello, ed era il problema da risolvere — ma dice quello che ha da dire col
@@ -1612,48 +1689,75 @@ function renderFolderBrowser(){
   // stessa regola vale anche per i tre scaffali di una cartella (refs.css).
   const vasca = document.getElementById('refs-axis-vasca');
   if(vasca) vasca.style.setProperty('--i', _asse === 'references' ? 1 : 0);
+  renderBarraScelta();
 }
 
-// Tocco = entra · tocco prolungato (o tasto destro) = Rinomina/Elimina.
+// La barra delle azioni PRENDE IL POSTO dell'interruttore invece di aggiungersi
+// alla pagina. Mentre si sceglie, Artists/References e' l'unica riga che di
+// sicuro non serve — cambiare asse in mezzo a una selezione non ha senso — ed
+// e' gia' larga quanto serve: niente si alza dal basso, niente copre l'ultima
+// riga dell'elenco, e la pagina non sussulta perche' l'altezza e' la stessa.
+function renderBarraScelta(){
+  const barra = document.getElementById('refs-scelta');
+  const assi = document.getElementById('refs-axis');
+  if(!barra) return;
+  const n = _scelti.size;
+  const acceso = n > 0 && _view === 'folders';
+  barra.classList.toggle('show', acceso);
+  // L'interruttore si nasconde solo se era a schermo: dentro una cartella non
+  // c'entra niente.
+  if(assi) assi.classList.toggle('coperto', acceso);
+  if(!acceso) return;
+  const conto = document.getElementById('refs-scelta-conto');
+  if(conto) conto.textContent = n === 1 ? '1 scelto' : `${n} scelti`;
+  const rin = document.getElementById('refs-scelta-rinomina');
+  if(rin) rin.disabled = n !== 1;
+}
+
+// Tocco = entra · tocco prolungato (o tasto destro) = comincia a scegliere.
 // Sono gli stessi 480ms delle miniature piu' sotto, e per la stessa ragione:
 // e' il tempo in cui una pressione smette di sembrare un tocco andato lungo.
-// Il click NON sta piu' scritto nell'HTML della riga perche' dopo il tocco
+//
+// Il gesto lungo non apre piu' un menu con Rinomina/Elimina: SCEGLIE la riga, e
+// da li' in poi ogni tocco ne aggiunge o ne toglie una. Le due azioni sono
+// diventate una barra sopra l'elenco, perche' cancellare cinque artisti col
+// menu voleva dire cinque tocchi prolungati e cinque conferme.
+//
+// Il click NON sta scritto nell'HTML della riga perche' dopo il tocco
 // prolungato il browser manda comunque un click al distacco del dito: se ad
-// aprire la cartella fosse un onclick nell'attributo, il menu si aprirebbe e
+// aprire la cartella fosse un onclick nell'attributo, si sceglierebbe la riga e
 // sotto si aprirebbe anche la cartella. Con `tenuto` quel click si ignora.
 function wireRigheCartelle(el){
   el.querySelectorAll('.refs-folder-row[data-folder-id]').forEach(riga=>{
     const id = riga.dataset.folderId;
     let attesa = null, tenuto = false, dito = false;
-    riga.addEventListener('click', ()=>{ if(!tenuto) openFolder(id); tenuto = false; });
+    riga.addEventListener('click', ()=>{
+      // Mentre si sceglie, il tocco normale spunta e basta: aprire una cartella
+      // in mezzo a una selezione la butterebbe via senza averlo chiesto.
+      if(!tenuto){ if(_scelti.size) toggleScelta(id); else openFolder(id); }
+      tenuto = false;
+    });
     // Su Android il tocco prolungato fa scattare ANCHE il contextmenu del
-    // browser: si spegne il timer, se no il menu si apre due volte di fila e
-    // lampeggia (l'altra meta' della cura sta in actionMenu).
+    // browser: si spegne il timer, se no la riga verrebbe scelta e subito
+    // deselezionata (l'altra meta' della cura sta in actionMenu).
     riga.addEventListener('contextmenu', e=>{
       e.preventDefault(); clearTimeout(attesa);
-      // "Il click che segue va ignorato" vale solo se a chiedere il menu e'
-      // stato un DITO: col tasto destro del mouse nessun click arriva, e
-      // alzare la bandierina li' vorrebbe dire mangiarsi il clic sinistro
-      // successivo.
+      // "Il click che segue va ignorato" vale solo se a scegliere e' stato un
+      // DITO: col tasto destro del mouse nessun click arriva, e alzare la
+      // bandierina li' vorrebbe dire mangiarsi il clic sinistro successivo.
       if(dito) tenuto = true;
-      refsFolderMenu(id, riga);
+      if(!_scelti.has(id)) toggleScelta(id);
     });
     riga.addEventListener('touchstart', ()=>{
       tenuto = false; dito = true;
-      attesa = setTimeout(()=>{ tenuto = true; haptic('done'); refsFolderMenu(id, riga); }, 480);
+      attesa = setTimeout(()=>{
+        tenuto = true; haptic('done');
+        if(!_scelti.has(id)) toggleScelta(id);
+      }, 480);
     }, {passive:true});
     ['touchend','touchmove','touchcancel'].forEach(ev=>
       riga.addEventListener(ev, ()=>{ clearTimeout(attesa); dito = false; }, {passive:true}));
   });
-}
-
-export function refsFolderMenu(id, btnEl){
-  const f = _folders.find(x=>x.id===id);
-  if(!f) return;
-  actionMenu(btnEl, [
-    {label:'Rinomina', icon:'rinomina', onSelect:()=>promptRenameFolder(id)},
-    {label:'Elimina', icon:'elimina', danger:true, onSelect:()=>promptDeleteFolder(id)},
-  ]);
 }
 
 // ── RENDER: GALLERIA (vista "Tutte" o cartella singola) ──

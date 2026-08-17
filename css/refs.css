@@ -152,6 +152,45 @@
   transition:color .2s;
 }
 .seg-tab.active{font-weight:700;color:var(--ink)}
+/* Mentre si sceglie, l'interruttore si toglie e la barra delle azioni prende il
+   suo posto: stessa fascia, stessa altezza, quindi l'elenco sotto non si muove
+   di un pixel. */
+.refs-axis.coperto{display:none}
+
+/* ── LA BARRA DELLA SCELTA ──
+   Compare quando c'e' almeno un artista scelto. Le azioni sono due sole e
+   stanno a destra, in quadrati con l'icona: "Rinomina" ed "Elimina" scritte per
+   esteso occupavano mezza barra per lasciare al conto un angolo, e il conto e'
+   la cosa che si legge davvero mentre si spuntano le righe.
+   Rinomina resta SPENTO finche' i scelti non sono esattamente uno: due cartelle
+   non hanno un nome solo, e un pulsante che si puo' premere ma non fa niente e'
+   peggio di uno spento. */
+.refs-scelta{display:none;align-items:center;gap:8px;flex-shrink:0;
+  background:var(--sand);padding:2px 16px 14px}
+.refs-scelta.show{display:flex}
+.refs-scelta-conto{flex:1;min-width:0;font-size:13.5px;font-weight:700;color:var(--ink);
+  letter-spacing:-.01em}
+.refs-scelta-btn{width:40px;height:40px;flex-shrink:0;display:flex;align-items:center;
+  justify-content:center;border-radius:11px;cursor:pointer;
+  background:var(--white);border:1.5px solid var(--sand3);color:var(--ink2);
+  box-shadow:0 2px 6px rgba(70,55,25,.10);transition:opacity .15s,transform .1s}
+.refs-scelta-btn:active{transform:scale(.96)}
+.refs-scelta-btn:disabled{opacity:.35;cursor:default;box-shadow:none}
+.refs-scelta-btn.rosso{background:var(--coral);border-color:var(--coral);color:#fff;
+  box-shadow:0 3px 12px rgba(232,72,72,.28)}
+
+/* La spunta della riga scelta: e' lo stesso cerchio dei dischi delle iniziali,
+   ma vuoto finche' non lo si prende. Compare solo mentre si sceglie. */
+.refs-spunta{width:22px;height:22px;flex-shrink:0;border-radius:50%;
+  border:1.8px solid var(--sand3);transition:background .15s,border-color .15s}
+.refs-spunta.on{border-color:var(--gold);background:var(--gold);position:relative}
+.refs-spunta.on::after{content:'';position:absolute;left:7px;top:4px;width:5px;height:10px;
+  border:2px solid #2a2412;border-top:none;border-left:none;transform:rotate(42deg)}
+/* La riga presa si accende appena e porta un filo d'oro sul bordo sinistro:
+   il colore da solo, su un fondo gia' sabbia, si vedeva poco. */
+.refs-folder-row.scelta{background:#fdf6e3}
+.refs-folder-row.scelta::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;
+  background:var(--gold)}
 
 /* ── LA BARRA DI SEZIONE ──
    Larga quanto la pagina, nera e oro. Le pastiglie provate prima erano piu'
@@ -240,7 +279,7 @@
 }
 .refs-scheda > .refs-folder-row:first-child{padding-top:15px}
 .refs-folder-row{
-  display:flex;align-items:center;gap:12px;cursor:pointer;
+  position:relative;display:flex;align-items:center;gap:12px;cursor:pointer;
   padding:12px 14px;border-bottom:1px solid var(--sand);
   transition:background .12s;
 }
