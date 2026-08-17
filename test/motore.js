@@ -68,6 +68,18 @@ async function suite(nome, opzioni, corpo){
     viewport: opzioni.viewport || { width: 412, height: 915 },
     hasTouch: true,
     deviceScaleFactor: opzioni.dpr || 1,
+    // IL SERVICE WORKER SI PUO' SPEGNERE, e a volte va spento.
+    //
+    // Le richieste che partono DAL service worker non passano dalle
+    // intercettazioni della prova (page.route): sono un'altra cosa, e
+    // Playwright non le vede. Finche' i moduli si caricano all'avvio va tutto
+    // bene, perche' il service worker non ha ancora preso in carico la pagina;
+    // ma un modulo importato DOPO — l'accesso, che si carica al primo tocco su
+    // "Entra" — passa da lui, e l'SDK finto non gli arriva mai: la prova
+    // falliva con "Failed to fetch dynamically imported module" su un file che
+    // esiste ed e' li'. Chi non sta provando la cache lo spegne e amen; chi
+    // invece prova proprio quello (versione.js) se lo tiene.
+    serviceWorkers: opzioni.senzaServiceWorker ? 'block' : 'allow',
   });
   let passati = 0, falliti = 0;
   const ok = (nome, cond, extra)=>{

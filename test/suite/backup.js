@@ -31,6 +31,10 @@ const ARCHIVIO = {
 module.exports = () => suite("Backup — l'archivio esce da qui, e ci rientra", {
   banco: '/index.html',
   pronto: ()=> !!document.querySelector('#settings-panel'),
+  // Qui si importano moduli a tocco avvenuto (l'accesso): senza spegnere il
+  // service worker le loro richieste non passerebbero dalle intercettazioni
+  // qui sotto e finirebbero sulla rete vera. Vedi il commento in motore.js.
+  senzaServiceWorker: true,
   prima: async (page)=>{
     await page.route('**://fonts.googleapis.com/**', r=> r.fulfill({status:200, contentType:'text/css', body:''}));
     await page.route('**://fonts.gstatic.com/**', r=> r.abort());
@@ -168,5 +172,69 @@ module.exports = () => suite("Backup — l'archivio esce da qui, e ci rientra", 
   }));
   ok('lo dice invece di provarci', /non sembra un file di inkflow/i.test(rifiuto.testo), rifiuto);
   ok('e non scrive niente', rifiuto.scritture === 0, rifiuto);
+
+  sezione('l\'account: senza, l\'archivio e\' di chiunque');
+  // Il login e' il secondo tempo del backup: uno salva l'archivio, l'altro lo
+  // rende TUO. Finche' non si entra, il pannello lo dice invece di tacere.
+  await page.evaluate(()=> document.querySelector('.modal-overlay.open #ink-confirm-ok').click());
+  await page.waitForTimeout(200);
+  await page.evaluate(async ()=>{
+    const m = await import('/js/settings.js');
+    await m.mostraAccount();
+  });
+  await page.waitForTimeout(300);
+  const fuori = await page.evaluate(()=>({
+    nome: (document.getElementById('account-nome')||{}).textContent,
+    bottone: (document.getElementById('account-bottone')||{}).textContent,
+    nota: (document.getElementById('account-nota')||{}).textContent || '',
+    avviso: (document.getElementById('account-nota')||{}).className || '',
+    uidNascosto: (document.getElementById('account-uid')||{}).hidden,
+  }));
+  ok('dice che non c\'e\' nessun account', /nessun account/i.test(fuori.nome||''), fuori);
+  ok('e spiega cosa vuol dire, senza girarci intorno',
+     /leggibile da chiunque/i.test(fuori.nota), fuori);
+  ok('la riga e\' accesa, perche\' e\' una cosa da sistemare', /avviso/.test(fuori.avviso), fuori);
+  ok('il codice account non c\'e\' ancora', fuori.uidNascosto === true, fuori);
+
+  sezione('entrando, l\'archivio prende un proprietario');
+  // Un tocco solo: aprendo le impostazioni il modulo dell'accesso e' gia'
+  // stato caricato (mostraAccount lo fa), quindi la finestra di Google puo'
+  // partire dritta dal dito — che e' la condizione perche' il browser non la
+  // blocchi (vedi auth.js). La strada "primo tocco a vuoto" resta nel codice
+  // per chi preme prima che il pannello abbia finito di aprirsi.
+  const tocca = async ()=> page.evaluate(async ()=>{
+    const m = await import('/js/settings.js');
+    m.accountTocca();
+  });
+  await tocca();
+  await page.waitForFunction(()=> /giovanni/i.test((document.getElementById('account-nome')||{}).textContent||''),
+    { timeout: 8000 });
+  const dentro = await page.evaluate(()=>({
+    nome: (document.getElementById('account-nome')||{}).textContent,
+    mail: (document.getElementById('account-mail')||{}).textContent,
+    bottone: (document.getElementById('account-bottone')||{}).textContent,
+    uid: (document.getElementById('account-uid')||{}).dataset.uid,
+    uidVisibile: (document.getElementById('account-uid')||{}).hidden === false,
+    avviso: (document.getElementById('account-nota')||{}).className || '',
+  }));
+  ok('compare il nome di chi e\' entrato', /giovanni/i.test(dentro.nome||''), dentro);
+  ok('e la sua mail', /@/.test(dentro.mail||''), dentro);
+  ok('il pulsante adesso serve a uscire', /esci/i.test(dentro.bottone||''), dentro);
+  ok('la riga non e\' piu\' un avviso', !/avviso/.test(dentro.avviso), dentro);
+  // L'UID e' l'unica cosa che le regole di Firestore possono controllare: se
+  // non si riesce a copiarlo da qui, l'archivio resta aperto per pigrizia.
+  ok('e il codice da mettere nelle regole si puo\' copiare',
+     dentro.uidVisibile && !!dentro.uid, dentro);
+
+  sezione('e uscendo si torna come prima');
+  await tocca();
+  await page.waitForFunction(()=> /nessun account/i.test((document.getElementById('account-nome')||{}).textContent||''),
+    { timeout: 8000 });
+  const uscito = await page.evaluate(()=>({
+    nome: (document.getElementById('account-nome')||{}).textContent,
+    uidNascosto: (document.getElementById('account-uid')||{}).hidden,
+  }));
+  ok('torna "Nessun account"', /nessun account/i.test(uscito.nome||''), uscito);
+  ok('e il codice sparisce con lui', uscito.uidNascosto === true, uscito);
 
 });

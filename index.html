@@ -793,6 +793,24 @@
       </div>
     </div>
 
+    <!-- L'ACCOUNT STA IN CIMA AL BACKUP, e non e' un caso: sono la stessa
+         domanda — "questo archivio di chi e'?" — vista da due lati. -->
+    <div>
+      <div class="settings-section-label">Account</div>
+      <div class="settings-card">
+        <div class="settings-row" id="account-riga">
+          <span class="settings-ico"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/></svg></span>
+          <span class="settings-item"><b id="account-nome">Nessun account</b><span id="account-mail"></span></span>
+          <button class="settings-action quiet" id="account-bottone" onclick="window.accountTocca()">Entra</button>
+        </div>
+        <div class="settings-note" id="account-nota"></div>
+        <!-- L'UID serve UNA volta sola, per scriverlo nelle regole di
+             Firestore: e' l'unico modo che ha il database di riconoscere il
+             proprietario. Si copia da qui, non si va a cercarlo in una console. -->
+        <button class="settings-action quiet" id="account-uid" hidden onclick="window.copiaUid()"></button>
+      </div>
+    </div>
+
     <div>
       <div class="settings-section-label">Backup</div>
       <div class="settings-card">

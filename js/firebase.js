@@ -13,7 +13,10 @@ const firebaseConfig = {
   appId: "1:323774526281:web:a9365b3136435d69e66098"
 };
 
-const firebaseApp = initializeApp(firebaseConfig);
+// Esportata perche' la usa anche l'accesso (js/auth.js): una sola app
+// Firebase per tutta la pagina, se no Auth e Firestore parlerebbero con due
+// istanze diverse e il login non varrebbe per le letture.
+export const firebaseApp = initializeApp(firebaseConfig);
 // Persistenza offline: i dati vivono in IndexedDB, l'app funziona senza rete
 // e sincronizza da sola al ritorno della connessione. Multi-tab safe.
 let _db;

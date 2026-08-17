@@ -181,6 +181,105 @@ export function openSettings(){
   if(st) st.checked = isSoundEnabled();
   riempiSetSuoni();
   mostraUltimoBackup();
+  mostraAccount();
+}
+
+// ── L'ACCOUNT NEL PANNELLO ──
+// Il login si accende da qui e non da una schermata d'ingresso, e per adesso
+// e' volutamente FACOLTATIVO: le regole di Firestore sono ancora aperte, e
+// bloccare l'app dietro un accesso che nessuno ha ancora provato sul proprio
+// telefono e' il modo migliore per restare chiusi fuori dal proprio archivio.
+// Prima si prova che si entra, poi si chiudono le regole, poi — e solo allora —
+// l'accesso diventa obbligatorio.
+let _authMod = null;
+async function auth(){
+  if(!_authMod) _authMod = await import('./auth.js');
+  return _authMod;
+}
+export async function mostraAccount(){
+  const riga = document.getElementById('account-riga');
+  if(!riga) return;
+  try{
+    const a = await auth();
+    await a.attendiAccesso();
+    a.alCambioAccesso(disegnaAccount);
+    disegnaAccount(a.utente());
+  }catch(e){
+    // L'SDK dell'accesso vive su un CDN: la primissima volta serve la rete, e
+    // se non c'e' — o se Google e' irraggiungibile — questa riga non deve
+    // buttare giu' tutto il pannello. Si dice cosa succede e si va avanti:
+    // tutto il resto delle impostazioni funziona lo stesso.
+    const nome = document.getElementById('account-nome');
+    const nota = document.getElementById('account-nota');
+    const btn = document.getElementById('account-bottone');
+    if(nome) nome.textContent = 'Account non raggiungibile';
+    if(nota){ nota.textContent = 'Serve la rete per la prima volta. Riprova quando torna.'; nota.className = 'settings-note'; }
+    if(btn) btn.textContent = 'Riprova';
+  }
+}
+function disegnaAccount(u){
+  const nome = document.getElementById('account-nome');
+  const mail = document.getElementById('account-mail');
+  const btn = document.getElementById('account-bottone');
+  const nota = document.getElementById('account-nota');
+  const uid = document.getElementById('account-uid');
+  if(!nome || !btn) return;
+  if(u){
+    nome.textContent = u.displayName || 'Account collegato';
+    if(mail) mail.textContent = u.email || '';
+    btn.textContent = 'Esci';
+    if(nota){
+      nota.textContent = 'L\'archivio ti riconosce. Il codice qui sotto va incollato nelle regole di Firestore: da quel momento i tuoi dati li legge e li scrive solo questo account.';
+      nota.className = 'settings-note';
+    }
+    if(uid){ uid.hidden = false; uid.textContent = 'Copia il codice account'; uid.dataset.uid = u.uid; }
+  } else {
+    nome.textContent = 'Nessun account';
+    if(mail) mail.textContent = '';
+    btn.textContent = 'Entra';
+    if(nota){
+      nota.textContent = 'Senza account l\'archivio è leggibile da chiunque conosca l\'indirizzo dell\'app. Entrando con Google diventa tuo.';
+      nota.className = 'settings-note avviso';
+    }
+    if(uid){ uid.hidden = true; uid.textContent = ''; }
+  }
+}
+// La finestra di Google si apre DENTRO il tocco: niente await prima, o il
+// browser la considera una finestra non richiesta e la blocca (stessa storia
+// del collegamento a Drive, vedi requestToken in drive.js).
+export function accountTocca(){
+  if(!_authMod){
+    // Primo tocco senza modulo in memoria: lo si carica e si dice di ripremere,
+    // invece di aprire una finestra che verrebbe bloccata.
+    mostraAccount();
+    return;
+  }
+  if(_authMod.utente()){
+    _authMod.esci().then(()=> disegnaAccount(null));
+    return;
+  }
+  _authMod.entraConGoogle()
+    .then(u=> disegnaAccount(u))
+    .catch(e=>{
+      // "popup-closed-by-user" non e' un errore: e' un ripensamento.
+      if(e && /popup-closed|cancelled-popup/.test(e.code||'')) return;
+      infoModal('Non sono riuscito a entrare: ' + (e && e.message ? e.message : e),
+        { title:'Accesso non riuscito' });
+    });
+}
+export async function copiaUid(){
+  const el = document.getElementById('account-uid');
+  const uid = el && el.dataset ? el.dataset.uid : '';
+  if(!uid) return;
+  try{
+    await navigator.clipboard.writeText(uid);
+    el.textContent = 'Codice copiato';
+    setTimeout(()=>{ el.textContent = 'Copia il codice account'; }, 2200);
+  }catch(e){
+    // Senza appunti (o senza permesso) si mostra il codice: si trascrive a mano
+    // una volta sola nella vita.
+    await infoModal(uid, { title:'Codice account' });
+  }
 }
 
 // Il menu dei set si costruisce dall'elenco in sound.js, non a mano

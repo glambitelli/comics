@@ -6,7 +6,7 @@ import { addScene, updateScene, deleteScene, autoResize, saveStoryField, updateC
 import { updatePlanner, applyPlanner, openPlannerModal, closePlannerModal } from './planner.js';
 import { initNotifications, saveReminderSettings, testNotification } from './notifications.js';
 import { closeActionMenu } from './dialogs.js';
-import { openSettings, closeSettings, closeSettingsUI, resetStarsConfirm, closeStarsConfirm, doResetStars, exportBackup, importBackup, resetStreakConfirm, closeStreakConfirm, doResetStreak, onSoundToggle, onSoundPackChange } from './settings.js';
+import { openSettings, closeSettings, closeSettingsUI, resetStarsConfirm, closeStarsConfirm, doResetStars, exportBackup, importBackup, resetStreakConfirm, closeStreakConfirm, doResetStreak, onSoundToggle, onSoundPackChange, accountTocca, copiaUid } from './settings.js';
 window.onSoundToggle=onSoundToggle; window.onSoundPackChange=onSoundPackChange;
 import { renderHome, openNewModal, closeModal, createProject, openCardMenu, exportProjectJSON, confirmDeleteProject, openColorPicker, closeColorPicker, selectProjectColor, filterProjects, attachCardDrag, applyProjectOrder, startSandstorm, getScriptment } from './home.js';
 import { openProject, restoreProject, goHome, confirmDeleteCurrent, closeConfirm, confirmMicrotask } from './project.js';
@@ -392,6 +392,7 @@ window.toggleCharCard=toggleCharCard; window.toggleScreenplay=toggleScreenplay; 
 window.openSettings=openSettings; window.closeSettings=closeSettings;
 window.resetStarsConfirm=resetStarsConfirm; window.closeStarsConfirm=closeStarsConfirm;
 window.doResetStars=doResetStars; window.exportBackup=exportBackup; window.importBackup=importBackup;
+window.accountTocca=accountTocca; window.copiaUid=copiaUid;
 window.resetStreakConfirm=resetStreakConfirm; window.closeStreakConfirm=closeStreakConfirm; window.doResetStreak=doResetStreak;
 window.openCardMenu=openCardMenu; window.exportProjectJSON=exportProjectJSON; window.confirmDeleteProject=confirmDeleteProject;
 window.openColorPicker=openColorPicker; window.closeColorPicker=closeColorPicker; window.selectProjectColor=selectProjectColor;

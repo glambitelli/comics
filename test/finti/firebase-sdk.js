@@ -26,3 +26,28 @@ export function getDocs(ref){
 }
 export function serverTimestamp(){ return 0; }
 export function getDoc(){ return Promise.resolve({exists:()=>false}); }
+
+// ── ACCESSO (js/auth.js) ──
+// Un utente finto che si accende e si spegne: window.__utente = {uid, email…}
+// prima dell'avvio, oppure entraConGoogle() dalla prova.
+const _ascoltatori = [];
+export function getAuth(){ return { currentUser: window.__utente || null }; }
+export function GoogleAuthProvider(){}
+export function setPersistence(){ return Promise.resolve(); }
+export const browserLocalPersistence = {};
+export function onAuthStateChanged(_a, cb){
+  _ascoltatori.push(cb);
+  setTimeout(()=> cb(window.__utente || null), 0);
+  return ()=>{};
+}
+export function signInWithPopup(){
+  window.__utente = window.__utenteDaEntrare ||
+    { uid:'UID-DI-PROVA', email:'giovanni@example.com', displayName:'Giovanni' };
+  _ascoltatori.forEach(cb=> cb(window.__utente));
+  return Promise.resolve({ user: window.__utente });
+}
+export function signOut(){
+  window.__utente = null;
+  _ascoltatori.forEach(cb=> cb(null));
+  return Promise.resolve();
+}
