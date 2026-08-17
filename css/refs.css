@@ -176,13 +176,34 @@
   box-shadow:0 2px 6px rgba(70,55,25,.10);transition:opacity .15s,transform .1s}
 .refs-scelta-btn:active{transform:scale(.96)}
 .refs-scelta-btn:disabled{opacity:.35;cursor:default;box-shadow:none}
-.refs-scelta-btn.rosso{background:var(--coral);border-color:var(--coral);color:#fff;
-  box-shadow:0 3px 12px rgba(232,72,72,.28)}
+/* ELIMINA NON E' UN BLOCCO ROSSO. Il rosso pieno con l'icona bianca e' il
+   linguaggio dei sistemi operativi, non di questa app: qui le azioni che
+   cancellano si scrivono in rame su fondo chiaro, con un bordo appena rosato
+   — e' cosi' da sempre per "Azzera stelle" e "Azzera streak" nelle
+   impostazioni (.settings-action.risky). Una cosa distruttiva si riconosce dal
+   colore, non dal volume; a fermare la mano c'e' comunque la domanda di
+   conferma. */
+.refs-scelta-btn.rosso{border-color:#e0c4b0;color:var(--rame)}
+.refs-scelta-btn.rosso:active{background:#fbf1ea}
 
 /* La spunta della riga scelta: e' lo stesso cerchio dei dischi delle iniziali,
-   ma vuoto finche' non lo si prende. Compare solo mentre si sceglie. */
-.refs-spunta{width:22px;height:22px;flex-shrink:0;border-radius:50%;
-  border:1.8px solid var(--sand3);transition:background .15s,border-color .15s}
+   ma vuoto finche' non lo si prende.
+   COL DITO non c'e' finche' non si sceglie (si comincia tenendo premuto);
+   COL MOUSE c'e' sempre, chiara appena, e si accende passandoci sopra —
+   perche' col mouse il tocco prolungato non esiste e restava solo il tasto
+   destro, che funziona ma non lo prova nessuno. */
+.refs-spunta{display:block;opacity:.4;width:22px;height:22px;flex-shrink:0;border-radius:50%;
+  cursor:pointer;border:1.8px solid var(--sand3);
+  transition:background .15s,border-color .15s,opacity .15s}
+.refs-folder-row:hover .refs-spunta{opacity:1;border-color:var(--gold)}
+/* Col dito sparisce, e torna solo quando la scelta e' gia' cominciata. Si usa
+   la classe che l'app si mette da sola (vedi is-touch in main.js) e non la
+   media query (hover:hover): quella dice come e' fatto lo schermo, questa dice
+   con cosa lo stai usando davvero — ed e' la stessa su cui e' tarato tutto il
+   resto dell'app. */
+body.is-touch .refs-spunta{display:none}
+body.is-touch .scegliendo .refs-spunta{display:block;opacity:1}
+.refs-spunta.on{opacity:1}
 .refs-spunta.on{border-color:var(--gold);background:var(--gold);position:relative}
 .refs-spunta.on::after{content:'';position:absolute;left:7px;top:4px;width:5px;height:10px;
   border:2px solid #2a2412;border-top:none;border-left:none;transform:rotate(42deg)}

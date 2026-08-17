@@ -1591,15 +1591,24 @@ function renderFolderBrowser(){
   // bersaglio largo lo schermo — si sbagliava a premere in un verso e
   // nell'altro — e le miniature qui sotto usano gia' lo stesso gesto: un modo
   // solo per dire "questa cosa qui, cosa ci posso fare".
-  // La spunta compare SOLO quando si sta scegliendo: a riposo l'elenco non deve
-  // portarsi dietro una colonna di cerchietti vuoti per una cosa che si fa una
-  // volta ogni tanto.
-  const scegliendo = _scelti.size > 0;
+  // LA SPUNTA C'E' SEMPRE NEL CODICE, ma si vede quando serve — e "quando
+  // serve" dipende da cosa hai in mano.
+  //
+  // Col DITO si sceglie tenendo premuto, e a riposo l'elenco non deve portarsi
+  // dietro una colonna di cerchietti vuoti per una cosa che si fa ogni tanto:
+  // la spunta compare solo quando la scelta e' gia' cominciata.
+  //
+  // Col MOUSE non esiste il tocco prolungato. Restava il tasto destro, che
+  // funziona ma non si vede: nessuno lo prova su un elenco. Quindi da computer
+  // la spunta c'e' sempre, chiara appena, e si accende passandoci sopra: e' il
+  // bersaglio che sul telefono non serve e sul desktop era l'unica cosa
+  // mancante (vedi .refs-spunta in refs.css).
   const righeCartelle = folders => folders.map(f=>{
     const preso = _scelti.has(f.id);
     return `
       <div class="refs-folder-row${preso ? ' scelta' : ''}" data-folder-id="${f.id}">
-        ${scegliendo ? `<span class="refs-spunta${preso ? ' on' : ''}"></span>` : ''}
+        <span class="refs-spunta${preso ? ' on' : ''}" role="checkbox" aria-checked="${preso}"
+              aria-label="Scegli ${esc(f.name||'')}"></span>
         <span class="refs-mono">${esc(sigla(f))}</span>
         <span class="refs-folder-name">${etichettaCartella(f)}</span>
       </div>`;
@@ -1680,6 +1689,9 @@ function renderFolderBrowser(){
   // i casi in cui cambia il testo ma non la misura, tipo una cartella
   // rinominata con un nome della stessa lunghezza.
   if(el._html !== html){ el._html = html; el.innerHTML = html; wireRigheCartelle(el); }
+  // Una classe sola dice al CSS "si sta scegliendo": da li' dipende se le
+  // spunte si vedono anche col dito (vedi .scegliendo in refs.css).
+  el.classList.toggle('scegliendo', _scelti.size > 0);
   const tabArtists = document.getElementById('refs-axis-artists');
   const tabRefs = document.getElementById('refs-axis-references');
   if(tabArtists) tabArtists.classList.toggle('active', _asse === 'artists');
@@ -1731,7 +1743,16 @@ function wireRigheCartelle(el){
   el.querySelectorAll('.refs-folder-row[data-folder-id]').forEach(riga=>{
     const id = riga.dataset.folderId;
     let attesa = null, tenuto = false, dito = false;
-    riga.addEventListener('click', ()=>{
+    riga.addEventListener('click', ev=>{
+      // La spunta e' un bersaglio a se': cliccarla sceglie e basta, senza
+      // aprire la cartella sotto. E' l'unico modo di scegliere che esista col
+      // mouse, dove il tocco prolungato non c'e'.
+      if(ev.target.closest && ev.target.closest('.refs-spunta')){
+        ev.stopPropagation();
+        toggleScelta(id);
+        tenuto = false;
+        return;
+      }
       // Mentre si sceglie, il tocco normale spunta e basta: aprire una cartella
       // in mezzo a una selezione la butterebbe via senza averlo chiesto.
       if(!tenuto){ if(_scelti.size) toggleScelta(id); else openFolder(id); }

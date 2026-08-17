@@ -464,7 +464,8 @@ module.exports = () => suite("References — artisti e menu contestuali", {"banc
       assiVisibili: getComputedStyle(assi).display !== 'none',
       conto: document.getElementById('refs-scelta-conto').textContent.trim(),
       rinominaSpento: document.getElementById('refs-scelta-rinomina').disabled,
-      spunte: document.querySelectorAll('.refs-spunta').length,
+      spunte: Array.from(document.querySelectorAll('.refs-spunta'))
+                .filter(e=> getComputedStyle(e).display !== 'none').length,
       prese: document.querySelectorAll('.refs-spunta.on').length,
     };
   });
@@ -499,10 +500,53 @@ module.exports = () => suite("References — artisti e menu contestuali", {"banc
   });
   ok('e ritoccandola la si toglie', tolta === 1, tolta);
 
+  sezione('col mouse si sceglie senza tenere premuto');
+  // Col dito si sceglie tenendo premuto. Col mouse quel gesto non esiste, e
+  // restava solo il tasto destro: funziona, ma su un elenco non lo prova
+  // nessuno. Da computer la spunta c'e' sempre — chiara appena — e si accende
+  // passandoci sopra.
+  await apri();
+  const mouse = await page.evaluate(()=>{
+    document.body.classList.remove('is-touch');
+    const sp = document.querySelector('.refs-spunta');
+    const st = getComputedStyle(sp);
+    return { visibile: st.display !== 'none', tenue: parseFloat(st.opacity) < 1,
+             largo: Math.round(sp.getBoundingClientRect().width) };
+  });
+  ok('la spunta si vede anche senza aver scelto niente', mouse.visibile, mouse);
+  ok('ma resta in secondo piano finche\' non ci passi sopra', mouse.tenue, mouse);
+  const cliccata = await page.evaluate(async ()=>{
+    document.querySelector('.refs-folder-row[data-folder-id] .refs-spunta')
+      .dispatchEvent(new MouseEvent('click', {bubbles:true}));
+    await new Promise(r=>setTimeout(r,250));
+    return { scelti: window.refs.scelti().length,
+             entrata: document.getElementById('refs-gallery-view').style.display !== 'none' };
+  });
+  ok('cliccandola si sceglie quella riga', cliccata.scelti === 1, cliccata);
+  ok('e la cartella NON si apre sotto', !cliccata.entrata, cliccata);
+  // Col dito invece l'elenco resta pulito: nessun cerchietto in fila finche'
+  // non si comincia a scegliere.
+  const dito = await page.evaluate(async ()=>{
+    document.body.classList.add('is-touch');
+    const m = await import('/js/refs.js');
+    m.annullaScelta();
+    await new Promise(r=>setTimeout(r,200));
+    return Array.from(document.querySelectorAll('.refs-spunta'))
+      .filter(e=> getComputedStyle(e).display !== 'none').length;
+  });
+  ok('col dito, a riposo, non c\'e\' nessuna spunta in fila', dito === 0, dito);
+  await page.evaluate(()=> document.body.classList.add('is-touch'));
+
   sezione('e da li\' si cancella in un colpo solo');
   const cancellate = await page.evaluate(async ()=>{
+    // Due scelte, dette esplicitamente: cosi' la prova non dipende da come e'
+    // finita quella prima (un click su una riga, senza scelta in corso, APRE
+    // la cartella — ed e' giusto cosi').
+    const m = await import('/js/refs.js');
+    m.annullaScelta();
     const righe = document.querySelectorAll('.refs-folder-row[data-folder-id]');
-    righe[1].dispatchEvent(new MouseEvent('click',{bubbles:true}));
+    m.toggleScelta(righe[0].dataset.folderId);
+    m.toggleScelta(righe[1].dataset.folderId);
     await new Promise(r=>setTimeout(r,200));
     window.__cancellati = [];
     document.getElementById('refs-scelta-elimina').dispatchEvent(new MouseEvent('click',{bubbles:true}));
@@ -533,7 +577,8 @@ module.exports = () => suite("References — artisti e menu contestuali", {"banc
     return { dentro, dopo: window.refs.scelti().length,
              cancellate: (window.__cancellati||[]).length,
              assi: getComputedStyle(document.getElementById('refs-axis')).display !== 'none',
-             spunte: document.querySelectorAll('.refs-spunta').length };
+             spunte: Array.from(document.querySelectorAll('.refs-spunta'))
+                       .filter(e=> getComputedStyle(e).display !== 'none').length };
   });
   ok('la ✕ svuota la scelta', uscita.dentro === 1 && uscita.dopo === 0, uscita);
   ok('senza toccare niente', uscita.cancellate === 0, uscita);
