@@ -1,0 +1,186 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8">
+<title>mockup — scegliere piu' artisti</title>
+<link rel="stylesheet" href="/css/variables.css">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&family=Castoro&display=swap');
+  body{margin:0;background:#efe6d4;font-family:'Nunito',sans-serif;padding:12px 0 30px}
+  .tit{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#8a7248;
+       margin:26px 14px 4px;display:flex;align-items:center;gap:8px}
+  .tit span{background:#f5ecd8;border:1px solid #e0d4b4;border-radius:20px;padding:3px 10px}
+  .tit i{flex:1;height:1.5px;background:#dccca0;font-style:normal}
+  .nota{font-size:11.5px;color:#8a7248;margin:0 18px 8px;line-height:1.45}
+  .quadro{background:var(--sand);position:relative;overflow:hidden}
+  .cerca{display:flex;align-items:center;gap:8px;padding:10px 16px 12px}
+  .campo{flex:1;height:34px;background:var(--white);border:1.5px solid var(--sand2);border-radius:20px}
+  .nuvola{width:34px;height:34px;border-radius:50%;background:var(--white);border:1.5px solid var(--sand2)}
+  .sotto{background:#efe6d4;padding:14px;min-height:200px}
+  button{font-family:inherit;cursor:pointer;background:none;border:none}
+
+  /* l'interruttore vero, quello appena pubblicato */
+  .seg{padding:2px 16px 14px;background:var(--sand)}
+  .seg-vasca{position:relative;display:flex;padding:2px;border-radius:9px;background:rgba(120,96,50,.10)}
+  .seg-cursore{position:absolute;top:2px;bottom:2px;left:2px;width:calc(50% - 2px);background:var(--white);
+               border-radius:7px;box-shadow:0 3px 8px rgba(70,55,25,.13),0 1px 1px rgba(70,55,25,.05)}
+  .seg-tab{flex:1;position:relative;z-index:1;font-size:13.5px;font-weight:600;letter-spacing:-.01em;
+           color:#8a7a5e;padding:8px 0 9px}
+  .seg-tab.on{font-weight:700;color:var(--ink)}
+
+  /* la scheda degli artisti */
+  .carta{position:relative;background:var(--white);border:1.5px solid var(--sand2);border-radius:18px;
+         overflow:hidden;box-shadow:0 2px 10px rgba(74,184,216,.08)}
+  .carta::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;z-index:2;
+                 background:linear-gradient(90deg,var(--sand3),var(--gold),var(--sand3))}
+  .r{display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--sand);
+     position:relative}
+  .r:last-child{border-bottom:none}
+  .disco{width:36px;height:36px;border-radius:50%;background:#e2b62c;color:#2a2412;font-size:12.5px;
+         font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .nome{flex:1;min-width:0}
+  .nome b{display:block;font-size:14.5px;font-weight:800;text-transform:uppercase;letter-spacing:.02em;color:var(--ink)}
+  .nome small{display:block;font-size:11.5px;font-weight:600;color:var(--ink3)}
+  .r.sel{background:#fdf6e3}
+  .r.sel::after{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--gold)}
+
+  /* la spunta tonda, uguale in tutte le varianti */
+  .spunta{width:22px;height:22px;border-radius:50%;border:1.8px solid #d6c8a6;flex-shrink:0}
+  .spunta.on{border-color:#d9a417;background:#d9a417;position:relative}
+  .spunta.on::after{content:'';position:absolute;left:7px;top:4px;width:5px;height:10px;
+                    border:2px solid #2a2412;border-top:none;border-left:none;transform:rotate(42deg)}
+
+  /* pulsanti azione, stessa forma dei modali */
+  .az{display:flex;gap:10px}
+  .az button{flex:1;padding:12px;border-radius:12px;font-size:13.5px;font-weight:700;
+             font-family:inherit}
+  .b-neutro{border:1.5px solid var(--sand3);color:var(--ink2);background:transparent}
+  .b-rosso{background:var(--coral);color:var(--white);box-shadow:0 4px 16px rgba(232,72,72,.25)}
+  .b-scuro{background:linear-gradient(135deg,#2a2018,#1a1410);color:var(--gold);
+           box-shadow:0 4px 16px rgba(26,20,16,.3)}
+  .spento{opacity:.4}
+
+  /* ── 1 · BARRA IN FONDO ─────────────────────────────────────── */
+  .barra-giu{position:absolute;left:0;right:0;bottom:0;background:var(--white);
+             border-top:1px solid var(--sand2);padding:10px 14px 14px;
+             box-shadow:0 -6px 20px rgba(70,55,25,.10)}
+  .barra-giu .conto{font-size:11.5px;font-weight:700;color:var(--ink3);margin-bottom:8px;
+                    text-align:center;letter-spacing:.02em}
+  /* la testata in modalita' scelta */
+  .testa-scelta{display:flex;align-items:center;justify-content:space-between;
+                padding:10px 16px 12px;background:var(--sand)}
+  .testa-scelta b{font-size:14px;font-weight:800;color:var(--ink)}
+  .testa-scelta button{font-size:13.5px;font-weight:700;color:#a07d14}
+
+  /* ── 2 · LA BARRA PRENDE IL POSTO DELL'INTERRUTTORE ─────────── */
+  .barra-su{margin:2px 16px 14px;background:var(--white);border-radius:12px;
+            padding:8px 8px 8px 14px;display:flex;align-items:center;gap:10px;
+            box-shadow:0 2px 10px rgba(70,55,25,.12)}
+  .barra-su .conto{flex:1;font-size:13px;font-weight:700;color:var(--ink)}
+  .barra-su .tondo{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;
+                   justify-content:center}
+  .barra-su .tondo svg{width:19px;height:19px}
+
+  /* ── 3 · I TASTI DENTRO LA RIGA ─────────────────────────────── */
+  .riga-az{display:flex;gap:8px;padding:0 14px 12px;margin-top:-2px;background:#fdf6e3}
+  .riga-az button{flex:1;padding:9px;border-radius:10px;font-size:12.5px;font-weight:700;
+                  font-family:inherit}
+
+  /* ── 4 · LA STRISCIA SOTTO LA SCHEDA ────────────────────────── */
+  .striscia{margin-top:10px;background:var(--white);border:1.5px solid var(--sand2);
+            border-radius:14px;padding:10px 12px;display:flex;align-items:center;gap:10px;
+            box-shadow:0 2px 10px rgba(70,55,25,.08)}
+  .striscia .conto{flex:1;font-size:12.5px;font-weight:700;color:var(--ink2)}
+  .striscia button{padding:9px 14px;border-radius:10px;font-size:12.5px;font-weight:700;
+                   font-family:inherit}
+
+  /* ── 5 · PASTIGLIA GALLEGGIANTE ─────────────────────────────── */
+  .pastiglia{position:absolute;left:50%;transform:translateX(-50%);bottom:16px;
+             display:flex;align-items:center;gap:6px;background:#241a10;border-radius:999px;
+             padding:6px 6px 6px 16px;box-shadow:0 10px 30px rgba(26,20,16,.35)}
+  .pastiglia .conto{font-size:12.5px;font-weight:700;color:#f0dfae;margin-right:6px}
+  .pastiglia button{display:flex;align-items:center;gap:7px;padding:9px 14px;border-radius:999px;
+                    font-size:12.5px;font-weight:700;font-family:inherit;color:#f4e6c0;
+                    background:rgba(255,255,255,.10)}
+  .pastiglia button.rosso{background:var(--coral);color:#fff}
+  .pastiglia svg{width:15px;height:15px}
+</style>
+</head><body>
+<div id="qui"></div>
+<script>
+const G = 'fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"';
+const IC = {
+  rinomina:`<svg viewBox="0 0 24 24"><path d="M4 20h16" ${G}/><path d="M15.5 5.2a1.9 1.9 0 0 1 2.7 2.7L9.6 16.5l-3.6.9.9-3.6Z" ${G}/></svg>`,
+  elimina:`<svg viewBox="0 0 24 24"><path d="M4.5 6.5h15" ${G}/><path d="M9.5 6.5V5a1.2 1.2 0 0 1 1.2-1.2h2.6A1.2 1.2 0 0 1 14.5 5v1.5" ${G}/><path d="M6.8 6.5 7.6 19a1.4 1.4 0 0 0 1.4 1.3h6a1.4 1.4 0 0 0 1.4-1.3l.8-12.5" ${G}/></svg>`,
+};
+const ARTISTI = [['KO','KON','Satoshi'],['MO','MOEBIUS',''],['OT','OTOMO','Katsuhiro'],['TA','TANIGUCHI','Jiro']];
+// scelti: indici selezionati · spunta: mostra il cerchietto · dopo: HTML da
+// infilare sotto la riga scelta (serve alla variante 3)
+const carta = (scelti, {spunta=true, dopo=''}={})=> `<div class="carta">${
+  ARTISTI.map(([s,c,n],i)=>{
+    const on = scelti.includes(i);
+    return `<div class="r${on?' sel':''}">
+      ${spunta ? `<span class="spunta${on?' on':''}"></span>` : ''}
+      <span class="disco">${s}</span>
+      <span class="nome"><b>${c}</b>${n?`<small>${n}</small>`:''}</span>
+    </div>` + (on && dopo ? dopo : '');
+  }).join('')}</div>`;
+const CERCA = `<div class="cerca"><div class="campo"></div><div class="nuvola"></div></div>`;
+const SEG = `<div class="seg"><div class="seg-vasca"><span class="seg-cursore"></span>
+  <button class="seg-tab on">Artists</button><button class="seg-tab">References</button></div></div>`;
+
+const varianti = [
+  ['1 · barra in fondo',
+   'Si tiene premuto un artista e la pagina entra in modalita\' scelta: in cima "2 scelti" con Fine, a ogni riga compare la spunta, e in fondo si alza una barra con le due azioni. Rinomina si accende solo quando l\'artista scelto e\' uno.',
+   `<div class="testa-scelta"><b>2 scelti</b><button>Fine</button></div>
+    <div class="sotto" style="padding-bottom:96px">${carta([1,2])}</div>
+    <div class="barra-giu">
+      <div class="az">
+        <button class="b-neutro spento">Rinomina</button>
+        <button class="b-rosso">Elimina 2</button>
+      </div>
+    </div>`],
+
+  ['2 · al posto dell\'interruttore',
+   'Le azioni prendono il posto di Artists/References, cioe\' la riga che in quel momento non serve: niente si alza dal basso e niente copre l\'elenco. Le due azioni sono due bottoni quadrati con l\'icona, la X chiude la scelta.',
+   `${CERCA}
+    <div class="barra-su">
+      <span class="conto">2 scelti</span>
+      <button class="tondo b-neutro spento">${IC.rinomina}</button>
+      <button class="tondo b-rosso">${IC.elimina}</button>
+      <button class="tondo b-neutro" style="font-size:16px;color:#8a7248">✕</button>
+    </div>
+    <div class="sotto">${carta([1,2])}</div>`],
+
+  ['3 · i tasti dentro la riga',
+   'Nessuna barra da nessuna parte: la riga scelta si apre e i due tasti stanno li\' dentro, sotto il nome. Con piu\' artisti scelti i tasti restano solo sull\'ultimo toccato e dicono quanti ne prendono.',
+   `${CERCA}${SEG}
+    <div class="sotto">${carta([2], {dopo:`
+      <div class="riga-az">
+        <button class="b-neutro">Rinomina</button>
+        <button class="b-rosso">Elimina</button>
+      </div>`})}</div>`],
+
+  ['4 · la striscia sotto la scheda',
+   'La scheda resta com\'e\' e sotto le compare una striscia attaccata: sta nel flusso della pagina, non copre niente, e si porta dietro il conto di quanti sono.',
+   `${CERCA}${SEG}
+    <div class="sotto">${carta([0,2])}
+      <div class="striscia">
+        <span class="conto">2 scelti</span>
+        <button class="b-neutro spento">Rinomina</button>
+        <button class="b-rosso">Elimina</button>
+      </div>
+    </div>`],
+
+  ['5 · pastiglia galleggiante',
+   'Come le barre di selezione delle gallerie: una pastiglia scura che galleggia in basso, col conto a sinistra e le azioni a destra. Si tocca il disco dell\'iniziale per scegliere, il nome per entrare — due bersagli diversi nella stessa riga, niente modalita\' da aprire.',
+   `${CERCA}${SEG}
+    <div class="sotto" style="padding-bottom:80px">${carta([0,3], {spunta:false})}</div>
+    <div class="pastiglia">
+      <span class="conto">2</span>
+      <button class="spento">${IC.rinomina}Rinomina</button>
+      <button class="rosso">${IC.elimina}Elimina</button>
+    </div>`],
+];
+document.getElementById('qui').innerHTML = varianti.map(([t,n,corpo])=>
+  `<div class="tit"><span>${t}</span><i></i></div><div class="nota">${n}</div>
+   <div class="quadro">${corpo}</div>`).join('');
+</script>
+</body></html>

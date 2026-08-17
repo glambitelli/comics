@@ -43,12 +43,11 @@ function ensurePromptModal(){
   _promptOverlay.className = 'modal-overlay';
   _promptOverlay.innerHTML = `
     <div class="modal">
-      <div class="modal-handle"></div>
       <div class="modal-head"><h3 id="ink-prompt-title">Titolo</h3></div>
-      <div style="padding:0 22px">
+      <div class="modal-body">
         <input id="ink-prompt-input" class="field-input" type="text" maxlength="60"/>
       </div>
-      <div class="modal-actions" style="padding:0 22px 0">
+      <div class="modal-actions">
         <button class="btn-cancel" id="ink-prompt-cancel">Annulla</button>
         <button class="btn-create" id="ink-prompt-ok">Ok</button>
       </div>
@@ -156,17 +155,13 @@ function ensureConfirmModal(){
   _confirmOverlay = document.createElement('div');
   _confirmOverlay.className = 'modal-overlay';
   _confirmOverlay.innerHTML = `
-    <div class="confirm-modal">
-      <div class="modal-handle"></div>
-      <div class="modal-head">
-        <h3 id="ink-confirm-title"></h3>
-        <p id="ink-confirm-msg"></p>
-      </div>
-      <div class="modal-actions" style="padding:0 22px 0">
+    <div class="modal">
+      <div class="modal-head"><h3 id="ink-confirm-title"></h3></div>
+      <div class="modal-body"><p class="modal-nota" id="ink-confirm-msg"></p></div>
+      <div class="modal-actions">
         <button class="btn-cancel" id="ink-confirm-cancel">Annulla</button>
         <button class="btn-danger" id="ink-confirm-ok">Conferma</button>
       </div>
-      <div style="height:18px"></div>
     </div>`;
   document.body.appendChild(_confirmOverlay);
   _confirmTitle = _confirmOverlay.querySelector('#ink-confirm-title');

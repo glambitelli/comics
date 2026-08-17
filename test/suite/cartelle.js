@@ -183,6 +183,34 @@ module.exports = () => suite("References — artisti e menu contestuali", {"banc
   ok('e torna indietro tornando su Artists',
      tornato.cursore.scarto < 4, tornato.cursore);
 
+  sezione('e il dito cambia scheda da qualunque punto della pagina');
+  // Il gesto era appeso all'elenco, che e' alto quanto le righe che contiene:
+  // sotto l'ultimo artista c'e' mezzo schermo di sabbia vuota, ed e' proprio
+  // li' che il pollice si appoggia. Sembrava che lo swipe funzionasse "a
+  // volte" — cioe' solo partendo per caso da sopra una riga.
+  const swipeDa = async (sel, dx)=>{
+    await page.evaluate(([sel,dx])=>{
+      const el = document.querySelector(sel);
+      const r = el.getBoundingClientRect();
+      // Il punto piu' basso dell'elemento: sotto le righe, sulla sabbia.
+      const x = r.left + r.width/2, y = r.bottom - 6;
+      const t = (cx,cy)=> [new Touch({identifier:1, target:el, clientX:cx, clientY:cy})];
+      el.dispatchEvent(new TouchEvent('touchstart',{bubbles:true, touches:t(x,y), changedTouches:t(x,y)}));
+      el.dispatchEvent(new TouchEvent('touchend',{bubbles:true, touches:[], changedTouches:t(x+dx,y)}));
+    }, [sel,dx]);
+    await page.waitForTimeout(300);
+  };
+  const asse = ()=> page.evaluate(()=> window.refs.asseAttivo());
+  await swipeDa('.refs-scroll', -140);
+  ok('partendo dalla sabbia sotto l\'ultimo artista si passa a References',
+     await asse() === 'references', await asse());
+  await swipeDa('.refs-scroll', 140);
+  ok('e si torna indietro allo stesso modo', await asse() === 'artists', await asse());
+  await swipeDa('#refs-axis', -140);
+  ok('vale anche partendo dall\'interruttore stesso', await asse() === 'references', await asse());
+  await vaiA('artists');
+  await page.waitForTimeout(300);
+
   sezione('niente piu\' "Senza cartella"');
   // Tolta su richiesta: tutto finisce sempre in una cartella o sotto un tag, e
   // una riga che nella pratica non compare mai e' solo un'altra cosa da
@@ -314,6 +342,49 @@ module.exports = () => suite("References — artisti e menu contestuali", {"banc
   });
   ok('un campo solo', studio && studio.campi === 1, studio);
   ok('e il titolo dice dove si sta creando', studio && /study/i.test(studio.titolo), studio);
+
+  sezione('chiedere e confermare sono lo stesso foglio');
+  // Erano due forme diverse: classi diverse, imbottiture scritte a mano
+  // nell'HTML, uno spaziatore da 18px in fondo solo alle conferme e il titolo
+  // rosso su alcune. Da qui in avanti il foglio e' uno: testa, corpo, pulsanti.
+  const misura = ()=> page.evaluate(()=>{
+    const ov = document.querySelector('.modal-overlay.open');
+    const foglio = ov.firstElementChild;
+    const s = getComputedStyle(foglio), h3 = getComputedStyle(foglio.querySelector('h3'));
+    const azione = foglio.querySelector('.btn-create, .btn-danger');
+    const a = getComputedStyle(azione), c = getComputedStyle(foglio.querySelector('.btn-cancel'));
+    return {
+      classe: foglio.className,
+      largo: Math.round(foglio.getBoundingClientRect().width),
+      tondo: s.borderRadius, sotto: s.paddingBottom,
+      titolo: h3.fontSize + '/' + h3.fontWeight, coloreTitolo: h3.color,
+      corpo: !!foglio.querySelector('.modal-body'),
+      azione: a.padding + '|' + a.borderRadius + '|' + a.fontSize + '|' + a.fontWeight,
+      annulla: c.padding + '|' + c.borderRadius,
+      pesi: [c.flexGrow, a.flexGrow].join('-'),
+    };
+  });
+  const chiede = await misura();     // "Nuova cartella in Study", aperto qui sopra
+  await page.evaluate(()=>{
+    const ov = document.querySelector('.modal-overlay.open');
+    ov.querySelector('.btn-cancel').dispatchEvent(new MouseEvent('click',{bubbles:true}));
+  });
+  await page.waitForTimeout(200);
+  await page.evaluate(()=>{ window.dialogs.confirmModal('Eliminare la cartella?', {title:'Elimina cartella', confirmLabel:'Elimina'}); });
+  await page.waitForTimeout(300);
+  const conferma = await misura();
+  ok('stessa classe per tutti e due', chiede.classe === conferma.classe, [chiede.classe, conferma.classe]);
+  ok('stessa larghezza e stessi angoli',
+     chiede.largo === conferma.largo && chiede.tondo === conferma.tondo, [chiede, conferma]);
+  ok('stesso spazio in fondo al foglio', chiede.sotto === conferma.sotto, [chiede.sotto, conferma.sotto]);
+  ok('stesso titolo, e in inchiostro anche quando si cancella',
+     chiede.titolo === conferma.titolo && chiede.coloreTitolo === conferma.coloreTitolo,
+     [chiede, conferma]);
+  ok('tutti e due hanno un corpo, non solo la testa', chiede.corpo && conferma.corpo, [chiede, conferma]);
+  ok('i pulsanti hanno la stessa forma',
+     chiede.azione === conferma.azione && chiede.annulla === conferma.annulla, [chiede, conferma]);
+  ok('e l\'azione pesa il doppio di Annulla in tutti e due',
+     chiede.pesi === conferma.pesi && chiede.pesi === '1-2', [chiede.pesi, conferma.pesi]);
   await page.evaluate(()=>{
     const ov = document.querySelector('.modal-overlay.open');
     ov.querySelector('.btn-cancel').dispatchEvent(new MouseEvent('click',{bubbles:true}));

@@ -40,6 +40,9 @@ document.body.appendChild(document.importNode(doc.getElementById('ref-panel'), t
 
 const refs = await import('/js/refs.js');
 window.refs = refs;
+// I fogli generici (conferme e moduli) servono a confrontare che siano tutti
+// fatti allo stesso modo: vedi "chiedere e confermare sono lo stesso foglio".
+window.dialogs = await import('/js/dialogs.js');
 // Gli onclick inline dei tab chiamano un globale: nell'app lo mette main.js.
 ['setFolderTab','refsBackToFolders','refsImageMenu','openFolder','openAllGrid','openTag','openTagList','setArchivio','promptTagImage',
  'openRefLightbox','closeRefLightbox','deleteRefImageWithUndo','refsFolderMenu',

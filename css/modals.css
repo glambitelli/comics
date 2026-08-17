@@ -23,27 +23,40 @@
 .modal-overlay{position:fixed;left:0;right:0;top:var(--vv-top,0px);height:var(--vv-h,100%);background:rgba(26,20,16,.55);backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px);display:none;align-items:center;justify-content:center;overflow-y:auto;overscroll-behavior:contain;padding:12px 0;z-index:9700}
 .modal-overlay.open{display:flex}
 .modal-overlay > *{margin:auto}
-.modal,.confirm-modal{
+/* ── UNO SOLO SCHELETRO PER TUTTI I FOGLI CHE CHIEDONO QUALCOSA ──
+   "Nuovo artista" e "Elimina cartella" erano parenti alla lontana: due classi
+   diverse (.modal e .confirm-modal), le imbottiture dei pulsanti scritte a mano
+   nell'HTML, uno spaziatore di 18px in fondo solo su alcuni, il titolo rosso su
+   certe conferme e nero su altre. A schermo si vedeva: stessa app, due fogli
+   che si comportavano diverso.
+
+   Adesso il foglio e' uno e ha sempre tre parti, nell'ordine:
+     .modal-head    il titolo, sempre in inchiostro;
+     .modal-body    quello che si guarda o si scrive (campi, o una nota);
+     .modal-actions Annulla a sinistra, l'azione a destra e larga il doppio.
+   Il rosso e' solo del PULSANTE che cancella, non del titolo: e' li' che si
+   decide, ed e' li' che deve fermarti l'occhio. */
+.modal{
   position:relative;background:var(--white);border-radius:20px;
   width:calc(100% - 40px);max-width:440px;padding-bottom:20px;
+  overflow:hidden;
   box-shadow:0 18px 48px rgba(26,20,16,.28);
 }
-.modal{overflow:hidden}
 /* Filo d'oro in cima: eco discreta della striscia colorata delle intestazioni */
-.modal::before,.confirm-modal::before{
+.modal::before{
   content:'';position:absolute;top:0;left:0;right:0;height:3px;
   background:linear-gradient(90deg,var(--sand3),var(--gold),var(--sand3));
   border-radius:20px 20px 0 0;
 }
-.modal-handle{display:none}
-.modal-head{padding:20px 22px 14px}
+.modal-head{padding:20px 22px 12px}
 /* Una sola famiglia dentro il modale: la gerarchia la fanno corpo e peso, non
    il cambio di carattere. Castoro resta ai titoloni che hanno spazio per
    respirare (home, sezioni, avvio); qui, accanto a etichette e pulsanti in
    Nunito, un serif a 19px creava attrito invece di gerarchia. */
 .modal-head h3{font-family:'Nunito',sans-serif;font-size:17.5px;font-weight:800;color:var(--ink);letter-spacing:-.005em;line-height:1.25}
-.modal-head p{font-size:13px;color:var(--ink2);margin-top:5px;line-height:1.45}
-.modal-body{padding:4px 22px 8px}
+.modal-head p,.modal-nota{font-size:13.5px;color:var(--ink2);margin-top:5px;line-height:1.5}
+.modal-nota{margin-top:0}
+.modal-body{padding:0 22px 10px}
 .field-label{font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);margin-bottom:7px}
 .field-input{
   width:100%;background:var(--sand);border:1.5px solid var(--sand3);border-radius:12px;
@@ -63,7 +76,7 @@
 /* Ultimo campo prima dei pulsanti: il margine sotto lo tiene distante dal
    fondo del modale piu' di quanto serva. */
 .modal-body .field-input:last-child{margin-bottom:6px}
-.modal-actions{display:flex;gap:10px;padding:4px 22px 0}
+.modal-actions{display:flex;gap:10px;padding:6px 22px 0}
 .btn-cancel{
   flex:1;padding:14px;border-radius:12px;border:1.5px solid var(--sand3);
   background:transparent;color:var(--ink2);font-size:14px;font-weight:600;

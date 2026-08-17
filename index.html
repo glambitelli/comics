@@ -796,43 +796,34 @@
 
 <!-- CONFIRM RESET STREAK -->
 <div class="modal-overlay" id="streak-confirm-modal">
-  <div class="confirm-modal">
-    <div class="modal-handle"></div>
-    <div class="modal-head">
-      <h3 style="color:var(--coral)">Reset streak</h3>
-      <p>Il contatore tornerà a zero.</p>
-    </div>
-    <div class="modal-actions" style="padding:0 22px 0">
+  <div class="modal">
+    <div class="modal-head"><h3>Reset streak</h3></div>
+    <div class="modal-body"><p class="modal-nota">Il contatore tornerà a zero.</p></div>
+    <div class="modal-actions">
       <button class="btn-cancel" onclick="closeStreakConfirm()">Annulla</button>
       <button class="btn-danger" onclick="doResetStreak()">Reset</button>
     </div>
-    <div style="height:18px"></div>
   </div>
 </div>
 
 <!-- CONFIRM RESET STELLE -->
 <div class="modal-overlay" id="stars-confirm-modal">
-  <div class="confirm-modal">
-    <div class="modal-handle"></div>
-    <div class="modal-head">
-      <h3 style="color:var(--coral)">Reset stelle</h3>
-      <p>Il contatore tornerà a zero.</p>
-    </div>
-    <div class="modal-actions" style="padding:0 22px 0">
+  <div class="modal">
+    <div class="modal-head"><h3>Reset stelle</h3></div>
+    <div class="modal-body"><p class="modal-nota">Il contatore tornerà a zero.</p></div>
+    <div class="modal-actions">
       <button class="btn-cancel" onclick="closeStarsConfirm()">Annulla</button>
       <button class="btn-danger" onclick="doResetStars()">Reset</button>
     </div>
-    <div style="height:18px"></div>
   </div>
 </div>
 
 <!-- COLOR PICKER -->
 <div class="modal-overlay" id="color-picker-modal">
-  <div class="confirm-modal" style="padding:20px 22px 24px">
-    <div class="modal-handle"></div>
+  <div class="modal">
     <div class="modal-head"><h3>Colore progetto</h3></div>
-    <div id="color-picker-grid" style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;padding:8px 0 16px"></div>
-    <div class="modal-actions" style="padding:0">
+    <div class="modal-body" id="color-picker-grid" style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px"></div>
+    <div class="modal-actions">
       <button class="btn-cancel" onclick="closeColorPicker()">Annulla</button>
     </div>
   </div>
@@ -841,7 +832,6 @@
 <!-- MODAL NUOVO -->
 <div class="modal-overlay" id="modal">
   <div class="modal">
-    <div class="modal-handle"></div>
     <div class="modal-head"><h3>Nuovo progetto</h3></div>
     <div class="modal-body">
       <div class="field-label">Titolo</div>
@@ -858,14 +848,13 @@
 
 <!-- MODAL CONFERMA ELIMINA -->
 <div class="modal-overlay" id="confirm-modal">
-  <div class="confirm-modal">
-    <div class="modal-handle"></div>
-    <div class="modal-head"><h3 style="color:var(--coral)">Elimina progetto</h3><p id="confirm-text"></p></div>
-    <div class="modal-actions" style="padding:0 22px 0">
+  <div class="modal">
+    <div class="modal-head"><h3>Elimina progetto</h3></div>
+    <div class="modal-body"><p class="modal-nota" id="confirm-text"></p></div>
+    <div class="modal-actions">
       <button class="btn-cancel" onclick="closeConfirm()">Annulla</button>
       <button class="btn-danger" id="confirm-ok">Elimina</button>
     </div>
-    <div style="height:18px"></div>
   </div>
 </div>
 
@@ -920,7 +909,6 @@
 <!-- MODAL PIANIFICATORE -->
 <div class="modal-overlay" id="planner-modal">
   <div class="modal" style="max-height:88vh;overflow-y:auto">
-    <div class="modal-handle"></div>
     <div class="modal-head">
       <h3>Pianifica la deadline</h3>
     </div>
@@ -957,7 +945,6 @@
       <button class="btn-cancel" onclick="closePlannerModal()">Annulla</button>
       <button class="btn-create" onclick="applyPlanner()">Imposta deadline</button>
     </div>
-    <div style="height:8px"></div>
   </div>
 </div>
 

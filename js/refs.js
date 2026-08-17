@@ -945,12 +945,29 @@ const SWIPE_MIN = 55;
 // Il gesto e' uno solo, i posti in cui vale sono due (l'elenco delle cartelle
 // e la galleria dentro una cartella): "verso" vale +1 a sinistra — cioe' la
 // scheda dopo — e -1 a destra.
-function wireSwipe(el, sposta){
-  if(!el || el._swipe) return;
-  el._swipe = true;
+//
+// Sta sull'INTERA schermata, non sulla scheda bianca degli artisti. Prima era
+// appeso all'elenco, che e' alto quanto le righe che contiene: sotto l'ultimo
+// artista c'e' mezzo schermo di sabbia, ed e' proprio li' che il pollice si
+// appoggia — il gesto sembrava funzionare "a volte", cioe' solo quando il dito
+// partiva per caso sopra una riga.
+//
+// I due gesti convivono sullo stesso elemento: la chiave tiene il conto di chi
+// e' gia' stato appeso, se no il secondo si vedeva rifiutare il posto dal
+// primo. Ognuno controlla da se' se il suo interruttore e' a schermo.
+function wireSwipe(el, chiave, sposta){
+  if(!el) return;
+  el._swipe = el._swipe || {};
+  if(el._swipe[chiave]) return;
+  el._swipe[chiave] = true;
   let x0 = 0, y0 = 0, attivo = false;
   el.addEventListener('touchstart', e=>{
     if(e.touches.length !== 1){ attivo = false; return; }
+    // Dentro un foglio sovrapposto (il pannello di Drive, un modale) il gesto
+    // non c'entra: li' si sta facendo altro.
+    if(e.target.closest && e.target.closest('.refs-profile, .modal, .ink-action-menu')){
+      attivo = false; return;
+    }
     x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; attivo = true;
   }, { passive:true });
   el.addEventListener('touchend', e=>{
@@ -967,20 +984,21 @@ function wireSwipe(el, sposta){
   }, { passive:true });
 }
 export function wireSwipeAssi(){
-  wireSwipe(document.getElementById('refs-folder-browser'),
-            verso => setArchivio(verso > 0 ? 'references' : 'artists'));
+  wireSwipe(document.getElementById('screen-refs'), 'assi', verso=>{
+    const assi = document.getElementById('refs-axis');
+    if(!assi || !assi.classList.contains('show')) return;
+    setArchivio(verso > 0 ? 'references' : 'artists');
+  });
 }
 
 // Lo stesso gesto dentro una cartella, dove le schede sono tre: si va avanti e
 // indietro di UNA per volta e agli estremi ci si ferma (niente giro circolare,
 // che da Tavole riporterebbe agli Albi facendo sembrare di aver sbagliato).
-// Il gesto sta sull'intera galleria: i tre scaffali sono due pannelli diversi
-// (gli albi e le immagini) e appenderlo a ognuno vorrebbe dire scriverlo due
-// volte. Se i tab non sono a schermo — "All", i tag — non c'e' niente da
-// scorrere e il gesto si ignora.
+// Se i tab non sono a schermo — "All", i tag — non c'e' niente da scorrere e
+// il gesto si ignora.
 const SCAFFALI = ['albi','ritagli','tavole'];
 export function wireSwipeScaffali(){
-  wireSwipe(document.getElementById('refs-gallery-view'), verso=>{
+  wireSwipe(document.getElementById('screen-refs'), 'scaffali', verso=>{
     const tabs = document.getElementById('refs-tabs');
     if(!tabs || !tabs.classList.contains('show')) return;
     const i = SCAFFALI.indexOf(_folderTab);
