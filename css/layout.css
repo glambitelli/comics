@@ -228,3 +228,41 @@ body.is-touch .refs-scroll{padding-bottom:calc(172px + var(--safe-bot)) !importa
   font-family:'Nunito',sans-serif;font-size:13.5px;font-weight:700;
 }
 .loading-uscita button:active{background:var(--sand)}
+
+
+/* ── LA PORTA D'INGRESSO ──
+   Non e' un modale: e' la schermata che c'e' PRIMA dell'app, quando l'app non
+   ha ancora il diritto di mostrare niente. Stessa carta e stesso marchio delle
+   altre schermate — chi arriva qui deve riconoscere Inkflow, non pensare di
+   essere finito su una pagina di Google.
+   Sta sopra tutto (9900) tranne niente: finche' e' aperta, sotto non c'e'
+   nulla da guardare. */
+.accesso{
+  position:fixed;inset:0;z-index:9900;
+  background:var(--white);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:32px 28px calc(32px + var(--safe-bot));text-align:center;
+}
+.accesso::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:5px;
+  background:linear-gradient(90deg,var(--coral),var(--gold),var(--green),var(--sky));
+}
+.accesso-marchio{font-family:'Castoro',serif;font-size:46px;color:var(--ink);line-height:1}
+.accesso-marchio span{font-size:.6em;color:#f0c020;vertical-align:.14em}
+.accesso-sub{font-size:9px;color:var(--ink3);letter-spacing:.12em;text-transform:lowercase;margin-top:4px}
+.accesso-testo{font-size:14px;color:var(--ink2);line-height:1.55;max-width:300px;margin:26px 0 22px}
+.accesso-btn{
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  padding:14px 22px;border:none;border-radius:12px;cursor:pointer;
+  background:linear-gradient(135deg,#2a2018,#1a1410);color:var(--gold);
+  font-family:'Nunito',sans-serif;font-size:14.5px;font-weight:700;
+  box-shadow:0 4px 16px rgba(26,20,16,.3);transition:transform .1s;
+}
+.accesso-btn:active{transform:scale(.98)}
+.accesso-btn:disabled{opacity:.6}
+/* Il messaggio d'errore dice cosa fare (vedi spiegaErroreAccesso in
+   settings.js): qui si legge per intero, non e' una riga di log. */
+.accesso-errore{
+  margin-top:20px;max-width:320px;font-size:12.5px;line-height:1.5;
+  color:#8a3020;background:var(--coral-pale);border-radius:12px;padding:12px 14px;
+}

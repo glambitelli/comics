@@ -44,6 +44,22 @@
 <body>
 
 <!-- LOADING -->
+<!-- LA PORTA D'INGRESSO.
+     Compare solo se non si e' entrati: l'archivio e' di una persona sola, e da
+     quando le regole di Firestore lo sanno, senza accesso non c'e' niente da
+     mostrare. Sta prima della schermata di caricamento nel file ma sopra tutto
+     a schermo (vedi .accesso in layout.css). -->
+<div class="accesso" id="accesso" hidden>
+  <div class="accesso-marchio">Inkflow <span>✦</span></div>
+  <div class="accesso-sub">visual archive</div>
+  <p class="accesso-testo">Questo archivio è tuo, e solo tuo. Entra con l'account Google con cui l'hai creato.</p>
+  <button class="accesso-btn" id="accesso-btn" type="button" onclick="window.entraInInkflow()">
+    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M21.6 12.2c0-.7-.06-1.35-.17-2H12v3.8h5.4a4.6 4.6 0 0 1-2 3v2.5h3.2c1.9-1.75 3-4.33 3-7.3z"/><path fill="currentColor" d="M12 22c2.7 0 4.97-.9 6.6-2.43l-3.2-2.5c-.9.6-2.05.95-3.4.95-2.6 0-4.8-1.76-5.6-4.12H3.1v2.58A10 10 0 0 0 12 22z"/><path fill="currentColor" d="M6.4 13.9a6 6 0 0 1 0-3.83V7.5H3.1a10 10 0 0 0 0 9l3.3-2.6z"/><path fill="currentColor" d="M12 5.98c1.47 0 2.79.5 3.83 1.5l2.84-2.84C16.96 2.99 14.7 2 12 2A10 10 0 0 0 3.1 7.5l3.3 2.57C7.2 7.73 9.4 5.98 12 5.98z"/></svg>
+    <span>Entra con Google</span>
+  </button>
+  <p class="accesso-errore" id="accesso-errore" hidden></p>
+</div>
+
 <div class="loading-screen" id="loading">
   <div class="loading-title">Inkflow <span style="font-size:.6em;color:#f0c020;vertical-align:.14em;font-weight:400">✦</span></div>
   <div class="loading-sub" id="loading-sub">sincronizzazione in corso…</div>

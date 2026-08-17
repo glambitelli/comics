@@ -331,6 +331,13 @@ hideLoading();
   }
 })();
 
+// ── I DATI PARTONO DOPO L'ACCESSO ──
+// Prima questo listener partiva al caricamento del modulo. Con le regole di
+// Firestore chiuse sul proprietario, chiedere i progetti PRIMA di sapere chi
+// sei significa una raffica di "permission-denied" ad ogni avvio: rumore
+// inutile, e per un istante la home si disegna vuota. Adesso si aspetta di
+// sapere chi bussa (vedi portaPrincipale in fondo al file).
+function avviaListenerProgetti(){
 onSnapshot(collection(db, COL), snapshot => {
   setProjects(snapshot.docs.map(d => ({id: d.id, ...d.data()})));
   cacheProjects(projects);
@@ -363,6 +370,7 @@ onSnapshot(collection(db, COL), snapshot => {
   console.error('Firebase error:', err);
   syncDot('error');
 });
+}
 
 window.openNewModal=openNewModal; window.closeModal=closeModal; window.createProject=createProject;
 
@@ -566,7 +574,6 @@ window.goHomeFromLogo = goHomeAlways;
   }, {passive:true});
 })();
 
-loadUserData();
 initNotifications();
 
 // LA VERSIONE CHE STA GIRANDO DAVVERO, scritta in fondo alla home e alla sera
@@ -609,6 +616,64 @@ mostraVersione();
 // altrimenti — quindi si chiede una volta all'avvio e non si insiste. La
 // promessa non viene mai rifiutata in modo rumoroso: se il browser non
 // supporta l'API, non succede niente.
+// ── LA PORTA D'INGRESSO ──
+//
+// L'archivio e' di una persona sola, e le regole di Firestore lo sanno: senza
+// accesso, dal database non arriva niente. Quindi prima si sa chi bussa, poi
+// partono i dati — non il contrario.
+//
+// COSA SUCCEDE SE L'ACCESSO NON SI PUO' NEMMENO CHIEDERE. Il modulo che parla
+// con Google vive su un CDN: la primissima volta serve la rete. Se non c'e' —
+// aereo, metropolitana, Google irraggiungibile — NON si mette una parete
+// davanti all'app: si entra lo stesso e si lavora sulla copia locale. Le
+// scritture falliranno finche' non si rientra, ma un'app che non si apre e'
+// peggio di un'app che per ora non salva.
+let _authApp = null;
+function portaAperta(){
+  const porta = document.getElementById('accesso');
+  if(porta) porta.hidden = true;
+  avviaListenerProgetti();
+  loadUserData();
+}
+function mostraPorta(errore){
+  const porta = document.getElementById('accesso');
+  if(porta) porta.hidden = false;
+  const err = document.getElementById('accesso-errore');
+  if(err){
+    err.hidden = !errore;
+    if(errore) err.textContent = errore;
+  }
+}
+window.entraInInkflow = function(){
+  const btn = document.getElementById('accesso-btn');
+  if(!_authApp) return;
+  if(btn) btn.disabled = true;
+  // Niente await prima della chiamata: la finestra di Google deve partire
+  // dentro il tocco, se no il browser la blocca (stessa storia di Drive).
+  _authApp.entraConGoogle()
+    .then(()=> portaAperta())
+    .catch(async e=>{
+      if(btn) btn.disabled = false;
+      if(e && /popup-closed|cancelled-popup/.test(e.code||'')) return;
+      const m = await import('./settings.js');
+      mostraPorta(m.__perLeProve_spiega(e));
+    });
+};
+(async function portaPrincipale(){
+  try{
+    _authApp = await import('./auth.js');
+  }catch(e){
+    console.warn('accesso non disponibile, si entra con la copia locale', e);
+    portaAperta();
+    return;
+  }
+  const utente = await _authApp.attendiAccesso();
+  if(utente) portaAperta(); else mostraPorta('');
+  // Uscendo dalle impostazioni la porta si richiude: l'app non deve restare
+  // aperta su dati che da quel momento non ha piu' il diritto di leggere.
+  _authApp.alCambioAccesso(u=>{ if(!u) mostraPorta(''); });
+})();
+
 if(navigator.storage && navigator.storage.persist){
   navigator.storage.persisted().then(gia=>{
     if(!gia) return navigator.storage.persist();

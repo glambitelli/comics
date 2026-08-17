@@ -11,7 +11,12 @@ export function persistentMultipleTabManager(){ return {}; }
 // sei collezioni diverse).
 export function collection(_db, nome){ return { nome }; }
 export function doc(_db, col, id){ return { col, id }; }
-export function onSnapshot(){ return ()=>{}; }
+// Si annota CHI si mette in ascolto: serve a verificare che i dati non
+// partano prima dell'accesso (vedi la suite accesso.js).
+export function onSnapshot(ref){
+  (window.__ascolti || (window.__ascolti = [])).push((ref && (ref.nome || ref.col)) || '?');
+  return ()=>{};
+}
 export function setDoc(ref, data){
   (window.__scritture || (window.__scritture = [])).push({ col: ref && ref.col, id: ref && ref.id, data });
   return Promise.resolve();
