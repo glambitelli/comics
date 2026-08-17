@@ -36,6 +36,14 @@ module.exports = () => suite("Backup — l'archivio esce da qui, e ci rientra", 
   // qui sotto e finirebbero sulla rete vera. Vedi il commento in motore.js.
   senzaServiceWorker: true,
   prima: async (page)=>{
+    // Si annota se l'app chiede al browser di NON buttare via i suoi dati.
+    // Va messo prima del caricamento, perche' la richiesta parte all'avvio.
+    await page.addInitScript(()=>{
+      window.__persistChiesto = false;
+      if(!navigator.storage) return;
+      navigator.storage.persisted = ()=> Promise.resolve(false);
+      navigator.storage.persist = ()=>{ window.__persistChiesto = true; return Promise.resolve(true); };
+    });
     await page.route('**://fonts.googleapis.com/**', r=> r.fulfill({status:200, contentType:'text/css', body:''}));
     await page.route('**://fonts.gstatic.com/**', r=> r.abort());
     await page.route('**://www.gstatic.com/firebasejs/**', r=> r.fulfill({
@@ -45,6 +53,14 @@ module.exports = () => suite("Backup — l'archivio esce da qui, e ci rientra", 
 
   await page.waitForTimeout(1800);
   await page.evaluate(a=>{ window.__archivio = a; }, ARCHIVIO);
+
+  sezione('all\'avvio l\'app chiede di non buttare via i suoi dati');
+  // La copia offline di Firestore, gli albi scaricati da Drive e i file
+  // dell'app stanno in una memoria che Android considera sacrificabile: senza
+  // chiedere il contrario, sotto pressione di spazio sparisce senza avvisare,
+  // e l'unica cosa che si vede e' un'app che si e' dimenticata delle cose.
+  ok('la memoria persistente viene richiesta, una volta sola',
+     await page.evaluate(()=> window.__persistChiesto === true), null);
 
   sezione('esportare scrive un file con dentro tutto l\'archivio');
   const [scaricato] = await Promise.all([
