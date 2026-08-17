@@ -1556,6 +1556,11 @@ function renderFolderBrowser(){
   const tabRefs = document.getElementById('refs-axis-references');
   if(tabArtists) tabArtists.classList.toggle('active', _asse === 'artists');
   if(tabRefs) tabRefs.classList.toggle('active', _asse === 'references');
+  // Il cursore bianco dell'interruttore: sta a sinistra e trasla a destra.
+  // La posizione la decide una classe sola sulla vaschetta, non uno stile
+  // scritto qui, cosi' la transizione resta tutta nel CSS (vedi refs.css).
+  const vasca = document.getElementById('refs-axis-vasca');
+  if(vasca) vasca.classList.toggle('destra', _asse === 'references');
 }
 
 // Tocco = entra · tocco prolungato (o tasto destro) = Rinomina/Elimina.

@@ -95,32 +95,50 @@
    separatore, e sembrava che il primo artista fosse disegnato diverso. Il
    passaggio di tono fra il fondo delle schede e quello dell'elenco basta gia'
    a dividerli. */
-/* UN INTERRUTTORE, e nessuna metafora. Prima erano due parole con un trattino
-   sotto (dicevano "titolo", non "scelta"), poi due linguette di schedario:
-   la cartella si e' rivelata un'idea carina e sbagliata — strette sembravano
-   due bottoni schiacciati, alte rubavano mezzo schermo per una scelta che si
-   fa in mezzo secondo.
+/* UN INTERRUTTORE, e nessuna metafora. Le versioni provate prima, in ordine:
+   due parole con un trattino sotto (dicevano "titolo", non "scelta"); due
+   linguette di schedario (metafora carina e ingombrante: strette sembravano
+   bottoni schiacciati, alte rubavano mezzo schermo per una scelta che si fa in
+   mezzo secondo); una pastiglia d'oro dentro una vaschetta incassata (troppo
+   colore per un comando che sta in cima a un elenco gia' pieno di dischi
+   d'oro: gridava piu' forte del contenuto); e una lastra di pietra incisa.
 
-   Quello che resta e' una vaschetta incassata nella sabbia con dentro una
-   pastiglia d'oro che scorre da una parte all'altra. L'oro e' lo stesso dei
-   dischi delle iniziali, l'incasso e' un'ombra interna: due segni, e si vede
-   subito che le scelte sono due e in quale si e'. */
-.refs-axis{display:none;background:var(--sand);flex-shrink:0;padding:2px 14px 12px}
+   Quello che resta e' il controllo segmentato di sistema, con i colori di
+   casa. Tre regole, e nessuna decorazione:
+   1. la vaschetta NON e' un colore nuovo, e' la sabbia scurita del 10% —
+      cosi' resta sul fondo qualunque tinta abbia lo sfondo intorno;
+   2. la scelta e' un CURSORE che sta SOPRA il fondo (bianco, ombra corta
+      verso il basso), non una meta' colorata: e' l'unica differenza che si
+      legge come "spostabile" invece che come "acceso";
+   3. il testo e' piccolo, minuscolo e leggermente stretto (-.01em), quindi
+      non litiga coi cognomi maiuscoli delle schede subito sotto.
+   Il cursore scorre in 220ms con la curva delle barre di sistema: e' il tempo
+   in cui l'occhio segue lo spostamento senza aspettarlo. */
+.refs-axis{display:none;background:var(--sand);flex-shrink:0;padding:2px 16px 14px}
 .refs-axis.show{display:block}
 .refs-axis-vasca{
-  display:flex;gap:4px;padding:4px;border-radius:999px;
-  background:#e4d9c0;box-shadow:inset 0 1px 3px rgba(120,96,50,.18);
+  position:relative;display:flex;padding:2px;border-radius:9px;
+  background:rgba(120,96,50,.10);
 }
+/* Il cursore e' un pezzo solo che trasla, non due sfondi che si accendono e
+   si spengono: cosi' il movimento e' continuo anche se il tocco arriva mentre
+   l'animazione precedente e' ancora in corso. Largo esattamente una meta' del
+   contenuto — 50% meno i 2px di bordo — e trasla della propria larghezza. */
+.refs-axis-cursore{
+  position:absolute;z-index:0;top:2px;bottom:2px;left:2px;width:calc(50% - 2px);
+  background:var(--white);border-radius:7px;
+  box-shadow:0 3px 8px rgba(70,55,25,.13), 0 1px 1px rgba(70,55,25,.05),
+             0 0 0 .5px rgba(70,55,25,.05);
+  transition:transform .22s cubic-bezier(.32,.72,0,1);
+}
+.refs-axis-vasca.destra .refs-axis-cursore{transform:translateX(100%)}
 .refs-axis-tab{
-  flex:1;cursor:pointer;background:none;border:none;border-radius:999px;
-  font-family:'Nunito',sans-serif;font-size:13.5px;font-weight:700;color:#8a7248;
-  padding:11px 0;line-height:1.2;
-  transition:background .18s,color .18s,box-shadow .18s;
+  flex:1;position:relative;z-index:1;cursor:pointer;background:none;border:none;
+  font-family:'Nunito',sans-serif;font-size:13.5px;font-weight:600;letter-spacing:-.01em;
+  color:#8a7a5e;padding:8px 0 9px;line-height:1.25;
+  transition:color .2s;
 }
-.refs-axis-tab.active{
-  background:linear-gradient(160deg,#f4cf5e,#dda412);color:#2a2412;
-  box-shadow:0 2px 8px rgba(160,120,20,.28);
-}
+.refs-axis-tab.active{font-weight:700;color:var(--ink)}
 
 /* ── LA BARRA DI SEZIONE ──
    Larga quanto la pagina, nera e oro. Le pastiglie provate prima erano piu'

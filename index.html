@@ -225,7 +225,8 @@
        tocco o con uno swipe (vedi setArchivio in refs.js). Compaiono solo
        nell'elenco: dentro una cartella o dentro un tag comandano i tab loro. -->
   <div id="refs-axis" class="refs-axis">
-    <div class="refs-axis-vasca">
+    <div class="refs-axis-vasca" id="refs-axis-vasca">
+      <span class="refs-axis-cursore" aria-hidden="true"></span>
       <button class="refs-axis-tab" id="refs-axis-artists" onclick="window.setArchivio('artists')" type="button">Artists</button>
       <button class="refs-axis-tab" id="refs-axis-references" onclick="window.setArchivio('references')" type="button">References</button>
     </div>

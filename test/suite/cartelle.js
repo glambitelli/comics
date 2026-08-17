@@ -130,37 +130,58 @@ module.exports = () => suite("References — artisti e menu contestuali", {"banc
      dischi.every(d=> d.bordi.startsWith('0px')), dischi.map(d=>d.bordi));
 
   sezione('Artists e References sono un interruttore, non due pulsanti');
-  // Terza versione. Due parole con un trattino sotto dicevano "titolo" e non
-  // "scelta"; le linguette di schedario erano una metafora carina e ingombrante
-  // (strette sembravano bottoni schiacciati, alte rubavano mezzo schermo).
-  // Resta una vaschetta incassata con dentro una pastiglia d'oro che scorre.
-  const interruttore = await page.evaluate(()=>{
+  // Quinta versione, e la piu' silenziosa. Le altre, in ordine: due parole con
+  // un trattino sotto (dicevano "titolo", non "scelta"); due linguette di
+  // schedario (metafora carina e ingombrante); una pastiglia d'oro dentro una
+  // vaschetta incassata (troppo colore sopra un elenco gia' pieno di dischi
+  // d'oro); una lastra di pietra incisa. Adesso e' il segmentato di sistema
+  // coi colori di casa: fondo di sabbia scurita e un cursore bianco che scorre.
+  const leggiInterruttore = ()=> page.evaluate(()=>{
     const leggi = el=>{
       const s = getComputedStyle(el);
       return { fondo:s.backgroundColor, sfumatura:s.backgroundImage,
-               tondo:parseFloat(s.borderRadius), colore:s.color,
+               tondo:parseFloat(s.borderRadius), colore:s.color, peso:s.fontWeight,
                ombra:s.boxShadow };
     };
-    const vasca = getComputedStyle(document.querySelector('.refs-axis-vasca'));
+    const vascaEl = document.querySelector('.refs-axis-vasca');
+    const curEl = document.querySelector('.refs-axis-cursore');
+    const v = vascaEl.getBoundingClientRect(), c = curEl.getBoundingClientRect();
     return {
       attiva: leggi(document.getElementById('refs-axis-artists')),
       spenta: leggi(document.getElementById('refs-axis-references')),
-      vasca: { tondo: parseFloat(vasca.borderRadius), ombra: vasca.boxShadow,
-               fondo: vasca.backgroundColor },
+      vasca: { ...leggi(vascaEl), largo: v.width },
+      cursore: { ...leggi(curEl), largo: c.width, scarto: c.left - v.left },
     };
   });
-  ok('la pastiglia accesa e\' d\'oro',
-     /gradient/.test(interruttore.attiva.sfumatura) &&
-     /244, 207, 94|221, 164, 23/.test(interruttore.attiva.sfumatura), interruttore.attiva);
-  ok('quella spenta non ha nessun fondo',
-     /rgba\(0, 0, 0, 0\)/.test(interruttore.spenta.fondo) &&
-     interruttore.spenta.sfumatura === 'none', interruttore.spenta);
-  ok('e sull\'oro il nome si scrive in inchiostro',
-     interruttore.attiva.colore !== interruttore.spenta.colore, interruttore);
-  ok('la vaschetta e\' incassata (ombra interna)',
-     /inset/.test(interruttore.vasca.ombra), interruttore.vasca);
-  ok('ed e\' tutta tonda, pastiglia compresa',
-     interruttore.vasca.tondo >= 20 && interruttore.attiva.tondo >= 20, interruttore);
+  const interruttore = await leggiInterruttore();
+  ok('nessuna delle due parole ha un fondo suo',
+     [interruttore.attiva, interruttore.spenta].every(p =>
+       /rgba\(0, 0, 0, 0\)/.test(p.fondo) && p.sfumatura === 'none'), interruttore);
+  ok('la scelta e\' un cursore bianco appoggiato sopra, non una meta\' colorata',
+     /254, 252, 248/.test(interruttore.cursore.fondo) &&
+     !/inset/.test(interruttore.cursore.ombra), interruttore.cursore);
+  ok('e copre esattamente meta\' vaschetta',
+     Math.abs(interruttore.cursore.largo - (interruttore.vasca.largo/2 - 2)) < 1.5,
+     interruttore.cursore);
+  ok('la vaschetta non e\' un colore nuovo, e\' la sabbia scurita',
+     /rgba\(120, 96, 50/.test(interruttore.vasca.fondo), interruttore.vasca);
+  ok('gli angoli sono appena smussati, non tondi',
+     interruttore.vasca.tondo >= 7 && interruttore.vasca.tondo <= 12, interruttore.vasca);
+  ok('la parola scelta e\' inchiostro e piu\' nera dell\'altra',
+     interruttore.attiva.colore !== interruttore.spenta.colore &&
+     parseInt(interruttore.attiva.peso) > parseInt(interruttore.spenta.peso), interruttore);
+  // Il cursore SCORRE: e' il segno che dice "spostabile" invece che "acceso".
+  // 400ms di attesa perche' la transizione dura 220ms.
+  await vaiA('references');
+  await page.waitForTimeout(400);
+  const dopo = await leggiInterruttore();
+  ok('e scivola sotto References quando si cambia asse',
+     dopo.cursore.scarto > dopo.vasca.largo/2 - 4, dopo.cursore);
+  await vaiA('artists');
+  await page.waitForTimeout(400);
+  const tornato = await leggiInterruttore();
+  ok('e torna indietro tornando su Artists',
+     tornato.cursore.scarto < 4, tornato.cursore);
 
   sezione('niente piu\' "Senza cartella"');
   // Tolta su richiesta: tutto finisce sempre in una cartella o sotto un tag, e
