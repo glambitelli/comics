@@ -149,4 +149,42 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
   ok('il menu si apre', sopravvive.aperto, sopravvive);
   ok('e cambiando schermata se ne va', !sopravvive.dopo, sopravvive);
 
+  console.log('\n── tutte le intestazioni sono la STESSA intestazione ──');
+  // Il marchio "Inkflow" sta nello stesso punto in tutte le schermate, quindi
+  // passando dall'una all'altra non deve muoversi di un pixel. Ideas per un
+  // po' e' stata l'eccezione — 22px di imbottitura invece di 24 e il filo di
+  // sotto d'oro invece che azzurro — e a occhio si vedeva solo cambiando
+  // schermata: il titolo scattava di lato. Qui si misurano tutte insieme.
+  const testate = await page.evaluate(()=>{
+    const quali = { home:'.home-header', refs:'.refs-header', idee:'.idee-header', stats:'.stats-header' };
+    const esito = {};
+    for(const [nome, sel] of Object.entries(quali)){
+      const el = document.querySelector(sel);
+      if(!el){ esito[nome] = null; continue; }
+      const s = getComputedStyle(el);
+      const t = document.createElement('div');
+      esito[nome] = {
+        imbottitura: s.paddingTop + '/' + s.paddingRight + '/' + s.paddingBottom + '/' + s.paddingLeft,
+        angoli: s.borderRadius,
+        filo: s.borderBottomWidth + ' ' + s.borderBottomColor,
+      };
+    }
+    // Dove comincia davvero la scritta "Inkflow", schermata per schermata.
+    esito.marchi = Object.values(quali).map(sel=>{
+      const t = document.querySelector(sel + ' .section-title');
+      if(!t) return null;
+      // Le schermate non attive sono nascoste: si misura l'imbottitura del
+      // contenitore, che e' quella che sposta il titolo.
+      return parseFloat(getComputedStyle(t.parentElement).paddingLeft);
+    });
+    return esito;
+  });
+  const chiavi = ['home','refs','idee','stats'].filter(k=> testate[k]);
+  const uguali = campo => new Set(chiavi.map(k=> testate[k][campo])).size === 1;
+  ok('stessa imbottitura su tutte', uguali('imbottitura'), testate);
+  ok('stessi angoli in basso', uguali('angoli'), testate);
+  ok('stesso filo colorato sotto', uguali('filo'), testate);
+  ok('e il marchio comincia sempre alla stessa distanza dal bordo',
+     new Set(testate.marchi.filter(x=> x !== null)).size === 1, testate.marchi);
+
 });

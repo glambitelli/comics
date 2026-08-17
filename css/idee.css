@@ -8,11 +8,19 @@
    riporta alla home toccandolo. Prima qui c'era scritto "Idee" a caratteri
    grandi: bello da vedere e sbagliato da usare — era l'unica schermata da cui
    non si tornava indietro dal titolo, e chi ci arrivava ci restava dentro.
-   Il nome della schermata sta sotto, in piccolo, dov'e' in tutte le altre. */
+   Il nome della schermata sta sotto, in piccolo, dov'e' in tutte le altre.
+
+   IDENTICA vuol dire IDENTICA, e per un po' non lo e' stata: 22px di
+   imbottitura invece di 24 e il filo di sotto d'oro invece che azzurro. Due
+   pixel non si notano guardando la schermata, ma passando da References a
+   Ideas il marchio "Inkflow" scattava di lato — e il filo di un altro colore
+   faceva sembrare che si fosse cambiata app, non pagina. Qui sotto ci sono le
+   stesse identiche misure di .refs-header e .home-header: se un giorno cambiano
+   la', vanno cambiate anche qui. */
 .idee-header{
-  background:var(--white);padding:calc(24px + var(--safe-top)) 22px 10px;
+  background:var(--white);padding:calc(24px + var(--safe-top)) 24px 10px;
   position:relative;overflow:hidden;flex-shrink:0;
-  border-radius:0 0 28px 28px;border-bottom:3px solid var(--oro-sabbia);z-index:1;
+  border-radius:0 0 28px 28px;border-bottom:3px solid var(--sky);z-index:1;
 }
 .idee-header::before{
   content:'';position:absolute;top:0;left:0;right:0;height:5px;
