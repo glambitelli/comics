@@ -1,0 +1,141 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8">
+<title>mockup — lo switch, sei idee nuove</title>
+<link rel="stylesheet" href="/css/variables.css">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,400;0,600;0,700;0,800;1,600&family=Castoro:ital@0;1&display=swap');
+  body{margin:0;background:#efe6d4;font-family:'Nunito',sans-serif;padding:12px 0 30px}
+  .tit{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#8a7248;
+       margin:26px 14px 4px;display:flex;align-items:center;gap:8px}
+  .tit span{background:#f5ecd8;border:1px solid #e0d4b4;border-radius:20px;padding:3px 10px}
+  .tit i{flex:1;height:1.5px;background:#dccca0;font-style:normal}
+  .nota{font-size:11.5px;color:#8a7248;margin:0 18px 8px;line-height:1.45}
+  .quadro{background:var(--sand)}
+  .cerca{display:flex;align-items:center;gap:8px;padding:10px 16px 12px}
+  .campo{flex:1;height:34px;background:var(--white);border:1.5px solid var(--sand2);border-radius:20px}
+  .nuvola{width:34px;height:34px;border-radius:50%;background:var(--white);border:1.5px solid var(--sand2)}
+  .sotto{background:#efe6d4;padding:14px}
+  .carta{position:relative;background:var(--white);border:1.5px solid var(--sand2);border-radius:18px;
+         overflow:hidden;box-shadow:0 2px 10px rgba(74,184,216,.08)}
+  .carta::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;
+                 background:linear-gradient(90deg,var(--sand3),var(--gold),var(--sand3))}
+  .r{display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--sand)}
+  .r:last-child{border-bottom:none}
+  .disco{width:36px;height:36px;border-radius:50%;background:#e2b62c;color:#2a2412;font-size:12.5px;
+         font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .nome b{display:block;font-size:14.5px;font-weight:800;text-transform:uppercase;letter-spacing:.02em;color:var(--ink)}
+  .nome small{display:block;font-size:11.5px;font-weight:600;color:var(--ink3)}
+  button{font-family:inherit;cursor:pointer;background:none;border:none}
+
+  /* ══ 1 · TESTATA ═══════════════════════════════════════════════
+     Nessuna scatola: come la testata di una rivista. La sezione aperta
+     e' il titolo in Castoro, l'altra un occhiello piccolo di fianco. */
+  .n1{display:flex;align-items:baseline;gap:14px;margin:0 16px 12px;padding-bottom:9px;
+      border-bottom:1.5px solid #ded1b0}
+  .n1 .on{font-family:'Castoro',serif;font-size:23px;color:var(--ink);line-height:1;padding:0}
+  .n1 .off{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;
+           color:#a8967a;padding:0}
+  .n1 .off::before{content:'';display:inline-block;width:5px;height:5px;border-radius:50%;
+                   background:#d9c9a4;margin-right:7px;vertical-align:2px}
+
+  /* ══ 2 · PENNELLATA ════════════════════════════════════════════
+     Le due parole nude sulla sabbia; sotto quella aperta una passata
+     di pennello disegnata a mano, non una riga dritta. */
+  .n2{display:flex;gap:26px;margin:0 18px 14px}
+  .n2 button{position:relative;padding:0 2px 12px;font-size:15px;font-weight:800;
+             text-transform:uppercase;letter-spacing:.03em;color:#b0a084}
+  .n2 .on{color:var(--ink)}
+  .n2 svg{position:absolute;left:-4px;right:-6px;bottom:0;width:calc(100% + 10px);height:9px;
+          fill:var(--gold)}
+
+  /* ══ 3 · TIMBRO ════════════════════════════════════════════════
+     La sezione aperta e' timbrata a inchiostro: riquadro storto,
+     bordo mangiato, colore da tampone. L'altra e' solo scritta. */
+  .n3{display:flex;align-items:center;gap:18px;margin:0 18px 14px}
+  .n3 button{font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.12em;
+             color:#ab9a7c;padding:6px 2px}
+  .n3 .on{color:#b0552e;border:2px solid #b0552e;border-radius:3px;padding:6px 13px;
+          transform:rotate(-1.6deg);background:rgba(176,85,46,.07);
+          box-shadow:inset 0 0 0 1px rgba(253,242,220,.5)}
+
+  /* ══ 4 · CURSORE SU BINARIO ════════════════════════════════════
+     Un cursore d'oro che scorre su una guida sottile: si capisce che
+     e' una leva a due posizioni, e si vede da che parte sta. */
+  .n4{margin:0 16px 14px}
+  .n4 .fila{display:flex}
+  .n4 button{flex:1;padding:2px 0 10px;font-size:13px;font-weight:800;text-transform:uppercase;
+             letter-spacing:.06em;color:#ab9a7c}
+  .n4 .on{color:var(--ink)}
+  .n4 .guida{height:3px;border-radius:2px;background:#ded1b0;position:relative}
+  .n4 .guida i{position:absolute;top:-1px;left:0;width:50%;height:5px;border-radius:3px;
+               background:linear-gradient(90deg,#f4cf5e,#dda412);
+               box-shadow:0 1px 5px rgba(190,140,20,.5)}
+
+  /* ══ 5 · DISCHI ════════════════════════════════════════════════
+     Gli stessi dischi degli artisti, in piccolo: quello aperto e' pieno
+     d'oro e si porta dietro la parola, l'altro e' un cerchio vuoto. */
+  .n5{display:flex;gap:10px;margin:0 16px 14px}
+  .n5 button{display:flex;align-items:center;gap:8px;padding:4px 12px 4px 4px;border-radius:22px;
+             font-size:12.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;
+             color:#a8967a}
+  .n5 button b{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;
+               justify-content:center;font-size:12px;flex-shrink:0;
+               border:1.5px solid #ded1b0;color:#b3a184;background:transparent}
+  .n5 .on{color:var(--ink);background:var(--white);box-shadow:0 1px 5px rgba(120,96,50,.12)}
+  .n5 .on b{background:#e2b62c;border-color:#e2b62c;color:#2a2412}
+
+  /* ══ 6 · CERCHIATO A MATITA ════════════════════════════════════
+     Come si segna una cosa su un foglio: un ovale tirato a mano
+     intorno alla parola scelta. L'altra resta li', non toccata. */
+  .n6{display:flex;gap:22px;margin:0 20px 14px}
+  .n6 button{position:relative;padding:7px 10px;font-size:14px;font-weight:700;
+             text-transform:uppercase;letter-spacing:.04em;color:#ab9a7c}
+  .n6 .on{color:var(--ink);font-weight:800}
+  .n6 svg{position:absolute;left:-6px;top:-2px;width:calc(100% + 12px);height:calc(100% + 4px);
+          fill:none;stroke:var(--gold);stroke-width:2.2;stroke-linecap:round}
+</style>
+</head><body>
+<div id="qui"></div>
+<script>
+const ELENCO = `<div class="sotto"><div class="carta">
+  ${[['KO','KON','Satoshi'],['OT','OTOMO','Katsuhiro']].map(([s,c,n])=>`
+    <div class="r"><span class="disco">${s}</span><span class="nome"><b>${c}</b><small>${n}</small></span></div>`).join('')}
+</div></div>`;
+const CERCA = `<div class="cerca"><div class="campo"></div><div class="nuvola"></div></div>`;
+
+// La pennellata: un contorno chiuso che si assottiglia alle estremita',
+// stirato in larghezza sulla parola (preserveAspectRatio="none").
+const PENNELLO = `<svg viewBox="0 0 100 9" preserveAspectRatio="none">
+  <path d="M1,5.4 C18,2.6 40,3.4 58,2.9 C74,2.5 88,3.4 99,2.2
+           L99,4.6 C86,6.2 70,5.4 54,5.9 C36,6.5 16,7.4 1,7.6 Z"/></svg>`;
+// L'ovale a matita: giro e mezzo, con la coda che sborda come quando
+// si cerchia in fretta.
+const OVALE = `<svg viewBox="0 0 100 34" preserveAspectRatio="none">
+  <path d="M52,3 C22,3 4,9 4,17 C4,26 26,31 54,31 C82,31 97,25 96,16
+           C95,8 76,3 50,3 C34,3 20,6 13,11"/></svg>`;
+
+const varianti = [
+  ['1 · testata',
+   'Via la scatola. La sezione aperta e\' un titolo in Castoro, quella chiusa un occhiello piccolo di fianco, e una riga sottile chiude la testata. Si tocca la parola piccola per scambiarle.',
+   `<div class="n1"><button class="on">Artists</button><button class="off">References</button></div>`],
+  ['2 · pennellata',
+   'Due parole nude sulla sabbia; sotto quella aperta una passata di pennello disegnata a mano, che si assottiglia alle estremita\'. Niente bordi, niente fondi.',
+   `<div class="n2"><button class="on">Artists${PENNELLO}</button><button>References</button></div>`],
+  ['3 · timbro',
+   'La sezione aperta e\' timbrata a inchiostro: riquadro storto di un grado e mezzo, colore da tampone. L\'altra e\' solo scritta, in attesa.',
+   `<div class="n3"><button class="on">Artists</button><button>References</button></div>`],
+  ['4 · cursore su binario',
+   'Una guida sottile sotto le due parole e un cursore d\'oro che ci scorre sopra. Meccanico: si vede subito che e\' una leva a due posizioni.',
+   `<div class="n4"><div class="fila"><button class="on">Artists</button><button>References</button></div>
+     <div class="guida"><i></i></div></div>`],
+  ['5 · dischi',
+   'Gli stessi dischi degli artisti, rimpiccioliti: quello aperto e\' pieno d\'oro e sta su una pastiglia bianca, l\'altro e\' un cerchio vuoto sulla sabbia.',
+   `<div class="n5"><button class="on"><b>A</b>Artists</button><button><b>R</b>References</button></div>`],
+  ['6 · cerchiato a matita',
+   'Come si segna una cosa su un foglio: un ovale tirato a mano intorno alla parola scelta, con la coda che sborda. L\'altra resta li\', non toccata.',
+   `<div class="n6"><button class="on">Artists${OVALE}</button><button>References</button></div>`],
+];
+document.getElementById('qui').innerHTML = varianti.map(([t,n,sw])=>
+  `<div class="tit"><span>${t}</span><i></i></div><div class="nota">${n}</div>
+   <div class="quadro">${CERCA}${sw}${ELENCO}</div>`).join('');
+</script>
+</body></html>
