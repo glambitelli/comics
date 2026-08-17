@@ -942,8 +942,10 @@ export function asseAttivo(){ return _asse; }
 // sbaglio. Deve essere un movimento chiaramente laterale, non uno scroll
 // storto: da qui il doppio del verticale.
 const SWIPE_MIN = 55;
-export function wireSwipeAssi(){
-  const el = document.getElementById('refs-folder-browser');
+// Il gesto e' uno solo, i posti in cui vale sono due (l'elenco delle cartelle
+// e la galleria dentro una cartella): "verso" vale +1 a sinistra — cioe' la
+// scheda dopo — e -1 a destra.
+function wireSwipe(el, sposta){
   if(!el || el._swipe) return;
   el._swipe = true;
   let x0 = 0, y0 = 0, attivo = false;
@@ -954,11 +956,37 @@ export function wireSwipeAssi(){
   el.addEventListener('touchend', e=>{
     if(!attivo) return;
     attivo = false;
-    const t = e.changedTouches[0];
+    // Il dito che si stacca puo' non essere elencato: succede con gli eventi
+    // sintetici (il menu del tocco prolungato ne manda di suoi) e quando il
+    // sistema si riprende il gesto. Senza dito non c'e' direzione da leggere.
+    const t = e.changedTouches && e.changedTouches[0];
+    if(!t) return;
     const dx = t.clientX - x0, dy = t.clientY - y0;
     if(Math.abs(dx) < SWIPE_MIN || Math.abs(dx) < Math.abs(dy) * 2) return;
-    setArchivio(dx < 0 ? 'references' : 'artists');
+    sposta(dx < 0 ? 1 : -1);
   }, { passive:true });
+}
+export function wireSwipeAssi(){
+  wireSwipe(document.getElementById('refs-folder-browser'),
+            verso => setArchivio(verso > 0 ? 'references' : 'artists'));
+}
+
+// Lo stesso gesto dentro una cartella, dove le schede sono tre: si va avanti e
+// indietro di UNA per volta e agli estremi ci si ferma (niente giro circolare,
+// che da Tavole riporterebbe agli Albi facendo sembrare di aver sbagliato).
+// Il gesto sta sull'intera galleria: i tre scaffali sono due pannelli diversi
+// (gli albi e le immagini) e appenderlo a ognuno vorrebbe dire scriverlo due
+// volte. Se i tab non sono a schermo — "All", i tag — non c'e' niente da
+// scorrere e il gesto si ignora.
+const SCAFFALI = ['albi','ritagli','tavole'];
+export function wireSwipeScaffali(){
+  wireSwipe(document.getElementById('refs-gallery-view'), verso=>{
+    const tabs = document.getElementById('refs-tabs');
+    if(!tabs || !tabs.classList.contains('show')) return;
+    const i = SCAFFALI.indexOf(_folderTab);
+    const j = Math.min(SCAFFALI.length - 1, Math.max(0, i + verso));
+    if(j !== i) setFolderTab(SCAFFALI[j]);
+  });
 }
 
 export function setFolderTab(tab){
@@ -1205,10 +1233,15 @@ function renderFolderTabs(){
   if(ritagliN) ritagliN.textContent = countRitagliInFolder(_activeFolderId);
   if(tavoleN) tavoleN.textContent = countTavoleInFolder(_activeFolderId);
 
-  ['albi','ritagli','tavole'].forEach(t=>{
+  SCAFFALI.forEach(t=>{
     const b = document.getElementById('refs-tab-'+t);
     if(b) b.classList.toggle('active', _folderTab === t);
   });
+  // Il cursore bianco si sposta sullo scaffale scelto (stessa meccanica dei
+  // due assi: un numero, e il resto lo fa il CSS).
+  const vasca = document.getElementById('refs-tabs-vasca');
+  if(vasca) vasca.style.setProperty('--i', Math.max(0, SCAFFALI.indexOf(_folderTab)));
+  wireSwipeScaffali();
 
   // Ritagli e tavole condividono lo STESSO pannello: sono immagini uguali,
   // cambia solo quali si vedono (vedi rawGridList). Duplicare la griglia
@@ -1556,11 +1589,11 @@ function renderFolderBrowser(){
   const tabRefs = document.getElementById('refs-axis-references');
   if(tabArtists) tabArtists.classList.toggle('active', _asse === 'artists');
   if(tabRefs) tabRefs.classList.toggle('active', _asse === 'references');
-  // Il cursore bianco dell'interruttore: sta a sinistra e trasla a destra.
-  // La posizione la decide una classe sola sulla vaschetta, non uno stile
-  // scritto qui, cosi' la transizione resta tutta nel CSS (vedi refs.css).
+  // Il cursore bianco dell'interruttore: la posizione e' un numero (--i), non
+  // uno stile scritto qui, cosi' la transizione resta tutta nel CSS e la
+  // stessa regola vale anche per i tre scaffali di una cartella (refs.css).
   const vasca = document.getElementById('refs-axis-vasca');
-  if(vasca) vasca.classList.toggle('destra', _asse === 'references');
+  if(vasca) vasca.style.setProperty('--i', _asse === 'references' ? 1 : 0);
 }
 
 // Tocco = entra · tocco prolungato (o tasto destro) = Rinomina/Elimina.

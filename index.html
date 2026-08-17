@@ -174,10 +174,15 @@
       <svg viewBox="0 0 24 24" width="15" height="15"><path d="M7 15 L7 5 M7 5 L4 8 M7 5 L10 8" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M17 9 L17 19 M17 19 L14 16 M17 19 L20 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </button>
   </div>
+  <!-- I TRE SCAFFALI di una cartella: stesso interruttore dei due assi qui
+       sopra, e come quello si cambia anche con uno swipe (setFolderTab). -->
   <div id="refs-tabs" class="refs-tabs">
-    <button class="refs-tab" id="refs-tab-albi" onclick="setFolderTab('albi')" type="button">Albi <span class="refs-tab-n" id="refs-tab-albi-n">0</span></button>
-    <button class="refs-tab" id="refs-tab-ritagli" onclick="setFolderTab('ritagli')" type="button">Ritagli <span class="refs-tab-n" id="refs-tab-ritagli-n">0</span></button>
-    <button class="refs-tab" id="refs-tab-tavole" onclick="setFolderTab('tavole')" type="button">Tavole <span class="refs-tab-n" id="refs-tab-tavole-n">0</span></button>
+    <div class="seg-vasca" id="refs-tabs-vasca">
+      <span class="seg-cursore" aria-hidden="true"></span>
+      <button class="refs-tab seg-tab" id="refs-tab-albi" onclick="setFolderTab('albi')" type="button">Albi <span class="refs-tab-n" id="refs-tab-albi-n">0</span></button>
+      <button class="refs-tab seg-tab" id="refs-tab-ritagli" onclick="setFolderTab('ritagli')" type="button">Ritagli <span class="refs-tab-n" id="refs-tab-ritagli-n">0</span></button>
+      <button class="refs-tab seg-tab" id="refs-tab-tavole" onclick="setFolderTab('tavole')" type="button">Tavole <span class="refs-tab-n" id="refs-tab-tavole-n">0</span></button>
+    </div>
   </div>
   <div id="refs-folder-toolbar" class="refs-toolbar" style="display:none">
     <div class="refs-search">
@@ -225,10 +230,10 @@
        tocco o con uno swipe (vedi setArchivio in refs.js). Compaiono solo
        nell'elenco: dentro una cartella o dentro un tag comandano i tab loro. -->
   <div id="refs-axis" class="refs-axis">
-    <div class="refs-axis-vasca" id="refs-axis-vasca">
-      <span class="refs-axis-cursore" aria-hidden="true"></span>
-      <button class="refs-axis-tab" id="refs-axis-artists" onclick="window.setArchivio('artists')" type="button">Artists</button>
-      <button class="refs-axis-tab" id="refs-axis-references" onclick="window.setArchivio('references')" type="button">References</button>
+    <div class="refs-axis-vasca seg-vasca" id="refs-axis-vasca">
+      <span class="refs-axis-cursore seg-cursore" aria-hidden="true"></span>
+      <button class="refs-axis-tab seg-tab" id="refs-axis-artists" onclick="window.setArchivio('artists')" type="button">Artists</button>
+      <button class="refs-axis-tab seg-tab" id="refs-axis-references" onclick="window.setArchivio('references')" type="button">References</button>
     </div>
   </div>
   <div class="refs-scroll">

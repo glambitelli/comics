@@ -16,12 +16,18 @@
 .refs-crumb-sort[hidden]{display:none}
 .refs-breadcrumb-back{font-size:18px;font-weight:700;color:#8a7248;line-height:1}
 
-/* Tab Albi / Ritagli — visibili solo dentro una cartella vera */
-.refs-tabs{display:none;gap:20px;padding:0 16px;background:var(--sand);border-bottom:1px solid #e8dcc0;flex-shrink:0}
-.refs-tabs.show{display:flex}
-.refs-tab{background:none;border:none;font-family:inherit;font-size:14px;font-weight:600;color:var(--ink3);padding:10px 0 9px;border-bottom:2.5px solid transparent;cursor:pointer;line-height:1.2}
-.refs-tab.active{color:var(--ink);border-bottom-color:var(--coral)}
-.refs-tab-n{font-size:12px;font-weight:700;color:var(--ink3);margin-left:3px}
+/* Albi / Ritagli / Tavole — visibili solo dentro una cartella vera.
+   Sono lo STESSO interruttore di Artists/References (vedi .seg-vasca piu'
+   sotto): erano tre parole con una lineetta corallo sotto quella scelta, cioe'
+   il linguaggio dei titoli, mentre qui si sceglie uno scaffale fra tre. Ora la
+   scelta e' un cursore che scorre, in tutte e due le schermate allo stesso
+   modo, e in tutte e due si cambia anche con uno swipe. */
+.refs-tabs{display:none;padding:2px 16px 12px;background:var(--sand);flex-shrink:0}
+.refs-tabs.show{display:block}
+.refs-tabs .seg-vasca{--n:3}
+/* Il numero accanto al nome non e' un dato, e' un contorno: serve a sapere se
+   uno scaffale e' vuoto prima di aprirlo, quindi resta piccolo e chiaro. */
+.refs-tab-n{font-size:11.5px;font-weight:700;color:#a9987a;margin-left:4px}
 .refs-tab.active .refs-tab-n{color:#b8a078}
 .refs-albums-empty{display:flex}
 /* Scala tipografica della cartella, dall'alto in basso: il NOME è il titolo
@@ -113,32 +119,39 @@
    3. il testo e' piccolo, minuscolo e leggermente stretto (-.01em), quindi
       non litiga coi cognomi maiuscoli delle schede subito sotto.
    Il cursore scorre in 220ms con la curva delle barre di sistema: e' il tempo
-   in cui l'occhio segue lo spostamento senza aspettarlo. */
+   in cui l'occhio segue lo spostamento senza aspettarlo.
+
+   Le regole stanno su .seg-* e non su .refs-axis-*: lo stesso interruttore lo
+   usano anche i tre scaffali dentro una cartella (Albi/Ritagli/Tavole). Quante
+   voci ci sono lo dice --n, quale e' scelta lo dice --i: due numeri, e vale
+   per qualsiasi numero di voci. */
 .refs-axis{display:none;background:var(--sand);flex-shrink:0;padding:2px 16px 14px}
 .refs-axis.show{display:block}
-.refs-axis-vasca{
+.seg-vasca{
   position:relative;display:flex;padding:2px;border-radius:9px;
   background:rgba(120,96,50,.10);
 }
-/* Il cursore e' un pezzo solo che trasla, non due sfondi che si accendono e
-   si spengono: cosi' il movimento e' continuo anche se il tocco arriva mentre
-   l'animazione precedente e' ancora in corso. Largo esattamente una meta' del
-   contenuto — 50% meno i 2px di bordo — e trasla della propria larghezza. */
-.refs-axis-cursore{
-  position:absolute;z-index:0;top:2px;bottom:2px;left:2px;width:calc(50% - 2px);
+/* Il cursore e' un pezzo solo che trasla, non due sfondi che si accendono e si
+   spengono: cosi' il movimento e' continuo anche se il tocco arriva mentre
+   l'animazione precedente e' ancora in corso. Largo esattamente quanto una
+   voce — il contenuto (100% meno i 2px di bordo per lato) diviso --n — e
+   trasla di una propria larghezza per ogni posto a destra. */
+.seg-cursore{
+  position:absolute;z-index:0;top:2px;bottom:2px;left:2px;
+  width:calc((100% - 4px) / var(--n, 2));
+  transform:translateX(calc(100% * var(--i, 0)));
   background:var(--white);border-radius:7px;
   box-shadow:0 3px 8px rgba(70,55,25,.13), 0 1px 1px rgba(70,55,25,.05),
              0 0 0 .5px rgba(70,55,25,.05);
   transition:transform .22s cubic-bezier(.32,.72,0,1);
 }
-.refs-axis-vasca.destra .refs-axis-cursore{transform:translateX(100%)}
-.refs-axis-tab{
+.seg-tab{
   flex:1;position:relative;z-index:1;cursor:pointer;background:none;border:none;
   font-family:'Nunito',sans-serif;font-size:13.5px;font-weight:600;letter-spacing:-.01em;
   color:#8a7a5e;padding:8px 0 9px;line-height:1.25;
   transition:color .2s;
 }
-.refs-axis-tab.active{font-weight:700;color:var(--ink)}
+.seg-tab.active{font-weight:700;color:var(--ink)}
 
 /* ── LA BARRA DI SEZIONE ──
    Larga quanto la pagina, nera e oro. Le pastiglie provate prima erano piu'

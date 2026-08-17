@@ -289,4 +289,66 @@ module.exports = () => suite("References — Ritagli e Tavole dentro una cartell
   ok('non escono dallo schermo', righe.dentro, righe);
   ok('e non si sovrappongono', righe.separati, righe);
 
+  sezione('i tre scaffali sono lo stesso interruttore dei due assi');
+  // Prima erano tre parole con una lineetta corallo sotto quella scelta: il
+  // linguaggio dei titoli, mentre qui si sceglie uno scaffale fra tre. Adesso
+  // e' il cursore bianco che scorre, identico a Artists/References.
+  const leggiScaffali = ()=> page.evaluate(()=>{
+    const vascaEl = document.getElementById('refs-tabs-vasca');
+    const curEl = vascaEl.querySelector('.seg-cursore');
+    const v = vascaEl.getBoundingClientRect(), c = curEl.getBoundingClientRect();
+    const s = getComputedStyle(curEl);
+    return {
+      fondoVasca: getComputedStyle(vascaEl).backgroundColor,
+      fondoCursore: s.backgroundColor, ombra: s.boxShadow,
+      largoVasca: v.width, largoCursore: c.width, scarto: c.left - v.left,
+      lineette: ['albi','ritagli','tavole'].map(t=>
+        getComputedStyle(document.getElementById('refs-tab-'+t)).borderBottomWidth),
+    };
+  });
+  await tocca('albi');
+  const scaffali = await leggiScaffali();
+  ok('nessuna lineetta sotto le parole',
+     scaffali.lineette.every(l=> parseFloat(l) === 0), scaffali.lineette);
+  ok('il cursore e\' bianco e appoggiato sopra',
+     /254, 252, 248/.test(scaffali.fondoCursore) && !/inset/.test(scaffali.ombra), scaffali);
+  ok('e largo un terzo di vaschetta, perche\' le voci sono tre',
+     Math.abs(scaffali.largoCursore - (scaffali.largoVasca - 4)/3) < 1.5, scaffali);
+  ok('sugli Albi sta tutto a sinistra', scaffali.scarto < 4, scaffali);
+  await tocca('tavole');
+  await page.waitForTimeout(400);
+  const inFondo = await leggiScaffali();
+  ok('e su Tavole arriva in fondo a destra',
+     Math.abs(inFondo.scarto - (inFondo.largoVasca - 4) * 2/3) < 2, inFondo);
+
+  sezione('e si passa da uno scaffale all\'altro anche col dito');
+  // Lo stesso gesto dei due assi. Agli estremi ci si ferma: da Tavole uno
+  // swipe in avanti non deve riportare agli Albi facendo sembrare di aver
+  // sbagliato la direzione.
+  const swipe = async (dx, dy=0)=> {
+    await page.evaluate(([dx,dy])=>{
+      const el = document.getElementById('refs-gallery-view');
+      const r = el.getBoundingClientRect();
+      const x = r.left + r.width/2, y = r.top + r.height/2;
+      const t = (cx,cy)=> [new Touch({identifier:1, target:el, clientX:cx, clientY:cy})];
+      el.dispatchEvent(new TouchEvent('touchstart',{bubbles:true, touches:t(x,y), changedTouches:t(x,y)}));
+      el.dispatchEvent(new TouchEvent('touchend',{bubbles:true, touches:[], changedTouches:t(x+dx,y+dy)}));
+    }, [dx,dy]);
+    await page.waitForTimeout(300);
+  };
+  await tocca('albi');
+  await swipe(-120);
+  ok('uno swipe a sinistra porta ai Ritagli', (await stato()).attivo === 'ritagli', await stato());
+  await swipe(-120);
+  ok('un altro porta alle Tavole', (await stato()).attivo === 'tavole', await stato());
+  await swipe(-120);
+  ok('e da li\' in avanti non si va da nessuna parte', (await stato()).attivo === 'tavole', await stato());
+  await swipe(120);
+  ok('indietro si torna ai Ritagli', (await stato()).attivo === 'ritagli', await stato());
+  // Scorrere l'elenco col pollice non fa mai linee dritte: un movimento
+  // storto deve restare uno scorrimento, non diventare un cambio di scaffale.
+  await swipe(-70, 60);
+  ok('ma uno scorrimento in diagonale non cambia scaffale',
+     (await stato()).attivo === 'ritagli', await stato());
+
 });
