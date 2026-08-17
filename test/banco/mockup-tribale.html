@@ -1,0 +1,132 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8">
+<title>mockup — lo switch, versione tribale</title>
+<link rel="stylesheet" href="/css/variables.css">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Castoro&display=swap');
+  body{margin:0;background:#efe6d4;font-family:'Nunito',sans-serif;padding:12px 0 30px}
+  .tit{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#8a7248;
+       margin:26px 14px 4px;display:flex;align-items:center;gap:8px}
+  .tit span{background:#f5ecd8;border:1px solid #e0d4b4;border-radius:20px;padding:3px 10px}
+  .tit i{flex:1;height:1.5px;background:#dccca0;font-style:normal}
+  .nota{font-size:11.5px;color:#8a7248;margin:0 18px 8px;line-height:1.45}
+  .quadro{background:var(--sand)}
+  .cerca{display:flex;align-items:center;gap:8px;padding:10px 16px 12px}
+  .campo{flex:1;height:34px;background:var(--white);border:1.5px solid var(--sand2);border-radius:20px}
+  .nuvola{width:34px;height:34px;border-radius:50%;background:var(--white);border:1.5px solid var(--sand2)}
+  .sotto{background:#efe6d4;padding:14px}
+  .carta{position:relative;background:var(--white);border:1.5px solid var(--sand2);border-radius:18px;
+         overflow:hidden;box-shadow:0 2px 10px rgba(74,184,216,.08)}
+  .carta::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;
+                 background:linear-gradient(90deg,var(--sand3),var(--gold),var(--sand3))}
+  .r{display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--sand)}
+  .r:last-child{border-bottom:none}
+  .disco{width:36px;height:36px;border-radius:50%;background:#e2b62c;color:#2a2412;font-size:12.5px;
+         font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .nome b{display:block;font-size:14.5px;font-weight:800;text-transform:uppercase;letter-spacing:.02em;color:var(--ink)}
+  .nome small{display:block;font-size:11.5px;font-weight:600;color:var(--ink3)}
+  button{font-family:inherit;cursor:pointer}
+
+  /* ══ G · PIETRA INCISA ══════════════════════════════════════════ */
+  .g{display:flex;margin:2px 14px 12px;border-radius:6px;overflow:hidden;
+     background:linear-gradient(#2b2118,#191209);
+     box-shadow:0 3px 14px rgba(26,20,16,.35), inset 0 1px 0 rgba(240,200,120,.10)}
+  .g button{flex:1;background:none;border:none;padding:13px 0 12px;
+            font-size:12.5px;font-weight:800;letter-spacing:.22em;text-transform:uppercase;
+            color:#7d6a49;text-shadow:0 -1px 0 rgba(0,0,0,.8), 0 1px 0 rgba(240,200,120,.10)}
+  .g button+button{border-left:1px solid rgba(240,200,120,.14)}
+  .g .on{color:#f0c84e;text-shadow:0 0 14px rgba(240,200,78,.45), 0 -1px 0 rgba(0,0,0,.8)}
+  .g .on span{position:relative}
+  .g .on span::after{content:'';position:absolute;left:-2px;right:-2px;bottom:-7px;height:2px;
+                     background:linear-gradient(90deg,transparent,#f0c84e,transparent)}
+
+  /* ══ H · DUNE: creste di sabbia e piastra cotta dal sole ═══════ */
+  .h{position:relative;margin:2px 14px 12px;border-radius:10px;overflow:hidden;
+     background:#e0d3b4;box-shadow:inset 0 2px 6px rgba(120,96,50,.28)}
+  .h svg.creste{position:absolute;inset:0;width:100%;height:100%;opacity:.5}
+  .h .fila{position:relative;display:flex}
+  .h button{flex:1;background:none;border:none;padding:14px 0;font-size:13px;font-weight:800;
+            letter-spacing:.14em;text-transform:uppercase;color:#8a7248}
+  .h .on{background:linear-gradient(#f6efdd,#e9dcc0);color:#3a2a10;
+         box-shadow:0 2px 8px rgba(120,90,30,.28);border-radius:8px;margin:4px;
+         padding:10px 0}
+
+  /* ══ I · GLIFI (Abe / Oddworld): due marchi, uno acceso ════════ */
+  .i{display:flex;gap:10px;margin:2px 14px 12px;padding:8px;border-radius:12px;
+     background:linear-gradient(#241b12,#150f08);box-shadow:0 3px 14px rgba(20,14,8,.35)}
+  .i button{flex:1;display:flex;align-items:center;justify-content:center;gap:9px;
+            background:none;border:1px solid rgba(240,200,120,.18);border-radius:9px;
+            padding:10px 0;color:#8a7448;font-size:11.5px;font-weight:800;letter-spacing:.16em;
+            text-transform:uppercase}
+  .i .on{border-color:rgba(240,200,120,.6);color:#f2d27a;
+         background:radial-gradient(120% 140% at 50% 120%, rgba(226,182,44,.22), transparent 70%)}
+  .i svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.6}
+
+  /* ══ L · DRAGOON: cornice intagliata e gemma ═══════════════════ */
+  .l{display:flex;margin:2px 14px 12px;border-radius:4px;
+     background:linear-gradient(#2a2018,#181008);border:1px solid #9a7a30;
+     box-shadow:0 0 0 1px #2a2018 inset, 0 3px 12px rgba(26,20,16,.3);position:relative}
+  .l::before,.l::after{content:'';position:absolute;top:-1px;bottom:-1px;width:9px;
+                       border:1px solid #9a7a30;border-radius:2px}
+  .l::before{left:-1px;border-right:none}
+  .l::after{right:-1px;border-left:none}
+  .l button{flex:1;background:none;border:none;padding:13px 0;color:#8a7448;
+            font-family:'Castoro',serif;font-size:14px;letter-spacing:.12em;text-transform:uppercase}
+  .l .on{color:#f4dc9a;text-shadow:0 0 10px rgba(240,200,78,.4)}
+  .l .on::before{content:'✦';position:absolute;left:50%;transform:translateX(-50%);
+                 top:-8px;font-size:10px;color:#f0c84e;text-shadow:0 0 8px rgba(240,200,78,.8)}
+  .l .on{position:relative}
+
+  /* ══ M · OCRA: pittura su osso ═════════════════════════════════ */
+  .m{display:flex;margin:2px 14px 12px;border-radius:3px;overflow:hidden;
+     background:#efe3cc;box-shadow:inset 0 0 0 1px #d9c69c}
+  .m button{flex:1;position:relative;background:none;border:none;padding:14px 0 15px;
+            font-size:12.5px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:#a08a5e}
+  .m .on{background:#b0552e;color:#fdf2dc}
+  .m .on::after{content:'';position:absolute;left:26%;right:26%;bottom:6px;height:3px;
+                background:repeating-linear-gradient(90deg,#fdf2dc 0 3px,transparent 3px 7px)}
+  .m button+button{border-left:1px solid #d9c69c}
+</style>
+</head><body>
+<div id="qui"></div>
+<svg width="0" height="0" style="position:absolute">
+  <symbol id="glifo-a" viewBox="0 0 24 24"><path d="M12 3v18M6 8l6-5 6 5M8 21h8"/></symbol>
+  <symbol id="glifo-b" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M2 12c4-6 16-6 20 0-4 6-16 6-20 0"/></symbol>
+</svg>
+<script>
+const ELENCO = `<div class="sotto"><div class="carta">
+  ${[['KO','KON','Satoshi'],['OT','OTOMO','Katsuhiro']].map(([s,c,n])=>`
+    <div class="r"><span class="disco">${s}</span><span class="nome"><b>${c}</b><small>${n}</small></span></div>`).join('')}
+</div></div>`;
+const CERCA = `<div class="cerca"><div class="campo"></div><div class="nuvola"></div></div>`;
+
+const CRESTE = `<svg class="creste" viewBox="0 0 400 60" preserveAspectRatio="none">
+  <path d="M0,44 Q60,30 120,42 T240,40 T400,34" fill="none" stroke="#c8ac78" stroke-width="1.2"/>
+  <path d="M0,52 Q80,38 160,50 T320,46 T400,50" fill="none" stroke="#c8ac78" stroke-width="1" opacity=".7"/>
+  <path d="M0,26 Q70,14 150,24 T300,20 T400,16" fill="none" stroke="#c8ac78" stroke-width=".9" opacity=".5"/>
+</svg>`;
+
+const varianti = [
+  ['G · pietra incisa',
+   'Una lastra scura come le barre di sezione, le due parole scavate dentro con la spaziatura larga. Quella accesa e\' brace: oro caldo con un alone e un filo di luce sotto.',
+   `<div class="g"><button class="on"><span>Artists</span></button><button><span>References</span></button></div>`],
+  ['H · dune',
+   'Il fondo e\' sabbia scavata con le creste disegnate dentro (le stesse linee della barra in fondo). La scheda attiva e\' una piastra cotta dal sole appoggiata sopra.',
+   `<div class="h">${CRESTE}<div class="fila"><button class="on">Artists</button><button>References</button></div></div>`],
+  ['I · glifi',
+   'Due marchi affiancati su fondo bruciato, ognuno col suo segno inciso — la scelta si legge dal glifo prima che dalla parola. Quello acceso ha il bordo d\'oro e un bagliore che sale dal basso.',
+   `<div class="i">
+      <button class="on"><svg><use href="#glifo-a"/></svg>Artists</button>
+      <button><svg><use href="#glifo-b"/></svg>References</button>
+    </div>`],
+  ['L · cornice intagliata',
+   'Filo d\'oro sottile tutt\'intorno con i due fermagli agli estremi, parole in Castoro spaziate e una gemma ✦ sopra quella scelta. Legend of Dragoon.',
+   `<div class="l"><button class="on">Artists</button><button>References</button></div>`],
+  ['M · ocra su osso',
+   'Pittura, non metallo: fondo d\'osso e una campitura di ocra rossa sulla scheda attiva, con sotto una fila di trattini come una decorazione dipinta a mano.',
+   `<div class="m"><button class="on">Artists</button><button>References</button></div>`],
+];
+document.getElementById('qui').innerHTML = varianti.map(([t,n,sw])=>
+  `<div class="tit"><span>${t}</span><i></i></div><div class="nota">${n}</div>
+   <div class="quadro">${CERCA}${sw}${ELENCO}</div>`).join('');
+</script>
+</body></html>
