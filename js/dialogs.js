@@ -215,7 +215,24 @@ export const ICONE = {
 // Menu contestuale ancorato all'elemento toccato. Ogni voce e' {label, icon?,
 // danger?, onSelect}.
 let _actionMenuEl;
+// Quando lo stesso gesto apre il menu DUE VOLTE.
+//
+// Su Android un tocco prolungato fa due cose insieme: fa scadere il nostro
+// timer da 480ms e, un attimo dopo, fa sparare al browser l'evento
+// "contextmenu" (quello del tasto destro). Tutte e due chiamano questa
+// funzione con lo stesso anchor: il primo menu viene buttato via e ne nasce un
+// altro identico un decimo di secondo dopo. A schermo e' un lampo — il menu
+// "lampeggia" mentre il dito e' ancora appoggiato.
+//
+// Qui la seconda chiamata si riconosce e si ignora: stesso punto di partenza,
+// meno di mezzo secondo di distanza. Non si tocca chi chiama (le due strade
+// devono restare tutte e due: il tocco prolungato sul telefono, il tasto
+// destro sul computer).
+let _menuAncora = null, _menuQuando = 0;
 export function actionMenu(anchorEl, actions){
+  const ora = Date.now();
+  if(_actionMenuEl && anchorEl && anchorEl === _menuAncora && ora - _menuQuando < 500) return;
+  _menuAncora = anchorEl; _menuQuando = ora;
   closeActionMenu();
   _actionMenuEl = document.createElement('div');
   _actionMenuEl.className = 'ink-action-menu';

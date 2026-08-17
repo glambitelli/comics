@@ -313,6 +313,24 @@ module.exports = () => suite("References — artisti e menu contestuali", {"banc
   ok('tenendo premuto il menu compare', tenuta.durante, tenuta);
   ok('e resta aperto quando il dito si stacca', tenuta.dopo, tenuta);
   ok('senza entrare anche nella cartella sotto', !tenuta.entrata, tenuta);
+
+  // IL MENU NON DEVE LAMPEGGIARE. Su Android il tocco prolungato fa scattare
+  // il nostro timer e, subito dopo, il "contextmenu" del browser: due aperture
+  // per un gesto solo, e il menu spariva e ricompariva sotto il dito. Qui si
+  // mandano tutti e due gli eventi e si controlla che il foglio a schermo sia
+  // sempre LO STESSO — non uno nuovo al posto del primo.
+  const unoSolo = await page.evaluate(async ()=>{
+    const el = document.querySelector('.refs-folder-row[data-folder-id]');
+    const primo = document.querySelector('.ink-action-menu');
+    el.dispatchEvent(new MouseEvent('contextmenu', {bubbles:true, cancelable:true}));
+    await new Promise(r=>setTimeout(r,150));
+    const dopo = document.querySelectorAll('.ink-action-menu');
+    return { quanti: dopo.length, stesso: dopo[0] === primo };
+  });
+  ok('e il contextmenu di Android non ne apre un secondo',
+     unoSolo.quanti === 1, unoSolo);
+  ok('e' + '\' il foglio di prima, non uno nuovo (niente lampeggio)',
+     unoSolo.stesso, unoSolo);
   // Il menu si chiude col dito che scende, non col click: e' proprio quello
   // che gli impedisce di lampeggiare (vedi piu' sotto).
   await page.evaluate(()=> document.body.dispatchEvent(
@@ -372,7 +390,7 @@ module.exports = () => suite("References — artisti e menu contestuali", {"banc
   ok('e l\'ultima riga della scheda non lo tira nel vuoto',
      foglio.ultimaSenzaCapello, foglio);
 
-  sezione('con il filo d\'oro in cima e la freccia in coda');
+  sezione('con il filo d\'oro in cima, e senza frecce sulle righe');
   // La scheda nuda era giusta di struttura e muta di tono. I due dettagli che
   // le danno voce vengono da roba gia' in casa: il filetto dei modali e la
   // freccia che dice "di qui si entra".
@@ -389,6 +407,7 @@ module.exports = () => suite("References — artisti e menu contestuali", {"banc
       freccia: (frec.content || '').replace(/["']/g, ''),
       // La riga del "+" non porta da nessuna parte: niente freccia.
       frecciaSulPiu: (getComputedStyle(piu, '::after').content || 'none') !== 'none',
+      // (la freccia sulle righe e' stata tolta: vedi il controllo qui sotto)
       // Una sola freccia per riga: la porta dei tag ne aveva una tutta sua.
       doppiaSullaPorta: (()=>{
         window.setArchivio('references');
@@ -399,16 +418,24 @@ module.exports = () => suite("References — artisti e menu contestuali", {"banc
   ok('il filo in cima e\' alto tre pixel', tono.filoAlto === 3, tono);
   ok('ed e\' d\'oro come quello dei modali', tono.filoOro, tono);
   ok('gli angoli sono piu\' tondi di prima', tono.angoli >= 18, tono);
-  ok('ogni riga finisce con la freccia', tono.freccia === '›', tono);
-  ok('tranne quella del "+", che non porta da nessuna parte',
-     !tono.frecciaSulPiu, tono);
+  // La freccia in coda alle righe e' durata un giorno: in un elenco in cui
+  // TUTTE le righe portano da qualche parte non distingueva niente, era solo
+  // un segno ripetuto sei volte. Resta sulla porta dei tag, dove dice una cosa
+  // che le altre righe non dicono (apre un elenco, non delle immagini).
+  ok('le righe non hanno nessuna freccia in coda',
+     tono.freccia !== '›', tono);
+  ok('e nemmeno quella del "+"', !tono.frecciaSulPiu, tono);
 
   await page.waitForTimeout(250);
   const porta = await page.evaluate(()=>{
     const p = document.querySelector('.refs-tag-porta');
-    return p ? p.textContent.replace(/\s/g,'') : null;
+    if(!p) return null;
+    const f = getComputedStyle(p, '::after').content || '';
+    return { freccia: f.replace(/["']/g, ''), testo: p.textContent.replace(/\s/g,'') };
   });
-  ok('e la porta dei tag non ne ha due', porta !== null && !/››/.test(porta), porta);
+  ok('la porta dei tag invece la freccia ce l\'ha',
+     porta && porta.freccia === '›', porta);
+  ok('e una sola', porta && !/››/.test(porta.testo), porta);
   await vaiA('artists');
   await apri();
 

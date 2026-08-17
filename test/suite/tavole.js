@@ -193,14 +193,20 @@ module.exports = () => suite("References — Ritagli e Tavole dentro una cartell
      dopo.ritagliN === '1' && dopo.tavoleN === '2', dopo);
 
   sezione('il menu del tocco prolungato offre il verso giusto');
+  // Ogni menu si ancora alla SUA miniatura, come farebbe un dito: due menu di
+  // fila sullo stesso identico punto di partenza, a mezzo secondo di distanza,
+  // ora vengono riconosciuti come una doppia apertura e il secondo ignorato
+  // (vedi actionMenu in dialogs.js — e' la cura al lampeggio su Android).
   const vociRitaglio = await page.evaluate(async ()=>{
-    await window.refsImageMenu(document.body, 'r1');
+    const el = document.querySelector('.refs-thumb[data-id="r1"]') || document.body;
+    await window.refsImageMenu(el, 'r1');
     return Array.from(document.querySelectorAll('.ink-action-menu button')).map(b=>b.textContent);
   });
   await page.evaluate(()=> document.body.dispatchEvent(new MouseEvent('click',{bubbles:true})));
   await page.waitForTimeout(150);
   const vociTavola = await page.evaluate(async ()=>{
-    await window.refsImageMenu(document.body, 't0');
+    const el = document.querySelector('.refs-thumb[data-id="t0"]') || document.body;
+    await window.refsImageMenu(el, 't0');
     return Array.from(document.querySelectorAll('.ink-action-menu button')).map(b=>b.textContent);
   });
   ok('su un ritaglio propone di segnarlo come tavola',

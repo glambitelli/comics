@@ -1,0 +1,125 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8">
+<title>mockup — come si presentano gli artisti</title>
+<link rel="stylesheet" href="/css/variables.css">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Castoro&display=swap');
+  body{margin:0;background:#efe6d4;font-family:'Nunito',sans-serif;padding:12px 0 30px}
+  .tit{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#8a7248;
+       margin:26px 14px 4px;display:flex;align-items:center;gap:8px}
+  .tit span{background:#f5ecd8;border:1px solid #e0d4b4;border-radius:20px;padding:3px 10px}
+  .tit i{flex:1;height:1.5px;background:#dccca0;font-style:normal}
+  .nota{font-size:11.5px;color:#8a7248;margin:0 18px 8px;line-height:1.45}
+  .sotto{background:#efe6d4;padding:14px}
+  .disco{border-radius:50%;background:#e2b62c;color:#2a2412;font-weight:800;
+         display:flex;align-items:center;justify-content:center;flex-shrink:0}
+
+  /* finte miniature: quadrati con due bande, come le vignette del banco prove */
+  .mini{background:#f4ecdc;position:relative;overflow:hidden}
+  .mini::before,.mini::after{content:'';position:absolute;left:8%;right:8%;background:#2a6aa0;opacity:.75}
+  .mini::before{top:10%;height:26%}
+  .mini::after{bottom:10%;height:26%}
+  .mini.b::before,.mini.b::after{background:#c05a3a}
+  .mini.c::before,.mini.c::after{background:#6a8a55}
+
+  /* ── A · com'e' adesso ── */
+  .a{background:var(--white);border:1.5px solid var(--sand2);border-radius:18px;overflow:hidden;
+     position:relative;box-shadow:0 2px 10px rgba(74,184,216,.08)}
+  .a::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;
+             background:linear-gradient(90deg,var(--sand3),var(--gold),var(--sand3))}
+  .a .r{display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--sand)}
+  .a .r:last-child{border-bottom:none}
+  .a .disco{width:36px;height:36px;font-size:12.5px}
+  .a b{font-size:14.5px;color:var(--ink)}
+
+  /* ── B · scaffale di copertine ── */
+  .b{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .b .card{background:var(--white);border:1.5px solid var(--sand2);border-radius:16px;overflow:hidden;
+           box-shadow:0 2px 10px rgba(40,30,15,.08)}
+  .b .mini{aspect-ratio:4/3}
+  .b .piede{display:flex;align-items:center;gap:8px;padding:9px 10px}
+  .b .disco{width:26px;height:26px;font-size:10px}
+  .b b{font-size:13px;color:var(--ink);line-height:1.25}
+  .b small{display:block;font-size:10.5px;color:var(--ink3);font-weight:600}
+
+  /* ── C · riga con la striscia di ritagli ── */
+  .c{background:var(--white);border:1.5px solid var(--sand2);border-radius:18px;overflow:hidden;
+     box-shadow:0 2px 10px rgba(74,184,216,.08)}
+  .c .r{padding:12px 14px;border-bottom:1px solid var(--sand)}
+  .c .r:last-child{border-bottom:none}
+  .c .testa{display:flex;align-items:center;gap:11px;margin-bottom:9px}
+  .c .disco{width:32px;height:32px;font-size:11.5px}
+  .c b{flex:1;font-size:14px;color:var(--ink)}
+  .c .n{font-size:11px;font-weight:700;color:var(--ink3)}
+  .c .strip{display:flex;gap:6px}
+  .c .mini{flex:1;aspect-ratio:1/1;border-radius:8px;border:1.5px solid #fefcf8;
+           box-shadow:0 1px 4px rgba(40,30,15,.12)}
+
+  /* ── D · mosaico grande, nome sopra l'immagine ── */
+  .d{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .d .cella{position:relative;border-radius:16px;overflow:hidden;aspect-ratio:3/4;
+            box-shadow:0 3px 12px rgba(40,30,15,.16)}
+  .d .mini{position:absolute;inset:0}
+  .d .velo{position:absolute;left:0;right:0;bottom:0;padding:22px 12px 10px;
+           background:linear-gradient(transparent,rgba(20,14,8,.82));color:#fdf6e4}
+  .d .velo b{display:block;font-size:13.5px;line-height:1.2}
+  .d .velo small{font-size:10.5px;opacity:.75}
+
+  /* ── E · rubrica con le lettere guida ── */
+  .e{background:var(--white);border:1.5px solid var(--sand2);border-radius:18px;overflow:hidden;
+     box-shadow:0 2px 10px rgba(74,184,216,.08)}
+  .e .lettera{display:flex;align-items:center;gap:10px;padding:8px 14px 4px;
+              font-family:'Castoro',serif;font-size:13px;color:var(--ottone)}
+  .e .lettera i{flex:1;height:1px;background:var(--sand2)}
+  .e .r{display:flex;align-items:center;gap:12px;padding:9px 14px}
+  .e .disco{width:8px;height:8px;background:var(--oro-sabbia)}
+  .e b{flex:1;font-size:14.5px;color:var(--ink)}
+  .e .n{font-size:11px;font-weight:700;color:var(--ink3)}
+</style>
+</head><body>
+<div id="qui"></div>
+<script>
+const G = [['KO','KON','Satoshi',18,'', 'K'],['OT','OTOMO','Katsuhiro',42,'b','O'],
+           ['PR','PROVA','Test',3,'c','P'],['ZI','ZINI','Luca',7,'','Z']];
+const nome = (c,n)=> `<b><b style="font-weight:700">${c}</b>${n?' '+n:''}</b>`;
+
+const A = `<div class="a">${G.map(([s,c,n])=>`
+  <div class="r"><span class="disco">${s}</span><b><span style="text-transform:uppercase">${c}</span> ${n}</b></div>`).join('')}</div>`;
+
+const B = `<div class="b">${G.map(([s,c,n,q,cl])=>`
+  <div class="card"><div class="mini ${cl}"></div>
+    <div class="piede"><span class="disco">${s}</span>
+      <span><b>${c} ${n}</b><small>${q} immagini</small></span></div></div>`).join('')}</div>`;
+
+const C = `<div class="c">${G.map(([s,c,n,q,cl])=>`
+  <div class="r">
+    <div class="testa"><span class="disco">${s}</span><b>${c} ${n}</b><span class="n">${q}</span></div>
+    <div class="strip"><span class="mini ${cl}"></span><span class="mini ${cl}"></span>
+      <span class="mini ${cl}"></span><span class="mini ${cl}"></span></div>
+  </div>`).join('')}</div>`;
+
+const D = `<div class="d">${G.map(([s,c,n,q,cl])=>`
+  <div class="cella"><span class="mini ${cl}"></span>
+    <div class="velo"><b>${c} ${n}</b><small>${q} immagini</small></div></div>`).join('')}</div>`;
+
+const E = `<div class="e">${['K','O','P','Z'].map((L,i)=>{
+  const [s,c,n,q] = G[i];
+  return `<div class="lettera">${L}<i></i></div>
+    <div class="r"><span class="disco"></span><b>${c} ${n}</b><span class="n">${q}</span></div>`;
+}).join('')}</div>`;
+
+const varianti = [
+  ['A · com\'e\' adesso', 'Righe su un foglio: nomi e iniziali, nessuna immagine.', A],
+  ['B · scaffale di copertine',
+   'Ogni artista e\' una scheda con l\'ultima immagine che ci hai messo dentro. Due per riga: l\'archivio smette di essere un elenco di parole e torna a essere fatto di figure.', B],
+  ['C · riga con la striscia',
+   'La riga resta, ma sotto al nome scorrono le ultime quattro immagini di quell\'artista. Si riconosce la cartella senza aprirla, e si vede a colpo d\'occhio chi e\' pieno e chi e\' vuoto.', C],
+  ['D · mosaico grande',
+   'Solo immagini: una copertina alta per artista, col nome scritto sopra in basso. Il piu\' vicino a una parete di riferimenti.', D],
+  ['E · rubrica con le lettere',
+   'Il contrario: ancora piu\' asciutto. Lettere guida in Castoro, righe basse, un pallino invece del disco. Con quaranta artisti si scorre in un attimo.', E],
+];
+document.getElementById('qui').innerHTML = varianti.map(([t,n,corpo])=>
+  `<div class="tit"><span>${t}</span><i></i></div>` + (n?`<div class="nota">${n}</div>`:'') +
+  `<div class="sotto">${corpo}</div>`).join('');
+</script>
+</body></html>

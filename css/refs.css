@@ -195,11 +195,12 @@
 }
 .refs-folder-row:last-child{border-bottom:none}
 .refs-folder-row:active{background:var(--sand)}
-/* La freccia in coda: la riga PORTA da qualche parte — dentro una cartella,
-   dentro un tag — e senza di lei un elenco di nomi su carta poteva anche
-   sembrare una lista da leggere. Sta sulle righe che navigano; la riga del
-   "+", che non e' una .refs-folder-row, resta pulita. */
-.refs-folder-row::after{
+/* NIENTE FRECCIA sulle righe. C'e' stata per un giorno: doveva dire "di qui si
+   entra", ma in un elenco in cui TUTTE le righe portano da qualche parte non
+   distingue niente — e' un segno ripetuto sei volte che non fa scegliere. La
+   tiene solo la porta dei tag (vedi .refs-tag-porta), dove serve davvero a
+   dire che quella riga apre un altro elenco e non delle immagini. */
+.refs-tag-porta::after{
   content:'›';flex-shrink:0;
   font-size:17px;font-weight:700;line-height:1;color:var(--sand3);
 }

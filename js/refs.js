@@ -1568,15 +1568,26 @@ function renderFolderBrowser(){
 function wireRigheCartelle(el){
   el.querySelectorAll('.refs-folder-row[data-folder-id]').forEach(riga=>{
     const id = riga.dataset.folderId;
-    let attesa = null, tenuto = false;
+    let attesa = null, tenuto = false, dito = false;
     riga.addEventListener('click', ()=>{ if(!tenuto) openFolder(id); tenuto = false; });
-    riga.addEventListener('contextmenu', e=>{ e.preventDefault(); refsFolderMenu(id, riga); });
+    // Su Android il tocco prolungato fa scattare ANCHE il contextmenu del
+    // browser: si spegne il timer, se no il menu si apre due volte di fila e
+    // lampeggia (l'altra meta' della cura sta in actionMenu).
+    riga.addEventListener('contextmenu', e=>{
+      e.preventDefault(); clearTimeout(attesa);
+      // "Il click che segue va ignorato" vale solo se a chiedere il menu e'
+      // stato un DITO: col tasto destro del mouse nessun click arriva, e
+      // alzare la bandierina li' vorrebbe dire mangiarsi il clic sinistro
+      // successivo.
+      if(dito) tenuto = true;
+      refsFolderMenu(id, riga);
+    });
     riga.addEventListener('touchstart', ()=>{
-      tenuto = false;
+      tenuto = false; dito = true;
       attesa = setTimeout(()=>{ tenuto = true; haptic('done'); refsFolderMenu(id, riga); }, 480);
     }, {passive:true});
     ['touchend','touchmove','touchcancel'].forEach(ev=>
-      riga.addEventListener(ev, ()=>clearTimeout(attesa), {passive:true}));
+      riga.addEventListener(ev, ()=>{ clearTimeout(attesa); dito = false; }, {passive:true}));
   });
 }
 
@@ -1750,15 +1761,19 @@ export function renderRefsGrid(){
   // Tap = apri · tocco prolungato (o tasto destro) = menu sposta/elimina
   grid.querySelectorAll('.refs-thumb').forEach(el=>{
     const id = el.dataset.id;
-    let holdTimer = null, held = false;
+    let holdTimer = null, held = false, dito = false;
     el.addEventListener('click', ()=>{ if(!held) openRefLightbox(id); held=false; });
-    el.addEventListener('contextmenu', e=>{ e.preventDefault(); refsImageMenu(el, id); });
+    el.addEventListener('contextmenu', e=>{
+      e.preventDefault(); clearTimeout(holdTimer);
+      if(dito) held = true;          // vedi wireRigheCartelle: solo per il dito
+      refsImageMenu(el, id);
+    });
     el.addEventListener('touchstart', ()=>{
-      held = false;
+      held = false; dito = true;
       holdTimer = setTimeout(()=>{ held = true; haptic('done'); refsImageMenu(el, id); }, 480);
     }, {passive:true});
     ['touchend','touchmove','touchcancel'].forEach(ev=>
-      el.addEventListener(ev, ()=>clearTimeout(holdTimer), {passive:true}));
+      el.addEventListener(ev, ()=>{ clearTimeout(holdTimer); dito = false; }, {passive:true}));
   });
 }
 
