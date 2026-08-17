@@ -1,0 +1,144 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8">
+<title>mockup — pietra incisa, le varianti</title>
+<link rel="stylesheet" href="/css/variables.css">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Castoro&display=swap');
+  body{margin:0;background:#efe6d4;font-family:'Nunito',sans-serif;padding:12px 0 30px}
+  .tit{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#8a7248;
+       margin:26px 14px 4px;display:flex;align-items:center;gap:8px}
+  .tit span{background:#f5ecd8;border:1px solid #e0d4b4;border-radius:20px;padding:3px 10px}
+  .tit i{flex:1;height:1.5px;background:#dccca0;font-style:normal}
+  .nota{font-size:11.5px;color:#8a7248;margin:0 18px 8px;line-height:1.45}
+  .quadro{background:var(--sand)}
+  .cerca{display:flex;align-items:center;gap:8px;padding:10px 16px 12px}
+  .campo{flex:1;height:34px;background:var(--white);border:1.5px solid var(--sand2);border-radius:20px}
+  .nuvola{width:34px;height:34px;border-radius:50%;background:var(--white);border:1.5px solid var(--sand2)}
+  .sotto{background:#efe6d4;padding:14px}
+  .carta{position:relative;background:var(--white);border:1.5px solid var(--sand2);border-radius:18px;
+         overflow:hidden;box-shadow:0 2px 10px rgba(74,184,216,.08)}
+  .carta::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;
+                 background:linear-gradient(90deg,var(--sand3),var(--gold),var(--sand3))}
+  .r{display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--sand)}
+  .r:last-child{border-bottom:none}
+  .disco{width:36px;height:36px;border-radius:50%;background:#e2b62c;color:#2a2412;font-size:12.5px;
+         font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .nome b{display:block;font-size:14.5px;font-weight:800;text-transform:uppercase;letter-spacing:.02em;color:var(--ink)}
+  .nome small{display:block;font-size:11.5px;font-weight:600;color:var(--ink3)}
+  button{font-family:inherit;cursor:pointer}
+
+  /* Tutte le varianti partono dalla stessa lastra: cambia la pietra, cambia
+     come la parola accesa si stacca dalle altre. Il tronco comune sta qui. */
+  .sw{display:flex;position:relative;margin:2px 14px 12px;overflow:hidden}
+  .sw button{flex:1;position:relative;background:none;border:none;padding:13px 0 12px;
+             font-size:12.5px;font-weight:800;letter-spacing:.22em;text-transform:uppercase}
+  .sw button span{position:relative}
+
+  /* ── G0 · l'originale, per confronto ─────────────────────────── */
+  .g0{border-radius:6px;background:linear-gradient(#2b2118,#191209);
+      box-shadow:0 3px 14px rgba(26,20,16,.35), inset 0 1px 0 rgba(240,200,120,.10)}
+  .g0 button{color:#7d6a49;text-shadow:0 -1px 0 rgba(0,0,0,.8), 0 1px 0 rgba(240,200,120,.10)}
+  .g0 button+button{border-left:1px solid rgba(240,200,120,.14)}
+  .g0 .on{color:#f0c84e;text-shadow:0 0 14px rgba(240,200,78,.45), 0 -1px 0 rgba(0,0,0,.8)}
+  .g0 .on span::after{content:'';position:absolute;left:-2px;right:-2px;bottom:-7px;height:2px;
+                      background:linear-gradient(90deg,transparent,#f0c84e,transparent)}
+
+  /* ── G1 · brace sotto la pietra ──────────────────────────────── */
+  .g1{border-radius:6px;background:linear-gradient(#2b2118,#191209);
+      box-shadow:0 3px 14px rgba(26,20,16,.35), inset 0 1px 0 rgba(240,200,120,.10)}
+  .g1 button{color:#7d6a49;text-shadow:0 -1px 0 rgba(0,0,0,.8)}
+  .g1 button+button{border-left:1px solid rgba(240,200,120,.14)}
+  .g1 .on{color:#f6d873;text-shadow:0 0 16px rgba(240,200,78,.5), 0 -1px 0 rgba(0,0,0,.9);
+          background:radial-gradient(90% 120% at 50% 118%, rgba(226,150,40,.42), rgba(226,150,40,.10) 55%, transparent 72%)}
+
+  /* ── G2 · pietra chiara, lettera scavata ─────────────────────── */
+  .g2{border-radius:6px;background:linear-gradient(#cdbb92,#b8a377);
+      box-shadow:0 2px 10px rgba(120,96,50,.28)}
+  .g2 button{color:#8a7448;text-shadow:0 1px 0 rgba(255,248,225,.55), 0 -1px 0 rgba(90,70,35,.35)}
+  .g2 button+button{border-left:1px solid rgba(90,70,35,.22)}
+  .g2 .on{color:#3a2a12;text-shadow:0 1px 0 rgba(255,248,225,.6)}
+  .g2 .on span::after{content:'';position:absolute;left:-4px;right:-4px;bottom:-7px;height:3px;
+                      border-radius:2px;background:#8a5a18;box-shadow:0 1px 0 rgba(255,248,225,.5)}
+
+  /* ── G3 · il taglio in mezzo ─────────────────────────────────── */
+  .g3{border-radius:6px;background:linear-gradient(#2b2118,#191209);
+      box-shadow:0 3px 14px rgba(26,20,16,.35), inset 0 1px 0 rgba(240,200,120,.10)}
+  .g3 button{color:#7d6a49;text-shadow:0 -1px 0 rgba(0,0,0,.8)}
+  .g3 .on{color:#f0c84e;text-shadow:0 0 14px rgba(240,200,78,.4), 0 -1px 0 rgba(0,0,0,.8)}
+  .g3::before{content:'';position:absolute;left:50%;top:9px;bottom:9px;width:1px;
+              background:linear-gradient(transparent,rgba(240,200,120,.35),transparent)}
+  .g3::after{content:'';position:absolute;left:50%;top:50%;width:5px;height:5px;
+             transform:translate(-50%,-50%) rotate(45deg);background:#0f0a05;
+             box-shadow:0 0 0 1px rgba(240,200,120,.45)}
+
+  /* ── G4 · la metà accesa è oro pieno ─────────────────────────── */
+  .g4{border-radius:6px;background:linear-gradient(#2b2118,#191209);
+      box-shadow:0 3px 14px rgba(26,20,16,.35)}
+  .g4 button{color:#7d6a49;text-shadow:0 -1px 0 rgba(0,0,0,.8)}
+  .g4 .on{color:#241a0c;background:linear-gradient(#f2cf62,#d9a417);text-shadow:0 1px 0 rgba(255,240,190,.45);
+          box-shadow:inset 0 -2px 6px rgba(140,95,10,.35)}
+
+  /* ── G5 · lastra a spigolo con i chiodi ──────────────────────── */
+  .g5{border-radius:2px;background:linear-gradient(#2f2419,#1b1309);
+      box-shadow:0 3px 14px rgba(26,20,16,.35), inset 0 0 0 1px rgba(240,200,120,.16)}
+  .g5 button{color:#7d6a49;text-shadow:0 -1px 0 rgba(0,0,0,.8)}
+  .g5 button+button{border-left:1px solid rgba(240,200,120,.14)}
+  .g5 .on{color:#f0c84e;text-shadow:0 0 14px rgba(240,200,78,.4), 0 -1px 0 rgba(0,0,0,.8)}
+  .g5 .on::before,.g5 .on::after{content:'';position:absolute;top:50%;width:3px;height:3px;
+                                 border-radius:50%;transform:translateY(-50%);
+                                 background:#f0c84e;box-shadow:0 0 6px rgba(240,200,78,.7)}
+  .g5 .on::before{left:12px} .g5 .on::after{right:12px}
+
+  /* ── G6 · pietra granulosa ───────────────────────────────────── */
+  .g6{border-radius:8px;background:linear-gradient(#2e2318,#1a1209);
+      box-shadow:0 3px 14px rgba(26,20,16,.35), inset 0 1px 0 rgba(240,200,120,.10)}
+  .g6 .grana{position:absolute;inset:0;opacity:.5;mix-blend-mode:overlay;pointer-events:none}
+  .g6 button{color:#826e4c;text-shadow:0 -1px 0 rgba(0,0,0,.85)}
+  .g6 button+button{border-left:1px solid rgba(240,200,120,.12)}
+  .g6 .on{color:#f0c84e;text-shadow:0 0 15px rgba(240,200,78,.45), 0 -1px 0 rgba(0,0,0,.85)}
+  .g6 .on span::after{content:'';position:absolute;left:-6px;right:-6px;bottom:-7px;height:2px;
+                      background:linear-gradient(90deg,transparent,#f0c84e,transparent)}
+
+  /* ── G7 · l'incisione scende dentro la sabbia ────────────────── */
+  /* Qui la lastra non e' un bottone appoggiato sulla sabbia: e' il pavimento
+     stesso, da un bordo all'altro. La parola scelta scava una tacca sul filo
+     inferiore, come un solco che continua nella pietra. */
+  .g7{margin:0 0 12px;background:linear-gradient(#2b2118,#191209);
+      box-shadow:0 3px 14px rgba(26,20,16,.35), inset 0 1px 0 rgba(240,200,120,.10)}
+  .g7 button{color:#7d6a49;text-shadow:0 -1px 0 rgba(0,0,0,.8);padding:14px 0 15px}
+  .g7 button+button{border-left:1px solid rgba(240,200,120,.14)}
+  .g7 .on{color:#f0c84e;text-shadow:0 0 14px rgba(240,200,78,.45), 0 -1px 0 rgba(0,0,0,.8)}
+  .g7 .on::after{content:'';position:absolute;left:22%;right:22%;bottom:0;height:3px;
+                 background:linear-gradient(90deg,transparent,#f0c84e,transparent)}
+</style>
+</head><body>
+<div id="qui"></div>
+<svg width="0" height="0" style="position:absolute">
+  <filter id="grana"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="3"/>
+    <feColorMatrix type="saturate" values="0"/></filter>
+</svg>
+<script>
+const ELENCO = `<div class="sotto"><div class="carta">
+  ${[['KO','KON','Satoshi'],['OT','OTOMO','Katsuhiro']].map(([s,c,n])=>`
+    <div class="r"><span class="disco">${s}</span><span class="nome"><b>${c}</b><small>${n}</small></span></div>`).join('')}
+</div></div>`;
+const CERCA = `<div class="cerca"><div class="campo"></div><div class="nuvola"></div></div>`;
+const GRANA = `<svg class="grana"><rect width="100%" height="100%" filter="url(#grana)"/></svg>`;
+
+const sw = (cl, extra='')=>`<div class="sw ${cl}">${extra}
+  <button class="on"><span>Artists</span></button><button><span>References</span></button></div>`;
+
+const varianti = [
+  ['G · com\'era', 'La lastra di partenza, per avere il metro di paragone: parola accesa in oro con un filo di luce sotto.', sw('g0')],
+  ['G1 · brace', 'Niente riga: sotto la parola scelta la pietra si arroventa, un alone arancione che sale dal bordo basso come se sotto ci fosse il fuoco.', sw('g1')],
+  ['G2 · pietra chiara', 'Stessa incisione ma su arenaria invece che su basalto: le lettere sono scavate nel chiaro, quella scelta è inchiostro scuro con la riga di ruggine.', sw('g2')],
+  ['G3 · il taglio', 'Le due parole sono separate da una fenditura verticale con una borchia a rombo nel mezzo — due lastre affiancate, non una divisa.', sw('g3')],
+  ['G4 · oro colato', 'La metà scelta è riempita d\'oro fuso e la parola diventa scura: si vede da lontanissimo, ma pesa di più.', sw('g4')],
+  ['G5 · chiodi', 'Spigoli vivi e un filo d\'oro tutt\'intorno; la parola scelta è tenuta ferma da due chiodi luminosi ai lati.', sw('g5')],
+  ['G6 · grana', 'La stessa lastra, ma con la grana della pietra dentro: sporca appena il nero e le lettere sembrano scavate in un materiale, non stampate.', sw('g6', GRANA)],
+  ['G7 · da bordo a bordo', 'La lastra non galleggia in mezzo alla sabbia: la attraversa tutta, da un lato all\'altro, e la parola scelta scava una tacca luminosa sul filo di sotto.', sw('g7')],
+];
+document.getElementById('qui').innerHTML = varianti.map(([t,n,swh])=>
+  `<div class="tit"><span>${t}</span><i></i></div><div class="nota">${n}</div>
+   <div class="quadro">${CERCA}${swh}${ELENCO}</div>`).join('');
+</script>
+</body></html>
