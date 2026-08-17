@@ -1,0 +1,121 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8">
+<title>mockup — segmentato pulito, stile Apple</title>
+<link rel="stylesheet" href="/css/variables.css">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&family=Castoro&display=swap');
+  body{margin:0;background:#efe6d4;font-family:'Nunito',sans-serif;padding:12px 0 30px}
+  .tit{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#8a7248;
+       margin:26px 14px 4px;display:flex;align-items:center;gap:8px}
+  .tit span{background:#f5ecd8;border:1px solid #e0d4b4;border-radius:20px;padding:3px 10px}
+  .tit i{flex:1;height:1.5px;background:#dccca0;font-style:normal}
+  .nota{font-size:11.5px;color:#8a7248;margin:0 18px 8px;line-height:1.45}
+  .quadro{background:var(--sand)}
+  .cerca{display:flex;align-items:center;gap:8px;padding:10px 16px 12px}
+  .campo{flex:1;height:34px;background:var(--white);border:1.5px solid var(--sand2);border-radius:20px}
+  .nuvola{width:34px;height:34px;border-radius:50%;background:var(--white);border:1.5px solid var(--sand2)}
+  .sotto{background:#efe6d4;padding:14px}
+  .carta{position:relative;background:var(--white);border:1.5px solid var(--sand2);border-radius:18px;
+         overflow:hidden;box-shadow:0 2px 10px rgba(74,184,216,.08)}
+  .carta::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;
+                 background:linear-gradient(90deg,var(--sand3),var(--gold),var(--sand3))}
+  .r{display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--sand)}
+  .r:last-child{border-bottom:none}
+  .disco{width:36px;height:36px;border-radius:50%;background:#e2b62c;color:#2a2412;font-size:12.5px;
+         font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .nome b{display:block;font-size:14.5px;font-weight:800;text-transform:uppercase;letter-spacing:.02em;color:var(--ink)}
+  .nome small{display:block;font-size:11.5px;font-weight:600;color:var(--ink3)}
+  button{font-family:inherit;cursor:pointer;background:none;border:none}
+
+  /* Il tronco comune: un segmentato di sistema. Vasca poco profonda, due
+     meta' uguali, la scelta e' un CURSORE che sta SOPRA il fondo — non una
+     meta' colorata. Niente maiuscole, niente spaziature larghe: il testo e'
+     piccolo e stretto, come nelle barre di sistema. */
+  .seg{position:relative;display:flex;margin:0 16px 14px}
+  .seg button{flex:1;position:relative;z-index:1;padding:8px 0 9px;font-size:13.5px;
+              font-weight:600;letter-spacing:-.01em;color:#8a7a5e;transition:color .2s}
+  .seg .on{font-weight:700;color:var(--ink)}
+  /* la lineetta fra le due meta', che sparisce accanto al cursore */
+  .seg .sep{position:absolute;z-index:0;left:50%;top:22%;bottom:22%;width:1px;
+            background:rgba(90,72,40,.16)}
+  .seg .cur{position:absolute;z-index:0;top:2px;bottom:2px;left:2px;width:calc(50% - 4px)}
+
+  /* ══ 1 · SEGMENTATO ════════════════════════════════════════════ */
+  .s1{background:rgba(120,96,50,.10);border-radius:9px;padding:2px}
+  .s1 .cur{background:var(--white);border-radius:7px;
+           box-shadow:0 3px 8px rgba(70,55,25,.13), 0 1px 1px rgba(70,55,25,.05),
+                      0 0 0 .5px rgba(70,55,25,.05)}
+  .s1 .sep{opacity:0}
+
+  /* ══ 2 · SEGMENTATO CON IL FILO D'ORO ══════════════════════════ */
+  .s2{background:rgba(120,96,50,.10);border-radius:9px;padding:2px}
+  .s2 .cur{background:var(--white);border-radius:7px;
+           box-shadow:0 3px 8px rgba(70,55,25,.13), 0 1px 1px rgba(70,55,25,.05)}
+  .s2 .cur::after{content:'';position:absolute;left:11px;right:11px;bottom:5px;height:2px;
+                  border-radius:2px;background:var(--gold)}
+  .s2 .on{color:var(--ink)}
+  .s2 .sep{opacity:0}
+
+  /* ══ 3 · PASTIGLIA ═════════════════════════════════════════════ */
+  .s3{background:rgba(120,96,50,.09);border-radius:999px;padding:3px}
+  .s3 button{padding:9px 0 10px}
+  .s3 .cur{top:3px;bottom:3px;left:3px;width:calc(50% - 6px);background:var(--white);
+           border-radius:999px;box-shadow:0 4px 10px rgba(70,55,25,.14), 0 1px 2px rgba(70,55,25,.06)}
+  .s3 .sep{opacity:0}
+
+  /* ══ 4 · SOTTOLINEATO ══════════════════════════════════════════ */
+  .s4{margin:0 16px 12px;border-bottom:1px solid rgba(90,72,40,.14);padding-bottom:0}
+  .s4 button{padding:6px 0 10px;font-size:14px}
+  .s4 .cur{top:auto;bottom:-1px;height:2px;left:0;width:50%;background:var(--gold);
+           border-radius:2px}
+  .s4 .sep{display:none}
+
+  /* ══ 5 · COMPATTO ══════════════════════════════════════════════ */
+  .s5{margin:0 auto 14px;width:max-content;background:rgba(120,96,50,.10);
+      border-radius:9px;padding:2px}
+  .s5 button{flex:none;width:118px;padding:7px 0 8px;font-size:13px}
+  .s5 .cur{background:var(--white);border-radius:7px;
+           box-shadow:0 3px 8px rgba(70,55,25,.13), 0 1px 1px rgba(70,55,25,.05)}
+  .s5 .sep{opacity:0}
+
+  /* ══ 6 · SEGMENTATO CHIARO ═════════════════════════════════════ */
+  .s6{background:rgba(255,252,248,.75);border:1px solid rgba(90,72,40,.10);
+      border-radius:9px;padding:2px}
+  .s6 .cur{background:#efe7d6;border-radius:7px;box-shadow:inset 0 1px 2px rgba(90,72,40,.10)}
+  .s6 .sep{opacity:0}
+</style>
+</head><body>
+<div id="qui"></div>
+<script>
+const ELENCO = `<div class="sotto"><div class="carta">
+  ${[['KO','KON','Satoshi'],['OT','OTOMO','Katsuhiro']].map(([s,c,n])=>`
+    <div class="r"><span class="disco">${s}</span><span class="nome"><b>${c}</b><small>${n}</small></span></div>`).join('')}
+</div></div>`;
+const CERCA = `<div class="cerca"><div class="campo"></div><div class="nuvola"></div></div>`;
+const seg = cl => `<div class="seg ${cl}"><span class="sep"></span><span class="cur"></span>
+  <button class="on">Artists</button><button>References</button></div>`;
+
+const varianti = [
+  ['1 · segmentato',
+   'Il controllo di sistema, con i colori di casa: vasca appena scavata nella sabbia, cursore bianco che ci sta sopra con un\'ombra corta, testo piccolo e stretto. La parola scelta e\' inchiostro, l\'altra sabbia scura.',
+   seg('s1')],
+  ['2 · segmentato, filo d\'oro',
+   'Uguale al primo, ma dentro il cursore bianco corre una lineetta d\'oro: l\'unico punto di colore di tutta la barra.',
+   seg('s2')],
+  ['3 · pastiglia',
+   'Stesso principio con gli angoli completamente tondi e un\'ombra un filo piu\' morbida: piu\' vicino alle barre nuove di iOS.',
+   seg('s3')],
+  ['4 · sottolineato',
+   'Nessuna vasca: due parole appoggiate su una riga sottile e una barretta d\'oro sotto quella aperta, che scorre da una parte all\'altra. Il piu\' leggero di tutti.',
+   seg('s4')],
+  ['5 · compatto',
+   'Lo stesso segmentato, ma largo quanto basta e centrato: le due parole non sono piu\' l\'intestazione della pagina, sono un comando.',
+   seg('s5')],
+  ['6 · chiaro',
+   'Il negativo del primo: il fondo e\' bianco e il cursore e\' la sabbia, incavato. Piu\' silenzioso, si posa meglio sopra un elenco lungo.',
+   seg('s6')],
+];
+document.getElementById('qui').innerHTML = varianti.map(([t,n,sw])=>
+  `<div class="tit"><span>${t}</span><i></i></div><div class="nota">${n}</div>
+   <div class="quadro">${CERCA}${sw}${ELENCO}</div>`).join('');
+</script>
+</body></html>
