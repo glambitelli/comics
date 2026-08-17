@@ -46,9 +46,17 @@ module.exports = () => suite("References — artisti e menu contestuali", {"banc
       // stesso peso, stesso colore della riga. La prima versione lo metteva in
       // un serif corsivo, e in un elenco di cartelle era un corpo estraneo.
       stessaFamiglia: stn ? stn.fontFamily === base.fontFamily : null,
-      stessoCorpo:    stn ? stn.fontSize === base.fontSize : null,
-      stessoPeso:     stn ? stn.fontWeight === base.fontWeight : null,
       stessoColore:   stn ? stn.color === base.color : null,
+      corpoCognome: st ? st.fontSize : null,
+      corpoNome:    stn ? stn.fontSize : null,
+      pesoCognome:  st ? st.fontWeight : null,
+      pesoNome:     stn ? stn.fontWeight : null,
+      // Due blocchi impilati: il nome comincia sotto la fine del cognome.
+      aCapo: !!(st && stn && st.display === 'block' && stn.display === 'block'),
+      cognomeSotto: cg ? Math.round(cg.getBoundingClientRect().bottom) : null,
+      nomeSotto:    nm ? Math.round(nm.getBoundingClientRect().bottom) : null,
+      cognomeUnaRiga: cg ? cg.getBoundingClientRect().height < 26 : null,
+      nomeUnaRiga:    nm ? nm.getBoundingClientRect().height < 22 : null,
       corsivo: stn ? stn.fontStyle : null,
       trasformaNome: stn ? stn.textTransform : null,
       semplice: !!r.querySelector('.rf-semplice'),
@@ -65,9 +73,20 @@ module.exports = () => suite("References — artisti e menu contestuali", {"banc
   ok('solo il cognome e\' in maiuscolo', otomo && otomo.maiuscolo === 'uppercase', otomo);
   ok('il nome si scrive com\'e\' stato scritto',
      otomo && otomo.trasformaNome === 'none' && otomo.corsivo === 'normal', otomo);
+  // SU DUE RIGHE, e non piu' affiancati. Con lo stesso corpo e lo stesso peso
+  // facevano una parola sola lunga: adesso i cognomi si incolonnano e scendere
+  // l'elenco vuol dire leggere solo quelli.
+  ok('stanno su due righe, uno sotto l\'altro',
+     otomo && otomo.aCapo && otomo.nomeSotto > otomo.cognomeSotto - 1, otomo);
+  ok('il cognome pesa di piu\' del nome',
+     otomo && parseFloat(otomo.pesoCognome) > parseFloat(otomo.pesoNome), otomo);
+  ok('e il nome e\' piu\' piccolo e piu\' chiaro',
+     otomo && parseFloat(otomo.corpoNome) < parseFloat(otomo.corpoCognome)
+     && otomo.stessoColore === false, otomo);
+  ok('nessuna delle due righe va a capo per conto suo',
+     otomo && otomo.nomeUnaRiga && otomo.cognomeUnaRiga, otomo);
   ok('e con lo stesso carattere di tutte le altre righe',
-     otomo && otomo.stessaFamiglia && otomo.stessoCorpo
-     && otomo.stessoPeso && otomo.stessoColore, otomo);
+     otomo && otomo.stessaFamiglia, otomo);
   ok('una cartella vecchia resta una riga sola',
      vecchia && vecchia.semplice && vecchia.cognome === null, vecchia);
   await vaiA('references');

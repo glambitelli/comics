@@ -155,8 +155,28 @@
    tutto il resto — famiglia, corpo, peso, colore — si eredita da
    .refs-folder-name, cosi' una riga di artista e una riga qualunque restano
    la stessa cosa senza doverle tenere allineate a mano. */
-.rf-cognome{text-transform:uppercase}
-.rf-nome{margin-left:5px}
+/* DUE RIGHE: cognome sopra, nome sotto in piccolo. Affiancati com'erano —
+   stesso corpo, stesso peso, stesso colore — facevano una parola sola lunga,
+   e in un elenco di venti artisti l'occhio non trovava un appiglio. Adesso i
+   cognomi si incolonnano uno sotto l'altro alla stessa altezza, e scendere
+   l'elenco vuol dire leggere solo quelli; il nome resta li' sotto per chi lo
+   cerca, senza pesare.
+   Ogni riga si accorcia per conto suo con i puntini: un cognome lungo non
+   deve spingere il nome a capo. */
+.rf-cognome{
+  display:block;font-size:14.5px;font-weight:800;
+  text-transform:uppercase;letter-spacing:.02em;line-height:1.2;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.rf-nome{
+  display:block;font-size:11.5px;font-weight:600;color:var(--ink3);
+  margin-top:1px;line-height:1.25;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+/* Una cartella senza cognome (MOEBIUS, Hands) resta una riga sola: non ha un
+   secondo pezzo da mettere sotto, e inventarle una riga vuota per pareggiare
+   l'altezza sarebbe peggio. */
+.rf-semplice{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
 /* ── LA SCHEDA CHE TIENE INSIEME UN GRUPPO DI RIGHE ──
    Sono gli stessi materiali dei blocchi della scheda progetto (.phase-block,
