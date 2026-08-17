@@ -255,6 +255,23 @@ module.exports = () => suite("Backup — l'archivio esce da qui, e ci rientra", 
   ok('e il codice da mettere nelle regole si puo\' copiare',
      dentro.uidVisibile && !!dentro.uid, dentro);
 
+  sezione('e se manca un pezzo di configurazione, lo dice a parole');
+  // Il primo tentativo di entrare finisce quasi sempre contro un passaggio non
+  // ancora fatto nella console di Firebase, e il codice che torna
+  // ("auth/configuration-not-found") non dice ne' cosa manca ne' dove si
+  // sistema. Qui si controlla che al suo posto compaia l'istruzione.
+  const spiegato = await page.evaluate(async ()=>{
+    const m = await import('/js/settings.js');
+    return m.__perLeProve_spiega({ code:'auth/configuration-not-found' }) + '|' +
+           m.__perLeProve_spiega({ code:'auth/unauthorized-domain' }) + '|' +
+           m.__perLeProve_spiega({ code:'auth/network-request-failed' });
+  });
+  ok('spiega che l\'accesso con Google va acceso, e dove',
+     /Authentication → Sign-in method → Google/.test(spiegato), spiegato);
+  ok('e che il dominio va autorizzato, dicendo quale',
+     /glambitelli\.github\.io/.test(spiegato), spiegato);
+  ok('senza rete lo dice e basta, senza codici', /Senza rete/.test(spiegato), spiegato);
+
   sezione('e uscendo si torna come prima');
   await tocca();
   await page.waitForFunction(()=> /nessun account/i.test((document.getElementById('account-nome')||{}).textContent||''),

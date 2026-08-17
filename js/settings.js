@@ -263,10 +263,35 @@ export function accountTocca(){
     .catch(e=>{
       // "popup-closed-by-user" non e' un errore: e' un ripensamento.
       if(e && /popup-closed|cancelled-popup/.test(e.code||'')) return;
-      infoModal('Non sono riuscito a entrare: ' + (e && e.message ? e.message : e),
-        { title:'Accesso non riuscito' });
+      infoModal(spiegaErroreAccesso(e), { title:'Accesso non riuscito' });
     });
 }
+
+// ── TRADURRE I CODICI DI FIREBASE IN COSE DA FARE ──
+// "Firebase: Error (auth/configuration-not-found)" e' una stringa che non
+// aiuta nessuno: non dice cosa manca ne' dove si sistema. E questi tre errori
+// qui capitano tutti e tre UNA volta sola nella vita di un'app — il giorno che
+// si accende l'accesso — cioe' proprio quando non si ha ancora idea di dove
+// guardare. Meglio scrivere il passo da fare che il codice da cercare.
+function spiegaErroreAccesso(e){
+  const codice = (e && e.code) || '';
+  if(/configuration-not-found|operation-not-allowed/.test(codice))
+    return 'L\'accesso con Google non è ancora acceso nel progetto Firebase. ' +
+           'Console Firebase → Authentication → Sign-in method → Google → abilita e salva. ' +
+           'Poi riprova da qui.';
+  if(/unauthorized-domain/.test(codice))
+    return 'Questo indirizzo non è fra quelli autorizzati. ' +
+           'Console Firebase → Authentication → Settings → Authorized domains → aggiungi ' +
+           'glambitelli.github.io. Poi riprova da qui.';
+  if(/popup-blocked/.test(codice))
+    return 'Il browser ha bloccato la finestra di Google. Riprova toccando di nuovo "Entra": ' +
+           'deve partire dal tocco, senza attese in mezzo.';
+  if(/network-request-failed/.test(codice))
+    return 'Senza rete non si può entrare. Riprova quando torna la connessione.';
+  return 'Non sono riuscito a entrare: ' + ((e && e.message) ? e.message : e);
+}
+// Le prove leggono le spiegazioni senza dover far fallire Google davvero.
+export const __perLeProve_spiega = spiegaErroreAccesso;
 export async function copiaUid(){
   const el = document.getElementById('account-uid');
   const uid = el && el.dataset ? el.dataset.uid : '';
