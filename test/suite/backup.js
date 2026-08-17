@@ -211,6 +211,19 @@ module.exports = () => suite("Backup — l'archivio esce da qui, e ci rientra", 
      /leggibile da chiunque/i.test(fuori.nota), fuori);
   ok('la riga e\' accesa, perche\' e\' una cosa da sistemare', /avviso/.test(fuori.avviso), fuori);
   ok('il codice account non c\'e\' ancora', fuori.uidNascosto === true, fuori);
+  // NASCOSTO VUOL DIRE NASCOSTO. L'attributo hidden e' una regola debolissima:
+  // .settings-action gli metteva display:flex sopra, e a schermo restava un
+  // rettangolo vuoto sotto le impostazioni. Qui si guarda il display vero.
+  ok('e non lascia un rettangolo vuoto a schermo',
+     await page.evaluate(()=> getComputedStyle(document.getElementById('account-uid')).display === 'none'), null);
+  // E il pulsante non deve finire SOPRA il nome: dentro una riga e' largo
+  // quanto la parola, non quanto la scheda.
+  const sovrapposti = await page.evaluate(()=>{
+    const n = document.getElementById('account-nome').getBoundingClientRect();
+    const b = document.getElementById('account-bottone').getBoundingClientRect();
+    return { scavalca: b.left < n.right, largo: Math.round(b.width) };
+  });
+  ok('"Entra" sta accanto al nome, non sopra', !sovrapposti.scavalca, sovrapposti);
 
   sezione('entrando, l\'archivio prende un proprietario');
   // Un tocco solo: aprendo le impostazioni il modulo dell'accesso e' gia'

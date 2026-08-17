@@ -166,6 +166,14 @@ select.settings-time:disabled{opacity:1;color:var(--ink);background-image:none;p
 .settings-action.risky:active{background:#fbf1ea}
 .settings-action-row{display:flex;gap:9px}
 .settings-action-row .settings-action{flex:1;white-space:nowrap}
+/* Un'azione DENTRO una riga, accanto a un'etichetta, non e' un pulsante a
+   tutta larghezza: larga quanto la parola che porta, e mai piu' stretta di
+   così. Senza questo, "Entra" si prendeva la riga intera e finiva sopra il
+   nome dell'account (visto a schermo, non in teoria). */
+.settings-row .settings-action{width:auto;flex-shrink:0;padding:9px 16px;white-space:nowrap}
+/* Il codice account: sta sotto la nota, e quando c'e' e' una riga larga come
+   la scheda — si tocca per copiare, quindi il bersaglio deve essere grande. */
+#account-uid{margin-top:10px}
 
 /* ── STELLE E STREAK ──
    Erano annegate in una frase ("Serate completate: 4 · Streak attuale: 0 gg").

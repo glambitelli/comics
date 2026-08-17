@@ -1,3 +1,12 @@
+/* ── "NASCOSTO" VUOL DIRE NASCOSTO ──
+   L'attributo hidden dell'HTML vale display:none, ma e' una regola debolissima:
+   QUALUNQUE display scritto in un foglio di stile la scavalca senza far
+   rumore. E' successo con il pulsante che copia il codice account: nasceva
+   hidden, ma .settings-action gli metteva display:flex e a schermo restava un
+   rettangolo vuoto sotto le impostazioni, senza testo e senza scopo.
+   Questa riga vale per tutta l'app, e chiude la questione una volta sola. */
+[hidden]{display:none !important}
+
 /* SYNC INDICATOR */
 .sync-dot{width:7px;height:7px;border-radius:50%;background:var(--sand3);display:inline-block;margin-left:6px;vertical-align:middle;transition:background .3s}
 .sync-dot.ok{background:var(--green)}

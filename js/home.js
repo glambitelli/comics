@@ -5,6 +5,7 @@ import { calcPct, getPhaseIndex } from './progress.js';
 import { calcDaysLeft } from './velocity.js';
 import { openProject, confirmDeleteCurrent } from './project.js';
 import { promptModal } from './dialogs.js';
+import { esc } from './testo.js';
 
 export function newProjectObj(title, numTav){
   const idx = projects.length % PROJECT_PALETTE.length;
@@ -98,7 +99,7 @@ export function renderHome(){
 
     cardInner.innerHTML=`
       <div class="card-info">
-        <div class="card-title">${p.title}</div>
+        <div class="card-title">${esc(p.title)}</div>
         <div class="card-meta">${metaLine}</div>
         <div class="card-sub">${scadenza}${scadenza && createdDate ? ' · ' : ''}${createdDate ? `dal ${createdDate}` : ''}</div>
       </div>
