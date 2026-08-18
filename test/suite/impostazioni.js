@@ -69,6 +69,14 @@ module.exports = () => suite("Impostazioni — il pannello dice solo quello che 
 
   const acceso = await page.evaluate(async ()=>{
     localStorage.setItem('inkflow_reminder_enabled', 'true');
+    // IL PERMESSO SI DICHIARA, non si eredita dalla macchina. Questa prova
+    // vuole il caso "va tutto bene", e "bene" vuol dire permesso concesso: il
+    // browser sul computer di sviluppo parte da 'default' e la prova passava,
+    // quello della macchina che pubblica parte da 'denied' e la prova cadeva —
+    // su un'app che non era cambiata di una riga. La prima cosa che la
+    // pubblicazione automatica ha trovato e' stata una prova che dipendeva da
+    // dove girava.
+    Object.defineProperty(Notification, 'permission', { get:()=>'granted', configurable:true });
     const m = await import('/js/notifications.js');
     m.updateReminderStatus();
     const el = document.getElementById('reminder-status');
