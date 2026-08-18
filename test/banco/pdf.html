@@ -1,0 +1,69 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8">
+<title>banco di prova — l'esportazione</title>
+<!-- pdf.js e' QUELLO VERO. L'esportazione apre una finestra nuova e ci scrive
+     dentro il documento, poi chiama print(): qui la finestra e' finta e si
+     limita a tenere da parte l'HTML, cosi' si puo' leggere cosa sarebbe
+     finito nel PDF senza aprire una stampante. -->
+<script type="importmap">
+{ "imports": {
+  "/js/firebase.js": "/test/finti/firebase.js"
+} }
+</script>
+<link rel="stylesheet" href="/css/variables.css">
+<link rel="stylesheet" href="/css/layout.css">
+<style>html,body{margin:0;height:100%;background:#efe6d4}</style>
+</head><body>
+<script type="module">
+// pdf.js si tira dietro scriptment.js → home.js → project.js, che al momento
+// dell'import si agganciano ai loro pulsanti: senza questi nodi l'import
+// fallisce prima di arrivare all'esportazione.
+const dom = new DOMParser().parseFromString(await (await fetch('/index.html')).text(), 'text/html');
+for(const id of ['screen-project','modal','confirm-modal']){
+  const n = dom.getElementById(id);
+  if(n) document.body.appendChild(document.importNode(n, true));
+}
+
+const pdf   = await import('/js/pdf.js');
+const state = await import('/js/state.js');
+window.pdf = pdf;
+
+// La finestra finta: registra tutto quello che l'esportazione ci scrive dentro
+// e se e' stata mandata in stampa.
+window.__finestra = null;
+window.__avvisi = [];
+window.__popupBloccato = false;
+window.alert = (m)=> window.__avvisi.push(m);
+window.open = ()=>{
+  if(window.__popupBloccato) return null;
+  const f = { html:'', stampata:false, chiusa:false,
+    document: { open(){}, close(){ f.chiusa = true; }, write(s){ f.html += s; } },
+    print(){ f.stampata = true; } };
+  window.__finestra = f;
+  return f;
+};
+
+window.seminaProgetto = (dati = {})=>{
+  const p = Object.assign({
+    id:'p1', title:'Kara', numTav:10, steps:{}, tavole:{}, todos:[], sfide:[],
+    velocityLog:[], story:{},
+  }, dati);
+  state.setProjects([p]);
+  state.setCurrentId(p.id);
+  window.__p = p;
+  return p;
+};
+
+// Esporta e restituisce quello che sarebbe finito nel documento.
+window.esporta = async (quale)=>{
+  window.__finestra = null; window.__avvisi = [];
+  (quale === 'copione' ? pdf.exportScreenplay : pdf.exportPDF)();
+  // La stampa parte dopo 600ms: si aspetta quella, se no non si vede partire.
+  await new Promise(r=> setTimeout(r, 750));
+  const f = window.__finestra;
+  return { html: f ? f.html : '', stampata: !!(f && f.stampata),
+           chiusa: !!(f && f.chiusa), avvisi: window.__avvisi.slice() };
+};
+
+window.__ready = true;
+</script>
+</body></html>
