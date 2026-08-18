@@ -82,11 +82,24 @@ async function suite(nome, opzioni, corpo){
     serviceWorkers: opzioni.senzaServiceWorker ? 'block' : 'allow',
   });
   let passati = 0, falliti = 0;
+  // I nomi di quello che e' caduto: servono al riassunto finale. Sulla
+  // macchina che pubblica il log e' lungo millecinquecento righe, e cercare la
+  // riga con la ✗ scorrendo a mano e' esattamente il genere di lavoro che una
+  // prova dovrebbe risparmiare.
+  const caduti = [];
   const ok = (nome, cond, extra)=>{
     if(cond){ passati++; console.log('  ✓ ' + nome); }
-    else { falliti++; console.log('  ✗ ' + nome + (extra !== undefined ? '  →  ' + JSON.stringify(extra) : '')); }
+    else {
+      falliti++;
+      caduti.push(nome + (extra !== undefined ? '  →  ' + JSON.stringify(extra) : ''));
+      console.log('  ✗ ' + nome + (extra !== undefined ? '  →  ' + JSON.stringify(extra) : ''));
+    }
   };
-  page.on('pageerror', e=>{ console.log('  !! errore di pagina: ' + e.message); falliti++; });
+  page.on('pageerror', e=>{
+    console.log('  !! errore di pagina: ' + e.message);
+    caduti.push('errore di pagina: ' + e.message);
+    falliti++;
+  });
   console.log('\n\x1b[1m' + nome + '\x1b[0m');
   try{
     // `prima` serve alle suite che aprono l'APP VERA invece di un banco: e'
@@ -105,7 +118,7 @@ async function suite(nome, opzioni, corpo){
     await browser.close();
     server.close();
   }
-  return { nome, passati, falliti };
+  return { nome, passati, falliti, caduti };
 }
 
 module.exports = { suite };

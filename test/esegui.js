@@ -48,6 +48,9 @@ function assicuraAlbi(){
     const segno = e.falliti ? '\x1b[31m✗\x1b[0m' : '\x1b[32m✓\x1b[0m';
     console.log('  ' + segno + ' ' + e.nome + '  —  ' + e.passati + ' ok'
       + (e.falliti ? ', \x1b[31m' + e.falliti + ' falliti\x1b[0m' : ''));
+    // Sotto la riga della suite, cosa e' caduto: il riassunto deve bastare a
+    // capire, senza risalire il log.
+    for(const c of (e.caduti || [])) console.log('      \x1b[31m✗\x1b[0m ' + c);
   }
   console.log('\n  ' + passati + ' controlli superati'
     + (falliti ? ', \x1b[31m' + falliti + ' falliti\x1b[0m' : '') + '\n');
