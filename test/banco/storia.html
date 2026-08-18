@@ -1,0 +1,72 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8">
+<title>banco di prova — la scheda Storia</title>
+<!-- story.js e' QUELLO VERO, con dentro i moduli veri che si tira dietro
+     (state, home, scriptment per il Breakdown): di finto c'e' solo Firestore,
+     che qui registra i salvataggi invece di farli. Il markup si prende da
+     index.html — i campi della Storia vivono dentro la schermata progetto, e
+     una copia a mano proverebbe una scheda che non esiste piu'. -->
+<script type="importmap">
+{ "imports": {
+  "/js/firebase.js": "/test/finti/firebase.js"
+} }
+</script>
+<link rel="stylesheet" href="/css/variables.css">
+<link rel="stylesheet" href="/css/layout.css">
+<link rel="stylesheet" href="/css/project.css">
+<link rel="stylesheet" href="/css/modals.css">
+<style>html,body{margin:0;height:100%;background:#efe6d4}
+#screen-project{display:block}
+/* I campi della Storia stanno dentro step chiusi: qui si aprono tutti, se no
+   si misurerebbero elementi che il browser considera invisibili. */
+.step-body,.support-body{display:block !important}</style>
+</head><body>
+<script type="module">
+const dom = new DOMParser().parseFromString(await (await fetch('/index.html')).text(), 'text/html');
+for(const id of ['screen-project','modal','confirm-modal']){
+  const n = dom.getElementById(id);
+  if(n) document.body.appendChild(document.importNode(n, true));
+}
+
+const story = await import('/js/story.js');
+const state = await import('/js/state.js');
+window.story = story;
+
+// Un progetto con la sua Storia, con le stesse chiavi che scrive l'app vera:
+//   story.soggetto / story.world → i campi lunghi
+//   story.acts   → { setup:[], confrontation:[], resolution:[] }, scene come stringhe
+//   story.characters → [{name, desc}]
+window.seminaProgetto = (dati = {})=>{
+  const p = Object.assign({
+    id: 'p1', title: 'Kara', numTav: 10,
+    steps: {}, tavole: {}, todos: [], sfide: [], velocityLog: [],
+  }, dati);
+  state.setProjects([p]);
+  state.setCurrentId(p.id);
+  window.__p = p;
+  window.__salvataggi = [];
+  return p;
+};
+
+// Apre la scheda Storia come fa l'app entrando in un progetto.
+window.apriStoria = ()=>{ story.restoreStoryFields(window.__p); story.renderCharacters(window.__p); };
+
+// Scrive in un campo come farebbe un dito: cambia il valore e avvisa la pagina.
+window.scriviIn = (sel, testo)=>{
+  const el = document.querySelector(sel);
+  if(!el) return false;
+  el.value = testo;
+  el.dispatchEvent(new Event('input', { bubbles:true }));
+  return true;
+};
+
+// Il pulsante "Annulla" del messaggio che compare dopo un'eliminazione.
+window.annullaUltima = ()=>{
+  const b = document.getElementById('undo-toast-btn');
+  if(!b) return false;
+  b.click();
+  return true;
+};
+
+window.__ready = true;
+</script>
+</body></html>
