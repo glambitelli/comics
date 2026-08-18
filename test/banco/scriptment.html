@@ -1,0 +1,78 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8">
+<title>banco di prova — lo scriptment</title>
+<!-- L'editor e' QUELLO VERO (scriptment.js, con dentro home.js per il
+     contenitore del testo e state.js per il progetto): di finto c'e' solo
+     Firestore, che qui registra i salvataggi invece di farli. Il markup si
+     prende da index.html — una copia a mano proverebbe un editor che non
+     esiste piu'. -->
+<script type="importmap">
+{ "imports": {
+  "/js/firebase.js": "/test/finti/firebase.js"
+} }
+</script>
+<link rel="stylesheet" href="/css/variables.css">
+<link rel="stylesheet" href="/css/layout.css">
+<link rel="stylesheet" href="/css/scriptment.css">
+<style>html,body{margin:0;height:100%;background:#efe6d4}</style>
+</head><body>
+<script type="module">
+const dom = new DOMParser().parseFromString(await (await fetch('/index.html')).text(), 'text/html');
+// Oltre all'editor servono la schermata progetto e i due modali: project.js e
+// home.js si agganciano ai loro pulsanti nel momento in cui vengono importati,
+// e senza quei nodi l'import fallisce prima ancora di arrivare allo scriptment.
+for(const id of ['screen-project','modal','confirm-modal','scriptment-overlay']){
+  const n = dom.getElementById(id);
+  if(n) document.body.appendChild(document.importNode(n, true));
+}
+
+const sm    = await import('/js/scriptment.js');
+const state = await import('/js/state.js');
+const home  = await import('/js/home.js');
+window.sm = sm;
+window.home = home;
+
+// Un progetto con dentro lo scriptment, come lo scrive l'app vera.
+window.seminaProgetto = (dati = {})=>{
+  const p = Object.assign({
+    id: 'p1', title: 'Kara', numTav: 10,
+    steps: {}, tavole: {}, todos: [], sfide: [], velocityLog: [],
+  }, dati);
+  state.setProjects([p]);
+  state.setCurrentId(p.id);
+  window.__p = p;
+  window.__salvataggi = [];
+  return p;
+};
+
+// Il testo COME LO VEDE L'EDITOR: si apre lo scriptment (che impagina il
+// testo dentro il contenteditable) e poi si fa rileggere all'app quello che
+// c'e' scritto — cioe' il giro esatto che fa il testo ogni volta che si
+// scrive un carattere. Se qualcosa si perde per strada, si perde qui.
+window.giroCompleto = (testo)=>{
+  window.seminaProgetto({ scriptment: { text: testo, font:'courier', size:13 } });
+  sm.openScriptment();
+  window.batti();
+  return window.__p.scriptment.text;
+};
+
+// Simula un tasto premuto nell'editor: e' l'unico modo in cui l'app legge il
+// testo (onScriptmentInput) e quindi l'unico modo onesto di provarlo.
+window.batti = (inputType = 'insertText')=>{
+  const ta = document.getElementById('scriptment-text');
+  sm.onScriptmentInput({ inputType, target: ta });
+};
+
+// Scrive nell'editor come farebbe un dito: aggiunge una riga in fondo e
+// avvisa l'app.
+window.scriviRiga = (testo)=>{
+  const ta = document.getElementById('scriptment-text');
+  const div = document.createElement('div');
+  div.className = 'sp-action';
+  div.textContent = testo;
+  ta.appendChild(div);
+  window.batti();
+};
+
+window.__ready = true;
+</script>
+</body></html>

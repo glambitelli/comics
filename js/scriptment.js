@@ -33,19 +33,28 @@ function editorGetText(el){
       }
       if(child.nodeType !== 1) continue;
       const tag = child.tagName;
-      const cls = child.className || '';
+      // CLASSI INTERE, NON PEZZI DI PAROLA.
+      //
+      // Qui prima si guardava se la classe CONTENEVA "sp-act" — e "sp-action"
+      // contiene "sp-act". Le righe di prosa (che sono tutte sp-action) venivano
+      // quindi rilette come marcatori d'atto e si portavano a casa un "# "
+      // davanti: bastava scrivere un carattere nello scriptment perche' OGNI
+      // riga di testo diventasse "# riga", e alla riapertura quelle righe non
+      // erano piu' testo ma titoli d'atto. Il testo non spariva, ma si
+      // trasformava in un'altra cosa, in silenzio, ad ogni tasto premuto.
+      const cl = child.classList;
 
       if(tag === 'BR'){ pushLine(); continue; }
 
       // marcatore d'atto: ricostruisci "# label"
-      if(cls && cls.includes && cls.includes('sp-act')){
+      if(cl && cl.contains('sp-act')){
         if(buf !== '') pushLine();
         buf = '# ' + child.textContent.trim();
         pushLine();
         continue;
       }
       // riga vuota esplicita
-      if(cls && cls.includes && cls.includes('sp-blank')){
+      if(cl && cl.contains('sp-blank')){
         if(buf !== '') pushLine();
         pushLine();
         continue;
@@ -78,11 +87,27 @@ function editorGetText(el){
     .replace(/(\d)(\p{L})/gu,'$1 $2').replace(/(\p{L})(\d)/gu,'$1 $2');
   const wordsOf = s => (norm(s).match(/[\p{L}\p{N}]+/gu) || []);
 
+  // LE RIGHE VANNO SEPARATE ANCHE QUI, o il paragone e' truccato.
+  //
+  // Prima questa raccolta incollava i blocchi uno all'attaccato all'altro:
+  // "Atto I" seguito da "Kara cammina." diventava "Atto IKara cammina.", cioe'
+  // la parola inventata "ikara" — che ovviamente non compariva nel testo letto
+  // per bene. Il controllo dichiarava quindi parole mancanti e scattava la rete
+  // di sicurezza qui sotto, che restituisce innerText: e innerText e' quello
+  // che si VEDE, cioe' con il maiuscolo messo dal CSS e senza il "#" dei
+  // titoli d'atto. Il risultato, ad ogni tasto premuto: "# Atto I" diventava
+  // "ATTO I", e tre righe vuote di fila ne diventavano una. Bastava una riga
+  // che non finisse con un punto — un titolo, un nome, un elenco — per farlo
+  // scattare.
   let visibleText = '';
   const collectVisible = (node) => {
     if(node.nodeType === 3){ visibleText += node.textContent; return; }
     if(node.nodeType !== 1) return;
+    if(node.tagName === 'BR'){ visibleText += '\n'; return; }
+    const isBlock = (node.tagName === 'DIV' || node.tagName === 'P' || node.tagName === 'LI');
+    if(isBlock && visibleText !== '' && !visibleText.endsWith('\n')) visibleText += '\n';
     node.childNodes.forEach(collectVisible);
+    if(isBlock) visibleText += '\n';
   };
   collectVisible(el);
 
@@ -406,9 +431,19 @@ export function parseScreenplay(text){
     const trimmed = raw.trim();
 
     if(trimmed === ''){ result.push({type:'blank', text:''}); inDialogue = false; continue; }
-    // riga fatta SOLO di un numero: mai contenuto valido, quasi certamente un
-    // residuo del vecchio bug del numero-scena duplicato → la scartiamo.
-    if(/^\d+$/.test(trimmed)) continue;
+    // Riga fatta SOLO di un numero. Era scartata sempre, con la spiegazione
+    // "mai contenuto valido": non e' vero. "1984" su una riga sua e' un titolo,
+    // una data, un'annata — e spariva per sempre appena si riapriva l'editor.
+    // Il residuo da buttare e' un altro, ed e' riconoscibile: il vecchio bug
+    // duplicava il numero della scena SUBITO SOTTO l'intestazione della scena.
+    // Solo quello si scarta; ogni altro numero e' testo di chi scrive.
+    if(/^\d+$/.test(trimmed)){
+      const prima = result[result.length - 1];
+      if(prima && prima.type === 'scene' && parseInt(trimmed, 10) === prima.scene) continue;
+      result.push({type:'action', text:trimmed});
+      inDialogue = false;
+      continue;
+    }
     if(/^\/\//.test(trimmed)){ result.push({type:'note', text:trimmed}); inDialogue = false; continue; }
     if(/^#/.test(trimmed)){
       const label = trimmed.replace(/^#+\s*/,'').trim();
