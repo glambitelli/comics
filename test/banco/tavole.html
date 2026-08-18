@@ -37,6 +37,9 @@ document.body.appendChild(document.importNode(doc.getElementById('refs-lightbox'
 // Il pannello "Riferimenti" della scheda progetto: serve a verificare che una
 // TAVOLA collegata a un progetto ci compaia come qualsiasi altro ritaglio.
 document.body.appendChild(document.importNode(doc.getElementById('ref-panel'), true));
+// Il foglio per rifilare un frammento: si carica al primo "Ritaglia" nell'app
+// vera, qui sta gia' nel banco perche' le prove lo aprono a mano.
+document.body.appendChild(document.importNode(doc.getElementById('rifila'), true));
 
 const refs = await import('/js/refs.js');
 window.refs = refs;
@@ -90,6 +93,23 @@ window.seminaCartelle = (elenco)=>{
   cart.push(...elenco);
   refs.getRefs().length = 0;
   refs.openFolderBrowser();
+};
+// Dove sta DAVVERO l'immagine dentro il foglio del ritaglio: l'elemento riempie
+// tutto, il disegno dentro e' centrato e rimpicciolito (object-fit:contain).
+// Nell'app e' main.js a far chiudere il foglio del ritaglio col tasto
+// Indietro: qui si rifa' la stessa cosa, se no dopo un ritaglio il foglio
+// resterebbe aperto e la prova misurerebbe un difetto che nell'app non c'e'.
+window.addEventListener('popstate', ()=>{
+  const rf = document.getElementById('rifila');
+  if(rf && !rf.hidden && window.chiudiRifila) window.chiudiRifila();
+});
+window.__dipinta = ()=>{
+  const img = document.getElementById('rifila-img');
+  const rl = document.getElementById('rifila-layer').getBoundingClientRect();
+  const ir = img.getBoundingClientRect();
+  const s = Math.min(ir.width / img.naturalWidth, ir.height / img.naturalHeight);
+  const w = img.naturalWidth * s, h = img.naturalHeight * s;
+  return { x: (ir.left - rl.left) + (ir.width - w)/2, y: (ir.top - rl.top) + (ir.height - h)/2, w, h, s };
 };
 window.vociMenu = ()=> Array.from(document.querySelectorAll('.ink-action-menu button')).map(b=>b.textContent.trim());
 window.iconeMenu = ()=> Array.from(document.querySelectorAll('.ink-action-menu button')).map(b=>!!b.querySelector('svg'));

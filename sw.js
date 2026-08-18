@@ -13,7 +13,7 @@
 // di servire quelli di ieri. Alzare questo e non quello e' normale; il
 // contrario no.
 const VERSIONE = '1.0.0';
-const CACHE = 'inkflow-static-v259';
+const CACHE = 'inkflow-static-v260';
 const SHARE_CACHE = 'inkflow-share-inbox';
 // Cache dei file .cbz/.cbr scaricati da Drive: gestita da js/drive.js, va
 // PRESERVATA tra i deploy (altrimenti a ogni aggiornamento riscaricheresti

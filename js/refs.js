@@ -191,6 +191,34 @@ export async function addRefImage(file, source='file', folderId=null, tavola=cur
   }
 }
 
+// ── RIFILARE UN FRAMMENTO GIA' ARCHIVIATO ──
+// Uno screenshot preso da un social arriva con dentro l'interfaccia del
+// social: il nome, i cuoricini, mezzo post sotto. Ritagliarlo DOPO averlo
+// salvato e' l'unico modo — quando lo salvi non hai un ritaglio da fare, hai
+// solo un'immagine che ti e' piaciuta.
+//
+// Si sostituisce l'immagine e basta: cartella, tag, progetti collegati,
+// provenienza restano quelli. E si torna indietro con un tocco, perche' la
+// vecchia immagine su Cloudinary non viene toccata — resta al suo indirizzo,
+// e annullare vuol dire riscrivere quell'indirizzo qui.
+export async function sostituisciImmagine(id, blob, w, h){
+  const r = _refs.find(x=>x.id===id);
+  if(!r || !blob) return null;
+  const prima = { url: r.url, w: r.w ?? null, h: r.h ?? null, bytes: r.bytes ?? null };
+  const est = (blob.type && blob.type.split('/')[1]) || 'jpg';
+  // Nome nuovo ad ogni rifilatura: con lo stesso nome Cloudinary servirebbe
+  // ancora la versione vecchia dalla sua cache, e a schermo non cambierebbe
+  // niente finche' non scade.
+  const { url } = await uploadToCloudinary(blob, id + '-' + Date.now().toString(36) + '.' + est);
+  warmDerived(url, isTavola(r) ? TAVOLA_W : THUMB_W);
+  await setDoc(doc(db, REFS_COL, id), { url, w, h, bytes: blob.size }, { merge:true });
+  return prima;
+}
+export async function ripristinaImmagine(id, prima){
+  if(!id || !prima) return;
+  await setDoc(doc(db, REFS_COL, id), prima, { merge:true });
+}
+
 // ── SALVATAGGIO DA RITAGLIO (albi) ──
 // Un frammento ritagliato da un albo arriva già come Blob JPEG pronto (il
 // ritaglio + compressione avvengono in albums.js). Qui lo carichiamo su
@@ -2078,6 +2106,12 @@ export function refsImageMenu(anchorEl, imageId){
   if(!daSchermoIntero)
     voci.push({ label:'Collega a progetto', icon:'progetto', onSelect:()=>promptLinkProject(id, anchorEl) });
   voci.push({ label:'Tag', icon:'tag', onSelect:()=>promptTagImage(id, anchorEl) });
+  // RITAGLIARE DOPO. Uno screenshot preso da un social arriva con dentro
+  // l'interfaccia del social; quando lo salvi non hai un ritaglio da fare, hai
+  // solo un'immagine che ti e' piaciuta. Il foglio si carica al primo uso
+  // (vedi rifila.js): e' una cosa che si fa di rado, non deve pesare all'avvio.
+  voci.push({ label:'Ritaglia', icon:'ritaglio',
+    onSelect:()=> import('./rifila.js').then(m=> m.apriRifila(id)).catch(()=>{}) });
   // "Sposta" e "Segna come tavola" sembravano la stessa cosa scritta in due
   // modi, e la prima non diceva sposta DOVE. Sono due mestieri diversi: una
   // cambia la CARTELLA (da Bergara a Otomo), l'altra dice COS'E' l'immagine —

@@ -75,7 +75,11 @@ export function toggleClip(force){
 // dell'immagine, oltre alle eventuali bande vuote di object-fit:contain. Con
 // getBoundingClientRect (posizione reale) invece di clientWidth (solo
 // dimensione) entrambi gli scarti vengono presi in conto.
-function renderedImageRect(img, layer){
+// Esportata: la usa anche la rifilatura di un frammento (vedi rifila.js), che
+// deve fare lo stesso conto — dove sta davvero l'immagine dentro il suo
+// contenitore, e con che ingrandimento — per tradurre un riquadro disegnato
+// col dito in pixel dell'originale.
+export function renderedImageRect(img, layer){
   const ir = img.getBoundingClientRect();
   const lr = layer.getBoundingClientRect();
   const nw = img.naturalWidth, nh = img.naturalHeight;
@@ -665,7 +669,10 @@ function supportaWebp(){
 // Disegna il crop su canvas (con cap dimensionale) e lo comprime. Solo lavoro
 // locale: nessuna rete. Torna { blob, w, h, encode } — `encode` serve al
 // ripiego in JPEG, che riparte dallo stesso canvas senza ridisegnarlo.
-async function preparaRitaglio(sourceImg, cx, cy, cw, ch){
+// Esportata per lo stesso motivo: qui c'e' tutta la parte che non si vuole
+// riscrivere due volte — il tetto alle dimensioni, la scelta fra WebP e JPEG,
+// e la qualita' che scende finche' il file non sta sotto il peso massimo.
+export async function preparaRitaglio(sourceImg, cx, cy, cw, ch){
   const im = sourceImg;
   if(!im || !im.naturalWidth) return null;
 

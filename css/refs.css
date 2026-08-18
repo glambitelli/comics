@@ -681,3 +681,83 @@ body.is-touch .refs-lightbox-nav{display:none}
 .refs-lightbox-body.zoomed{cursor:grab}
 .refs-lightbox-body.zoomed.grabbing{cursor:grabbing}
 .refs-lightbox-body.zoomed img{cursor:inherit}
+
+
+/* ── IL FOGLIO PER RIFILARE UN FRAMMENTO (vedi js/rifila.js) ──
+   Stesso linguaggio del ritaglio nel lettore — riquadro in oro, il resto
+   dell'immagine spento sotto un velo, delimitatori d'angolo invece di
+   pallini — perche' e' lo stesso gesto e non deve sembrare un'altra app.
+   Cambia solo il contorno: qui non si sceglie dove salvare, il frammento ha
+   gia' la sua cartella; si taglia e basta. */
+/* 9600: sopra la vista a schermo intero (9500) e sotto i modali (9700). A
+   9800 il foglio copriva le sue stesse conferme — "il riquadro e' troppo
+   piccolo" finiva dietro, e il pulsante sembrava non fare niente. */
+.rifila-overlay{
+  position:fixed;inset:0;z-index:9600;background:#0d0b09;
+  display:flex;flex-direction:column;
+}
+.rifila-overlay[hidden]{display:none}
+.rifila-body{position:relative;flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:10px}
+/* L'immagine sta ferma e intera: niente zoom, niente nastro. Il conto che
+   traduce il riquadro in pixel dell'originale (renderedImageRect) presuppone
+   proprio questo — l'immagine centrata dentro il suo contenitore. */
+/* width/height al 100% e non max-*: un'immagine piccola (una vignetta, una
+   miniatura salvata al volo) altrimenti resterebbe grande com'e' in mezzo a
+   uno schermo nero, e su quella non ci si ritaglia niente col dito. Con
+   object-fit:contain sale a riempire il foglio senza deformarsi, e il conto
+   che traduce il riquadro in pixel dell'originale (renderedImageRect) parte
+   proprio dal rettangolo in cui l'immagine e' finita davvero. */
+.rifila-img{width:100%;height:100%;object-fit:contain;user-select:none;-webkit-user-drag:none}
+.rifila-layer{position:absolute;inset:10px;touch-action:none}
+.rifila-box{
+  position:absolute;border:1.5px solid var(--gold);
+  background:rgba(240,192,32,.14);
+  /* Il velo enorme e' il modo piu' semplice di spegnere TUTTO il resto
+     dell'immagine senza disegnare quattro rettangoli attorno. */
+  box-shadow:0 0 0 9999px rgba(0,0,0,.55);
+  cursor:grab;
+}
+.rifila-box.attivo{cursor:grabbing}
+.rifila-handle{
+  position:absolute;width:30px;height:30px;transform:translate(-50%,-50%);
+  touch-action:none;cursor:pointer;
+}
+.rifila-handle::after{
+  content:'';position:absolute;width:16px;height:16px;
+  border:3px solid var(--gold);
+  filter:drop-shadow(0 0 1px rgba(20,18,16,.9));
+}
+.rifila-handle[data-angolo="nw"]{top:0;left:0;cursor:nwse-resize}
+.rifila-handle[data-angolo="nw"]::after{top:50%;left:50%;border-right:none;border-bottom:none;margin:-1.5px 0 0 -1.5px}
+.rifila-handle[data-angolo="ne"]{top:0;left:100%;cursor:nesw-resize}
+.rifila-handle[data-angolo="ne"]::after{top:50%;right:50%;border-left:none;border-bottom:none;margin:-1.5px -1.5px 0 0}
+.rifila-handle[data-angolo="se"]{top:100%;left:100%;cursor:nwse-resize}
+.rifila-handle[data-angolo="se"]::after{bottom:50%;right:50%;border-left:none;border-top:none;margin:0 -1.5px -1.5px 0}
+.rifila-handle[data-angolo="sw"]{top:100%;left:0;cursor:nesw-resize}
+.rifila-handle[data-angolo="sw"]::after{bottom:50%;left:50%;border-right:none;border-top:none;margin:0 0 -1.5px -1.5px}
+.rifila-handle[data-angolo="n"]{top:0;left:50%;cursor:ns-resize}
+.rifila-handle[data-angolo="s"]{top:100%;left:50%;cursor:ns-resize}
+.rifila-handle[data-angolo="w"]{top:50%;left:0;cursor:ew-resize}
+.rifila-handle[data-angolo="e"]{top:50%;left:100%;cursor:ew-resize}
+/* La mediana e' una barretta parallela al lato che muove: uno spigolo direbbe
+   "qui si muovono due lati". */
+.rifila-mid::after{
+  width:18px;height:0;border:none;border-top:3px solid var(--gold);
+  top:50%;left:50%;transform:translate(-50%,-50%);
+}
+.rifila-handle[data-angolo="w"]::after,
+.rifila-handle[data-angolo="e"]::after{width:0;height:18px;border-top:none;border-left:3px solid var(--gold)}
+
+.rifila-barra{
+  display:flex;align-items:center;gap:12px;
+  padding:12px 16px calc(12px + var(--safe-bot));
+  background:rgba(20,17,14,.92);border-top:1px solid rgba(217,164,23,.18);
+}
+.rifila-hint{flex:1;text-align:center;font-size:11.5px;color:rgba(255,251,242,.45);line-height:1.35}
+.rifila-btn{
+  font-family:'Nunito',sans-serif;font-size:13.5px;font-weight:700;
+  padding:9px 16px;border-radius:11px;cursor:pointer;
+  background:none;border:1.5px solid rgba(255,251,242,.22);color:rgba(255,251,242,.75);
+}
+.rifila-ok{background:var(--gold);border-color:var(--gold);color:#231b12}
+.rifila-btn:disabled{opacity:.55}

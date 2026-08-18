@@ -463,6 +463,12 @@ window.addEventListener('popstate', e=>{
   // serve la danza del modulo caricato pigramente.
   const sp = document.getElementById('settings-panel');
   if(sp && sp.classList.contains('open')){ closeSettingsUI(); return; }
+  // Il foglio per rifilare un frammento sta sopra tutto il resto dell'archivio:
+  // se e' aperto, Indietro chiude quello. Non serve loadedMod — il foglio puo'
+  // essere aperto solo se il suo modulo e' gia' stato caricato, e caricandosi
+  // lascia qui la sua funzione di chiusura.
+  const rf = document.getElementById('rifila');
+  if(rf && !rf.hidden && window.chiudiRifila){ window.chiudiRifila(); return; }
   // Se c'è un albo aperto a schermo intero, il tasto Indietro chiude il lettore
   // e riporta alle References, invece di uscire dall'app.
   // loadedMod e non loadMod: se il lettore e' aperto il modulo e' per forza

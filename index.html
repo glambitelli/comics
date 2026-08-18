@@ -359,6 +359,37 @@
   </div>
 </div>
 
+<!-- IL FOGLIO PER RIFILARE UN FRAMMENTO (vedi js/rifila.js). Sta fuori dalla
+     vista a schermo intero apposta: quella e' un nastro di tre celle che si
+     sposta col dito e si ingrandisce col pizzico, e disegnarci sopra un
+     rettangolo vorrebbe dire litigare con tutti e due i gesti. Qui l'immagine
+     sta ferma e il dito ha un mestiere solo. -->
+<div class="rifila-overlay" id="rifila" hidden>
+  <div class="rifila-body">
+    <img id="rifila-img" class="rifila-img" alt="">
+    <div class="rifila-layer" id="rifila-layer">
+      <div class="rifila-box" id="rifila-box">
+        <span class="rifila-handle" data-angolo="nw"></span>
+        <span class="rifila-handle" data-angolo="ne"></span>
+        <span class="rifila-handle" data-angolo="sw"></span>
+        <span class="rifila-handle" data-angolo="se"></span>
+        <!-- Le mediane muovono UN lato solo: con i soli angoli, togliere due
+             dita di cornice a destra vorrebbe dire inseguire anche l'altezza.
+             Stesso vocabolario del ritaglio nel lettore. -->
+        <span class="rifila-handle rifila-mid" data-angolo="n"></span>
+        <span class="rifila-handle rifila-mid" data-angolo="s"></span>
+        <span class="rifila-handle rifila-mid" data-angolo="w"></span>
+        <span class="rifila-handle rifila-mid" data-angolo="e"></span>
+      </div>
+    </div>
+  </div>
+  <div class="rifila-barra">
+    <button class="rifila-btn" onclick="annullaRifila()">Annulla</button>
+    <span class="rifila-hint">Tira gli angoli per inquadrare</span>
+    <button class="rifila-btn rifila-ok" id="rifila-ok" onclick="confermaRifila()">Ritaglia</button>
+  </div>
+</div>
+
 <div class="screen" id="screen-project">
   <div class="proj-header">
     <div class="proj-title-row">
