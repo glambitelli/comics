@@ -144,7 +144,7 @@ export function wireClip(ov){
     if(browseRow) browseRow.classList.toggle('no-cats', !cats.length);
     if(!shortcuts.length && !cats.length){
       // Nessuna cartella: il ritaglio resta non archiviato, come oggi.
-      dests.innerHTML = '<button class="ar-clip-confirm-btn" data-act="confirmclip">✓ Salva ritaglio</button>';
+      dests.innerHTML = '<button class="ar-clip-confirm-btn" data-act="confirmclip">✓ Salva frammento</button>';
       if(moreWrap) moreWrap.innerHTML = '';
       return;
     }
@@ -154,7 +154,7 @@ export function wireClip(ov){
       const cls = d.isCurrent ? 'ar-clip-dest is-current' : 'ar-clip-dest';
       const label = d.isCurrent ? ('✓ ' + escAttr(d.name)) : escAttr(d.name);
       const title = d.isCurrent
-        ? 'Salva tra i ritagli di ' + escAttr(d.name)
+        ? 'Salva tra i frammenti di ' + escAttr(d.name)
         : 'Salva in ' + escAttr(d.category || '') + ' › ' + escAttr(d.name);
       return `<button class="${cls}" data-act="confirmclip" data-dest="${escAttr(d.id)}" title="${title}">${label}</button>`;
     }).join('');

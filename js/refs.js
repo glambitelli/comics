@@ -1009,6 +1009,10 @@ export function wireSwipeAssi(){
 // che da Tavole riporterebbe agli Albi facendo sembrare di aver sbagliato).
 // Se i tab non sono a schermo — "All", i tag — non c'e' niente da scorrere e
 // il gesto si ignora.
+// A schermo la seconda si chiama FRAMMENTI (vedi index.html): qui resta
+// 'ritagli' perche' e' la chiave con cui l'archivio e' scritto su Firestore da
+// sempre, e rinominarla vorrebbe dire riscrivere ogni documento per cambiare
+// una parola su un pulsante.
 const SCAFFALI = ['albi','ritagli','tavole'];
 export function wireSwipeScaffali(){
   wireSwipe(document.getElementById('screen-refs'), 'scaffali', verso=>{
@@ -1852,10 +1856,14 @@ export function renderRefsGrid(){
       const t = _folderTab === 'tavole';
       const tit = empty.querySelector('div:not(.refs-empty-sub)');
       const sub = empty.querySelector('.refs-empty-sub');
-      if(tit) tit.textContent = t ? 'Ancora nessuna tavola' : 'Ancora nessuna immagine';
+      if(tit) tit.textContent = t ? 'Ancora nessuna tavola' : 'Ancora nessun frammento';
       if(sub) sub.textContent = t
         ? 'Apri un albo, e col pulsante coi quattro angoli in alto salvi la pagina intera: finisce qui.'
-        : 'Trascinane una qui, incollala, o usa "Condividi" dal telefono';
+        // Il femminile era di "immagine": adesso il vuoto si chiama frammento.
+        // E i tre modi elencati sono esattamente quelli con cui arriva la roba
+        // che non viene dagli albi — un disegno da Pinterest, uno screenshot
+        // da Instagram, una foto passata da un'altra app.
+        : 'Trascinane uno qui, incollalo, o usa "Condividi" dal telefono';
     }
     // Un solo stato vuoto, da quando non si cerca piu' qui: se la griglia e'
     // vuota lo scaffale e' vuoto, non c'e' l'altro caso ("c'e' roba ma il
@@ -2064,7 +2072,7 @@ export function refsImageMenu(anchorEl, imageId){
     { label:'Collega a progetto', icon:'progetto', onSelect:()=>promptLinkProject(id, anchorEl) },
     { label:'Tag', icon:'tag', onSelect:()=>promptTagImage(id, anchorEl) },
     { label:'Sposta', icon:'cartella', onSelect:()=>promptMoveImage(id, anchorEl) },
-    { label: eTavola ? 'Segna come ritaglio' : 'Segna come tavola',
+    { label: eTavola ? 'Segna come frammento' : 'Segna come tavola',
       icon: eTavola ? 'ritaglio' : 'tavola',
       onSelect:()=>{ setRefTavola(id, !eTavola); haptic('done'); } },
     { label:'Elimina', icon:'elimina', danger:true, onSelect:()=>deleteRefImageWithUndo(id) },

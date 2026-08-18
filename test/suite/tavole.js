@@ -1,7 +1,7 @@
-// References — i due scaffali di una cartella: Ritagli e Tavole
+// References — i due scaffali di una cartella: Frammenti e Tavole
 const { suite } = require('../motore.js');
 
-module.exports = () => suite("References — Ritagli e Tavole dentro una cartella", {"banco": "/test/banco/tavole.html"}, async ({ page, base, ok, sezione }) => {
+module.exports = () => suite("References — Frammenti e Tavole dentro una cartella", {"banco": "/test/banco/tavole.html"}, async ({ page, base, ok, sezione }) => {
 
   const apri = async (ritagli, tavole)=>{
     await page.evaluate(([r,t])=>{ window.semina(r,t); window.refs.openFolder('F1'); }, [ritagli, tavole]);
@@ -212,7 +212,7 @@ module.exports = () => suite("References — Ritagli e Tavole dentro una cartell
   ok('su un ritaglio propone di segnarlo come tavola',
      vociRitaglio.some(v=>/come tavola/i.test(v)), vociRitaglio);
   ok('su una tavola propone il contrario',
-     vociTavola.some(v=>/come ritaglio/i.test(v)), vociTavola);
+     vociTavola.some(v=>/come frammento/i.test(v)), vociTavola);
 
   sezione('una tavola si collega a un progetto come un ritaglio qualunque');
   // Nulla di dedicato: ritagli e tavole passano dalla STESSA lightbox e dallo

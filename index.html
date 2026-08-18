@@ -196,7 +196,15 @@
     <div class="seg-vasca" id="refs-tabs-vasca">
       <span class="seg-cursore" aria-hidden="true"></span>
       <button class="refs-tab seg-tab" id="refs-tab-albi" onclick="setFolderTab('albi')" type="button">Albi <span class="refs-tab-n" id="refs-tab-albi-n">0</span></button>
-      <button class="refs-tab seg-tab" id="refs-tab-ritagli" onclick="setFolderTab('ritagli')" type="button">Ritagli <span class="refs-tab-n" id="refs-tab-ritagli-n">0</span></button>
+      <!-- FRAMMENTI, e non piu' "Ritagli". Il ritaglio e' il GESTO — tiri il
+           riquadro su una tavola e ritagli — e come gesto la parola resta
+           dov'e'. Ma qui dentro non finisce solo roba tagliata dagli albi:
+           finiscono disegni salvati da Instagram, da Pinterest, da Twitter,
+           immagini raccolte in giro. Chiamarle "ritagli" diceva solo COME
+           erano entrate, non cosa sono. La chiave interna resta 'ritagli'
+           (la usa Firestore da sempre): si cambia il nome sulla porta, non
+           l'indirizzo. -->
+      <button class="refs-tab seg-tab" id="refs-tab-ritagli" onclick="setFolderTab('ritagli')" type="button">Frammenti <span class="refs-tab-n" id="refs-tab-ritagli-n">0</span></button>
       <button class="refs-tab seg-tab" id="refs-tab-tavole" onclick="setFolderTab('tavole')" type="button">Tavole <span class="refs-tab-n" id="refs-tab-tavole-n">0</span></button>
     </div>
   </div>
@@ -874,7 +882,7 @@
         <!-- Elencare cosa c'e' dentro non e' pignoleria: il backup di prima
              diceva "tutti i progetti" e la gente (io) dava per scontato che
              comprendesse anche l'archivio, che invece restava fuori. -->
-        <div class="settings-note">Progetti, artisti, ritagli e tavole, albi, tag, idee, stelle e streak: tutto in un file solo.</div>
+        <div class="settings-note">Progetti, artisti, frammenti e tavole, albi, tag, idee, stelle e streak: tutto in un file solo.</div>
         <div class="settings-note" id="backup-quando"></div>
       </div>
     </div>
