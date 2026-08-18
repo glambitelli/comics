@@ -11,7 +11,7 @@ import { promptModal, promptCampi, confirmModal, actionMenu } from './dialogs.js
 import {
   isDriveConfigured, isDriveConnected, connectDrive, disconnectDrive,
   driveAccountEmail, onDriveAuthChange, listDriveAlbumsForFolder,
-  ensureDriveConnected, daRicollegare, prepareDriveAuth, resumeDriveConnect,
+  ensureDriveConnected, daRicollegare, prepareDriveAuth, ascoltaRientroDrive,
 } from './drive.js';
 import {
   ZOOM_IN, ZOOM_MAX, panGain, edgeSpring, EDGE_COMMIT, EDGE_HANDOFF,
@@ -769,16 +769,11 @@ export function startRefsListener(){
     prepareDriveAuth();
     // E il recupero del rientro da Google: se un collegamento era cominciato e
     // la risposta si e' persa per strada (vedi resumeDriveConnect in drive.js),
-    // lo si finisce qui, tornando sull'app. Solo entro tre minuti dal tocco e
-    // solo se un tentativo c'era davvero: senza quel segno non parte niente.
-    const riprendiDrive = ()=>{
-      if(document.hidden) return;
-      resumeDriveConnect().then(ok=>{
-        if(ok) setUploadStatus('ok', 'Google Drive collegato ✓');
-      });
-    };
-    document.addEventListener('visibilitychange', riprendiDrive);
-    riprendiDrive();
+    // lo si finisce tornando sull'app. L'ascolto vero sta in drive.js ed e'
+    // acceso all'avvio da main.js — perche' vale anche per chi collega Drive
+    // dalle impostazioni, senza passare di qui. Questa chiamata aggiunge solo
+    // la riga di conferma sullo scaffale, che e' roba di questa schermata.
+    ascoltaRientroDrive(()=> setUploadStatus('ok', 'Google Drive collegato ✓'));
     // Qui NON si chiede piu' niente a Google. Il rinnovo automatico che c'era
     // prima faceva comparire da sola la pagina di accesso appena si entrava
     // in References (vedi la nota in drive.js): adesso il collegamento parte

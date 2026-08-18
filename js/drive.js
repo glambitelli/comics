@@ -285,6 +285,35 @@ export async function resumeDriveConnect(){
   return fatto;
 }
 
+// ── E IL RIENTRO VA ASCOLTATO DA TUTTA L'APP, NON DA UNA SCHERMATA SOLA ──
+// Il recupero qui sopra stava agganciato dentro References, e finche' Drive si
+// collegava solo da li' bastava. Da quando si collega anche dalle impostazioni
+// non basta piu': chi premeva "Ricollega" senza aver mai aperto l'archivio in
+// quella sessione tornava da Google e trovava ancora "Non collegato", per
+// sempre — nessuno stava ad aspettare quella risposta.
+//
+// E c'e' un secondo caso che il solo visibilitychange non copre, ed e' proprio
+// quello che capita piu' spesso sul telefono: la pagina non viene nascosta e
+// riportata a galla, viene RICARICATA da capo al ritorno. Allora
+// visibilitychange non scatta mai. Per questo si prova anche subito, appena
+// l'app riparte: il segno del tentativo sta in localStorage apposta, e vale
+// solo per tre minuti.
+let _rientroAcceso = false;
+export function ascoltaRientroDrive(alCollegato){
+  const riprendi = ()=>{
+    if(document.hidden) return;
+    resumeDriveConnect().then(ok=>{ if(ok && alCollegato) alCollegato(); });
+  };
+  if(!_rientroAcceso){
+    _rientroAcceso = true;
+    document.addEventListener('visibilitychange', riprendi);
+    // Ritorno dalla cache di navigazione (Android ci passa spesso): la pagina
+    // non e' "diventata visibile", e' stata ripescata gia' viva.
+    window.addEventListener('pageshow', riprendi);
+  }
+  riprendi();
+}
+
 // Garantisce (senza interazione, se possibile) un token valido: usa quello in
 // cache se buono, altrimenti prova UNA volta il rinnovo silenzioso. Le
 // chiamate concorrenti condividono lo stesso tentativo. È il punto d'ingresso

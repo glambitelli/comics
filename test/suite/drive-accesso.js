@@ -56,4 +56,52 @@ module.exports = () => suite("Drive — il pulsante Collega apre davvero Google"
   ok('senza una richiesta esplicita non disturba nessuno',
      silenzioso.length === 0, silenzioso);
 
+  sezione('e il ritorno da Google si recupera anche se la pagina e\' ripartita');
+  // Sul telefono, tornando dalla finestra di Google, spesso Inkflow e' stato
+  // ricaricato da capo: la risposta non trova piu' nessuno ad aspettarla e il
+  // collegamento resta a meta'. Prima a raccogliere quel filo era la sola
+  // schermata References — chi collegava Drive dalle impostazioni senza aver
+  // mai aperto l'archivio restava con "Non collegato" per sempre. Ora ad
+  // ascoltare e' l'app, appena riparte.
+  const rientro = await page.evaluate(async ()=>{
+    window.drive.disconnectDrive();
+    window.__chiamate = []; window.__esito = 'ok';
+    localStorage.setItem('inkflow-drive-in-corso', String(Date.now()));
+    let avvisato = false;
+    window.drive.ascoltaRientroDrive(()=>{ avvisato = true; });
+    await new Promise(r=>setTimeout(r, 150));
+    return { chiamate: window.__chiamate, collegato: window.drive.isDriveConnected(),
+             avvisato, segno: localStorage.getItem('inkflow-drive-in-corso') };
+  });
+  ok('basta che l\'app riparta, senza toccare niente', rientro.chiamate.length === 1, rientro);
+  ok('e lo fa in silenzio, senza schermate a sorpresa',
+     rientro.chiamate[0] && rientro.chiamate[0].prompt === '', rientro);
+  ok('il collegamento si chiude davvero', rientro.collegato, rientro);
+  ok('chi guarda viene avvisato', rientro.avvisato, rientro);
+  ok('e il tentativo non resta appeso per la prossima apertura', !rientro.segno, rientro);
+
+  sezione('ma senza un tentativo appena cominciato non parte niente');
+  // La regola di fondo resta quella: a Google non si chiede niente che l'utente
+  // non abbia chiesto. Il segno vale tre minuti, e solo dopo un tocco vero.
+  const senzaSegno = await page.evaluate(async ()=>{
+    window.drive.disconnectDrive();
+    window.__chiamate = [];
+    localStorage.removeItem('inkflow-drive-in-corso');
+    window.drive.ascoltaRientroDrive();
+    await new Promise(r=>setTimeout(r, 150));
+    return { chiamate: window.__chiamate.length, collegato: window.drive.isDriveConnected() };
+  });
+  ok('nessuna richiesta a Google', senzaSegno.chiamate === 0, senzaSegno);
+  ok('e si resta scollegati, come dev\'essere', !senzaSegno.collegato, senzaSegno);
+
+  const vecchio = await page.evaluate(async ()=>{
+    window.__chiamate = [];
+    localStorage.setItem('inkflow-drive-in-corso', String(Date.now() - 10*60*1000));
+    window.drive.ascoltaRientroDrive();
+    await new Promise(r=>setTimeout(r, 150));
+    return { chiamate: window.__chiamate.length, segno: localStorage.getItem('inkflow-drive-in-corso') };
+  });
+  ok('un tentativo di dieci minuti fa non e\' piu\' un ritorno', vecchio.chiamate === 0, vecchio);
+  ok('e il segno vecchio viene buttato via', !vecchio.segno, vecchio);
+
 });

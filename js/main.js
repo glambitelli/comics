@@ -679,6 +679,21 @@ window.entraInInkflow = function(){
   _authApp.alCambioAccesso(u=>{ if(!u) mostraPorta(''); });
 })();
 
+// IL RITORNO DA GOOGLE VA ASPETTATO DALL'APP, NON DA UNA SCHERMATA.
+//
+// Premendo "Collega Drive" si va sulla pagina di Google e si torna indietro —
+// e sul telefono, tornando, spesso la pagina di Inkflow e' stata ricaricata da
+// capo: la risposta di Google non trova piu' nessuno ad aspettarla e il
+// collegamento resta a meta' (il token c'e', l'app non l'ha mai visto). Fin
+// qui a raccogliere quel filo era References, l'unico posto da cui si poteva
+// collegare Drive. Da quando lo si collega anche dalle impostazioni non
+// bastava piu': chi non aveva aperto l'archivio in quella sessione tornava e
+// leggeva "Non collegato" per sempre. Adesso il recupero e' acceso all'avvio,
+// e vale da qualunque parte sia partito il tocco (vedi ascoltaRientroDrive).
+(window.requestIdleCallback || (fn => setTimeout(fn, 1200)))(() => {
+  import('./drive.js').then(d => d.ascoltaRientroDrive()).catch(()=>{});
+});
+
 if(navigator.storage && navigator.storage.persist){
   navigator.storage.persisted().then(gia=>{
     if(!gia) return navigator.storage.persist();

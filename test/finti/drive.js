@@ -25,3 +25,4 @@ export function daRicollegare(){ return false; }
 // refs.js la chiama entrando nell'archivio.
 export function prepareDriveAuth(){ return Promise.resolve(false); }
 export function resumeDriveConnect(){ return Promise.resolve(false); }
+export function ascoltaRientroDrive(){}

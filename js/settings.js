@@ -384,6 +384,12 @@ export function driveTocca(){
     disegnaDrive();
     return;
   }
+  // Una riga che dice "sto lavorando": fra il tocco e la pagina di Google
+  // passa qualche istante, e in quel buco la riga continuava a dire "Non
+  // collegato" — cioe' esattamente quello che dice quando non e' successo
+  // niente.
+  const stato = document.getElementById('drive-mail');
+  if(stato) stato.textContent = 'Apro Google…';
   _driveMod.connectDrive()
     .then(()=> disegnaDrive())
     .catch(e=>{
