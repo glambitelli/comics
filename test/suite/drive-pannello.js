@@ -46,6 +46,25 @@ module.exports = () => suite("Drive — il pannello lascia passare il tocco", {"
   ok('il velo e\' alzato, come dev\'essere', sotto.veloAperto, sotto);
   ok('ma sotto il dito c\'e\' il pulsante, non il velo', sotto.dentroIlPulsante, sotto);
 
+  sezione('e il pannello dice che Drive e\' un magazzino, non il tuo accesso a Inkflow');
+  // Qui c'era scritto "Nessun account", identico alla frase che l'app usa per
+  // l'accesso a Inkflow: chi apriva il pannello pensava che il login fosse
+  // saltato, o che ce ne fossero due da fare. Sono due mestieri diversi, e
+  // quello di Drive puo' pure stare su un altro account Google.
+  const parole = await page.evaluate(()=>({
+    titolo: (document.getElementById('rp-id-name')||{}).textContent || '',
+    sotto: (document.getElementById('rp-id-sub')||{}).textContent || '',
+    etichetta: (document.querySelector('.rp-section-label')||{}).textContent || '',
+    nota: (document.querySelector('#rp-drive .rp-fuori')||{}).textContent || '',
+  }));
+  ok('la testata porta il mestiere, non un nome di persona',
+     /albi da google drive/i.test(parole.titolo), parole);
+  ok('e non dice piu\' "nessun account", che sembrava un accesso fallito',
+     !/nessun account/i.test(parole.titolo + ' ' + parole.sotto), parole);
+  ok('la sezione si chiama per quello che porta', /sorgente degli albi/i.test(parole.etichetta), parole);
+  ok('e sotto il pulsante c\'e\' scritto che puo\' essere un altro account Google',
+     /altro|diverso/i.test(parole.nota) && /account google/i.test(parole.nota), parole);
+
   sezione('e premendolo parte davvero il collegamento');
   // Clic VERO di Playwright: arriva dove arriverebbe un dito, e se qualcosa gli
   // sta davanti finisce li' invece che sul pulsante.

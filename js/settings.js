@@ -184,6 +184,7 @@ export function openSettings(){
   mostraUltimoBackup();
   mostraRegistro();
   mostraAccount();
+  mostraDrive();
 }
 
 // ── IL REGISTRO NELLE IMPOSTAZIONI ──
@@ -258,33 +259,37 @@ export async function mostraAccount(){
     // se non c'e' — o se Google e' irraggiungibile — questa riga non deve
     // buttare giu' tutto il pannello. Si dice cosa succede e si va avanti:
     // tutto il resto delle impostazioni funziona lo stesso.
-    const nome = document.getElementById('account-nome');
+    const mail = document.getElementById('account-mail');
     const nota = document.getElementById('account-nota');
     const btn = document.getElementById('account-bottone');
-    if(nome) nome.textContent = 'Account non raggiungibile';
+    if(mail) mail.textContent = 'Non raggiungibile';
     if(nota){ nota.textContent = 'Serve la rete per la prima volta. Riprova quando torna.'; nota.className = 'settings-note'; }
     if(btn) btn.textContent = 'Riprova';
   }
 }
+// La riga porta il MESTIERE scritto in grande ("Il tuo Inkflow") e sotto
+// l'indirizzo: e' l'unica cosa che distingue davvero un account da un altro,
+// e serve a confrontarlo a occhio con quello di Drive qui sotto. Il nome
+// visualizzato ("Giovanni") non lo distingue — su due account Google puo'
+// essere identico — quindi resta solo come ripiego se la mail manca.
+let _mailInkflow = '';
 function disegnaAccount(u){
-  const nome = document.getElementById('account-nome');
   const mail = document.getElementById('account-mail');
   const btn = document.getElementById('account-bottone');
   const nota = document.getElementById('account-nota');
   const uid = document.getElementById('account-uid');
-  if(!nome || !btn) return;
+  if(!mail || !btn) return;
+  _mailInkflow = (u && u.email) || '';
   if(u){
-    nome.textContent = u.displayName || 'Account collegato';
-    if(mail) mail.textContent = u.email || '';
+    mail.textContent = u.email || u.displayName || 'Account collegato';
     btn.textContent = 'Esci';
     if(nota){
-      nota.textContent = 'L\'archivio ti riconosce. Il codice qui sotto va incollato nelle regole di Firestore: da quel momento i tuoi dati li legge e li scrive solo questo account.';
+      nota.textContent = 'Sei tu il proprietario: l\'archivio lo legge e lo scrive solo questo account. Il codice qui sotto va incollato nelle regole di Firestore.';
       nota.className = 'settings-note';
     }
     if(uid){ uid.hidden = false; uid.textContent = 'Copia il codice account'; uid.dataset.uid = u.uid; }
   } else {
-    nome.textContent = 'Nessun account';
-    if(mail) mail.textContent = '';
+    mail.textContent = 'Nessun account';
     btn.textContent = 'Entra';
     if(nota){
       nota.textContent = 'Senza account l\'archivio è leggibile da chiunque conosca l\'indirizzo dell\'app. Entrando con Google diventa tuo.';
@@ -292,6 +297,101 @@ function disegnaAccount(u){
     }
     if(uid){ uid.hidden = true; uid.textContent = ''; }
   }
+  disegnaDrive();   // la nota di Drive confronta i due indirizzi: cambia con questo
+}
+
+// ── LA SORGENTE DEGLI ALBI (Google Drive) ──
+// Sta accanto all'account e NON e' un secondo account: e' il posto da cui
+// arrivano i .cbz/.cbr, in sola lettura. Puo' essere un altro account Google
+// con un'altra mail, ed e' il caso per cui questa riga esiste — prima
+// l'unico posto da cui collegarlo era il pannello nuvola dentro l'archivio,
+// scritto "account" come l'altro: chi apriva le impostazioni non aveva modo
+// di sapere che i due indirizzi potevano (e possono) essere diversi.
+let _driveMod = null;
+let _driveAgganciato = false;
+async function drive(){
+  if(!_driveMod) _driveMod = await import('./drive.js');
+  return _driveMod;
+}
+export async function mostraDrive(){
+  const riga = document.getElementById('drive-riga');
+  if(!riga) return;
+  try{
+    const d = await drive();
+    if(!_driveAgganciato){
+      _driveAgganciato = true;
+      // Collegare o scollegare Drive da un'altra schermata deve aggiornare
+      // anche questa riga: e' lo stesso stato visto da due parti.
+      d.onDriveAuthChange(disegnaDrive);
+    }
+    // Solo il download della libreria di Google, cosi' quando il dito arriva
+    // sul pulsante la finestra puo' partire DENTRO il tocco (vedi drive.js).
+    d.prepareDriveAuth();
+    disegnaDrive();
+  }catch(e){
+    const stato = document.getElementById('drive-mail');
+    if(stato) stato.textContent = 'Non raggiungibile';
+  }
+}
+function disegnaDrive(){
+  const stato = document.getElementById('drive-mail');
+  const btn = document.getElementById('drive-bottone');
+  const nota = document.getElementById('drive-nota');
+  if(!stato || !btn) return;
+  const d = _driveMod;
+  if(!d || !d.isDriveConfigured()){
+    stato.textContent = 'Non configurato';
+    btn.hidden = true;
+    if(nota){ nota.textContent = 'Google Drive non è ancora configurato per questa app.'; nota.className = 'settings-note'; }
+    return;
+  }
+  btn.hidden = false;
+  const collegato = d.isDriveConnected();
+  const mail = collegato ? d.driveAccountEmail() : '';
+  if(collegato){
+    stato.textContent = mail || 'Collegato';
+    btn.textContent = 'Scollega';
+    if(nota){
+      nota.className = 'settings-note';
+      // I due indirizzi diversi NON sono un errore, ed e' importante che la
+      // scheda lo dica: chi tiene gli albi su un secondo account Google,
+      // vedendo due mail diverse senza una parola di spiegazione, pensa di
+      // aver sbagliato accesso e scollega quello giusto.
+      if(mail && _mailInkflow && mail.toLowerCase() === _mailInkflow.toLowerCase())
+        nota.textContent = 'Stesso account con cui sei entrato in Inkflow. Solo lettura: gli albi si leggono, niente viene toccato su Drive.';
+      else if(mail && _mailInkflow)
+        nota.textContent = 'Account diverso da quello di Inkflow, e va bene così: qui conta dove stanno gli albi, non chi sei. Solo lettura.';
+      else
+        nota.textContent = 'Solo lettura: gli albi si leggono, niente viene toccato su Drive.';
+    }
+  } else {
+    stato.textContent = 'Non collegato';
+    btn.textContent = d.daRicollegare() ? 'Ricollega' : 'Collega';
+    if(nota){
+      nota.className = 'settings-note';
+      nota.textContent = d.daRicollegare()
+        ? 'Il collegamento è scaduto (dura un\'ora e si rinnova da solo finché la sessione Google è viva). Gli albi tornano con un tocco.'
+        : 'Da qui arrivano gli albi .cbz e .cbr. Può essere un altro account Google, con un\'altra mail: è solo il posto dove tieni l\'archivio.';
+    }
+  }
+}
+// Stessa regola dell'accesso a Inkflow: la finestra di Google si apre DENTRO
+// il tocco, quindi niente await prima di chiedere il token.
+export function driveTocca(){
+  if(!_driveMod){ mostraDrive(); return; }
+  if(_driveMod.isDriveConnected()){
+    _driveMod.disconnectDrive();
+    disegnaDrive();
+    return;
+  }
+  _driveMod.connectDrive()
+    .then(()=> disegnaDrive())
+    .catch(e=>{
+      disegnaDrive();
+      if(e && /annullat/i.test(e.message || '')) return;   // ripensamento, non guasto
+      infoModal(e && e.message ? e.message : 'Collegamento a Drive non riuscito.',
+                { title:'Google Drive' });
+    });
 }
 // La finestra di Google si apre DENTRO il tocco: niente await prima, o il
 // browser la considera una finestra non richiesta e la blocca (stessa storia

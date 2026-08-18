@@ -1369,13 +1369,21 @@ function renderProfile(){
     btn.innerHTML = CLOUD_ICO;
   }
 
-  // Testata del pannello: nuvola + identità dell'account (o "Non collegato").
+  // Testata del pannello: nuvola + DA DOVE ARRIVANO GLI ALBI.
+  //
+  // Qui c'era scritto "Nessun account", e per chi apriva il pannello era la
+  // stessa frase che l'app usa per l'accesso a Inkflow: sembrava che il login
+  // fosse saltato, o che ce ne fossero due da fare. Sono due cose diverse —
+  // questo e' un magazzino, non un'identita' — e per giunta il magazzino puo'
+  // stare su un ALTRO account Google, con un'altra mail. Quindi il pannello
+  // dice il mestiere ("Albi da Google Drive") e sotto, in piccolo, da quale
+  // indirizzo stanno arrivando.
   const avatar = document.getElementById('rp-avatar');
   const name = document.getElementById('rp-id-name');
   const sub = document.getElementById('rp-id-sub');
   if(avatar){ avatar.innerHTML = CLOUD_ICO; avatar.classList.toggle('connected', connected); }
-  if(name) name.textContent = connected ? (email || 'Account Drive') : 'Nessun account';
-  if(sub) sub.textContent = connected ? 'Google Drive collegato' : 'Drive non collegato';
+  if(name) name.textContent = 'Albi da Google Drive';
+  if(sub) sub.textContent = connected ? (email || 'collegato') : 'non collegato';
 
   // Sezione Drive: azione connetti/scollega.
   const drive = document.getElementById('rp-drive');
@@ -1383,14 +1391,16 @@ function renderProfile(){
     if(!isDriveConfigured()){
       drive.innerHTML = `<div class="rp-note">Google Drive non ancora configurato.</div>`;
     } else if(connected){
-      drive.innerHTML = `<button class="rp-btn rp-btn-ghost" onclick="window.disconnectDriveUI()">Scollega</button>`;
+      drive.innerHTML = `<button class="rp-btn rp-btn-ghost" onclick="window.disconnectDriveUI()">Scollega</button>
+        <div class="rp-note rp-fuori">Sola lettura. Puo' essere un account Google diverso da quello di Inkflow.</div>`;
     } else {
       // "Ricollega" a chi l'aveva gia' collegato: sentirsi proporre la prima
       // connessione quando l'hai gia' fatta sembra che l'app abbia perso i
       // pezzi. Ed e' anche l'unico punto da cui, ora, puo' partire la
       // schermata di Google.
       const rientro = daRicollegare();
-      drive.innerHTML = `<button class="rp-btn rp-btn-primary" onclick="window.connectDriveAndSync()">${DRIVE_ICO} ${rientro ? 'Ricollega Google Drive' : 'Connetti Google Drive'}</button>`;
+      drive.innerHTML = `<button class="rp-btn rp-btn-primary" onclick="window.connectDriveAndSync()">${DRIVE_ICO} ${rientro ? 'Ricollega Google Drive' : 'Connetti Google Drive'}</button>
+        <div class="rp-note rp-fuori">Da qui arrivano i .cbz e i .cbr. Puo' essere un account Google diverso da quello di Inkflow.</div>`;
     }
   }
 }

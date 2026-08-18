@@ -211,7 +211,7 @@
          l'ultima riga. Qui e' fermo, non copre niente, ed e' accanto alla
          ricerca — dove sta la roba di servizio della schermata. -->
     <div class="refs-profile">
-      <button id="refs-profile-btn" class="refs-profile-btn" onclick="window.toggleRefsProfile()" aria-label="Profilo e spazio"></button>
+      <button id="refs-profile-btn" class="refs-profile-btn" onclick="window.toggleRefsProfile()" aria-label="Albi da Drive e spazio disponibile"></button>
       <!-- IL VELO STA QUI DENTRO, e non fuori come prima. Fuori era un
            fratello del bollino, con uno z-index piu' alto: copriva ANCHE il
            pannello, e ogni tocco li' sopra — "Ricollega Google Drive"
@@ -223,12 +223,12 @@
         <div class="rp-head">
           <div class="rp-avatar" id="rp-avatar"></div>
           <div class="rp-id">
-            <div class="rp-id-name" id="rp-id-name">Profilo</div>
+            <div class="rp-id-name" id="rp-id-name">Albi da Google Drive</div>
             <div class="rp-id-sub" id="rp-id-sub"></div>
           </div>
         </div>
         <div class="rp-section">
-          <div class="rp-section-label">Google Drive</div>
+          <div class="rp-section-label">Sorgente degli albi</div>
           <div id="rp-drive"></div>
         </div>
         <div class="rp-section">
@@ -810,13 +810,26 @@
     </div>
 
     <!-- L'ACCOUNT STA IN CIMA AL BACKUP, e non e' un caso: sono la stessa
-         domanda — "questo archivio di chi e'?" — vista da due lati. -->
+         domanda — "questo archivio di chi e'?" — vista da due lati.
+         .
+         E QUI DENTRO CI SONO DUE COSE DIVERSE, non due volte la stessa.
+         Prima gli accessi a Google erano due, in due posti lontani (questo e
+         il pannello nuvola dell'archivio), scritti tutti e due "account": da
+         fuori sembrava che Inkflow chiedesse due volte la stessa cosa, o che
+         si fosse perso il primo accesso. Non e' cosi'. Il primo dice CHI SEI
+         — e' il proprietario dell'archivio, quello che le regole di Firestore
+         riconoscono. Il secondo dice DOVE STANNO GLI ALBI — una cartella su
+         Drive, in sola lettura, che puo' benissimo vivere su un ALTRO account
+         Google con un'altra mail (un archivio tenuto da un'altra parte e' il
+         caso normale, non l'eccezione). Le due righe si chiamano quindi col
+         loro mestiere, hanno icone diverse, e quando i due indirizzi non
+         coincidono la scheda lo dice invece di far sospettare un errore. -->
     <div>
-      <div class="settings-section-label">Account</div>
+      <div class="settings-section-label">Account e sorgenti</div>
       <div class="settings-card">
         <div class="settings-row" id="account-riga">
           <span class="settings-ico"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/></svg></span>
-          <span class="settings-item"><b id="account-nome">Nessun account</b><span id="account-mail"></span></span>
+          <span class="settings-item"><b>Il tuo Inkflow</b><span id="account-mail">Nessun account</span></span>
           <button class="settings-action quiet" id="account-bottone" onclick="window.accountTocca()">Entra</button>
         </div>
         <div class="settings-note" id="account-nota"></div>
@@ -824,6 +837,18 @@
              Firestore: e' l'unico modo che ha il database di riconoscere il
              proprietario. Si copia da qui, non si va a cercarlo in una console. -->
         <button class="settings-action quiet" id="account-uid" hidden onclick="window.copiaUid()"></button>
+
+        <div class="settings-divider"></div>
+
+        <div class="settings-row" id="drive-riga">
+          <!-- Il triangolo e' lo stesso bollino che gia' compare sugli albi
+               arrivati da Drive: chi lo vede sulla copertina lo ritrova qui e
+               capisce al volo di cosa parla questa riga. -->
+          <span class="settings-ico sorgente"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 4.5 3.5 19h17Z"/></svg></span>
+          <span class="settings-item"><b>Albi da Google Drive</b><span id="drive-mail">Non collegato</span></span>
+          <button class="settings-action quiet" id="drive-bottone" onclick="window.driveTocca()">Collega</button>
+        </div>
+        <div class="settings-note" id="drive-nota"></div>
       </div>
     </div>
 

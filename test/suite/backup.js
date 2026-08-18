@@ -48,6 +48,10 @@ module.exports = () => suite("Backup — l'archivio esce da qui, e ci rientra", 
     await page.route('**://fonts.gstatic.com/**', r=> r.abort());
     await page.route('**://www.gstatic.com/firebasejs/**', r=> r.fulfill({
       status:200, contentType:'text/javascript', body: SDK_FINTO }));
+    // La libreria di Google per Drive non serve a queste prove: la riga di
+    // Drive si guarda con un token scritto a mano in localStorage, che e'
+    // esattamente cio' che l'app rilegge all'avvio.
+    await page.route('**://accounts.google.com/**', r=> r.abort());
   },
 }, async ({ page, ok, sezione }) => {
 
@@ -200,7 +204,7 @@ module.exports = () => suite("Backup — l'archivio esce da qui, e ci rientra", 
   });
   await page.waitForTimeout(300);
   const fuori = await page.evaluate(()=>({
-    nome: (document.getElementById('account-nome')||{}).textContent,
+    nome: (document.getElementById('account-mail')||{}).textContent,
     bottone: (document.getElementById('account-bottone')||{}).textContent,
     nota: (document.getElementById('account-nota')||{}).textContent || '',
     avviso: (document.getElementById('account-nota')||{}).className || '',
@@ -219,7 +223,7 @@ module.exports = () => suite("Backup — l'archivio esce da qui, e ci rientra", 
   // E il pulsante non deve finire SOPRA il nome: dentro una riga e' largo
   // quanto la parola, non quanto la scheda.
   const sovrapposti = await page.evaluate(()=>{
-    const n = document.getElementById('account-nome').getBoundingClientRect();
+    const n = document.getElementById('account-mail').getBoundingClientRect();
     const b = document.getElementById('account-bottone').getBoundingClientRect();
     return { scavalca: b.left < n.right, largo: Math.round(b.width) };
   });
@@ -236,24 +240,102 @@ module.exports = () => suite("Backup — l'archivio esce da qui, e ci rientra", 
     m.accountTocca();
   });
   await tocca();
-  await page.waitForFunction(()=> /giovanni/i.test((document.getElementById('account-nome')||{}).textContent||''),
+  await page.waitForFunction(()=> /giovanni/i.test((document.getElementById('account-mail')||{}).textContent||''),
     { timeout: 8000 });
   const dentro = await page.evaluate(()=>({
-    nome: (document.getElementById('account-nome')||{}).textContent,
     mail: (document.getElementById('account-mail')||{}).textContent,
     bottone: (document.getElementById('account-bottone')||{}).textContent,
     uid: (document.getElementById('account-uid')||{}).dataset.uid,
     uidVisibile: (document.getElementById('account-uid')||{}).hidden === false,
     avviso: (document.getElementById('account-nota')||{}).className || '',
   }));
-  ok('compare il nome di chi e\' entrato', /giovanni/i.test(dentro.nome||''), dentro);
-  ok('e la sua mail', /@/.test(dentro.mail||''), dentro);
+  ok('compare l\'indirizzo di chi e\' entrato', /giovanni/i.test(dentro.mail||''), dentro);
+  ok('scritto per intero, mail compresa', /@/.test(dentro.mail||''), dentro);
   ok('il pulsante adesso serve a uscire', /esci/i.test(dentro.bottone||''), dentro);
   ok('la riga non e\' piu\' un avviso', !/avviso/.test(dentro.avviso), dentro);
   // L'UID e' l'unica cosa che le regole di Firestore possono controllare: se
   // non si riesce a copiarlo da qui, l'archivio resta aperto per pigrizia.
   ok('e il codice da mettere nelle regole si puo\' copiare',
      dentro.uidVisibile && !!dentro.uid, dentro);
+
+  sezione('e Drive non e\' un secondo accesso: e\' il posto da cui arrivano gli albi');
+  // Il guaio da cui nasce questa sezione: due righe con la parola "account" e
+  // due volte "Entra con Google" facevano pensare a un accesso fallito o
+  // doppio. Sono due mestieri diversi, e uno dei due — la cartella degli albi
+  // — puo' stare su un ALTRO account Google. Qui si controlla che la scheda lo
+  // dica, invece di lasciarlo indovinare.
+  await page.evaluate(async ()=>{
+    const m = await import('/js/settings.js');
+    await m.mostraDrive();
+  });
+  await page.waitForTimeout(200);
+  const sorgente = await page.evaluate(()=>({
+    titolo: (document.querySelector('#drive-riga .settings-item b')||{}).textContent || '',
+    identita: (document.querySelector('#account-riga .settings-item b')||{}).textContent || '',
+    stato: (document.getElementById('drive-mail')||{}).textContent || '',
+    bottone: (document.getElementById('drive-bottone')||{}).textContent || '',
+    nota: (document.getElementById('drive-nota')||{}).textContent || '',
+    coloreId: getComputedStyle(document.querySelector('#account-riga .settings-ico')).color,
+    coloreDrive: getComputedStyle(document.querySelector('#drive-riga .settings-ico')).color,
+  }));
+  ok('le due righe si chiamano col loro mestiere',
+     /il tuo inkflow/i.test(sorgente.identita) && /albi da google drive/i.test(sorgente.titolo), sorgente);
+  ok('e nessuna delle due si chiama solo "account"',
+     !/^account/i.test(sorgente.identita.trim()) && !/account/i.test(sorgente.titolo), sorgente);
+  // A colpo d'occhio, prima di leggere: due icone di colore diverso.
+  ok('si distinguono anche senza leggerle', sorgente.coloreId !== sorgente.coloreDrive, sorgente);
+  ok('senza collegamento lo dice', /non collegato/i.test(sorgente.stato), sorgente);
+  ok('e il pulsante propone di collegarlo', /^collega$/i.test(sorgente.bottone.trim()), sorgente);
+  ok('spiegando che puo\' essere un altro account Google',
+     /altro account google/i.test(sorgente.nota), sorgente);
+
+  // Collegato con un indirizzo DIVERSO da quello di Inkflow: e' il caso per
+  // cui esiste tutta questa distinzione — un archivio tenuto altrove.
+  const diverso = await page.evaluate(async ()=>{
+    localStorage.setItem('inkflow-drive-token', JSON.stringify({
+      access_token:'finto', expiresAt: Date.now() + 3600000, email:'archivio.albi@gmail.com' }));
+    const m = await import('/js/settings.js');
+    await m.mostraDrive();
+    return {
+      stato: (document.getElementById('drive-mail')||{}).textContent || '',
+      nota: (document.getElementById('drive-nota')||{}).textContent || '',
+      bottone: (document.getElementById('drive-bottone')||{}).textContent || '',
+      inkflow: (document.getElementById('account-mail')||{}).textContent || '',
+    };
+  });
+  ok('collegato, mostra da quale indirizzo arrivano gli albi',
+     /archivio\.albi@gmail\.com/.test(diverso.stato), diverso);
+  ok('e i due indirizzi restano diversi, senza che uno scacci l\'altro',
+     /giovanni/i.test(diverso.inkflow), diverso);
+  ok('la scheda dice che va bene cosi\', invece di far sospettare un errore',
+     /diverso da quello di inkflow/i.test(diverso.nota), diverso);
+  ok('e il pulsante adesso scollega', /scollega/i.test(diverso.bottone), diverso);
+
+  // Stesso indirizzo: lo dice, cosi' non si resta a confrontare due mail.
+  const stesso = await page.evaluate(async ()=>{
+    window.driveTocca();                       // scollega
+    localStorage.setItem('inkflow-drive-token', JSON.stringify({
+      access_token:'finto', expiresAt: Date.now() + 3600000, email:'giovanni@example.com' }));
+    const m = await import('/js/settings.js');
+    await m.mostraDrive();
+    return { nota: (document.getElementById('drive-nota')||{}).textContent || '' };
+  });
+  ok('con lo stesso account di Inkflow lo scrive', /stesso account/i.test(stesso.nota), stesso);
+
+  const scollegato = await page.evaluate(async ()=>{
+    window.driveTocca();
+    const m = await import('/js/settings.js');
+    await m.mostraDrive();
+    return {
+      stato: (document.getElementById('drive-mail')||{}).textContent || '',
+      resta: localStorage.getItem('inkflow-drive-token'),
+      accesso: (document.getElementById('account-mail')||{}).textContent || '',
+    };
+  });
+  ok('scollegare Drive butta via il suo token', !scollegato.resta, scollegato);
+  ok('ma non tocca l\'accesso a Inkflow', /giovanni/i.test(scollegato.accesso), scollegato);
+  ok('e la riga torna a dire che non c\'e\' collegamento',
+     /non collegato/i.test(scollegato.stato), scollegato);
 
   sezione('e se manca un pezzo di configurazione, lo dice a parole');
   // Il primo tentativo di entrare finisce quasi sempre contro un passaggio non
@@ -274,10 +356,10 @@ module.exports = () => suite("Backup — l'archivio esce da qui, e ci rientra", 
 
   sezione('e uscendo si torna come prima');
   await tocca();
-  await page.waitForFunction(()=> /nessun account/i.test((document.getElementById('account-nome')||{}).textContent||''),
+  await page.waitForFunction(()=> /nessun account/i.test((document.getElementById('account-mail')||{}).textContent||''),
     { timeout: 8000 });
   const uscito = await page.evaluate(()=>({
-    nome: (document.getElementById('account-nome')||{}).textContent,
+    nome: (document.getElementById('account-mail')||{}).textContent,
     uidNascosto: (document.getElementById('account-uid')||{}).hidden,
   }));
   ok('torna "Nessun account"', /nessun account/i.test(uscito.nome||''), uscito);

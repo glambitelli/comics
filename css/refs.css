@@ -634,6 +634,10 @@ body.is-touch .refs-lightbox-nav{display:none}
 .rp-section+.rp-section{border-top:1px solid var(--sand2)}
 .rp-section-label{font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--ink3);margin-bottom:9px}
 .rp-note{font-size:12px;color:var(--ink3)}
+/* La riga che dice "questo e' un magazzino, non il tuo accesso a Inkflow":
+   sta sotto il pulsante, piccola, e serve a chi apre il pannello e si chiede
+   perche' l'app gli chieda di nuovo un account Google. */
+.rp-fuori{margin-top:9px;line-height:1.45;font-size:11px}
 /* L'esito del collegamento, scritto dove si e' premuto: la striscia di stato
    in cima alla schermata resta dietro al pannello, e un errore che non si vede
    equivale a un pulsante rotto. */
