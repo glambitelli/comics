@@ -1,5 +1,6 @@
 import { getProject, currentId , showUndoToast } from './state.js';
 import { scheduleSave } from './firebase.js';
+import { esc } from './testo.js';
 // Pigro: scriptment.js (25 KB) serve solo al Breakdown, non a ogni apertura
 // di un progetto. Il modulo si carica al primo clic e resta in cache.
 let _scriptmentMod = null;
@@ -490,7 +491,7 @@ function renderScreenplay(p){
   ];
 
   if(pp.inciting&&pp.inciting.trim()){
-    html+=`<div style="margin-bottom:18px"><div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#4ab8d8;margin-bottom:5px">Inciting Incident</div><div style="font-size:14px;line-height:1.7;color:var(--ink);white-space:pre-wrap">${escHtml(pp.inciting)}</div></div>`;
+    html+=`<div style="margin-bottom:18px"><div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#4ab8d8;margin-bottom:5px">Inciting Incident</div><div style="font-size:14px;line-height:1.7;color:var(--ink);white-space:pre-wrap">${esc(pp.inciting)}</div></div>`;
   }
 
   ACTS.forEach((act,ai)=>{
@@ -500,13 +501,13 @@ function renderScreenplay(p){
       html+=`<div style="font-size:13px;color:var(--ink3);font-style:italic;margin-bottom:8px">Nessuna scena</div>`;
     }
     scenes.forEach((s,si)=>{
-      html+=`<div style="display:flex;gap:10px;margin-bottom:12px"><div style="flex-shrink:0;font-size:12px;font-weight:700;color:${act.color};min-width:20px">${si+1}.</div><div style="flex:1;font-size:14px;line-height:1.7;color:var(--ink);white-space:pre-wrap">${escHtml(s)}</div></div>`;
+      html+=`<div style="display:flex;gap:10px;margin-bottom:12px"><div style="flex-shrink:0;font-size:12px;font-weight:700;color:${act.color};min-width:20px">${si+1}.</div><div style="flex:1;font-size:14px;line-height:1.7;color:var(--ink);white-space:pre-wrap">${esc(s)}</div></div>`;
     });
     if(ai===0&&pp.pp1&&pp.pp1.trim()){
-      html+=`<div style="margin:14px 0;padding:10px 14px;background:#fff4f2;border-left:3px solid var(--coral);border-radius:0 8px 8px 0"><div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--coral);margin-bottom:4px">⬡ Plot Point 1</div><div style="font-size:14px;line-height:1.7;color:var(--ink);white-space:pre-wrap">${escHtml(pp.pp1)}</div></div>`;
+      html+=`<div style="margin:14px 0;padding:10px 14px;background:#fff4f2;border-left:3px solid var(--coral);border-radius:0 8px 8px 0"><div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--coral);margin-bottom:4px">⬡ Plot Point 1</div><div style="font-size:14px;line-height:1.7;color:var(--ink);white-space:pre-wrap">${esc(pp.pp1)}</div></div>`;
     }
     if(ai===1&&pp.pp2&&pp.pp2.trim()){
-      html+=`<div style="margin:14px 0;padding:10px 14px;background:#fff4f2;border-left:3px solid var(--coral);border-radius:0 8px 8px 0"><div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--coral);margin-bottom:4px">⬡ Plot Point 2</div><div style="font-size:14px;line-height:1.7;color:var(--ink);white-space:pre-wrap">${escHtml(pp.pp2)}</div></div>`;
+      html+=`<div style="margin:14px 0;padding:10px 14px;background:#fff4f2;border-left:3px solid var(--coral);border-radius:0 8px 8px 0"><div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--coral);margin-bottom:4px">⬡ Plot Point 2</div><div style="font-size:14px;line-height:1.7;color:var(--ink);white-space:pre-wrap">${esc(pp.pp2)}</div></div>`;
     }
   });
 
@@ -514,10 +515,6 @@ function renderScreenplay(p){
   content.innerHTML=html;
   wrap.appendChild(content);
   board.appendChild(wrap);
-}
-
-function escHtml(s){
-  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
 // ── SCENE — quaderno di scrittura libera con promozione alla board ──

@@ -2,12 +2,12 @@ import { getProject, currentId, PHASE_NAMES } from './state.js';
 import { calcPct, getPhaseIndex } from './progress.js';
 import { calcVelocity, calcDaysLeft } from './velocity.js';
 import { renderScreenplayHTML } from './scriptment.js';
+import { esc } from './testo.js';
 
 // ── EXPORT REPORT — documento unico: produzione + storia completa ──
 export function exportPDF(){
   const p = getProject(currentId); if(!p) return;
   const color = p.color||'#4ab8d8';
-  const esc = s => (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   const tavDone = Object.values(p.tavole||{}).filter(v=>v>=4).length;
   const pct = calcPct(p);
   const phase = PHASE_NAMES[getPhaseIndex(p)];
@@ -174,7 +174,6 @@ export function exportPDF(){
 // ── EXPORT COPIONE (Sequenza) — formato sceneggiatura impaginato ──
 export function exportScreenplay(){
   const p = getProject(currentId); if(!p) return;
-  const esc = s => (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   const sm = p.scriptment || {};
   const text = sm.text || '';
 

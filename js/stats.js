@@ -1,5 +1,6 @@
 import { projects , loadJSON } from './state.js';
 import { getStreak } from './evening.js';
+import { esc, escAttr } from './testo.js';
 
 // ── GLIFI MINIMALI (SVG, currentColor) — sostituiscono le emoji dei trofei ──
 const GLYPHS = {
@@ -346,7 +347,7 @@ function renderTrophyCase(){
     const list=cats[cat];
     const got=list.filter(t=>t.done).length;
     const col=TROPHY_CAT_COLOR[cat]||'#c8930f';
-    html+=`<div class="trophy-cat">${escHtmlStats(cat)} <b>${got}/${list.length}</b></div>`;
+    html+=`<div class="trophy-cat">${esc(cat)} <b>${got}/${list.length}</b></div>`;
     html+='<div class="trophy-grid">';
     list.forEach(t=>{
       const isSecret = t.secret && !t.done;
@@ -356,9 +357,9 @@ function renderTrophyCase(){
       const icon = isSecret ? 'domanda' : t.icon;
       const tip  = isSecret ? 'Trofeo segreto — scoprilo lavorando' : (t.done ? t.name+' — '+t.desc : t.desc);
       const style = t.done ? ` style="--bdg-c:${col}"` : '';
-      html+=`<div class="trophy-item${t.done?' earned':''}" data-tip="${escAttrStats(tip)}" title="${escAttrStats(tip)}">
+      html+=`<div class="trophy-item${t.done?' earned':''}" data-tip="${escAttr(tip)}" title="${escAttr(tip)}">
         <span class="bdg bdg-lg${t.done?' is-on':''}"${style}>${glyphSvg(icon)}</span>
-        <span class="trophy-name">${escHtmlStats(name)}</span>
+        <span class="trophy-name">${esc(name)}</span>
       </div>`;
     });
     html+='</div>';
@@ -396,21 +397,14 @@ function renderProjectBadges(){
     row.innerHTML=`
       <div class="proj-badge-head">
         <span class="proj-badge-dot" style="background:${color}"></span>
-        <span class="proj-badge-title">${escHtmlStats(p.title)}</span>
+        <span class="proj-badge-title">${esc(p.title)}</span>
         <span class="proj-badge-count">${earned}/${badges.length}</span>
       </div>
       <div class="proj-badge-icons">
-        ${badges.map(b=>`<div class="proj-badge${b.done?' earned':''}" title="${escAttrStats(b.name)}"><span class="bdg bdg-sm${b.done?' is-on':''}">${glyphSvg(b.done?b.icon:'lucchetto')}</span><span class="proj-badge-lbl">${escHtmlStats(b.name)}</span></div>`).join('')}
+        ${badges.map(b=>`<div class="proj-badge${b.done?' earned':''}" title="${escAttr(b.name)}"><span class="bdg bdg-sm${b.done?' is-on':''}">${glyphSvg(b.done?b.icon:'lucchetto')}</span><span class="proj-badge-lbl">${esc(b.name)}</span></div>`).join('')}
       </div>`;
     cont.appendChild(row);
   });
-}
-
-function escHtmlStats(s){
-  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
-function escAttrStats(s){
-  return escHtmlStats(s).replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
 function renderHeatmap(){

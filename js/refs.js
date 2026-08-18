@@ -6,6 +6,7 @@
 import { db, collection, doc, onSnapshot, setDoc, deleteDoc, serverTimestamp } from './firebase.js';
 import { haptic, showUndoToast, projects, currentId } from './state.js';
 import { compressImageFile, dataUrlToBlob } from './imgcompress.js';
+import { esc } from './testo.js';
 import { uploadToCloudinary, cldResize } from './cloudinary.js';
 import { promptModal, promptCampi, confirmModal, actionMenu } from './dialogs.js';
 import {
@@ -118,7 +119,6 @@ const lightboxUrl = url => url;
 function genId(){
   return Date.now().toString(36) + Math.random().toString(36).slice(2,8);
 }
-function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 // Un nome che finisce DENTRO un onclick inline, cioe' dentro una stringa
 // JavaScript dentro un attributo HTML: due livelli di virgolette, e un tag
 // scritto da chi usa l'app puo' contenerle entrambe. Prima si sfuggiva solo

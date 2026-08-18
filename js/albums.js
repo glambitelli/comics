@@ -34,6 +34,7 @@ import { uploadToCloudinary } from './cloudinary.js';
 import { getDriveAlbumFile, ensureDriveConnected, isDownloadCancelled } from './drive.js';
 import { openRemoteZipSource, openBlobZipSource } from './zipremote.js';
 import { haptic } from './state.js';
+import { escAttr } from './testo.js';
 import { actionMenu, promptModal } from './dialogs.js';
 import {
   ZOOM_IN, ZOOM_MAX, panGain, edgeSpring, EDGE_COMMIT, EDGE_HANDOFF,
@@ -69,11 +70,6 @@ const _collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'ba
 // I nomi delle cartelle li scrive l'utente e finiscono dentro HTML (pastiglie
 // di destinazione del ritaglio): vanno sempre neutralizzati, apici doppi
 // compresi perché entrano anche in attributi.
-function escAttr(s){
-  return String(s == null ? '' : s)
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
-}
 
 // Ordinamento "naturale": p2.jpg prima di p10.jpg (il .sort() lessicografico
 // sbaglierebbe). Cruciale, altrimenti le pagine escono in ordine sparso.

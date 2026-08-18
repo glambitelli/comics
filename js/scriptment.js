@@ -5,6 +5,7 @@
 import { getProject, currentId } from './state.js';
 import { scheduleSave } from './firebase.js';
 import { getScriptment } from './home.js';
+import { esc } from './testo.js';
 
 const FONT_CLASS = {
   courier: 'sm-font-courier',
@@ -134,7 +135,7 @@ function editorRender(el, text){
 function editorSetPlain(el, text){
   if(!el) return;
   const lines = (text||'').split('\n');
-  el.innerHTML = lines.map(l=> l==='' ? '<div class="sp-blank"></div>' : `<div class="sp-action">${l.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>`).join('');
+  el.innerHTML = lines.map(l=> l==='' ? '<div class="sp-blank"></div>' : `<div class="sp-action">${esc(l)}</div>`).join('');
 }
 
 
@@ -518,7 +519,6 @@ export function parseScreenplay(text){
 
 // Genera HTML stilizzato (centratura via CSS) dal testo screenplay.
 export function renderScreenplayHTML(text){
-  const esc = (s)=> s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   const nodes = parseScreenplay(text);
   let html = '';
   for(const n of nodes){

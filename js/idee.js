@@ -23,6 +23,7 @@
 import { db, collection, doc, onSnapshot, setDoc, deleteDoc } from './firebase.js';
 import { haptic, showUndoToast } from './state.js';
 import { actionMenu } from './dialogs.js';
+import { esc } from './testo.js';
 
 const IDEE_COL = 'ideas';
 
@@ -45,10 +46,6 @@ let _apertaId = null;      // idea aperta nell'editor, o null
 function genId(){
   return Date.now().toString(36) + Math.random().toString(36).slice(2,8);
 }
-function esc(s){
-  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
 // Il titolo di un'idea è la sua prima riga non vuota. Nessun campo separato:
 // chiedere un titolo prima di lasciar scrivere è esattamente l'attrito che
 // impedisce di annotare le idee al volo.
