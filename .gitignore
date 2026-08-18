@@ -3,4 +3,10 @@
 test/fixtures/
 
 node_modules/
-package-lock.json
+
+# package-lock.json INVECE SI TIENE. Era escluso, ed e' stato un errore: senza,
+# le prove automatiche installano ogni volta l'ultima versione di Playwright
+# che passa di li'. Il giorno che quella versione cambia qualcosa, le prove
+# diventano rosse per una ragione che non c'entra niente con l'app — e sembra
+# un guasto nostro. Con il lock, la macchina che prova monta esattamente
+# quello che monta questo computer.

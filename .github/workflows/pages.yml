@@ -47,7 +47,52 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # ── PRIMA SI PROVA, POI SI PUBBLICA ──
+  #
+  # Le prove esistono da mesi ma giravano solo quando qualcuno si ricordava di
+  # lanciarle: un push distratto finiva online lo stesso, e il difetto lo
+  # trovava Giovanni sul telefono. Adesso stanno DAVANTI alla pubblicazione —
+  # se sono rosse, il sito non si aggiorna: `build` ha bisogno di `prove`, e
+  # `deploy` ha bisogno di `build`.
+  #
+  # Costano qualche minuto ad ogni pubblicazione. È il prezzo giusto: un
+  # aggiornamento arriva sul telefono qualche minuto dopo, e in cambio non ci
+  # arriva rotto.
+  prove:
+    runs-on: ubuntu-latest
+    steps:
+      # Due commit di storia: al controllo della cache serve anche quello
+      # PRIMA, per sapere se il numero è stato alzato (vedi controlla-cache.js).
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Chi tocca CSS o JS deve alzare la cache
+        run: node .github/scripts/controlla-cache.js "${{ github.event.before }}" "${{ github.sha }}"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # Il browser delle prove pesa ~150 MB: scaricarlo ad ogni pubblicazione
+      # sarebbe un minuto buttato. La chiave è la versione di Playwright scritta
+      # nel lock: cambia lei, si riscarica; se no si riusa quello di ieri.
+      - name: Riusa il browser delle prove
+        id: cache-browser
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ hashFiles('package-lock.json') }}
+
+      - run: npm ci
+
+      - name: Scarica Chromium (solo se non è già in cache)
+        run: npx playwright install --with-deps chromium
+
+      - run: npm test
+
   build:
+    needs: prove
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
