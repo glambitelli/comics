@@ -2068,15 +2068,28 @@ export function refsImageMenu(anchorEl, imageId){
   // Etichette corte: l'icona accanto dice gia' di che cosa si parla, e
   // "Collega a un progetto…" con i puntini di sospensione era la voce piu'
   // lunga di tutta l'app per dire una cosa di due parole.
-  actionMenu(anchorEl, [
-    { label:'Collega a progetto', icon:'progetto', onSelect:()=>promptLinkProject(id, anchorEl) },
-    { label:'Tag', icon:'tag', onSelect:()=>promptTagImage(id, anchorEl) },
-    { label:'Sposta', icon:'cartella', onSelect:()=>promptMoveImage(id, anchorEl) },
-    { label: eTavola ? 'Segna come frammento' : 'Segna come tavola',
+  // NIENTE DOPPIONI NELLO STESSO POSTO. A schermo intero la catenella per
+  // collegare a un progetto sta gia' li', nella pastiglia in basso, e mostra
+  // pure il colore del progetto collegato: ripeterla nel menu accanto fa
+  // sembrare che siano due cose diverse. Sulla griglia invece la catenella non
+  // c'e' — si arriva al menu col tocco prolungato — e quella voce serve.
+  const daSchermoIntero = !!(anchorEl && anchorEl.closest && anchorEl.closest('#refs-lightbox'));
+  const voci = [];
+  if(!daSchermoIntero)
+    voci.push({ label:'Collega a progetto', icon:'progetto', onSelect:()=>promptLinkProject(id, anchorEl) });
+  voci.push({ label:'Tag', icon:'tag', onSelect:()=>promptTagImage(id, anchorEl) });
+  // "Sposta" e "Segna come tavola" sembravano la stessa cosa scritta in due
+  // modi, e la prima non diceva sposta DOVE. Sono due mestieri diversi: una
+  // cambia la CARTELLA (da Bergara a Otomo), l'altra dice COS'E' l'immagine —
+  // un frammento o una pagina intera — e quindi su quale scaffale sta, dentro
+  // la stessa cartella. Restano corte apposta: l'icona accanto fa il resto,
+  // e nessuna voce di questo menu supera i venti caratteri.
+  voci.push({ label:'Cambia cartella', icon:'cartella', onSelect:()=>promptMoveImage(id, anchorEl) });
+  voci.push({ label: eTavola ? 'Segna come frammento' : 'Segna come tavola',
       icon: eTavola ? 'ritaglio' : 'tavola',
-      onSelect:()=>{ setRefTavola(id, !eTavola); haptic('done'); } },
-    { label:'Elimina', icon:'elimina', danger:true, onSelect:()=>deleteRefImageWithUndo(id) },
-  ]);
+      onSelect:()=>{ setRefTavola(id, !eTavola); haptic('done'); } });
+  voci.push({ label:'Elimina', icon:'elimina', danger:true, onSelect:()=>deleteRefImageWithUndo(id) });
+  actionMenu(anchorEl, voci);
 }
 
 // Il menu dei tag di un'immagine: quelli che ci sono gia' con la spunta, tutti

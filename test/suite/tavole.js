@@ -209,10 +209,40 @@ module.exports = () => suite("References — Frammenti e Tavole dentro una carte
     await window.refsImageMenu(el, 't0');
     return Array.from(document.querySelectorAll('.ink-action-menu button')).map(b=>b.textContent);
   });
-  ok('su un ritaglio propone di segnarlo come tavola',
+  ok('su un frammento propone di segnarlo come tavola',
      vociRitaglio.some(v=>/come tavola/i.test(v)), vociRitaglio);
   ok('su una tavola propone il contrario',
      vociTavola.some(v=>/come frammento/i.test(v)), vociTavola);
+  // E le due voci che sembravano la stessa cosa adesso dicono dove portano:
+  // una cambia cartella, l'altra cambia scaffale.
+  ok('e l\'altra voce dice chiaro che cambia CARTELLA, non scaffale',
+     vociTavola.some(v=>/cambia cartella/i.test(v)) &&
+     !vociTavola.some(v=>/^sposta$/i.test(v.trim())), vociTavola);
+
+  // A schermo intero la catenella per collegare a un progetto sta gia' nella
+  // pastiglia in basso: ripeterla nel menu accanto faceva sembrare due cose
+  // diverse. Sulla griglia invece la catenella non c'e' e la voce deve restare.
+  await page.evaluate(()=> document.body.dispatchEvent(new MouseEvent('click',{bubbles:true})));
+  await page.waitForTimeout(150);
+  const vociLightbox = await page.evaluate(async ()=>{
+    window.refs.openRefLightbox('r1');
+    await new Promise(r=>setTimeout(r,300));
+    const piu = document.querySelector('#refs-lightbox .refs-lightbox-more');
+    await window.refsImageMenu(piu);
+    return { voci: Array.from(document.querySelectorAll('.ink-action-menu button')).map(b=>b.textContent),
+             catenella: !!document.getElementById('refs-lightbox-link') };
+  });
+  ok('a schermo intero la catenella c\'e\'', vociLightbox.catenella, vociLightbox);
+  ok('e il menu non la ripete',
+     !vociLightbox.voci.some(v=>/collega a progetto/i.test(v)), vociLightbox.voci);
+  ok('mentre tutto il resto resta raggiungibile',
+     vociLightbox.voci.some(v=>/tag/i.test(v)) &&
+     vociLightbox.voci.some(v=>/cambia cartella/i.test(v)) &&
+     vociLightbox.voci.some(v=>/elimina/i.test(v)), vociLightbox.voci);
+  ok('e dalla griglia invece la voce c\'e\', perche\' li\' la catenella non esiste',
+     vociTavola.some(v=>/collega a progetto/i.test(v)), vociTavola);
+  await page.evaluate(()=> window.refs.closeRefLightbox());
+  await page.waitForTimeout(300);
 
   sezione('una tavola si collega a un progetto come un ritaglio qualunque');
   // Nulla di dedicato: ritagli e tavole passano dalla STESSA lightbox e dallo
