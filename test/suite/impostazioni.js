@@ -345,4 +345,84 @@ module.exports = () => suite("Impostazioni — il pannello dice solo quello che 
        scorrendo.aperto && !scorrendo.mosso, scorrendo);
   }
 
+  sezione('e chiudendolo col dito non lampeggia');
+  // Il difetto raccontato cosi': "per un attimo, prima di sparire, fa uno
+  // strano lampeggio". Era il foglio che tornava su a schermo intero per
+  // qualche istante e poi ricadeva giu': gli stili messi dal dito venivano
+  // tolti PRIMA che il pannello perdesse la classe che lo tiene aperto.
+  // Qui si guarda il bordo alto del foglio ad ogni fotogramma: una volta
+  // cominciata la discesa, non deve mai piu' risalire.
+  await apri();
+  await page.waitForTimeout(400);
+  const corsa = await page.evaluate(async ()=>{
+    const el = document.getElementById('settings-panel');
+    el.scrollTop = 0;          // il gesto parte dal bordo alto della lista
+    // LA CRONOLOGIA CON CALMA. La chiusura passa da history.back(), e quanto
+    // ci mette a rispondere non lo decide l'app: qui sul computer risponde
+    // entro il fotogramma, sul telefono ci mette molto di piu'. Il lampo si
+    // vedeva proprio in quella finestra, quindi per provarlo la finestra si
+    // allarga apposta — se no la prova direbbe "tutto a posto" su una
+    // macchina veloce e non prenderebbe mai il difetto.
+    const veroBack = history.back.bind(history);
+    history.back = ()=> setTimeout(veroBack, 150);
+    const r = el.getBoundingClientRect();
+    const x = r.left + r.width/2, y = r.top + 30;
+    const t = (cy)=> [new Touch({identifier:1, target:el, clientX:x, clientY:cy})];
+    const posizioni = [];
+    let attivo = true;
+    const velo = document.getElementById('settings-overlay');
+    const veli = [];
+    const scoperti = [];
+    const campiona = ()=>{
+      if(!attivo) return;
+      posizioni.push(Math.round(el.getBoundingClientRect().top));
+      veli.push(parseFloat(getComputedStyle(velo).opacity));
+      // Il fotogramma incriminato: il pannello e' ancora "aperto" (cioe' la
+      // classe che lo tiene a schermo intero c'e') ma il foglio non ha piu'
+      // addosso la posizione lasciata dal dito. In quell'istante il pannello
+      // e' tornato su, ed e' esattamente quello che si vedeva lampeggiare.
+      if(el.classList.contains('open') && !el.style.transform) scoperti.push(posizioni.length);
+      requestAnimationFrame(campiona);
+    };
+    el.dispatchEvent(new TouchEvent('touchstart',{bubbles:true, cancelable:true, touches:t(y), targetTouches:t(y), changedTouches:t(y)}));
+    for(let i=1;i<=6;i++){
+      const cy = y + 160*i/6;
+      el.dispatchEvent(new TouchEvent('touchmove',{bubbles:true, cancelable:true, touches:t(cy), targetTouches:t(cy), changedTouches:t(cy)}));
+    }
+    campiona();
+    el.dispatchEvent(new TouchEvent('touchend',{bubbles:true, cancelable:true, touches:[], targetTouches:[], changedTouches:t(y+160)}));
+    await new Promise(r=>setTimeout(r, 1100));
+    attivo = false;
+    history.back = veroBack;
+    return { posizioni, veli, scoperti, alto: window.innerHeight,
+             aperto: el.classList.contains('open') };
+  });
+  // Il fondo dello schermo e' la posizione "chiuso": una volta arrivati
+  // almeno a meta' strada, tornare in cima e' il lampo.
+  const meta = corsa.alto * 0.5;
+  let sceso = false, risalito = false;
+  for(const p of corsa.posizioni){
+    if(p > meta) sceso = true;
+    else if(sceso && p < corsa.alto * 0.25) risalito = true;
+  }
+  ok('il foglio scende e basta', sceso, corsa.posizioni.slice(0, 12));
+  ok('senza mai tornare su a schermo intero per un fotogramma',
+     !risalito, corsa.posizioni);
+  ok('e alla fine il pannello e\' chiuso', !corsa.aperto, corsa.aperto);
+  // IL LAMPO VERO ERA IL VELO. Sparito il foglio, il fondo scuro dietro
+  // tornava opaco per un istante prima di dissolversi: si vedeva la schermata
+  // sotto che si rabbuiava di colpo a pannello ormai chiuso.
+  let sceso2 = false, tornato = false;
+  for(const o of corsa.veli){
+    if(o < 0.35) sceso2 = true;
+    else if(sceso2 && o > 0.6) tornato = true;
+  }
+  ok('anche il fondo scuro si dissolve e basta', sceso2 && !tornato, corsa.veli);
+  // E la causa, non solo l'effetto: quanto dura la chiusura dipende da quanto
+  // ci mette la cronologia a rispondere — sul telefono molto piu' che qui —
+  // quindi il lampo si vede o no a seconda della fortuna. Questo controllo
+  // invece guarda la condizione che lo produce, e non dipende dai tempi.
+  ok('e in nessun fotogramma il foglio resta aperto senza posizione',
+     corsa.scoperti.length === 0, corsa.scoperti);
+
 });

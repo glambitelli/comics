@@ -578,9 +578,25 @@ function montaTrascinamento(){
       pannello.style.transform = 'translateY(100%)';
       if(velo){ velo.style.transition = 'opacity .22s'; velo.style.opacity = '0'; }
       setTimeout(()=>{
-        rimetti();
-        if(velo) velo.style.transition = '';
+        // PRIMA si chiude, POI si tolgono gli stili messi a mano. Nell'ordine
+        // opposto — ed era l'ordine di prima — c'era un lampo: togliendo la
+        // translateY messa dal dito mentre il pannello ha ancora addosso la
+        // classe "open" (che vale translateY(0)), il foglio ricompariva a
+        // schermo intero per qualche istante, e solo dopo scendeva.
+        //
+        // E "poi" non vuol dire mezzo secondo dopo: la chiusura passa dalla
+        // cronologia (history.back), che risponde quando vuole lui. Quindi si
+        // aspetta il fatto — la classe che sparisce — e non un tempo.
         closeSettings();
+        const pulisci = (giri = 0)=>{
+          if(pannello.classList.contains('open') && giri < 40){
+            requestAnimationFrame(()=> pulisci(giri + 1));
+            return;
+          }
+          rimetti();
+          if(velo) velo.style.transition = '';
+        };
+        pulisci();
       }, 220);
       return;
     }
