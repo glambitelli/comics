@@ -12,6 +12,12 @@ const SDK_FINTO = fs.readFileSync(path.join(__dirname, '..', 'finti', 'firebase-
 module.exports = () => suite("Impostazioni — il pannello dice solo quello che serve", {
   banco: '/index.html',
   pronto: ()=> !!document.querySelector('#settings-panel'),
+  // Il pannello carica l'accesso al volo (mostraAccount): con il service
+  // worker acceso quella richiesta NON passa dalle intercettazioni qui sotto e
+  // finisce sulla rete vera — sul computer di sviluppo fallisce e non succede
+  // niente, sulla macchina che pubblica invece l'SDK vero di Google arriva
+  // davvero e la prova comincia a dipendere da com'e' fatta la rete. Spento.
+  senzaServiceWorker: true,
   prima: async (page)=>{
     await page.route('**://fonts.googleapis.com/**', r=> r.fulfill({status:200, contentType:'text/css', body:''}));
     await page.route('**://fonts.gstatic.com/**', r=> r.abort());
