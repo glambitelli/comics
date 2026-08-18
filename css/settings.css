@@ -203,3 +203,13 @@ select.settings-time:disabled{opacity:1;color:var(--ink);background-image:none;p
    colore. Nessun bollino rosso: un avviso che urla per una cosa che non e'
    rotta si impara a ignorare in due giorni. */
 .settings-note.avviso{color:#a07d14;font-weight:700}
+
+/* IL REGISTRO DEGLI ERRORI si legge, non si ammira: carattere a larghezza
+   fissa perche' sono messaggi tecnici, corpo piccolo, e scorre da solo se una
+   riga e' piu' lunga della scheda invece di allargare il pannello. */
+.settings-registro{
+  margin:10px 0 0;padding:10px 12px;max-height:190px;overflow:auto;
+  background:var(--sand);border:1.5px solid var(--sand3);border-radius:12px;
+  font-family:ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+  font-size:11px;line-height:1.5;color:var(--ink2);white-space:pre-wrap;word-break:break-word;
+}

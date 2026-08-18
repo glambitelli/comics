@@ -85,6 +85,46 @@ module.exports = () => suite("Impostazioni — il pannello dice solo quello che 
   ok('e nemmeno a promemoria acceso, se va tutto bene',
      acceso.testo === '' && acceso.altezza === 0, acceso);
 
+  sezione('il quadernetto dei guasti');
+  // Nel codice ci sono quaranta punti in cui un errore viene ingoiato in
+  // silenzio: giusto uno per uno, disastroso tutti insieme — sul telefono non
+  // resta traccia di niente e l'unica cosa che arriva e' "non funziona".
+  const registro = await page.evaluate(async ()=>{
+    localStorage.removeItem('inkflow_registro');
+    const m = await import('/js/settings.js');
+    m.mostraRegistro();
+    const vuoto = {
+      testo: document.getElementById('registro-riassunto').textContent,
+      elenco: document.getElementById('registro-testo').hidden,
+      azioni: document.getElementById('registro-azioni').hidden,
+    };
+    // Un errore vero, di quelli che nessuno vede: una promessa rifiutata.
+    const r = await import('/js/registro.js');
+    r.ascoltaErrori();
+    window.dispatchEvent(new PromiseRejectionEvent('unhandledrejection', {
+      promise: Promise.reject(new Error('salvataggio non riuscito')).catch(()=>{}),
+      reason: new Error('salvataggio non riuscito'),
+    }));
+    await new Promise(res=>setTimeout(res,100));
+    m.mostraRegistro();
+    return { vuoto, pieno: {
+      testo: document.getElementById('registro-riassunto').textContent,
+      elenco: document.getElementById('registro-testo').textContent,
+      nascosto: document.getElementById('registro-testo').hidden,
+      azioni: document.getElementById('registro-azioni').hidden,
+      quanti: r.registro().length,
+    }};
+  });
+  ok('a registro vuoto lo dice in una riga e finisce li\'',
+     /nessun errore/i.test(registro.vuoto.testo) && registro.vuoto.elenco === true
+     && registro.vuoto.azioni === true, registro.vuoto);
+  ok('una promessa rifiutata finisce nel registro', registro.pieno.quanti === 1, registro.pieno);
+  ok('e nel pannello si legge cos\'e\' successo',
+     /salvataggio non riuscito/.test(registro.pieno.elenco) && !registro.pieno.nascosto, registro.pieno);
+  ok('con l\'ora e i tasti per copiarlo o buttarlo',
+     /\d{2}:\d{2}/.test(registro.pieno.elenco) && registro.pieno.azioni === false, registro.pieno);
+  await page.evaluate(()=> localStorage.removeItem('inkflow_registro'));
+
   sezione('ma parla quando il promemoria non suonerà mai');
   // È il caso per cui la riga esiste ancora: acceso, e il telefono ha detto no.
   // Senza avviso resterebbe un interruttore acceso che non fa niente, e da

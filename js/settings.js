@@ -4,6 +4,7 @@ import { getStreak } from './evening.js';
 import { restoreReminderUI } from './notifications.js';
 import { isSoundEnabled, setSoundEnabled, playSfx, SET_SUONI, setSuoniAttivo, setSuoniScegli } from './sound.js';
 import { confirmModal, infoModal } from './dialogs.js';
+import { registro, registroTesto, svuotaRegistro } from './registro.js';
 
 // ── IL BACKUP — l'unica cosa che rende l'archivio davvero tuo ──
 //
@@ -181,7 +182,55 @@ export function openSettings(){
   if(st) st.checked = isSoundEnabled();
   riempiSetSuoni();
   mostraUltimoBackup();
+  mostraRegistro();
   mostraAccount();
+}
+
+// ── IL REGISTRO NELLE IMPOSTAZIONI ──
+// A pannello aperto si legge subito se c'e' qualcosa che non ha funzionato.
+// Quando non c'e' niente lo dice in una riga e finisce li': una scheda vuota
+// che promette diagnostica e' peggio di nessuna scheda.
+export function mostraRegistro(){
+  const riassunto = document.getElementById('registro-riassunto');
+  const testo = document.getElementById('registro-testo');
+  const azioni = document.getElementById('registro-azioni');
+  if(!riassunto) return;
+  const righe = registro();
+  if(!righe.length){
+    riassunto.textContent = 'Nessun errore registrato.';
+    riassunto.className = 'settings-note';
+    if(testo){ testo.hidden = true; testo.textContent = ''; }
+    if(azioni) azioni.hidden = true;
+    return;
+  }
+  const ultimo = new Date(righe[righe.length-1].quando);
+  riassunto.textContent = righe.length === 1
+    ? '1 errore, l\'ultimo alle ' + ultimo.toLocaleTimeString('it-IT', {hour:'2-digit', minute:'2-digit'}) + '.'
+    : righe.length + ' errori, l\'ultimo alle ' + ultimo.toLocaleTimeString('it-IT', {hour:'2-digit', minute:'2-digit'}) + '.';
+  riassunto.className = 'settings-note avviso';
+  if(testo){ testo.hidden = false; testo.textContent = registroTesto(); }
+  if(azioni) azioni.hidden = false;
+}
+
+export async function copiaRegistro(){
+  const t = registroTesto();
+  if(!t) return;
+  try{
+    await navigator.clipboard.writeText(t);
+    const r = document.getElementById('registro-riassunto');
+    if(r){ const prima = r.textContent; r.textContent = 'Registro copiato.';
+           setTimeout(()=>{ r.textContent = prima; }, 2000); }
+  }catch(e){
+    await infoModal(t, { title:'Registro degli errori' });
+  }
+}
+
+export async function svuotaRegistroUI(){
+  const ok = await confirmModal('Cancello l\'elenco degli errori registrati su questo telefono? Non tocca nient\'altro.',
+    { title:'Svuota il registro', confirmLabel:'Svuota' });
+  if(!ok) return;
+  svuotaRegistro();
+  mostraRegistro();
 }
 
 // ── L'ACCOUNT NEL PANNELLO ──

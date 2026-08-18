@@ -828,6 +828,18 @@
     </div>
 
     <div>
+      <div class="settings-section-label">Diagnostica</div>
+      <div class="settings-card">
+        <div class="settings-note" id="registro-riassunto">Nessun errore registrato.</div>
+        <pre class="settings-registro" id="registro-testo" hidden></pre>
+        <div class="settings-action-row" id="registro-azioni" hidden>
+          <button class="settings-action quiet" onclick="window.copiaRegistro()">Copia</button>
+          <button class="settings-action risky" onclick="window.svuotaRegistroUI()">Svuota</button>
+        </div>
+      </div>
+    </div>
+
+    <div>
       <div class="settings-section-label">Backup</div>
       <div class="settings-card">
         <div class="settings-action-row">
