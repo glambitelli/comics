@@ -158,6 +158,7 @@ export function mostraUltimoBackup(){
 export function openSettings(){
   document.getElementById('settings-overlay').classList.add('open');
   document.getElementById('settings-panel').classList.add('open');
+  montaTrascinamento();
   // Il pannello prende un posto nella cronologia: cosi' il tasto Indietro del
   // telefono lo CHIUDE invece di navigare via. Prima non lo faceva, e il
   // risultato era il difetto peggiore possibile — si tornava alla schermata di
@@ -501,6 +502,99 @@ export function closeSettingsUI(){
   document.getElementById('settings-panel').classList.remove('open');
   document.body.classList.remove('settings-open');
 }
+
+// ── CHIUDERE COL DITO ──
+// Il pannello sale dal basso come un foglio, e un foglio che sale dal basso su
+// un telefono si chiude tirandolo giu': la X in cima e' un bersaglio piccolo
+// nell'angolo opposto al pollice, e su mobile e' ora nascosta (vedi
+// settings.css) — resta solo dove il dito non c'e', cioe' col mouse.
+//
+// Due accortezze, che sono poi tutto il mestiere di questo gesto:
+//   1. IL PANNELLO SCORRE. Se si comincia a trascinare con il contenuto gia'
+//      sceso, il gesto e' uno scorrimento e non va rubato: si trascina solo
+//      partendo dal bordo alto della lista (scrollTop a zero) o dalla testata,
+//      che e' la maniglia dichiarata.
+//   2. IL FOGLIO SEGUE IL DITO. Un gesto che decide solo quando lo lasci —
+//      niente si muove, poi salta — sembra rotto. Qui il pannello si sposta
+//      insieme al dito, e se si molla troppo presto torna su da solo.
+const CHIUDI_DOPO = 90;      // px di trascinamento oltre i quali si chiude
+const CHIUDI_VELOCE = 0.55;  // px/ms: uno strappo corto ma deciso vale uguale
+function montaTrascinamento(){
+  const pannello = document.getElementById('settings-panel');
+  const velo = document.getElementById('settings-overlay');
+  if(!pannello || pannello._trascina) return;
+  pannello._trascina = true;
+  let y0 = 0, t0 = 0, dy = 0, puo = false, attivo = false;
+
+  const posa = (y)=>{
+    // Verso l'alto il foglio non va: si lascia un accenno di elasticita' e
+    // basta, se no sembra che si possa aprire piu' di cosi'.
+    const v = y < 0 ? y / 4 : y;
+    pannello.style.transition = 'none';
+    pannello.style.transform = 'translateY(' + v + 'px)';
+    if(velo) velo.style.opacity = String(Math.max(0, 1 - v / 320));
+  };
+  const rimetti = ()=>{
+    pannello.style.transition = '';
+    pannello.style.transform = '';
+    if(velo) velo.style.opacity = '';
+  };
+
+  pannello.addEventListener('touchstart', e=>{
+    if(e.touches.length !== 1){ puo = attivo = false; return; }
+    // Dentro un modale aperto sopra il pannello si sta facendo altro.
+    if(e.target.closest && e.target.closest('.modal, .ink-action-menu')){
+      puo = attivo = false; return;
+    }
+    const daTestata = !!(e.target.closest && e.target.closest('.settings-head-wrap'));
+    puo = daTestata || pannello.scrollTop <= 0;
+    attivo = false;
+    y0 = e.touches[0].clientY; t0 = Date.now(); dy = 0;
+  }, { passive:true });
+
+  pannello.addEventListener('touchmove', e=>{
+    if(!puo || e.touches.length !== 1) return;
+    dy = e.touches[0].clientY - y0;
+    // Finche' non e' chiaro che si sta tirando giu' non si tocca niente: un
+    // dito che parte verso l'alto sta scorrendo la lista.
+    if(!attivo){
+      if(dy < 8) { if(dy < -4) puo = false; return; }
+      attivo = true;
+    }
+    // Da qui il gesto e' nostro: senza questo il telefono continua a scorrere
+    // sotto il foglio mentre il foglio si sposta, e si muovono due cose insieme.
+    if(e.cancelable) e.preventDefault();
+    posa(dy);
+  }, { passive:false });
+
+  const finito = ()=>{
+    if(!attivo){ puo = false; return; }
+    puo = attivo = false;
+    const velocita = dy / Math.max(1, Date.now() - t0);
+    if(dy > CHIUDI_DOPO || (dy > 40 && velocita > CHIUDI_VELOCE)){
+      // Si finisce la corsa da dove sta il dito, poi si chiude per davvero
+      // (passando dalla cronologia, come la X: vedi closeSettings).
+      pannello.style.transition = 'transform .22s cubic-bezier(.32,.72,0,1)';
+      pannello.style.transform = 'translateY(100%)';
+      if(velo){ velo.style.transition = 'opacity .22s'; velo.style.opacity = '0'; }
+      setTimeout(()=>{
+        rimetti();
+        if(velo) velo.style.transition = '';
+        closeSettings();
+      }, 220);
+      return;
+    }
+    // Non abbastanza: torna su da solo, con la stessa molla dell'apertura.
+    pannello.style.transition = 'transform .28s cubic-bezier(.32,.72,0,1)';
+    pannello.style.transform = 'translateY(0)';
+    if(velo) velo.style.opacity = '';
+    setTimeout(rimetti, 280);
+  };
+  pannello.addEventListener('touchend', finito, { passive:true });
+  pannello.addEventListener('touchcancel', finito, { passive:true });
+}
+// Le prove hanno bisogno di montarlo senza aprire il pannello.
+export const __perLeProve_trascina = montaTrascinamento;
 
 // La X e le chiusure da codice passano invece DALLA cronologia: altrimenti il
 // posto occupato dall'apertura resterebbe li', e il primo Indietro dopo aver

@@ -251,4 +251,98 @@ module.exports = () => suite("Impostazioni — il pannello dice solo quello che 
      barra.chiara === 'rgb(255, 251, 242)', barra);
   ok('e cade sul centro della barra', barra.scarto < 6, barra);
 
+  sezione('e su mobile il pannello si chiude tirandolo giu\', senza X');
+  // Un foglio che sale dal basso si chiude tirandolo giu': e' il gesto che il
+  // telefono ha gia' in testa. La X stava nell'angolo in alto a destra, cioe'
+  // il punto piu' lontano dal pollice di chi tiene il telefono in una mano.
+  await page.evaluate(()=> document.body.classList.add('is-touch'));
+  await apri();
+  const senzaX = await page.evaluate(()=>({
+    x: getComputedStyle(document.querySelector('.settings-close')).display,
+    maniglia: getComputedStyle(document.querySelector('.settings-handle')).height,
+  }));
+  ok('la X non c\'e\' piu\'', senzaX.x === 'none', senzaX);
+  ok('e al suo posto c\'e\' la maniglia, marcata abbastanza da vedersi',
+     parseFloat(senzaX.maniglia) >= 5, senzaX);
+
+  // Il trascinamento vero: il foglio deve seguire il dito PRIMA di lasciarlo.
+  const trascina = async (dy, passi = 6, pausa = 0)=> page.evaluate(async ([dy,passi,pausa])=>{
+    const el = document.getElementById('settings-panel');
+    const r = el.getBoundingClientRect();
+    const x = r.left + r.width/2, y = r.top + 30;   // sulla testata
+    const t = (cy)=> [new Touch({identifier:1, target:el, clientX:x, clientY:cy})];
+    el.dispatchEvent(new TouchEvent('touchstart',{bubbles:true, cancelable:true, touches:t(y), targetTouches:t(y), changedTouches:t(y)}));
+    let seguito = 0;
+    for(let i = 1; i <= passi; i++){
+      const cy = y + dy * i / passi;
+      el.dispatchEvent(new TouchEvent('touchmove',{bubbles:true, cancelable:true, touches:t(cy), targetTouches:t(cy), changedTouches:t(cy)}));
+      if(pausa) await new Promise(r=>setTimeout(r,pausa));
+      const m = /translateY\(([-\d.]+)px\)/.exec(el.style.transform || '');
+      if(m) seguito = parseFloat(m[1]);
+    }
+    el.dispatchEvent(new TouchEvent('touchend',{bubbles:true, cancelable:true, touches:[], targetTouches:[], changedTouches:t(y + dy)}));
+    return seguito;
+  }, [dy,passi,pausa]);
+
+  const corto = await trascina(40);
+  await page.waitForTimeout(450);
+  const dopoCorto = await page.evaluate(()=>({
+    aperto: document.getElementById('settings-panel').classList.contains('open'),
+    fermo: document.getElementById('settings-panel').style.transform,
+  }));
+  ok('il foglio segue il dito mentre lo tiri', corto > 20, corto);
+  ok('ma un tiro corto non chiude niente', dopoCorto.aperto, dopoCorto);
+  ok('e il foglio torna al suo posto, senza restare a mezz\'aria',
+     !dopoCorto.fermo || /translateY\(0/.test(dopoCorto.fermo), dopoCorto);
+
+  const lungo = await trascina(160);
+  await page.waitForTimeout(700);
+  const dopoLungo = await page.evaluate(()=>({
+    aperto: document.getElementById('settings-panel').classList.contains('open'),
+    velo: document.getElementById('settings-overlay').classList.contains('open'),
+    barra: getComputedStyle(document.getElementById('dune-nav')).display,
+    resti: document.getElementById('settings-panel').style.transform,
+  }));
+  ok('un tiro deciso lo chiude', !dopoLungo.aperto, dopoLungo);
+  ok('col velo che se ne va insieme', !dopoLungo.velo, dopoLungo);
+  ok('la barra in fondo torna al suo posto', dopoLungo.barra !== 'none', dopoLungo);
+  // Se restasse una translateY addosso, il pannello riaprendosi partirebbe
+  // storto: le prossime aperture devono ritrovarlo pulito.
+  ok('e il foglio non si porta dietro il trascinamento', !dopoLungo.resti, dopoLungo);
+
+  await apri();
+  await page.waitForTimeout(400);   // il pannello sale in .35s: prima di allora si misura la corsa
+  const riaperto = await page.evaluate(()=>({
+    aperto: document.getElementById('settings-panel').classList.contains('open'),
+    dove: document.getElementById('settings-panel').getBoundingClientRect().bottom,
+    alto: window.innerHeight,
+  }));
+  ok('e riaprendolo sta di nuovo al suo posto',
+     riaperto.aperto && Math.abs(riaperto.dove - riaperto.alto) < 4, riaperto);
+
+  // Se la lista e' gia' scesa, il dito sta scorrendo: rubargli il gesto
+  // vorrebbe dire chiudere il pannello mentre uno legge.
+  const scorrendo = await page.evaluate(async ()=>{
+    const el = document.getElementById('settings-panel');
+    el.scrollTop = 60;
+    if(el.scrollTop < 10) return { saltato:true };
+    const r = el.getBoundingClientRect();
+    const x = r.left + r.width/2, y = r.top + r.height/2;   // in mezzo alla lista
+    const t = (cy)=> [new Touch({identifier:1, target:el, clientX:x, clientY:cy})];
+    el.dispatchEvent(new TouchEvent('touchstart',{bubbles:true, cancelable:true, touches:t(y), targetTouches:t(y), changedTouches:t(y)}));
+    for(let i=1;i<=6;i++){
+      const cy = y + 200*i/6;
+      el.dispatchEvent(new TouchEvent('touchmove',{bubbles:true, cancelable:true, touches:t(cy), targetTouches:t(cy), changedTouches:t(cy)}));
+    }
+    el.dispatchEvent(new TouchEvent('touchend',{bubbles:true, cancelable:true, touches:[], targetTouches:[], changedTouches:t(y+200)}));
+    await new Promise(r=>setTimeout(r,400));
+    return { aperto: el.classList.contains('open'), mosso: el.style.transform };
+  });
+  if(scorrendo.saltato){
+    ok('(il pannello ci sta tutto nello schermo: niente da scorrere)', true, scorrendo);
+  } else {
+    ok('con la lista gia\' scesa il dito scorre e basta',
+       scorrendo.aperto && !scorrendo.mosso, scorrendo);
+  }
+
 });

@@ -28,7 +28,10 @@
      sforava già su uno schermo da 800px, e su quelli con la safe-area alta
      sforava sempre. Resta comunque un tetto con overflow-y:auto, così se un
      domani si aggiunge una sezione non esce dallo schermo. */
-  max-height:92vh;overflow-y:auto;overflow-x:hidden;
+  /* contain: arrivati in cima alla lista, tirando ancora giu' non deve
+     rispondere la pagina dietro (il "tira per ricaricare" di Chrome) — quel
+     movimento adesso e' il gesto che chiude il pannello. */
+  max-height:92vh;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;
   transform:translateY(100%);transition:transform .35s cubic-bezier(.32,.72,0,1);
 }
 .settings-panel.open{transform:translateY(0)}
@@ -56,6 +59,15 @@ body.is-touch .settings-panel{ padding-bottom:var(--safe-bot); }
   transition:opacity .15s,transform .1s;
 }
 .settings-close:active{opacity:1;transform:scale(.9)}
+/* SUL TELEFONO LA X NON C'E'. Il pannello si chiude tirandolo giu' col dito
+   (vedi montaTrascinamento in settings.js): la maniglia in cima e' il segno
+   che lo dice, e una X nell'angolo in alto a destra — il punto piu' lontano
+   dal pollice — e' il modo peggiore di chiudere un foglio che sale dal basso.
+   Col mouse resta, perche' li' il trascinamento non c'e'. */
+body.is-touch .settings-close{display:none}
+/* Piu' marcata di prima (era .4 di opacita' su 36px): adesso non e' piu' un
+   ornamento, e' l'unica cosa che dice "questo foglio si tira". */
+body.is-touch .settings-handle{width:44px;height:5px;background:rgba(217,164,23,.62)}
 
 /* ── CORPO: schede sulla sabbia ── */
 .settings-body{padding:16px 14px 4px;display:grid;gap:14px}
