@@ -33,3 +33,24 @@ export function getDocs(ref){
   });
 }
 export function serverTimestamp(){ return 0; }
+
+// I moduli dei progetti (pipeline, velocity, story, home) non scrivono
+// direttamente: chiedono un salvataggio differito. Qui si annota chi l'ha
+// chiesto e per quale progetto — cosi' una prova puo' verificare che una
+// modifica venga davvero messa in salvo, senza toccare la rete.
+export const COL = 'projects';
+export function scheduleSave(p){
+  (window.__salvataggi || (window.__salvataggi = [])).push(p && p.id);
+  return Promise.resolve();
+}
+export function saveProject(p){
+  (window.__salvataggi || (window.__salvataggi = [])).push(p && p.id);
+  return Promise.resolve();
+}
+export function syncDot(){}
+export function saveHint(){}
+export function cacheProjects(){}
+export function getCachedProjects(){ return []; }
+export function loadUserData(){}
+export function saveUserData(){ return Promise.resolve(); }
+export function bumpDataRev(){}

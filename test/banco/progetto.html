@@ -1,0 +1,62 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8">
+<title>banco di prova — i numeri di un progetto</title>
+<!-- I moduli dei progetti sono QUELLI VERI (progress, velocity, pipeline,
+     state): di finto c'è solo Firestore, che qui non deve salvare niente. Il
+     markup si prende da index.html, come negli altri banchi: una copia a mano
+     proverebbe una schermata che non esiste più. -->
+<script type="importmap">
+{ "imports": {
+  "/js/firebase.js": "/test/finti/firebase.js"
+} }
+</script>
+<link rel="stylesheet" href="/css/variables.css">
+<link rel="stylesheet" href="/css/layout.css">
+<link rel="stylesheet" href="/css/project.css">
+<link rel="stylesheet" href="/css/modals.css">
+<style>html,body{margin:0;height:100%;background:#efe6d4}
+#screen-project{display:block}</style>
+</head><body>
+<script type="module">
+const dom = new DOMParser().parseFromString(await (await fetch('/index.html')).text(), 'text/html');
+document.body.appendChild(document.importNode(dom.getElementById('screen-project'), true));
+
+const progress = await import('/js/progress.js');
+const velocity = await import('/js/velocity.js');
+const pipeline = await import('/js/pipeline.js');
+const state    = await import('/js/state.js');
+window.progress = progress;
+window.velocity = velocity;
+window.pipeline = pipeline;
+
+// Un progetto di prova, con le stesse chiavi che scrive l'app vera:
+//   steps  → i 5 passi delle prime due fasi (sviluppo, pre-produzione)
+//   tavole → { numero: stato }, e "finita" vuol dire stato >= 4
+window.seminaProgetto = (dati = {})=>{
+  const p = Object.assign({
+    id: 'p1', title: 'Kara', numTav: 10,
+    steps: {}, tavole: {}, todos: [], sfide: [], velocityLog: [],
+  }, dati);
+  state.setProjects([p]);
+  state.setCurrentId(p.id);
+  window.__p = p;
+  return p;
+};
+// Segna N tavole come finite (stato 4), come farebbe chi le completa a mano.
+window.finisciTavole = (n)=>{
+  const p = window.__p;
+  for(let i = 1; i <= n; i++) p.tavole[i] = 4;
+  return p;
+};
+// Le date si scrivono come le scrive l'app: 'AAAA-MM-GG'.
+window.dataFraGiorni = (giorni)=>{
+  const d = new Date();
+  d.setDate(d.getDate() + giorni);
+  return d.toISOString().slice(0,10);
+};
+// Una tavola completata "giorni fa": è quello che alimenta la previsione.
+window.registraTavola = (giorniFa)=>{
+  window.__p.velocityLog.push({ date: Date.now() - giorniFa*86400000, n: 1 });
+};
+window.__ready = true;
+</script>
+</body></html>
