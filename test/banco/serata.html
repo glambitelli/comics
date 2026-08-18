@@ -1,0 +1,65 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8">
+<title>banco di prova — la serata, le stelle e le statistiche</title>
+<!-- evening.js e stats.js sono QUELLI VERI: di finto c'e' solo Firestore (che
+     qui registra invece di salvare). Stelle, streak e storico vivono in
+     localStorage, quindi si possono seminare esattamente come li scrive
+     l'app — ed e' l'unico modo onesto di provare una striscia di giorni
+     consecutivi senza aspettare una settimana. -->
+<script type="importmap">
+{ "imports": {
+  "/js/firebase.js": "/test/finti/firebase.js"
+} }
+</script>
+<link rel="stylesheet" href="/css/variables.css">
+<link rel="stylesheet" href="/css/layout.css">
+<link rel="stylesheet" href="/css/evening.css">
+<link rel="stylesheet" href="/css/stats.css">
+<style>html,body{margin:0;height:100%;background:#0e2a5a}
+#screen-evening,#screen-stats{display:block}</style>
+</head><body>
+<script type="module">
+const dom = new DOMParser().parseFromString(await (await fetch('/index.html')).text(), 'text/html');
+for(const id of ['screen-evening','screen-stats']){
+  const n = dom.getElementById(id);
+  if(n) document.body.appendChild(document.importNode(n, true));
+}
+
+const evening = await import('/js/evening.js');
+const stats   = await import('/js/stats.js');
+const state   = await import('/js/state.js');
+window.evening = evening;
+window.stats = stats;
+
+// Il giorno di oggi e di ieri scritti come li scrive l'app (senza zeri davanti).
+window.chiave = (giorniFa = 0)=>{
+  const d = new Date(); d.setDate(d.getDate() - giorniFa);
+  return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;
+};
+
+// Riparte da zero: nessuna stella, nessuna striscia, nessuno storico.
+window.pulisci = ()=>{
+  ['inkflow_stars','inkflow_streak','inkflow_streak_last','inkflow_max_streak',
+   'inkflow_task_history','inkflow_monthly_stars','inkflow_secrets']
+    .forEach(k=> localStorage.removeItem(k));
+  window.__salvataggi = [];
+};
+
+// Progetti con un task scritto per stasera, come li vede la schermata serata.
+window.seminaProgetti = (lista)=>{
+  state.setProjects(lista.map((p,i)=> Object.assign({
+    id: 'p'+(i+1), title:'Progetto '+(i+1), numTav:10, tavole:{}, velocityLog:[],
+  }, p)));
+  return state.projects;
+};
+
+window.progetti = ()=> state.projects;
+
+// Spunta il task di un progetto, come il tocco sul ✓ della scheda.
+window.spunta = (id)=>{
+  const card = document.getElementById('ecard-'+id) || document.createElement('div');
+  evening.completeEveningTask(id, card);
+};
+
+window.__ready = true;
+</script>
+</body></html>
