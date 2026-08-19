@@ -329,7 +329,7 @@ module.exports = () => suite("Lettore — nastro, sfoglio, zoom, ritaglio", {"ba
   await settle(300);
   let r = await page.evaluate(()=>({
     visibile: !document.querySelector('.ar-retry').hidden,
-    coiComandi: !!document.querySelector('.ar-controls-row .ar-retry'),
+    coiComandi: !!document.querySelector('.ar-top-actions .ar-retry'),
     nellaCapsula: !!document.querySelector('.ar-clip-hint .ar-retry'),
     testo: document.querySelector('.ar-retry').textContent.trim(),
   }));
@@ -383,6 +383,19 @@ module.exports = () => suite("Lettore — nastro, sfoglio, zoom, ritaglio", {"ba
   ok('e non piu\' in cima', !dove.inCima, dove);
   ok('stanno nella meta\' bassa dello schermo, sotto il pollice',
      dove.forbici && dove.forbici.top > dove.alto * 0.6, dove);
+  // Sopra il cursore, non in fondo a tutto: in fondo erano l'ultima cosa
+  // dello schermo, e per arrivarci il pollice doveva scavalcare la barra
+  // della navigazione.
+  const ordine = await page.evaluate(()=>{
+    const r = s => document.querySelector(s).getBoundingClientRect();
+    return { comandi: Math.round(r('.ar-top-actions').bottom),
+             cursore: Math.round(r('.ar-seek-row').top),
+             centrati: Math.abs((r('.ar-top-actions').left + r('.ar-top-actions').right)/2
+                                - window.innerWidth/2) < 6 };
+  });
+  ok('la barretta sta SOPRA il cursore delle pagine',
+     ordine.comandi <= ordine.cursore, ordine);
+  ok('ed e\' centrata', ordine.centrati, ordine);
 
   console.log('\n── e sul telefono in cima non resta niente ──');
   // La X per chiudere era l'unica cosa rimasta lassu': il tasto Indietro fa la
@@ -418,14 +431,14 @@ module.exports = () => suite("Lettore — nastro, sfoglio, zoom, ritaglio", {"ba
     const vis = sel => { const el = document.querySelector(sel);
       return !!el && !el.hidden && getComputedStyle(el).display !== 'none'; };
     return { forbici: vis('.ar-clip'), tutta: vis('.ar-tutta'),
-             cursore: vis('.ar-seek-row'), avviso: vis('.ar-clip-hint') };
+             capsula: vis('.ar-controls'), avviso: vis('.ar-clip-hint') };
   });
   ok('le forbici restano a schermo, per poter uscire', inRitaglio.forbici, inRitaglio);
   ok('e "tutta la tavola" anche', inRitaglio.tutta, inRitaglio);
-  ok('mentre il cursore delle pagine si toglie di mezzo', !inRitaglio.cursore, inRitaglio);
+  ok('mentre la capsula della navigazione si toglie di mezzo', !inRitaglio.capsula, inRitaglio);
   ok('e compare l\'avviso del ritaglio', inRitaglio.avviso, inRitaglio);
   await page.evaluate(() => T.click('[data-act="clip"]'));
   await settle(250);
-  ok('uscendo, il cursore torna',
-     await page.evaluate(()=> !document.querySelector('.ar-seek-row').hidden));
+  ok('uscendo, la capsula torna',
+     await page.evaluate(()=> !document.querySelector('.ar-controls').hidden));
 });

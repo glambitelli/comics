@@ -55,13 +55,13 @@ export function toggleClip(force){
   // Entrando o uscendo si riparte SEMPRE da foglio bianco: un riquadro
   // lasciato in sospeso non deve sopravvivere al giro successivo.
   if(readerEl()._clipReset) readerEl()._clipReset();
-  // In ritaglio la navigazione non serve: via cursore e salti, resta l'avviso.
-  // Spariva TUTTA la capsula, ma da quando forbici, "tutta la tavola" e
-  // "Riprova" stanno li' dentro (vedi buildReaderDOM) portarsela via avrebbe
-  // voluto dire togliere di mezzo proprio i comandi del ritaglio nel momento
-  // in cui servono: adesso si nasconde solo la riga del cursore.
-  const seek = readerEl().querySelector('.ar-seek-row');
-  if(seek) seek.hidden = clipMode();
+  // In ritaglio la navigazione non serve: via la capsula intera, resta
+  // l'avviso — che e' alto uguale (vedi .ar-clip-hint nel CSS), cosi' la barra
+  // non si accorcia e la tavola non sobbalza mentre stai inquadrando. I
+  // comandi non se ne vanno con lei: da quando stanno nella barretta sopra il
+  // cursore sono fuori dalla capsula, ed e' anche il motivo per cui ci stanno.
+  const controls = readerEl().querySelector('.ar-controls');
+  if(controls) controls.hidden = clipMode();
   readerEl().querySelector('.ar-prev').style.display = clipMode() ? 'none' : '';
   readerEl().querySelector('.ar-next').style.display = clipMode() ? 'none' : '';
   // Niente haptic('tap') qui: il pulsante ritaglia è un <button>, già coperto
