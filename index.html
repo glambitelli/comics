@@ -841,23 +841,27 @@
          domanda — "questo archivio di chi e'?" — vista da due lati.
          .
          E QUI DENTRO CI SONO DUE COSE DIVERSE, non due volte la stessa.
-         Prima gli accessi a Google erano due, in due posti lontani (questo e
-         il pannello nuvola dell'archivio), scritti tutti e due "account": da
-         fuori sembrava che Inkflow chiedesse due volte la stessa cosa, o che
-         si fosse perso il primo accesso. Non e' cosi'. Il primo dice CHI SEI
-         — e' il proprietario dell'archivio, quello che le regole di Firestore
-         riconoscono. Il secondo dice DOVE STANNO GLI ALBI — una cartella su
-         Drive, in sola lettura, che puo' benissimo vivere su un ALTRO account
-         Google con un'altra mail (un archivio tenuto da un'altra parte e' il
-         caso normale, non l'eccezione). Le due righe si chiamano quindi col
-         loro mestiere, hanno icone diverse, e quando i due indirizzi non
-         coincidono la scheda lo dice invece di far sospettare un errore. -->
+         Prima gli accessi a Google erano due, in due posti lontani, scritti
+         tutti e due "account": sembrava che Inkflow chiedesse due volte la
+         stessa cosa. Il primo dice CHI SEI — il proprietario dell'archivio,
+         quello che le regole di Firestore riconoscono. Il secondo dice DOVE
+         STANNO GLI ALBI — una cartella su Drive, in sola lettura, che puo'
+         vivere su un ALTRO account Google (caso normale, non eccezione).
+         .
+         I NOMI DELLE RIGHE SONO SECCHI, e ci sono arrivati per correzione:
+         "Il tuo Inkflow" e "Albi da Google Drive" erano didascalie travestite
+         da titoli, e in una scheda di impostazioni un titolo che spiega
+         qualcosa e' un titolo che non si legge. Adesso le righe si chiamano
+         come le cose che sono — "Account Inkflow", "Google Drive" — e la
+         spiegazione sta dove va: nella riga piccola sotto, corta. Il mestiere
+         diverso lo dicono i due nomi, il colore delle icone, e la nota che
+         segnala quando i due indirizzi non coincidono. -->
     <div>
-      <div class="settings-section-label">Account e sorgenti</div>
+      <div class="settings-section-label">Account</div>
       <div class="settings-card">
         <div class="settings-row" id="account-riga">
           <span class="settings-ico"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/></svg></span>
-          <span class="settings-item"><b>Il tuo Inkflow</b><span id="account-mail">Nessun account</span></span>
+          <span class="settings-item"><b>Account Inkflow</b><span id="account-mail">Nessun account</span></span>
           <button class="settings-action quiet" id="account-bottone" onclick="window.accountTocca()">Entra</button>
         </div>
         <div class="settings-note" id="account-nota"></div>
@@ -873,22 +877,22 @@
                arrivati da Drive: chi lo vede sulla copertina lo ritrova qui e
                capisce al volo di cosa parla questa riga. -->
           <span class="settings-ico sorgente"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 4.5 3.5 19h17Z"/></svg></span>
-          <span class="settings-item"><b>Albi da Google Drive</b><span id="drive-mail">Non collegato</span></span>
+          <span class="settings-item"><b>Google Drive</b><span id="drive-mail">Non collegato</span></span>
           <button class="settings-action quiet" id="drive-bottone" onclick="window.driveTocca()">Collega</button>
         </div>
         <div class="settings-note" id="drive-nota"></div>
 
         <div class="settings-divider"></div>
 
-        <!-- LO SPAZIO DELLE IMMAGINI ERA NEL PANNELLO NUVOLA dell'archivio,
-             cioe' in un posto in cui nessuno va a cercare quanto spazio resta:
-             ci si andava per collegare Drive. E' un dato di manutenzione, come
-             il backup e l'account, quindi vive qui. Il conto lo tiene l'app —
-             ogni immagine salva i propri byte al caricamento — perche' il piano
-             gratuito di Cloudinary non espone i consumi al browser. -->
+        <!-- LO SPAZIO ERA NEL PANNELLO NUVOLA dell'archivio, cioe' in un posto
+             dove nessuno va a cercare quanto gliene resta: ci si andava per
+             collegare Drive. E' un dato di manutenzione come il backup e
+             l'account, quindi vive qui. Il conto lo tiene l'app — ogni immagine
+             salva i propri byte al caricamento — perche' il piano gratuito di
+             Cloudinary non espone i consumi al browser. -->
         <div class="settings-row">
           <span class="settings-ico"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7.5h16v11H4z"/><path d="M4 11h16"/></svg></span>
-          <span class="settings-item"><b>Spazio delle immagini</b><span id="spazio-usato">—</span></span>
+          <span class="settings-item"><b>Spazio immagini</b><span id="spazio-usato">—</span></span>
           <span class="settings-action quiet spazio-liberi" id="spazio-liberi"></span>
         </div>
         <div class="spazio-binario"><div id="spazio-riempimento" class="spazio-riempimento" style="width:0%"></div></div>

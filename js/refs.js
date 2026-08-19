@@ -1374,7 +1374,7 @@ const PHONE_ICO = `<svg viewBox="0 0 24 24" width="11" height="11"><rect x="7" y
 // via tutti e due, per due ragioni diverse. Lo spazio perche' nessuno apre un
 // pannello di Drive per sapere quanti mega gli restano: e' roba da impostazioni,
 // e li' e' finito. Il collegamento perche' era doppio — la stessa identica
-// azione stava nella riga "Albi da Google Drive" delle impostazioni — e un
+// azione stava nella riga "Google Drive" delle impostazioni — e un
 // pulsante nascosto dentro un'icona muta perdeva sempre il confronto con una
 // riga scritta a parole.
 // Quello che il pannello faceva bene, e che qui non si perde, e' avvisare:

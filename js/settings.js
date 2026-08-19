@@ -298,15 +298,20 @@ export async function mostraAccount(){
     const nota = document.getElementById('account-nota');
     const btn = document.getElementById('account-bottone');
     if(mail) mail.textContent = 'Non raggiungibile';
-    if(nota){ nota.textContent = 'Serve la rete per la prima volta. Riprova quando torna.'; nota.className = 'settings-note'; }
+    if(nota){ nota.textContent = 'Serve la rete per la prima volta.'; nota.className = 'settings-note'; }
     if(btn) btn.textContent = 'Riprova';
   }
 }
-// La riga porta il MESTIERE scritto in grande ("Il tuo Inkflow") e sotto
-// l'indirizzo: e' l'unica cosa che distingue davvero un account da un altro,
-// e serve a confrontarlo a occhio con quello di Drive qui sotto. Il nome
-// visualizzato ("Giovanni") non lo distingue — su due account Google puo'
-// essere identico — quindi resta solo come ripiego se la mail manca.
+// Sotto il titolo va l'INDIRIZZO, non il nome: e' l'unica cosa che distingue
+// davvero un account da un altro, e serve a confrontarlo a occhio con quello
+// di Drive qui sotto. Il nome visualizzato ("Giovanni") non lo distingue — su
+// due account Google puo' essere identico — quindi resta solo come ripiego se
+// la mail manca.
+//
+// LE NOTE SONO CORTE APPOSTA. Erano periodi di due righe e mezza che
+// spiegavano il meccanismo: in una scheda di impostazioni una nota lunga non
+// si legge, si salta, e con lei si salta anche la riga che conta. Una frase
+// per volta, quella che serve in quello stato.
 let _mailInkflow = '';
 function disegnaAccount(u){
   const mail = document.getElementById('account-mail');
@@ -319,15 +324,17 @@ function disegnaAccount(u){
     mail.textContent = u.email || u.displayName || 'Account collegato';
     btn.textContent = 'Esci';
     if(nota){
-      nota.textContent = 'Sei tu il proprietario: l\'archivio lo legge e lo scrive solo questo account. Il codice qui sotto va incollato nelle regole di Firestore.';
+      nota.textContent = 'Proprietario dell\'archivio: solo questo account lo legge e lo scrive.';
       nota.className = 'settings-note';
     }
-    if(uid){ uid.hidden = false; uid.textContent = 'Copia il codice account'; uid.dataset.uid = u.uid; }
+    // Il pulsante dice a cosa serve il codice: cosi' la nota qui sopra non
+    // deve spiegare anche Firestore per farlo capire.
+    if(uid){ uid.hidden = false; uid.textContent = 'Copia codice per Firestore'; uid.dataset.uid = u.uid; }
   } else {
     mail.textContent = 'Nessun account';
     btn.textContent = 'Entra';
     if(nota){
-      nota.textContent = 'Senza account l\'archivio è leggibile da chiunque conosca l\'indirizzo dell\'app. Entrando con Google diventa tuo.';
+      nota.textContent = 'Senza account l\'archivio è leggibile da chiunque conosca l\'indirizzo dell\'app.';
       nota.className = 'settings-note avviso';
     }
     if(uid){ uid.hidden = true; uid.textContent = ''; }
@@ -377,7 +384,7 @@ function disegnaDrive(){
   if(!d || !d.isDriveConfigured()){
     stato.textContent = 'Non configurato';
     btn.hidden = true;
-    if(nota){ nota.textContent = 'Google Drive non è ancora configurato per questa app.'; nota.className = 'settings-note'; }
+    if(nota){ nota.textContent = 'Non ancora configurato per questa app.'; nota.className = 'settings-note'; }
     return;
   }
   btn.hidden = false;
@@ -393,20 +400,22 @@ function disegnaDrive(){
       // vedendo due mail diverse senza una parola di spiegazione, pensa di
       // aver sbagliato accesso e scollega quello giusto.
       if(mail && _mailInkflow && mail.toLowerCase() === _mailInkflow.toLowerCase())
-        nota.textContent = 'Stesso account con cui sei entrato in Inkflow. Solo lettura: gli albi si leggono, niente viene toccato su Drive.';
+        nota.textContent = 'Sorgente degli albi, in sola lettura. Stesso account di Inkflow.';
       else if(mail && _mailInkflow)
-        nota.textContent = 'Account diverso da quello di Inkflow, e va bene così: qui conta dove stanno gli albi, non chi sei. Solo lettura.';
+        nota.textContent = 'Sorgente degli albi, in sola lettura. Account diverso da quello di Inkflow: va bene così.';
       else
-        nota.textContent = 'Solo lettura: gli albi si leggono, niente viene toccato su Drive.';
+        nota.textContent = 'Sorgente degli albi, in sola lettura.';
     }
   } else {
     stato.textContent = 'Non collegato';
     btn.textContent = d.daRicollegare() ? 'Ricollega' : 'Collega';
     if(nota){
       nota.className = 'settings-note';
+      // Scaduto non e' rotto: il token dura un'ora e si rinnova da solo finche'
+      // la sessione Google e' viva. Detto in una riga, senza il meccanismo.
       nota.textContent = d.daRicollegare()
-        ? 'Il collegamento è scaduto (dura un\'ora e si rinnova da solo finché la sessione Google è viva). Gli albi tornano con un tocco.'
-        : 'Da qui arrivano gli albi .cbz e .cbr. Può essere un altro account Google, con un\'altra mail: è solo il posto dove tieni l\'archivio.';
+        ? 'Collegamento scaduto. Gli albi tornano con un tocco.'
+        : 'Sorgente degli albi .cbz e .cbr, in sola lettura. Può essere un altro account Google.';
     }
   }
 }
@@ -489,7 +498,7 @@ export async function copiaUid(){
   try{
     await navigator.clipboard.writeText(uid);
     el.textContent = 'Codice copiato';
-    setTimeout(()=>{ el.textContent = 'Copia il codice account'; }, 2200);
+    setTimeout(()=>{ el.textContent = 'Copia codice per Firestore'; }, 2200);
   }catch(e){
     // Senza appunti (o senza permesso) si mostra il codice: si trascrive a mano
     // una volta sola nella vita.

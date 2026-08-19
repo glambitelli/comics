@@ -5,7 +5,7 @@
 // dello spazio. Sono andati via tutti e due, e per motivi diversi.
 //
 // Il pannello era una porta doppia: la stessa identica azione — collegare Drive
-// — stava gia' scritta a parole nella riga "Albi da Google Drive" delle
+// — stava gia' scritta a parole nella riga "Google Drive" delle
 // impostazioni. Lo spazio era finito nel posto sbagliato: nessuno apre un
 // pannello di Drive per sapere quanti mega gli restano.
 //

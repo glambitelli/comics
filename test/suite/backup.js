@@ -278,10 +278,20 @@ module.exports = () => suite("Backup — l'archivio esce da qui, e ci rientra", 
     coloreId: getComputedStyle(document.querySelector('#account-riga .settings-ico')).color,
     coloreDrive: getComputedStyle(document.querySelector('#drive-riga .settings-ico')).color,
   }));
-  ok('le due righe si chiamano col loro mestiere',
-     /il tuo inkflow/i.test(sorgente.identita) && /albi da google drive/i.test(sorgente.titolo), sorgente);
-  ok('e nessuna delle due si chiama solo "account"',
-     !/^account/i.test(sorgente.identita.trim()) && !/account/i.test(sorgente.titolo), sorgente);
+  // I nomi sono SECCHI: erano "Il tuo Inkflow" e "Albi da Google Drive", cioe'
+  // didascalie travestite da titoli — e un titolo che spiega qualcosa, in una
+  // scheda di impostazioni, e' un titolo che si salta. Adesso le righe si
+  // chiamano come le cose che sono, e la spiegazione sta nella nota sotto.
+  ok('le due righe si chiamano come le cose che sono',
+     /^account inkflow$/i.test(sorgente.identita.trim()) &&
+     /^google drive$/i.test(sorgente.titolo.trim()), sorgente);
+  ok('e restano corte, senza didascalie nel titolo',
+     sorgente.identita.trim().length <= 20 && sorgente.titolo.trim().length <= 20, sorgente);
+  ok('una sola delle due parla di account: non c\'e\' modo di confonderle',
+     /account/i.test(sorgente.identita) && !/account/i.test(sorgente.titolo), sorgente);
+  // E le note sotto restano note: una frase, non un paragrafo da saltare.
+  ok('e la nota di Drive sta in una riga',
+     sorgente.nota.length <= 110, sorgente.nota);
   // A colpo d'occhio, prima di leggere: due icone di colore diverso.
   ok('si distinguono anche senza leggerle', sorgente.coloreId !== sorgente.coloreDrive, sorgente);
   ok('senza collegamento lo dice', /non collegato/i.test(sorgente.stato), sorgente);
