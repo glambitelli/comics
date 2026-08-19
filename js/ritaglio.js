@@ -20,7 +20,7 @@ import {
 } from './refs.js';
 import {
   readerEl, readerImg, indiceCorrente, nomeAlbo, zoomCorrente, resetZoom,
-  toast, clipMode, setClipMode,
+  toast, clipMode, setClipMode, basePan, spostaTavola,
 } from './albums.js';
 
 // ── RITAGLIO ────────────────────────────────────────────────────────────────
@@ -543,23 +543,63 @@ export function wireClip(ov){
     box.hidden = true;
   };
 
+  // ── IL DITO FUORI DAL RIQUADRO SPOSTA LA TAVOLA ──
+  // Con un riquadro gia' tirato, sul livello del ritaglio il dito non faceva
+  // niente (solo le maniglie rispondevano): per inquadrare una vignetta piu' in
+  // la' bisognava uscire dal ritaglio, spostare la tavola e rientrare — e
+  // rientrando il riquadro era da rifare.
+  //
+  // Adesso, se la tavola e' ingrandita, quel dito muove la pagina sotto. Il
+  // riquadro resta fermo dov'e' — e' una finestra sullo schermo, non un
+  // adesivo appiccicato al disegno — quindi si sposta la tavola FINCHE' la
+  // vignetta giusta non ci finisce dentro.
+  //
+  // Solo da ingranditi: a pagina intera non c'e' niente da spostare, e li' il
+  // dito continua a non fare niente invece di far finta.
+  let spostando = null;   // { base, x, y } del gesto in corso, o null
+  const spostaInizio = (px, py)=>{
+    const base = basePan();
+    if(!base || base.zoom <= 1.02) return false;
+    spostando = { base, x:px, y:py };
+    return true;
+  };
+  const spostaMuovi = (px, py)=>{
+    if(!spostando) return false;
+    spostaTavola(spostando.base, px - spostando.x, py - spostando.y);
+    return true;
+  };
+  const spostaFine = ()=>{ spostando = null; };
+
   layer.addEventListener('mousedown', e=>{
-    if(box.classList.contains('pending')) return; // in questo stato solo le maniglie disegnano
+    if(box.classList.contains('pending')){
+      // In questo stato le maniglie ridisegnano e il resto del dito sposta.
+      if(spostaInizio(e.clientX, e.clientY)) e.preventDefault();
+      return;
+    }
     e.preventDefault(); start(e.clientX, e.clientY);
   });
-  window.addEventListener('mousemove', e=>{ if(drawing) move(e.clientX, e.clientY); });
-  window.addEventListener('mouseup', ()=>{ if(drawing) end(); });
+  window.addEventListener('mousemove', e=>{
+    if(spostando){ spostaMuovi(e.clientX, e.clientY); return; }
+    if(drawing) move(e.clientX, e.clientY);
+  });
+  window.addEventListener('mouseup', ()=>{ spostaFine(); if(drawing) end(); });
   layer.addEventListener('touchstart', e=>{
-    if(box.classList.contains('pending')) return;
+    if(box.classList.contains('pending')){
+      spostaInizio(e.touches[0].clientX, e.touches[0].clientY);
+      return;
+    }
     start(e.touches[0].clientX, e.touches[0].clientY);
   }, { passive:true });
-  layer.addEventListener('touchmove', e=>{ move(e.touches[0].clientX, e.touches[0].clientY); e.preventDefault(); }, { passive:false });
-  layer.addEventListener('touchend', end, { passive:true });
+  layer.addEventListener('touchmove', e=>{
+    if(spostando){ spostaMuovi(e.touches[0].clientX, e.touches[0].clientY); e.preventDefault(); return; }
+    move(e.touches[0].clientX, e.touches[0].clientY); e.preventDefault();
+  }, { passive:false });
+  layer.addEventListener('touchend', e=>{ spostaFine(); end(e); }, { passive:true });
   // Android, tenendo premuto su un'immagine, apre il suo menu ("salva
   // immagine", "cerca con Lens") e si PRENDE il gesto: arriva un touchcancel e
   // il touchend non arriva mai. Senza questa riga il riquadro restava a metà,
   // disegnato ma mai confermato, e il tocco successivo non capiva più niente.
-  layer.addEventListener('touchcancel', ()=>{ if(drawing) end(); }, { passive:true });
+  layer.addEventListener('touchcancel', ()=>{ spostaFine(); if(drawing) end(); }, { passive:true });
   // E il menu, mentre si ritaglia, è sempre e solo un incidente: non si sta
   // salvando un'immagine dal web, si sta tirando un riquadro. Fuori dal
   // ritaglio resta dov'era. Quanto vada tenuto premuto perché compaia lo

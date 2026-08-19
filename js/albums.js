@@ -1501,6 +1501,30 @@ function clampPan(scale, x, y){
   return clampTo(panLimits(scale), x, y);
 }
 
+// ── SPOSTARE LA TAVOLA MENTRE SI RITAGLIA ──
+// Da ingranditi, con un riquadro gia' tirato, il dito fuori dal riquadro non
+// faceva niente: per inquadrare un'altra vignetta bisognava uscire dal
+// ritaglio, spostarsi, e rientrare. Adesso quel dito muove la pagina sotto
+// (vedi wireClip in ritaglio.js), e queste due funzioni sono tutto quello che
+// serve da qui: dove sta adesso, e portala li'.
+//
+// La posizione di partenza si legge UNA volta a inizio gesto e poi si somma
+// lo scarto totale, invece di sommare i pezzetti ad ogni movimento: cosi' il
+// limite del bordo non "mangia" strada — arrivati a fondo corsa e tornando
+// indietro, la tavola riparte subito invece di aspettare che il dito recuperi
+// tutti i pixel spesi contro il muro.
+export function basePan(){ return { x:_zx, y:_zy, zoom:_zoom }; }
+export function spostaTavola(base, dx, dy){
+  if(!base || base.zoom <= 1.02) return false;
+  const g = panGain(base.zoom);
+  const c = clampPan(_zoom, base.x + dx * g, base.y + dy * g);
+  _zx = c.x; _zy = c.y;
+  const img = readerImg();
+  if(img) img.style.transition = 'none';
+  applyZoom();
+  return true;
+}
+
 // Alterna 1x ↔ ZOOM_IN centrando sul punto toccato/cliccato.
 function zoomAt(clientX, clientY){
   const img = readerImg();

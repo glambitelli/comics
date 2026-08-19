@@ -441,4 +441,89 @@ module.exports = () => suite("Lettore — nastro, sfoglio, zoom, ritaglio", {"ba
   await settle(250);
   ok('uscendo, la capsula torna',
      await page.evaluate(()=> !document.querySelector('.ar-controls').hidden));
+
+  console.log('\n── da ingranditi, il dito fuori dal riquadro sposta la tavola ──');
+  // Con un riquadro gia\' tirato il dito sul resto della pagina non faceva
+  // niente: per inquadrare una vignetta piu\' in la\' bisognava uscire dal
+  // ritaglio, spostarsi e rientrare — e il riquadro era da rifare.
+  // PRIMA si ingrandisce, POI si entra in ritaglio: e' l'ordine vero — dentro
+  // il ritaglio il livello copre la tavola e il doppio tocco non la raggiunge
+  // piu' (vedi il guardiano _clipMode nei gesti dello stage).
+  await page.evaluate(async ()=>{
+    const s = document.querySelector('.ar-stage').getBoundingClientRect();
+    const cx = s.left + s.width/2, cy = s.top + s.height/2;
+    for(let i=0;i<2;i++){
+      T.touch('touchstart', cx, cy); T.touch('touchend', cx, cy);
+      await new Promise(r=>setTimeout(r,60));
+    }
+    await new Promise(r=>setTimeout(r,400));
+  });
+  await page.evaluate(() => T.click('[data-act="clip"]'));
+  await settle(300);
+  const zoomOra = await page.evaluate(()=>{
+    const im = document.querySelector('.ar-cell:nth-child(2) .ar-img') || document.querySelector('.ar-img');
+    return im ? im.style.transform : '';
+  });
+  ok('la tavola e\' ingrandita anche dentro il ritaglio', /scale\((?!1\))/.test(zoomOra), zoomOra);
+
+  const spostata = await page.evaluate(async ()=>{
+    const layer = document.querySelector('.ar-cliplayer');
+    const box = document.querySelector('.ar-clipbox');
+    const l = layer.getBoundingClientRect();
+    const tocca = (tipo, x, y)=>{
+      const t = new Touch({identifier:1, target:layer, clientX:x, clientY:y});
+      const vuoto = tipo === 'touchend';
+      layer.dispatchEvent(new TouchEvent(tipo, {touches: vuoto?[]:[t], targetTouches: vuoto?[]:[t],
+        changedTouches:[t], bubbles:true, cancelable:true}));
+    };
+    // Un riquadro piccolo, in alto a sinistra del livello
+    tocca('touchstart', l.left + 30, l.top + 30);
+    for(let i=1;i<=5;i++) tocca('touchmove', l.left + 30 + 20*i, l.top + 30 + 16*i);
+    tocca('touchend', l.left + 130, l.top + 110);
+    await new Promise(r=>setTimeout(r,250));
+    const im = ()=> document.querySelector('.ar-cell:nth-child(2) .ar-img') || document.querySelector('.ar-img');
+    const primaImg = im().style.transform;
+    const primaBox = { l: box.style.left, t: box.style.top, w: box.style.width, h: box.style.height };
+    // Adesso il dito parte da FUORI dal riquadro (in basso a destra) e trascina
+    const px = l.left + l.width - 40, py = l.top + l.height - 40;
+    tocca('touchstart', px, py);
+    for(let i=1;i<=6;i++) tocca('touchmove', px - 15*i, py - 10*i);
+    tocca('touchend', px - 90, py - 60);
+    await new Promise(r=>setTimeout(r,250));
+    return { primaImg, dopoImg: im().style.transform,
+             primaBox, dopoBox: { l: box.style.left, t: box.style.top, w: box.style.width, h: box.style.height },
+             riquadroInAttesa: box.classList.contains('pending') };
+  });
+  ok('il riquadro resta in attesa di conferma', spostata.riquadroInAttesa, spostata);
+  ok('la tavola sotto si e\' spostata', spostata.primaImg !== spostata.dopoImg, spostata);
+  ok('e il riquadro non si e\' mosso di un pixel: e\' una finestra, non un adesivo',
+     JSON.stringify(spostata.primaBox) === JSON.stringify(spostata.dopoBox), spostata);
+
+  // A pagina intera invece non c'e' niente da spostare: il dito non deve
+  // inventarsi movimenti.
+  const senzaZoom = await page.evaluate(async ()=>{
+    const m = await import('/js/albums.js');
+    m.resetZoom(false);
+    await new Promise(r=>setTimeout(r,150));
+    const layer = document.querySelector('.ar-cliplayer');
+    const l = layer.getBoundingClientRect();
+    const im = ()=> document.querySelector('.ar-cell:nth-child(2) .ar-img') || document.querySelector('.ar-img');
+    const prima = im().style.transform;
+    const tocca = (tipo, x, y)=>{
+      const t = new Touch({identifier:1, target:layer, clientX:x, clientY:y});
+      const vuoto = tipo === 'touchend';
+      layer.dispatchEvent(new TouchEvent(tipo, {touches: vuoto?[]:[t], targetTouches: vuoto?[]:[t],
+        changedTouches:[t], bubbles:true, cancelable:true}));
+    };
+    const px = l.left + l.width - 40, py = l.top + l.height - 40;
+    tocca('touchstart', px, py);
+    for(let i=1;i<=6;i++) tocca('touchmove', px - 15*i, py - 10*i);
+    tocca('touchend', px - 90, py - 60);
+    await new Promise(r=>setTimeout(r,200));
+    return { prima, dopo: im().style.transform };
+  });
+  ok('a pagina intera invece la tavola resta ferma',
+     senzaZoom.prima === senzaZoom.dopo, senzaZoom);
+  await page.evaluate(() => T.click('[data-act="clip"]'));
+  await settle(250);
 });
