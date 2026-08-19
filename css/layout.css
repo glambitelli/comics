@@ -189,12 +189,6 @@ body.is-touch .proj-scroll,
 body.is-touch .evening-scroll,
 body.is-touch .refs-scroll,
 body.is-touch .stats-scroll{padding-bottom:calc(110px + var(--safe-bot)) !important}
-/* References ha un inquilino in piu' sotto: il bollino di Drive, che galleggia
-   a 104px dal fondo ed e' alto 50 (vedi .refs-profile in refs.css). I 110px
-   pensati per la sola barra-duna gli passano proprio in mezzo, e l'ultima
-   cartella dell'elenco — o l'ultima fila di miniature — finiva sotto la
-   nuvola, visibile a meta' e non toccabile. */
-body.is-touch .refs-scroll{padding-bottom:calc(172px + var(--safe-bot)) !important}
 
 /* ── UNDO TOAST ── */
 #undo-toast{position:fixed;left:50%;transform:translateX(-50%) translateY(20px);bottom:calc(84px + var(--safe-bottom,0px));background:var(--ink);color:#f5f0e8;border-radius:12px;padding:10px 10px 10px 16px;display:flex;align-items:center;gap:14px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:600;box-shadow:0 6px 24px rgba(0,0,0,.28);opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;z-index:9000;max-width:90vw}

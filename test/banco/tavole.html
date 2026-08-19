@@ -50,8 +50,8 @@ window.dialogs = await import('/js/dialogs.js');
 ['setFolderTab','refsBackToFolders','refsImageMenu','openFolder','openAllGrid','openTag','openTagList','setArchivio','promptTagImage',
  'openRefLightbox','closeRefLightbox','deleteRefImageWithUndo',
  'toggleScelta','annullaScelta','rinominaScelto','eliminaScelti',
- 'promptNewFolder','promptLinkProjectFromLightbox','toggleRefsProfile','closeRefsProfile',
- 'connectDriveAndSync','disconnectDriveUI'].forEach(n=>{
+ 'promptNewFolder','promptLinkProjectFromLightbox',
+ 'connectDriveAndSync'].forEach(n=>{
   window[n] = (...a)=> Promise.resolve(refs).then(m=> m[n] && m[n](...a));
 });
 

@@ -430,4 +430,30 @@ module.exports = () => suite("Impostazioni — il pannello dice solo quello che 
   ok('e in nessun fotogramma il foglio resta aperto senza posizione',
      corsa.scoperti.length === 0, corsa.scoperti);
 
+  sezione('e lo spazio delle immagini si legge da qui');
+  // Stava nel pannello a nuvola di References, cioe' dentro una porta che si
+  // apriva per collegare Drive: nessuno ci andava per sapere quanti mega
+  // restassero. E' un dato di manutenzione come il backup e l'account, quindi
+  // vive nella stessa scheda.
+  await apri();
+  await page.waitForTimeout(400);
+  const spazio = await page.evaluate(()=>{
+    const usato = document.getElementById('spazio-usato');
+    const liberi = document.getElementById('spazio-liberi');
+    const barra = document.getElementById('spazio-riempimento');
+    const scheda = usato ? usato.closest('.settings-card') : null;
+    return {
+      usato: usato ? usato.textContent.trim() : null,
+      liberi: liberi ? liberi.textContent.trim() : null,
+      barra: !!barra,
+      // Nella stessa scheda dell'account e di Drive: sono tutte risposte alla
+      // domanda "questo archivio dov'e' e quanto pesa".
+      conAccount: !!(scheda && scheda.querySelector('#account-mail')),
+    };
+  });
+  ok('la riga dice quanto si e\' usato', /MB usati/.test(spazio.usato||''), spazio);
+  ok('e a destra quanto ne resta', /GB liberi/.test(spazio.liberi||''), spazio);
+  ok('con la sua barretta', spazio.barra, spazio);
+  ok('e sta nella scheda dell\'account, non da sola in fondo', spazio.conAccount, spazio);
+
 });

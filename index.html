@@ -213,42 +213,6 @@
       <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M15.2 15.2 20 20" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
       <input id="refs-folder-search-input" type="text" oninput="window.refsFolderSearch(this.value)" aria-label="Cerca nell'archivio">
     </div>
-    <!-- IL BOLLINO DI DRIVE STA QUI, nella barra, al posto del "+ categoria"
-         che se n'e' andato. Prima galleggiava in basso a destra sopra
-         l'elenco: toccava il bordo della scheda degli artisti e copriva
-         l'ultima riga. Qui e' fermo, non copre niente, ed e' accanto alla
-         ricerca — dove sta la roba di servizio della schermata. -->
-    <div class="refs-profile">
-      <button id="refs-profile-btn" class="refs-profile-btn" onclick="window.toggleRefsProfile()" aria-label="Albi da Drive e spazio disponibile"></button>
-      <!-- IL VELO STA QUI DENTRO, e non fuori come prima. Fuori era un
-           fratello del bollino, con uno z-index piu' alto: copriva ANCHE il
-           pannello, e ogni tocco li' sopra — "Ricollega Google Drive"
-           compreso — lo prendeva lui, che ha un solo mestiere: chiudere. Da
-           fuori sembrava un pulsante morto. Da dentro il gruppo il velo resta
-           sotto al pannello e copre solo il resto della schermata. -->
-      <div id="refs-profile-backdrop" class="refs-profile-backdrop" hidden onclick="window.closeRefsProfile()"></div>
-      <div id="refs-profile-panel" class="refs-profile-panel" hidden>
-        <div class="rp-head">
-          <div class="rp-avatar" id="rp-avatar"></div>
-          <div class="rp-id">
-            <div class="rp-id-name" id="rp-id-name">Albi da Google Drive</div>
-            <div class="rp-id-sub" id="rp-id-sub"></div>
-          </div>
-        </div>
-        <div class="rp-section">
-          <div class="rp-section-label">Sorgente degli albi</div>
-          <div id="rp-drive"></div>
-        </div>
-        <div class="rp-section">
-          <div class="rp-section-label">Spazio disponibile</div>
-          <div class="rp-storage-line">
-            <span id="rp-storage-label">—</span>
-            <span class="rp-storage-free" id="rp-storage-free"></span>
-          </div>
-          <div class="rp-storage-track"><div id="rp-storage-fill" class="rp-storage-fill" style="width:0%"></div></div>
-        </div>
-      </div>
-    </div>
   </div>
   <!-- I DUE ASSI DELL'ARCHIVIO, come schede. Si passa da una all'altra con un
        tocco o con uno swipe (vedi setArchivio in refs.js). Compaiono solo
@@ -287,6 +251,23 @@
         <button class="refs-sort-btn" onclick="window.refsAlbumsSortMenu(this)" aria-label="Ordina albi" title="Ordina">
           <svg viewBox="0 0 24 24" width="15" height="15"><path d="M7 15 L7 5 M7 5 L4 8 M7 5 L10 8" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M17 9 L17 19 M17 19 L14 16 M17 19 L20 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
+      </div>
+      <!-- LO STATO DI DRIVE STA QUI, sullo scaffale, e non piu' in un bollino
+           a nuvola nella barra della ricerca. Il bollino era un'icona muta:
+           per sapere se gli albi arrivavano o no bisognava aprirlo, e dentro
+           c'era un secondo pulsante "Collega" che faceva la stessa identica
+           cosa della riga nelle impostazioni — due porte per una stanza sola.
+           Ora la frase sta dove serve davvero, sopra gli albi che mancano, e
+           il pulsante e' li' accanto: la finestra di Google deve partire da un
+           tocco (vedi prepareDriveAuth in drive.js), quindi un pulsante da
+           toccare in questa schermata ci vuole comunque. Quando Drive e'
+           collegato questa riga non c'e': niente da dire, niente da mostrare. -->
+      <div id="refs-albums-drive" class="albums-drive" hidden>
+        <div class="albums-drive-testo">
+          <b id="albums-drive-titolo">Google Drive non collegato</b>
+          <span id="albums-drive-nota">Qui restano solo gli albi gia' scaricati.</span>
+        </div>
+        <button class="albums-drive-btn" id="albums-drive-btn" onclick="window.connectDriveAndSync()" type="button">Collega</button>
       </div>
       <button class="albums-open-btn" onclick="window.openAlbumPicker()" type="button" title="Apri un .cbz o .cbr dal dispositivo — per ciò che non è su Drive">
         <svg viewBox="0 0 24 24" width="15" height="15"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>
@@ -896,6 +877,21 @@
           <button class="settings-action quiet" id="drive-bottone" onclick="window.driveTocca()">Collega</button>
         </div>
         <div class="settings-note" id="drive-nota"></div>
+
+        <div class="settings-divider"></div>
+
+        <!-- LO SPAZIO DELLE IMMAGINI ERA NEL PANNELLO NUVOLA dell'archivio,
+             cioe' in un posto in cui nessuno va a cercare quanto spazio resta:
+             ci si andava per collegare Drive. E' un dato di manutenzione, come
+             il backup e l'account, quindi vive qui. Il conto lo tiene l'app —
+             ogni immagine salva i propri byte al caricamento — perche' il piano
+             gratuito di Cloudinary non espone i consumi al browser. -->
+        <div class="settings-row">
+          <span class="settings-ico"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7.5h16v11H4z"/><path d="M4 11h16"/></svg></span>
+          <span class="settings-item"><b>Spazio delle immagini</b><span id="spazio-usato">—</span></span>
+          <span class="settings-action quiet spazio-liberi" id="spazio-liberi"></span>
+        </div>
+        <div class="spazio-binario"><div id="spazio-riempimento" class="spazio-riempimento" style="width:0%"></div></div>
       </div>
     </div>
 

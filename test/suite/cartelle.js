@@ -261,16 +261,20 @@ module.exports = () => suite("References — artisti e menu contestuali", {"banc
     return {
       rigaInFondo: !!document.querySelector('.refs-new-folder-row'),
       nellaBarra: !!barra.querySelector('button[aria-label="Nuova categoria"]'),
-      // Al posto suo, nella barra, c'e' la nuvola di Drive: prima galleggiava
-      // sopra l'elenco e toccava il bordo della scheda degli artisti.
+      // Nella barra resta la sola ricerca. C'e' stata anche una nuvola di
+      // Drive, che apriva un pannello con dentro il collegamento e lo spazio:
+      // il collegamento era doppio (c'e' gia' nelle impostazioni) e lo spazio
+      // stava nel posto sbagliato, cosi' se n'e' andata. Quello che diceva —
+      // "Drive non e' collegato" — sta ora scoperto sopra gli albi.
+      soloRicerca: barra.children.length === 1 && !!barra.querySelector('.refs-search'),
       nuvola: !!barra.querySelector('#refs-profile-btn'),
-      nuvolaFerma: barra.contains(document.querySelector('.refs-profile')),
       conCategorie: !!document.querySelector('.refs-cat-nuova'),
     };
   });
   ok('sotto l\'ultima cartella non c\'e\' piu\' niente', !fondo.rigaInFondo, fondo);
   ok('e "Nuova categoria" non occupa piu\' la barra', !fondo.nellaBarra, fondo);
-  ok('al suo posto c\'e\' la nuvola di Drive', fondo.nuvola && fondo.nuvolaFerma, fondo);
+  ok('e nella barra resta la sola ricerca, senza la vecchia nuvola',
+     fondo.soloRicerca && !fondo.nuvola, fondo);
   ok('e con delle categorie gia\' fatte non si propone di crearne',
      !fondo.conCategorie, fondo);
 

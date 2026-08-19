@@ -9,7 +9,10 @@ export function isDownloadCancelled(e){ return !!(e && e.cancelled); }
 // window.__driveConfigurato = true, e poi guarda __collegaChiesto per sapere
 // se il tocco e' arrivato davvero fin qui.
 export function isDriveConfigured(){ return window.__driveConfigurato === true; }
-export function isDriveConnected(){ return false; }
+// Di norma NON collegato: e' lo stato in cui lo scaffale deve dire qualcosa.
+// La prova che verifica il contrario — collegato, e quindi riga muta — lo
+// accende con window.__driveCollegato = true.
+export function isDriveConnected(){ return window.__driveCollegato === true; }
 export function connectDrive(){
   window.__collegaChiesto = (window.__collegaChiesto || 0) + 1;
   return Promise.resolve();
@@ -19,7 +22,8 @@ export function driveAccountEmail(){ return null; }
 export function onDriveAuthChange(){}
 export function listDriveAlbumsForFolder(){ return Promise.resolve([]); }
 export function initDriveAuth(){}
-export function daRicollegare(){ return false; }
+// "Ricollega" invece di "Collega" a chi l'aveva gia' fatto una volta.
+export function daRicollegare(){ return window.__driveGiaCollegato === true; }
 // Nell'app scarica la libreria di Google in anticipo (vedi prepareDriveAuth in
 // js/drive.js). Qui non c'e' niente da scaricare, ma la funzione deve esistere:
 // refs.js la chiama entrando nell'archivio.

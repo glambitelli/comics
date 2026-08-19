@@ -233,3 +233,17 @@ select.settings-time:disabled{opacity:1;color:var(--ink);background-image:none;p
   font-family:ui-monospace,'SF Mono',Menlo,Consolas,monospace;
   font-size:11px;line-height:1.5;color:var(--ink2);white-space:pre-wrap;word-break:break-word;
 }
+
+/* ── SPAZIO DELLE IMMAGINI ──
+   Arriva dal pannello a nuvola di References, dove stava in un posto che si
+   apriva per collegare Drive: nessuno ci andava per sapere quanti mega
+   restassero. Qui e' in mezzo all'account e al backup, cioe' fra le altre cose
+   che si guardano una volta ogni tanto per manutenzione.
+   I "GB liberi" stanno a destra della riga, dov'e' l'azione nelle altre righe
+   della scheda: e' il numero che conta davvero — quanto ancora ci sta — e
+   allineato li' si legge in colonna con gli altri. */
+.spazio-liberi{font-size:12px;font-weight:600;color:var(--ink3);cursor:default}
+.spazio-binario{height:5px;background:var(--sand2);border-radius:3px;overflow:hidden;margin-top:10px}
+.spazio-riempimento{height:100%;background:linear-gradient(90deg,#e0a810,#f0c020);border-radius:3px;transition:width .3s}
+/* Sopra l'80% il colore cambia da solo: un numero non allarma, un rosso si'. */
+.spazio-riempimento.avviso{background:linear-gradient(90deg,#c85838,#e07838)}

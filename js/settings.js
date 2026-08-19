@@ -186,6 +186,40 @@ export function openSettings(){
   mostraRegistro();
   mostraAccount();
   mostraDrive();
+  mostraSpazio();
+}
+
+// ── QUANTO SPAZIO RESTA ──
+// Il conto vive in refs.js — e' quel modulo che ha in mano le immagini e i
+// byte che ognuna si porta dietro — e si carica solo qui, all'apertura del
+// pannello: le impostazioni non hanno bisogno dell'archivio per esistere.
+// Se l'archivio non e' mai stato aperto in questa sessione la sua cache e'
+// vuota, e spazioImmagini() fa da solo una lettura secca invece di
+// rispondere "0 MB" (vedi il commento li').
+async function mostraSpazio(){
+  const usato = document.getElementById('spazio-usato');
+  const liberi = document.getElementById('spazio-liberi');
+  const barra = document.getElementById('spazio-riempimento');
+  if(!usato || !barra) return;
+  let dati;
+  try{
+    const r = await import('./refs.js');
+    dati = await r.spazioImmagini();
+  }catch(e){ usato.textContent = 'non disponibile'; return; }
+  const mb = dati.usati / (1024*1024);
+  const pct = Math.min(100, (dati.usati / dati.totale) * 100);
+  // Il circa e il minore non stanno insieme ("~<0.1 MB" si legge due volte per
+  // capirlo): sotto il decimo di mega si scrive solo il minore.
+  usato.textContent = (mb < 0.1 ? '<0.1' : '~' + mb.toFixed(1)) + ' MB usati';
+  if(liberi){
+    const gb = Math.max(0, dati.totale - dati.usati) / (1024*1024*1024);
+    liberi.textContent = (gb >= 10 ? Math.round(gb) : gb.toFixed(1)) + ' GB liberi';
+  }
+  // Il minimo visibile: con due immagini caricate la percentuale e' cosi'
+  // piccola che la barra resterebbe vuota, e una barra vuota si legge come
+  // "non funziona" invece che come "sei all'inizio".
+  barra.style.width = Math.max(pct, dati.usati > 0 ? 0.3 : 0) + '%';
+  barra.classList.toggle('avviso', pct > 80);
 }
 
 // ── IL REGISTRO NELLE IMPOSTAZIONI ──

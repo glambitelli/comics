@@ -48,7 +48,7 @@ exposeLazy('./refs.js', ['refsBackToFolders','openRefLightbox','closeRefLightbox
   'openFolderBrowser','openAllGrid','openFolder','openTag','openTagList','setArchivio','promptNewFolder','promptTagImage',
   'promptRenameFolder','promptDeleteFolder','setFolderTab','albumShelfMenu',
   'toggleScelta','annullaScelta','rinominaScelto','eliminaScelti',
-  'connectDriveAndSync','disconnectDriveUI','toggleRefsProfile','closeRefsProfile',
+  'connectDriveAndSync',
   'refsFolderSearch','refsAlbumsSearch','refsGridSortMenu','refsAlbumsSortMenu',
   'promptLinkProjectFromLightbox','toggleProjectRefPanel','apriRitaglio']);
 // L'onclick del pulsante nella barra della vista a schermo intero: senza id,
@@ -104,14 +104,6 @@ function hideAllScreens(){
   // Elimina" di una cartella di References appoggiato sopra le schede della
   // home, ancora funzionante e riferito a una cosa non piu' a schermo.
   closeActionMenu();
-  // Stessa storia per il pannello di Drive: aperto, era un foglio che
-  // sopravviveva al cambio di schermata e si ritrovava appoggiato sopra
-  // l'archivio al ritorno, come se non si fosse mai chiuso. Qui si tocca il
-  // DOM e basta — refs.js si carica pigramente e non e' detto che ci sia.
-  ['refs-profile-panel','refs-profile-backdrop'].forEach(id=>{
-    const el = document.getElementById(id);
-    if(el && el.classList.contains('open')){ el.classList.remove('open'); el.hidden = true; }
-  });
   ['screen-home','screen-project','screen-stats','screen-evening','screen-refs','screen-idee'].forEach(id=>{
     const el = document.getElementById(id);
     if(el) el.classList.remove('active');

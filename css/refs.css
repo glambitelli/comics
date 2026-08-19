@@ -574,105 +574,34 @@ body.is-touch .refs-lightbox-close{display:none}
 .refs-lightbox-nav-next{right:2px}
 body.is-touch .refs-lightbox-nav{display:none}
 
-/* ── SPAZIO OCCUPATO — piano gratuito Firestore (1GB) ── */
-/* ── PROFILO: avatar in alto a destra + pannello (stile "account Google") ──
-   Raccoglie stato Drive e spazio Cloudinary, unici per tutta l'app: tolti
-   dal flusso di References, che così resta pulito. */
-/* NELLA BARRA, non piu' flottante. Il disco galleggiava in basso a destra come
-   il FAB della home, e li' finiva addosso alla scheda degli artisti: toccava
-   il bordo e copriva l'ultima riga, che e' esattamente il difetto per cui i
-   pulsanti flottanti costano cari su una schermata piena. Adesso e' un tondo
-   della barra, accanto alla ricerca, dove prima stava "Nuova categoria". */
-/* Niente line-height:0 qui, per quanto comodo sembri per togliere lo spazio
-   sotto il bottone: il pannello e' figlio di questo gruppo, e quello zero si
-   ereditava fin dentro le sue righe di testo — etichetta e cifre dello spazio
-   finivano una sopra l'altra. Il tondo e' un figlio flex, e da flex lo spazio
-   fantasma non c'e' comunque. */
-.refs-profile{position:relative;z-index:60;flex-shrink:0;display:flex}
-.refs-profile-btn{
-  position:relative;z-index:2;width:34px;height:34px;border-radius:50%;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;
-  background:var(--white);border:1.5px solid var(--sand2);color:#8a7248;
-  transition:transform .1s,color .15s,border-color .15s;
+/* ── LA RIGA DI DRIVE SULLO SCAFFALE ──
+   Qui c'era il bollino a nuvola col suo pannello: stato di Drive, pulsante di
+   collegamento e barra dello spazio, tutto dentro un'icona muta nella barra
+   della ricerca. Il pannello e' sparito — lo spazio e' andato nelle
+   impostazioni, il collegamento c'era gia' — e al suo posto e' rimasta una
+   riga scoperta sopra gli albi, che si vede solo quando Drive NON e' collegato.
+   Un avviso che si legge senza doverlo aprire, insomma.
+   Colori del cielo e non dell'oro: e' una cosa che arriva da fuori (Google),
+   come il triangolo sugli albi scaricati da Drive. */
+.albums-drive{
+  display:flex;align-items:center;gap:12px;
+  margin:0 0 10px;padding:11px 13px;
+  background:var(--sky-pale);border:1px solid var(--sky);border-radius:12px;
 }
-/* Stesse misure del pulsante che sostituisce (.refs-sort-btn): la barra ha
-   una riga sola e un tondo piu' grosso la farebbe crescere. */
-.refs-profile-btn svg{width:19px;height:19px}
-.refs-profile-btn:active{transform:scale(.92)}
-/* Collegato a Drive: glifo azzurro + pallino verde di stato in alto a destra. */
-.refs-profile-btn.connected{color:var(--sky-deep);border-color:var(--sky)}
-.refs-profile-btn.connected::after{
-  content:'';position:absolute;top:-1px;right:-1px;width:9px;height:9px;border-radius:50%;
-  background:var(--green);border:1.5px solid var(--sand);
+.albums-drive-testo{min-width:0;flex:1;display:flex;flex-direction:column;gap:2px}
+.albums-drive-testo b{font-family:'Nunito',sans-serif;font-size:12.5px;font-weight:700;color:var(--sky-deep)}
+.albums-drive-testo span{font-size:11px;color:var(--ink3);line-height:1.4}
+/* Il fallimento del collegamento si scrive qui dentro, al posto della nota:
+   e' l'unico punto che chi ha appena premuto sta guardando. */
+.albums-drive-testo span.errore{color:var(--rame);font-weight:600}
+.albums-drive-btn{
+  flex-shrink:0;cursor:pointer;
+  font-family:'Nunito',sans-serif;font-size:12.5px;font-weight:700;
+  border-radius:10px;padding:9px 14px;
+  background:var(--white);border:1px solid var(--sky);color:var(--sky-deep);
+  transition:background .15s;
 }
-.rp-initial{font-family:'Nunito',sans-serif;font-weight:800;font-size:16px;line-height:1}
-
-/* Numeri BASSI, e per forza: il velo e il pannello ora stanno nello stesso
-   gruppo (vedi il commento nel markup), e li' dentro l'unica cosa che conta e'
-   che il velo sia sotto — sotto il pannello e sotto il bollino. Fuori dal
-   gruppo continuano a valere i 60 di .refs-profile, che e' quanto basta per
-   stare sopra il resto della schermata. */
-.refs-profile-backdrop{position:fixed;inset:0;z-index:1;background:transparent}
-/* Si apre verso il BASSO, appeso sotto il bollino: adesso il bollino sta in
-   cima alla schermata, e un pannello che si aprisse verso l'alto uscirebbe
-   dallo schermo. */
-.refs-profile-panel{
-  position:absolute;top:44px;right:0;z-index:2;
-  width:min(300px,calc(100vw - 44px));
-  background:var(--white);border-radius:16px;overflow:hidden;
-  box-shadow:0 16px 44px rgba(26,20,16,.3);border:1px solid var(--sand2);
-  transform-origin:top right;transform:scale(.9) translateY(-6px);opacity:0;
-  transition:transform .18s ease,opacity .16s ease;
-}
-.refs-profile-panel.open{transform:scale(1) translateY(0);opacity:1}
-.rp-head{display:flex;align-items:center;gap:11px;padding:16px 16px 14px;border-bottom:1px solid var(--sand2)}
-.rp-avatar{
-  width:42px;height:42px;flex-shrink:0;border-radius:50%;
-  display:flex;align-items:center;justify-content:center;
-  background:var(--sand2);color:var(--ink3);
-}
-.rp-avatar.connected{background:var(--sky-deep);color:var(--white)}
-.rp-avatar .rp-initial{font-size:19px}
-.rp-id{min-width:0}
-.rp-id-name{font-family:'Nunito',sans-serif;font-size:13.5px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.rp-id-sub{font-size:11px;color:var(--ink3);margin-top:1px}
-.rp-section{padding:13px 16px}
-.rp-section+.rp-section{border-top:1px solid var(--sand2)}
-.rp-section-label{font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--ink3);margin-bottom:9px}
-.rp-note{font-size:12px;color:var(--ink3)}
-/* La riga che dice "questo e' un magazzino, non il tuo accesso a Inkflow":
-   sta sotto il pulsante, piccola, e serve a chi apre il pannello e si chiede
-   perche' l'app gli chieda di nuovo un account Google. */
-.rp-fuori{margin-top:9px;line-height:1.45;font-size:11px}
-/* L'esito del collegamento, scritto dove si e' premuto: la striscia di stato
-   in cima alla schermata resta dietro al pannello, e un errore che non si vede
-   equivale a un pulsante rotto. */
-.rp-esito{margin-top:8px;line-height:1.45}
-.rp-esito.errore{color:var(--rame);font-weight:600}
-.rp-esito:empty{display:none}
-.rp-btn{
-  display:inline-flex;align-items:center;gap:7px;
-  font-family:'Nunito',sans-serif;font-size:12.5px;font-weight:700;cursor:pointer;
-  border-radius:10px;padding:9px 14px;transition:background .15s,border-color .15s;
-}
-.rp-btn-primary{background:var(--sky-pale);border:1px solid var(--sky);color:var(--sky-deep)}
-.rp-btn-primary:active{background:#c0e8f8}
-.rp-btn-ghost{background:transparent;border:1px solid var(--sand3);color:var(--ink2)}
-.rp-btn-ghost:active{background:var(--sand)}
-/* Due cifre alle estremita' della riga — quanto si e' usato, quanto resta —
-   invece di una stringa sola ("~20.0 MB su 25 GB") appoggiata a sinistra: la
-   riga sta larga quanto il pannello e con un valore solo sembrava monca.
-   line-height esplicito perche' e' testo, e il testo deve avere la sua altezza
-   qualunque cosa provi a ereditare da sopra. */
-.rp-storage-line{
-  display:flex;justify-content:space-between;align-items:baseline;gap:10px;
-  font-size:12.5px;font-weight:700;color:var(--ink2);line-height:1.4;
-  margin-bottom:9px;
-}
-.rp-storage-free{font-weight:600;color:var(--ink3)}
-.rp-storage-track{height:5px;background:var(--sand2);border-radius:3px;overflow:hidden}
-.rp-storage-fill{height:100%;background:linear-gradient(90deg,#e0a810,#f0c020);border-radius:3px;transition:width .3s}
-.rp-storage-fill.warn{background:linear-gradient(90deg,#c85838,#e07838)}
+.albums-drive-btn:active{background:#c0e8f8}
 
 /* ── STATO CARICAMENTO — banner visibile in pagina (più affidabile di alert()) ── */
 .refs-upload-status{max-height:0;overflow:hidden;opacity:0;transition:max-height .22s ease,opacity .18s ease,padding .22s ease;font-family:'Nunito',sans-serif;font-size:12px;font-weight:700;text-align:center;padding:0 20px}

@@ -3,14 +3,14 @@
 // tiene solo i metadati (url, cartella, dimensioni, data).
 // Organizzazione a cartelle per categoria (es. "Artists" → "Hiroyuki Okiura",
 // "Study (Temporary)" → "Hands").
-import { db, collection, doc, onSnapshot, setDoc, deleteDoc, serverTimestamp } from './firebase.js';
+import { db, collection, doc, onSnapshot, setDoc, deleteDoc, serverTimestamp, getDocs } from './firebase.js';
 import { haptic, showUndoToast, projects, currentId } from './state.js';
 import { compressImageFile, dataUrlToBlob } from './imgcompress.js';
 import { esc } from './testo.js';
 import { uploadToCloudinary, cldResize } from './cloudinary.js';
 import { promptModal, promptCampi, confirmModal, actionMenu } from './dialogs.js';
 import {
-  isDriveConfigured, isDriveConnected, connectDrive, disconnectDrive,
+  isDriveConfigured, isDriveConnected, connectDrive,
   driveAccountEmail, onDriveAuthChange, listDriveAlbumsForFolder,
   ensureDriveConnected, daRicollegare, prepareDriveAuth, ascoltaRientroDrive,
 } from './drive.js';
@@ -748,17 +748,17 @@ export async function syncDriveAlbumsForFolder(folderId){
 }
 
 let _driveAuthHooked = false;
-// Una riga sotto il pulsante, dentro il pannello. Il messaggio andava a finire
-// nella striscia di stato in cima alla schermata (setUploadStatus), che col
-// pannello Drive aperto sta dietro: se il collegamento falliva, chi aveva
-// premuto vedeva soltanto un pulsante che non faceva niente.
+// L'esito del collegamento si scrive nella riga stessa, sotto il titolo. Il
+// messaggio andava a finire nella striscia di stato in cima alla schermata
+// (setUploadStatus): con lo scaffale scrollato in basso quella striscia non si
+// vede, e chi aveva premuto "Collega" vedeva soltanto un pulsante che non
+// faceva niente. Qui il messaggio nasce a due centimetri dal dito che ha
+// premuto.
 function esitoDrive(testo, errore){
-  const drive = document.getElementById('rp-drive');
-  if(!drive) return;
-  let n = drive.querySelector('.rp-esito');
-  if(!n){ n = document.createElement('div'); n.className = 'rp-note rp-esito'; drive.appendChild(n); }
-  n.textContent = testo || '';
-  n.classList.toggle('errore', !!errore);
+  const nota = document.getElementById('albums-drive-nota');
+  if(!nota) return;
+  nota.textContent = testo || 'Qui restano solo gli albi gia\' scaricati.';
+  nota.classList.toggle('errore', !!errore);
 }
 
 export async function connectDriveAndSync(){
@@ -779,10 +779,6 @@ export async function connectDriveAndSync(){
   }
 }
 
-export function disconnectDriveUI(){
-  disconnectDrive();
-  renderRefsScreen();
-}
 
 // ── LISTENER REALTIME ──
 export function startRefsListener(){
@@ -1228,36 +1224,33 @@ export function refsAlbumsSortMenu(btnEl){
 // dimensione che è stata davvero inviata), non un valore letto in tempo reale.
 const CLOUDINARY_FREE_BYTES = 25 * 1024 * 1024 * 1024;
 
-// Spazio Cloudinary, ora dentro il pannello profilo (non più una barra fissa
-// sotto l'header): l'interfaccia References resta più pulita.
-function updateStorageIndicator(){
-  const label = document.getElementById('rp-storage-label');
-  const liberi = document.getElementById('rp-storage-free');
-  const fill = document.getElementById('rp-storage-fill');
-  if(!label || !fill) return;
-  const used = _refs.reduce((sum,r)=> sum + (typeof r.bytes==='number' ? r.bytes : 0), 0);
-  const mb = used / (1024*1024);
-  const pct = Math.min(100, (used / CLOUDINARY_FREE_BYTES) * 100);
-  // Due numeri agli estremi della riga. Quello che conta davvero e' il secondo
-  // — quanto ancora ci sta — ed e' anche il titolo della sezione: "spazio
-  // disponibile". I megabyte usati restano perche' senza di loro la barretta
-  // qui sotto non si sa a cosa si riferisca.
-  // Il circa e il minore non stanno insieme ("~<0.1 MB" si legge due volte per
-  // capirlo): sotto il decimo di mega si scrive solo il minore.
-  label.textContent = (mb < 0.1 ? '<0.1' : '~' + mb.toFixed(1)) + ' MB usati';
-  if(liberi){
-    const gb = Math.max(0, CLOUDINARY_FREE_BYTES - used) / (1024*1024*1024);
-    liberi.textContent = (gb >= 10 ? Math.round(gb) : gb.toFixed(1)) + ' GB liberi';
+// IL NUMERO LO LEGGONO LE IMPOSTAZIONI, non piu' l'archivio. Stava in un
+// pannello che si apriva dal bollino a nuvola di References: un posto in cui
+// si andava per collegare Drive, non per sapere quanti mega restano. Ora la
+// barra sta nelle impostazioni, in mezzo all'account e al backup, cioe' fra le
+// altre cose di manutenzione.
+//
+// C'e' un cavillo: le impostazioni si aprono anche senza essere mai passati
+// dall'archivio, e in quel caso il listener realtime non e' acceso e la cache
+// locale e' vuota. Scrivere "0 MB usati" sarebbe una bugia, quindi in quel caso
+// soltanto si fa una lettura secca della collezione — una volta, su richiesta.
+export async function spazioImmagini(){
+  let lista = _refs;
+  if(!lista.length && !_refsUnsub){
+    try{
+      const snap = await getDocs(collection(db, REFS_COL));
+      lista = snap.docs.map(d=> d.data());
+    }catch(e){ lista = []; }
   }
-  fill.style.width = Math.max(pct, used>0 ? 0.3 : 0) + '%';
-  fill.classList.toggle('warn', pct > 80);
+  const usati = lista.reduce((somma,r)=> somma + (typeof r.bytes==='number' ? r.bytes : 0), 0);
+  return { usati, totale: CLOUDINARY_FREE_BYTES };
 }
 
 // ── RENDER: DISPATCHER ──
 export function renderRefsScreen(){
-  // Profilo (avatar in alto a destra + pannello): raccoglie stato Drive e
-  // spazio Cloudinary, unici per tutta l'app, così non ingombrano ogni vista.
-  renderProfile();
+  // La riga "Drive non collegato" sopra gli albi: vale per tutte le viste
+  // dell'archivio, quindi si aggiorna qui e non dentro il solo scaffale.
+  renderScaffaleDrive();
   const browserEl = document.getElementById('refs-folder-browser');
   const galleryEl = document.getElementById('refs-gallery-view');
   const crumb = document.getElementById('refs-breadcrumb');
@@ -1375,89 +1368,32 @@ const DRIVE_ICO = `<svg viewBox="0 0 24 24" width="12" height="12"><path d="M12 
 // altro dispositivo non ci sono. Il badge lo dice a colpo d'occhio.
 const PHONE_ICO = `<svg viewBox="0 0 24 24" width="11" height="11"><rect x="7" y="3" width="10" height="18" rx="2.2" fill="none" stroke="currentColor" stroke-width="1.7"/><line x1="10.5" y1="18" x2="13.5" y2="18" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>`;
 
-// ── RENDER: PROFILO (avatar + pannello) ──
-// Avatar tondo in alto a destra, alla Google: iniziale dell'account su disco
-// azzurro quando Drive è collegato, sagoma neutra quando no. Toccandolo si
-// apre il pannello con stato Drive e spazio Cloudinary.
-// Glifo a nuvola: evoca lo storage/Drive senza il logo Google. Il pallino
-// verde (via CSS ::after) segnala "collegato" senza bisogno di testo.
-const CLOUD_ICO = `<svg viewBox="0 0 24 24" width="22" height="22"><path d="M7.2 18.5h9.4a3.6 3.6 0 0 0 .35-7.18 5.1 5.1 0 0 0-9.78-1.2A4 4 0 0 0 7.2 18.5Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>`;
-
-function renderProfile(){
-  updateStorageIndicator();
-
-  const connected = isDriveConfigured() && isDriveConnected();
-  const email = connected ? driveAccountEmail() : '';
-
-  const btn = document.getElementById('refs-profile-btn');
-  if(btn){
-    btn.classList.toggle('connected', connected);
-    btn.innerHTML = CLOUD_ICO;
-  }
-
-  // Testata del pannello: nuvola + DA DOVE ARRIVANO GLI ALBI.
-  //
-  // Qui c'era scritto "Nessun account", e per chi apriva il pannello era la
-  // stessa frase che l'app usa per l'accesso a Inkflow: sembrava che il login
-  // fosse saltato, o che ce ne fossero due da fare. Sono due cose diverse —
-  // questo e' un magazzino, non un'identita' — e per giunta il magazzino puo'
-  // stare su un ALTRO account Google, con un'altra mail. Quindi il pannello
-  // dice il mestiere ("Albi da Google Drive") e sotto, in piccolo, da quale
-  // indirizzo stanno arrivando.
-  const avatar = document.getElementById('rp-avatar');
-  const name = document.getElementById('rp-id-name');
-  const sub = document.getElementById('rp-id-sub');
-  if(avatar){ avatar.innerHTML = CLOUD_ICO; avatar.classList.toggle('connected', connected); }
-  if(name) name.textContent = 'Albi da Google Drive';
-  if(sub) sub.textContent = connected ? (email || 'collegato') : 'non collegato';
-
-  // Sezione Drive: azione connetti/scollega.
-  const drive = document.getElementById('rp-drive');
-  if(drive){
-    if(!isDriveConfigured()){
-      drive.innerHTML = `<div class="rp-note">Google Drive non ancora configurato.</div>`;
-    } else if(connected){
-      drive.innerHTML = `<button class="rp-btn rp-btn-ghost" onclick="window.disconnectDriveUI()">Scollega</button>
-        <div class="rp-note rp-fuori">Sola lettura. Puo' essere un account Google diverso da quello di Inkflow.</div>`;
-    } else {
-      // "Ricollega" a chi l'aveva gia' collegato: sentirsi proporre la prima
-      // connessione quando l'hai gia' fatta sembra che l'app abbia perso i
-      // pezzi. Ed e' anche l'unico punto da cui, ora, puo' partire la
-      // schermata di Google.
-      const rientro = daRicollegare();
-      drive.innerHTML = `<button class="rp-btn rp-btn-primary" onclick="window.connectDriveAndSync()">${DRIVE_ICO} ${rientro ? 'Ricollega Google Drive' : 'Connetti Google Drive'}</button>
-        <div class="rp-note rp-fuori">Da qui arrivano i .cbz e i .cbr. Puo' essere un account Google diverso da quello di Inkflow.</div>`;
-    }
-  }
-}
-
-// Apertura/chiusura del pannello profilo.
-export function toggleRefsProfile(){
-  const panel = document.getElementById('refs-profile-panel');
-  const back = document.getElementById('refs-profile-backdrop');
-  if(!panel) return;
-  const open = !panel.classList.contains('open');
-  // Aprendo il pannello si comincia a scaricare la libreria di Google, cosi'
-  // e' gia' pronta quando il dito arriva sul pulsante: la finestra di Google
-  // si apre solo se parte DENTRO il tocco (vedi prepareDriveAuth in drive.js).
-  // Qui non si chiede niente a nessuno, si scarica e basta.
-  if(open) prepareDriveAuth();
-  renderProfile(); // rinfresca prima di mostrarlo
-  panel.hidden = false; if(back) back.hidden = false;
-  requestAnimationFrame(()=>{
-    panel.classList.toggle('open', open);
-    if(back) back.classList.toggle('open', open);
-    if(!open) setTimeout(()=>{ panel.hidden = true; if(back) back.hidden = true; }, 180);
-  });
-}
-export function closeRefsProfile(){
-  const panel = document.getElementById('refs-profile-panel');
-  const back = document.getElementById('refs-profile-backdrop');
-  if(panel && panel.classList.contains('open')){
-    panel.classList.remove('open');
-    if(back) back.classList.remove('open');
-    setTimeout(()=>{ panel.hidden = true; if(back) back.hidden = true; }, 180);
-  }
+// ── RENDER: LA RIGA DI DRIVE SULLO SCAFFALE ──
+// Qui c'era un bollino a nuvola nella barra della ricerca che apriva un
+// pannello con dentro lo stato di Drive e lo spazio delle immagini. Sono andati
+// via tutti e due, per due ragioni diverse. Lo spazio perche' nessuno apre un
+// pannello di Drive per sapere quanti mega gli restano: e' roba da impostazioni,
+// e li' e' finito. Il collegamento perche' era doppio — la stessa identica
+// azione stava nella riga "Albi da Google Drive" delle impostazioni — e un
+// pulsante nascosto dentro un'icona muta perdeva sempre il confronto con una
+// riga scritta a parole.
+// Quello che il pannello faceva bene, e che qui non si perde, e' avvisare:
+// quando Drive non e' collegato lo scaffale sembra semplicemente vuoto. Quindi
+// la frase resta, ma scoperta, sopra gli albi, con accanto il pulsante — che
+// serve comunque, perche' la finestra di Google si apre solo se parte da un
+// tocco in una schermata visibile (vedi prepareDriveAuth in drive.js).
+function renderScaffaleDrive(){
+  const riga = document.getElementById('refs-albums-drive');
+  if(!riga) return;
+  const collegato = isDriveConfigured() && isDriveConnected();
+  // Non configurato: non c'e' niente da collegare, la riga non serve. Collegato:
+  // gli albi arrivano, e una riga che dice "tutto a posto" e' solo rumore.
+  riga.hidden = !isDriveConfigured() || collegato;
+  if(riga.hidden){ esitoDrive(''); return; }
+  const btn = document.getElementById('albums-drive-btn');
+  // "Ricollega" a chi l'aveva gia' collegato: sentirsi proporre la prima
+  // connessione quando l'hai gia' fatta sembra che l'app abbia perso i pezzi.
+  if(btn) btn.textContent = daRicollegare() ? 'Ricollega' : 'Collega';
 }
 
 function sortAlbumsList(list){
