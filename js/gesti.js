@@ -79,8 +79,9 @@ export function panGain(z){
 // A 1.0 la molla parte 1:1 col dito e si irrigidisce strada facendo: risponde
 // SUBITO — è quello che mancava, prima cedeva già frenata dal primo pixel e
 // il gesto si sentiva legnoso — e la resistenza cresce dove serve, cioè
-// vicino alla decisione. Con questi numeri la pagina gira dopo circa 115px di
-// dito in tutto: poco più di un quarto di schermo, un gesto deciso ma breve.
+// vicino alla decisione. Sommata all'innesco e alla soglia (vedi
+// EDGE_COMMIT_ZOOM qui sotto) la pagina gira dopo circa 85px di dito sulla
+// carta, un centinaio in mano: un quarto di schermo, un gesto deciso ma breve.
 const SPRING_C = 1.0;
 export function edgeSpring(dx, w){
   if(!w) return dx;
@@ -90,6 +91,23 @@ export function edgeSpring(dx, w){
 
 // Quanto va tirata la molla, in frazione di schermo, perché si cambi pagina.
 export const EDGE_COMMIT = 0.2;
+
+// LO STESSO NUMERO, MA PARTENDO DAL BORDO DI UNA TAVOLA INGRANDITA, dove la
+// soglia si somma alla molla e all'innesco: sommando tutto, girare pagina da
+// ingranditi costava 112px di dito contro i 117 di una sfogliata a pagina
+// intera — che però lì si possono saltare con un colpetto secco, mentre da
+// ingranditi il flick non vale (vedi la nota in albums.js: era proprio il
+// flick a far girare le pagine per sbaglio mentre si guardava un dettaglio).
+// Quindi da ingranditi la pagina costava DI PIÙ, sempre, senza scorciatoie:
+// "un po' troppo resistente".
+//
+// A 0.16, con l'innesco sceso da 14 a 10, il conto totale passa da 112 a 85px
+// sulla carta — in mano qualcosa di piu', perche' il primo campione del
+// movimento se ne va a riconoscere il bordo: misurato, la pagina gira intorno
+// ai 100px invece dei 130 di prima. Un quarto di sforzo in meno. Restano lontanissimi i due casi che questa
+// soglia deve continuare a escludere — un colpetto di una dozzina di pixel al
+// bordo, e l'esplorazione dentro la tavola, che non arma nemmeno il gesto.
+export const EDGE_COMMIT_ZOOM = 0.16;
 
 // Quanto insistere, dito alla mano, prima che il nastro accenni a muoversi
 // partendo dal bordo di un'immagine ingrandita. Si conta in pixel di DITO:
@@ -101,8 +119,10 @@ export const EDGE_COMMIT = 0.2;
 // il permesso di cambiare si prende al touchstart, non a metà movimento — qui
 // non c'è più niente da cui difendersi, e un innesco lungo si sentiva solo
 // come un tratto morto in cui il dito spinge e non succede niente: era la
-// parte "grezza" del gesto.
-export const EDGE_HANDOFF = 14;
+// parte "grezza" del gesto. Da 14 a 10 per lo stesso motivo, un giro dopo: è
+// il primo pezzo dei 112px che rendevano faticoso il cambio pagina da
+// ingranditi (l'altro è EDGE_COMMIT_ZOOM, qui sopra).
+export const EDGE_HANDOFF = 10;
 
 // Fin dove si può spostare un'immagine di dimensioni base note prima di
 // "perderla" fuori dallo schermo, e come riportare uno spostamento dentro

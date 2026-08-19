@@ -38,7 +38,7 @@ import { escAttr } from './testo.js';
 import { actionMenu, promptModal } from './dialogs.js';
 import {
   ZOOM_IN, ZOOM_MAX, panGain, edgeSpring, EDGE_COMMIT, EDGE_HANDOFF,
-  panLimits as limitiPan, clampTo, ZOOM_TRANSITION,
+  panLimits as limitiPan, clampTo, ZOOM_TRANSITION, EDGE_COMMIT_ZOOM,
 } from './gesti.js';
 
 // Stato dell'albo attualmente aperto
@@ -1768,7 +1768,7 @@ function wireGestures(ov){
         // scorciatoia di velocità. Era il flick ad aver reso il cambio pagina
         // troppo facile: un colpetto secco al bordo bastava a girare, anche
         // quando si voleva solo finire di guardare la tavola.
-        vaiAvanti = Math.abs(edgeSpring(dx, stageW)) > stageW * EDGE_COMMIT;
+        vaiAvanti = Math.abs(edgeSpring(dx, stageW)) > stageW * EDGE_COMMIT_ZOOM;
       } else {
         const distOk = adx > stageW * 0.3;
         const flickOk = (Math.abs(vx) > 0.5 && Math.sign(vx) === Math.sign(dx)) || (elapsed < 300 && adx > 24);

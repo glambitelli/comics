@@ -15,7 +15,7 @@
 import { projects } from './state.js';
 import {
   ZOOM_IN, ZOOM_MAX, panGain, edgeSpring, EDGE_COMMIT, EDGE_HANDOFF,
-  panLimits as limitiPan, clampTo, ZOOM_TRANSITION,
+  panLimits as limitiPan, clampTo, ZOOM_TRANSITION, EDGE_COMMIT_ZOOM,
 } from './gesti.js';
 // Dall'archivio arrivano solo dati: la cache dei ritagli, l'elenco della
 // griglia da cui si e' aperta la vista, il nome di una cartella, i progetti
@@ -663,7 +663,7 @@ function applyLbResistance(dx, w){
           // che si vede — e non vale nessuna scorciatoia di velocita': era il
           // flick a rendere il cambio troppo facile, bastava un colpetto al
           // bordo per cambiare foto senza volerlo.
-          vaiAvanti = Math.abs(edgeSpring(dx, lbBodyW)) > lbBodyW * EDGE_COMMIT;
+          vaiAvanti = Math.abs(edgeSpring(dx, lbBodyW)) > lbBodyW * EDGE_COMMIT_ZOOM;
         } else {
           const distOk = adx > lbBodyW * 0.3;
           const flickOk = (Math.abs(vx) > 0.5 && Math.sign(vx) === Math.sign(dx)) || (elapsed < 300 && adx > 24);

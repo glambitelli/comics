@@ -112,6 +112,41 @@ module.exports = () => suite("Lettore — spostamento e sfoglio da ingranditi", 
   ok('e ogni tratto successivo cede meno del precedente',
      (molla.c - molla.b) > 0 && (molla.c - molla.b) < (molla.b - molla.a), molla);
 
+  console.log('\n── e quanto dito ci vuole, di preciso ──');
+  // Il numero che decide se il gesto si sente fluido o legnoso. Costava 112px
+  // di dito — piu' di una sfogliata a pagina intera, che pero' la' si puo'
+  // saltare con un colpetto secco mentre da ingranditi il colpetto non vale:
+  // da ingranditi girare pagina costava sempre di piu'. Adesso 85, e queste
+  // due prove tengono il numero fra i suoi due limiti.
+  const largo = await page.evaluate(()=> document.querySelector('.ar-stage').getBoundingClientRect().width);
+  const tiraDalBordo = async (frazione)=>{
+    await ingrandita();
+    await aFineCorsa();
+    const prima = await page.evaluate(()=>window.Z.contatore());
+    await page.evaluate(async (px)=>{
+      const x0 = 400;
+      window.Z.touch('touchstart', x0, 450);
+      for(let i = 1; i <= 12; i++){
+        window.Z.touch('touchmove', x0 - px*i/12, 450);
+        await new Promise(r=>setTimeout(r,16));
+      }
+      window.Z.touch('touchend', x0 - px, 450);
+    }, Math.round(largo * frazione));
+    await page.waitForTimeout(700);
+    return { prima, dopo: await page.evaluate(()=>window.Z.contatore()) };
+  };
+  const poco = await tiraDalBordo(0.10);
+  ok('un decimo di schermo non basta: si stava solo guardando',
+     poco.prima === poco.dopo, { ...poco, largo });
+  const abbastanza = await tiraDalBordo(0.28);
+  // 0,28 e non 0,23: il conto teorico dice 0,21, ma il primo campione del
+  // movimento se ne va a riconoscere il bordo, quindi in mano ce ne vuole un
+  // filo di piu'. La prova sta appena sopra la soglia vera, non sopra quella
+  // sulla carta — e col numero di prima (0,20) questo stesso gesto non
+  // girava pagina.
+  ok('e a poco meno di un terzo la pagina gira',
+     abbastanza.prima !== abbastanza.dopo, { ...abbastanza, largo });
+
   console.log('\n── muovendosi DENTRO la tavola non si gira mai pagina ──');
   await ingrandita();
   // È il caso che confondeva: il bordo orizzontale di una tavola ingrandita è
