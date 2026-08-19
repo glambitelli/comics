@@ -1,0 +1,106 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8">
+<title>mockup — dove stanno i comandi nel lettore</title>
+<!-- Tre modi di mettere ritaglio e "tutta la tavola" SOPRA il cursore delle
+     pagine, invece che in fondo a tutto. Il vestito e' quello vero
+     (css/albums.css): quello che si vede qui e' quello che si vedrebbe
+     nell'app, cambia solo dove sta la fila dei bottoni. -->
+<link rel="stylesheet" href="/css/variables.css">
+<link rel="stylesheet" href="/css/albums.css">
+<style>
+  html,body{margin:0;background:#1a1512;font-family:'Nunito',sans-serif}
+  .fila{display:flex;gap:22px;padding:22px;align-items:flex-start}
+  .telefono{width:390px;height:720px;position:relative;border-radius:22px;overflow:hidden;
+            background:#0d0b09;border:1px solid #2e2822;flex-shrink:0}
+  .didascalia{color:#c8bca4;font-size:12.5px;font-weight:700;padding:0 0 8px;letter-spacing:.02em}
+  .tavola{position:absolute;inset:0 0 var(--sotto,150px) 0;display:flex;align-items:center;justify-content:center;padding:8px}
+  .tavola img{max-width:100%;max-height:100%;object-fit:contain}
+  .basso{position:absolute;left:0;right:0;bottom:0;display:flex;flex-direction:column;gap:8px;padding:0 14px 14px}
+
+  /* ── A: dentro la capsula, prima riga ── */
+  .capsula{width:100%;display:flex;flex-direction:column;padding:0 14px;border-radius:24px;
+           background:rgba(30,22,10,.46);border:1px solid rgba(232,200,120,.2);
+           backdrop-filter:blur(8px) saturate(1.15)}
+  .riga{display:flex;align-items:center;gap:8px;min-width:0}
+  .azioni{display:flex;gap:6px;flex-shrink:0}
+  .azioni .ar-btn{width:34px;height:34px}
+  .a .azioni{margin-left:auto;padding:8px 0 2px}
+
+  /* ── B: sospesi sopra la capsula, a destra ── */
+  .b .sospesi{display:flex;justify-content:flex-end;gap:8px;padding:0 2px 2px}
+  .b .sospesi .ar-btn{width:40px;height:40px;background:rgba(30,22,10,.62);
+    border:1px solid rgba(232,200,120,.2);backdrop-filter:blur(8px)}
+
+  /* ── C: una barretta di comandi, centrata sopra la capsula ── */
+  .c .barretta{display:flex;justify-content:center;gap:4px;align-self:center;
+    padding:4px;border-radius:22px;background:rgba(30,22,10,.55);
+    border:1px solid rgba(232,200,120,.2);backdrop-filter:blur(8px)}
+  .c .barretta .ar-btn{width:38px;height:38px}
+</style>
+</head><body>
+<div class="fila" id="fila"></div>
+<script type="module">
+// Una tavola finta ma credibile: vignette, balloon, mezzitoni.
+function tavola(){
+  const c = document.createElement('canvas');
+  c.width = 700; c.height = 1000;
+  const x = c.getContext('2d');
+  x.fillStyle = '#fbf8f2'; x.fillRect(0,0,700,1000);
+  const vign = (a,b,w,h)=>{ x.strokeStyle='#15120e'; x.lineWidth=4; x.strokeRect(a,b,w,h);
+    x.fillStyle='#e4ded2'; x.fillRect(a+4,b+4,w-8,h-8); };
+  const ballo = (a,b,w,h)=>{ x.fillStyle='#fff'; x.strokeStyle='#15120e'; x.lineWidth=3;
+    x.beginPath(); x.ellipse(a+w/2,b+h/2,w/2,h/2,0,0,7); x.fill(); x.stroke(); };
+  vign(40,40,290,230);  ballo(70,70,150,70);
+  vign(360,40,300,230); ballo(520,70,110,60);
+  vign(40,300,620,340); ballo(90,330,200,80);
+  vign(40,670,290,290);
+  vign(360,670,300,290); ballo(400,700,180,70);
+  return c.toDataURL('image/png');
+}
+const IMG = tavola();
+
+const ICO = {
+  tutta: `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V5.6A1.6 1.6 0 0 1 5.6 4H9"/><path d="M15 4h3.4A1.6 1.6 0 0 1 20 5.6V9"/><path d="M20 15v3.4a1.6 1.6 0 0 1-1.6 1.6H15"/><path d="M9 20H5.6A1.6 1.6 0 0 1 4 18.4V15"/></svg>`,
+  clip: `<svg viewBox="0 0 24 24" width="20" height="20"><circle cx="6.5" cy="6.5" r="2.4" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="6.5" cy="17.5" r="2.4" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8.6 8.2 20 18 M8.6 15.8 20 6" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg>`,
+  first: `<svg viewBox="0 0 24 24" width="20" height="20"><path d="M18 5 L10 12 L18 19" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/><path d="M7 5.5v13" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"/></svg>`,
+  last: `<svg viewBox="0 0 24 24" width="20" height="20"><path d="M6 5 L14 12 L6 19" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/><path d="M17 5.5v13" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"/></svg>`,
+};
+const azioni = ()=> `<div class="azioni">
+  <button class="ar-btn">${ICO.tutta}</button>
+  <button class="ar-btn">${ICO.clip}</button></div>`;
+const seek = ()=> `<div class="riga ar-seek-row">
+    <button class="ar-jump">${ICO.first}</button>
+    <input class="ar-seek" type="range" min="0" max="181" value="21">
+    <button class="ar-jump">${ICO.last}</button>
+  </div>`;
+const info = ()=> `<div class="riga ar-controls-row">
+    <span class="ar-counter">022 / 182</span>
+    <span class="ar-divider"></span>
+    <span class="ar-title">Naruto 1</span>
+  </div>`;
+
+const varianti = [
+  { id:'a', titolo:'A · dentro la capsula, prima riga',
+    basso: `<div class="capsula">${azioni()}${seek()}${info()}</div>` },
+  { id:'b', titolo:'B · sospesi sopra, a destra',
+    basso: `<div class="sospesi">
+      <button class="ar-btn">${ICO.tutta}</button>
+      <button class="ar-btn">${ICO.clip}</button></div>
+      <div class="capsula">${seek()}${info()}</div>` },
+  { id:'c', titolo:'C · barretta centrata sopra',
+    basso: `<div class="barretta">
+      <button class="ar-btn">${ICO.tutta}</button>
+      <button class="ar-btn">${ICO.clip}</button></div>
+      <div class="capsula">${seek()}${info()}</div>` },
+];
+
+document.getElementById('fila').innerHTML = varianti.map(v=>`
+  <div>
+    <div class="didascalia">${v.titolo}</div>
+    <div class="telefono ${v.id}" id="tel-${v.id}">
+      <div class="tavola"><img src="${IMG}"></div>
+      <div class="basso">${v.basso}</div>
+    </div>
+  </div>`).join('');
+window.__ready = true;
+</script>
+</body></html>
