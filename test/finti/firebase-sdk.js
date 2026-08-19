@@ -49,6 +49,13 @@ export function signInWithPopup(){
   window.__utente = window.__utenteDaEntrare ||
     { uid:'UID-DI-PROVA', email:'giovanni@example.com', displayName:'Giovanni' };
   _ascoltatori.forEach(cb=> cb(window.__utente));
+  // LA RISPOSTA CHE SI PERDE. Sul telefono la finestra di Google e' una
+  // finestra a parte, e mentre e' aperta il sistema puo' congelare o
+  // ricaricare la pagina sotto: l'accesso riesce (Firebase se lo scrive, e i
+  // suoi ascoltatori lo sanno) ma QUESTA promessa non si risolve mai, perche'
+  // non c'e' piu' nessuno ad aspettarla. E' il caso in cui si restava
+  // bloccati davanti a "Entra con Google", ed e' l'unico modo di provarlo.
+  if(window.__popupSiPerde) return new Promise(()=>{});
   return Promise.resolve({ user: window.__utente });
 }
 export function signOut(){

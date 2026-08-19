@@ -56,6 +56,34 @@ module.exports = () => suite("Accesso — l'archivio si apre solo a chi e' entra
   ok('e adesso i progetti si ascoltano', aperta.ascolti.includes('projects'), aperta.ascolti);
   ok('con la home a schermo', aperta.home, aperta);
 
+  sezione('e la porta si apre anche se la risposta di Google si perde');
+  // Il guasto raccontato cosi': "faccio l'accesso ma non va avanti". La
+  // finestra di Google e' una finestra a parte, e mentre e' aperta il telefono
+  // puo' congelare o ricaricare la pagina sotto — in un browser dentro
+  // un'altra app succede quasi sempre. L'accesso RIESCE, ma la risposta non
+  // trova piu' nessuno: prima la porta si apriva solo su quella risposta, e si
+  // restava davanti a "Entra con Google" per sempre. Ripremere non serviva:
+  // Google rispondeva subito "sei gia' dentro" e quella risposta si perdeva
+  // allo stesso modo.
+  await page.evaluate(async ()=>{
+    const a = await import('/js/auth.js');
+    await a.esci();
+    await new Promise(r=>setTimeout(r,300));
+    window.__popupSiPerde = true;
+    window.__ascolti = [];
+    window.entraInInkflow();
+  });
+  await page.waitForFunction(()=> document.getElementById('accesso').hidden === true, { timeout: 8000 })
+    .catch(()=>{});
+  const perSuoConto = await page.evaluate(()=>({
+    porta: !document.getElementById('accesso').hidden,
+    ascolti: window.__ascolti || [],
+    home: document.getElementById('screen-home').classList.contains('active'),
+  }));
+  ok('la porta si apre lo stesso, perche\' a decidere e\' lo STATO',
+     !perSuoConto.porta, perSuoConto);
+  ok('e con la home a schermo, come sempre', perSuoConto.home, perSuoConto);
+
   sezione('e uscendo la porta si richiude');
   // Uscire dalle impostazioni non deve lasciare l'app aperta su dati che da
   // quel momento non ha piu' il diritto di leggere.
@@ -65,4 +93,9 @@ module.exports = () => suite("Accesso — l'archivio si apre solo a chi e' entra
   });
   await page.waitForFunction(()=> document.getElementById('accesso').hidden === false, { timeout: 8000 });
   ok('la porta torna davanti', await page.evaluate(()=> !document.getElementById('accesso').hidden), null);
+  // Il pulsante si spegne quando lo premi: tornando alla porta va riacceso, se
+  // no resta un pulsante che non si lascia premere e l'unica via d'uscita e'
+  // ricaricare l'app.
+  ok('e il pulsante si lascia premere di nuovo',
+     await page.evaluate(()=> !document.getElementById('accesso-btn').disabled), null);
 });

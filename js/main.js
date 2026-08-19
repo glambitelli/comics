@@ -643,15 +643,27 @@ mostraVersione();
 // scritture falliranno finche' non si rientra, ma un'app che non si apre e'
 // peggio di un'app che per ora non salva.
 let _authApp = null;
+// Aprire la porta due volte non deve voler dire ascoltare Firestore due volte:
+// dal giorno in cui la porta si apre anche da sola (vedi piu' sotto) puo'
+// succedere che ci si arrivi sia dalla promessa del login sia dal cambio di
+// stato, a distanza di un istante.
+let _portaGiaAperta = false;
 function portaAperta(){
   const porta = document.getElementById('accesso');
   if(porta) porta.hidden = true;
+  if(_portaGiaAperta) return;
+  _portaGiaAperta = true;
   avviaListenerProgetti();
   loadUserData();
 }
 function mostraPorta(errore){
   const porta = document.getElementById('accesso');
   if(porta) porta.hidden = false;
+  // Il pulsante si spegne quando si preme (vedi entraInInkflow): se si torna
+  // qui, va riacceso — se no resta un pulsante che non si lascia premere e
+  // l'unica via d'uscita e' ricaricare l'app.
+  const btn = document.getElementById('accesso-btn');
+  if(btn) btn.disabled = false;
   const err = document.getElementById('accesso-errore');
   if(err){
     err.hidden = !errore;
@@ -683,9 +695,22 @@ window.entraInInkflow = function(){
   }
   const utente = await _authApp.attendiAccesso();
   if(utente) portaAperta(); else mostraPorta('');
-  // Uscendo dalle impostazioni la porta si richiude: l'app non deve restare
-  // aperta su dati che da quel momento non ha piu' il diritto di leggere.
-  _authApp.alCambioAccesso(u=>{ if(!u) mostraPorta(''); });
+  // LA PORTA SI APRE ANCHE DA SOLA, e questo era il difetto: qui si guardava
+  // solo l'uscita — "se non c'e' piu' nessuno, richiudi" — mentre l'ingresso
+  // dipendeva unicamente dalla promessa di signInWithPopup.
+  //
+  // Sul telefono quella promessa si perde spesso: la finestra di Google e' una
+  // finestra a parte, e mentre e' aperta il sistema puo' congelare o ricaricare
+  // la pagina sotto (in un browser dentro un'altra app succede quasi sempre).
+  // L'accesso RIESCE — Firebase se lo scrive e lo sa — ma la risposta non
+  // trova piu' nessuno ad aspettarla: si restava davanti a "Entra con Google"
+  // per sempre, e ripremere non serviva a niente, perche' Google rispondeva
+  // subito "sei gia' dentro" e quella risposta si perdeva allo stesso modo.
+  //
+  // Adesso a decidere e' lo STATO — c'e' un utente o no — che e' l'unica cosa
+  // che sopravvive a una pagina ricaricata. E' la stessa correzione fatta per
+  // il collegamento a Drive (vedi ascoltaRientroDrive in drive.js).
+  _authApp.alCambioAccesso(u=>{ if(u) portaAperta(); else mostraPorta(''); });
 })();
 
 // IL RITORNO DA GOOGLE VA ASPETTATO DALL'APP, NON DA UNA SCHERMATA.
