@@ -209,3 +209,96 @@ body.is-touch .board-chiudi{display:none}
 .board-tessera p{
   margin:0;font-size:13.5px;line-height:1.45;color:#efe4d2;
 }
+
+/* ── IL FOGLIO SU CUI DISEGNARE ──
+   Sopra la scena (210) e sopra la board (220): si apre da dentro tutte e due.
+   La barra e' quella scura della scena, il foglio e' chiaro — si disegna nero
+   su bianco, e un foglio scuro con un tratto chiaro non somiglia a niente di
+   quello che si fa su carta. */
+.schizzo{
+  position:fixed;inset:0;z-index:230;display:flex;flex-direction:column;
+  background:#241d16;
+  opacity:0;pointer-events:none;transition:opacity .18s ease;
+}
+.schizzo.open{opacity:1;pointer-events:auto}
+.schizzo-barra{
+  display:flex;align-items:center;gap:8px;flex-shrink:0;
+  padding:calc(10px + var(--safe-top)) 12px 10px;
+  background:linear-gradient(135deg,#2a2018,#1a1410);
+}
+.schizzo-barra .cresci{flex:1}
+/* Spento vuol dire spento: un pulsante acceso che non fa niente si prova, non
+   funziona, e da quel momento non ci si fida piu' nemmeno degli altri. */
+.schizzo-barra button[disabled]{opacity:.3;pointer-events:none}
+.schizzo-esito{
+  font-size:11.5px;font-weight:700;color:var(--oro);opacity:.9;line-height:1.3;
+  max-width:60%;
+}
+.schizzo-esito[hidden]{display:none}
+.schizzo-foglio{
+  flex:1;min-height:0;display:flex;align-items:center;justify-content:center;
+  padding:14px 14px calc(14px + var(--safe-bot));
+}
+/* 4:3 come una vignetta larga, e non tutto lo schermo: disegnare "ovunque" non
+   da' nessun senso della composizione, e un beat e' un'inquadratura. */
+.schizzo-tela{
+  width:100%;max-width:min(100%, calc((100vh - 160px) * 4 / 3));
+  aspect-ratio:4/3;
+  background:#fffdf7;border-radius:10px;
+  box-shadow:0 10px 30px rgba(0,0,0,.4);
+  /* Il dito deve DISEGNARE, non far scorrere la pagina sotto il foglio. */
+  touch-action:none;cursor:crosshair;
+}
+
+/* ── LA MINIATURA DENTRO IL BEAT ──
+   Un quadratino a destra del testo, alla stessa altezza della prima riga.
+   Vuoto e' una matita spenta: e' l'altra porta d'ingresso del beat, e deve
+   vedersi senza gridare piu' del testo. */
+.beat-schizzo{
+  flex-shrink:0;width:42px;height:42px;padding:0;cursor:pointer;
+  border:1.5px dashed var(--sand3);border-radius:9px;background:none;
+  display:flex;align-items:center;justify-content:center;
+  color:var(--ink3);opacity:.75;overflow:hidden;
+  transition:border-color .18s,opacity .15s,transform .1s;
+}
+.beat-schizzo:active{transform:scale(.94)}
+.beat-schizzo.pieno{border-style:solid;border-color:var(--sand2);opacity:1;background:#fffdf7}
+.beat-schizzo img{width:100%;height:100%;object-fit:cover;display:block}
+
+/* ── LE SAGOME ──
+   Due card appena accennate dopo quella tratteggiata. Non sono un traguardo da
+   raggiungere ne' una quota da riempire: servono a non lasciare mezzo schermo
+   deserto sotto due beat, che e' la pagina bianca vista da un'altra parte.
+   Non si toccano, non contengono niente, e non entrano nel riordino. */
+.beat-sagoma{
+  border:1.5px solid var(--sand2);border-radius:13px;
+  margin-bottom:10px;min-height:52px;
+  opacity:.35;pointer-events:none;
+}
+.beat-sagoma + .beat-sagoma{opacity:.18}
+
+/* CON POCHI BEAT LE CARD SONO PIU' ALTE. Due riquadri bassi in cima a uno
+   schermo vuoto sembrano l'inizio di un modulo da compilare; gli stessi due,
+   larghi, sembrano due inquadrature. Da quattro in su l'altezza torna quella
+   normale, che a quel punto e' lo scorrimento a contare.
+   I 96 non sono a caso: con due beat, la card fantasma e le due sagome fanno
+   cinque riquadri da ~106px con i margini, cioe' poco piu' di 530 — quanto
+   basta a riempire lo schermo di un telefono invece di lasciarlo mezzo vuoto.
+   L'altezza normale (senza questa regola) e' gia' 66 per via del quadratino del
+   disegno, che da solo ne occupa 42: alzarla di poco non si vedrebbe. */
+.pochi .beat{min-height:96px}
+.pochi .beat-sagoma{min-height:96px}
+
+/* L'anteprima della scena quando il primo beat e' un disegno e basta: al posto
+   della riga di testo, il disegno. La scena si presenta col suo contenuto in
+   tutti e due i casi — che e' la regola — invece che con un numero. */
+.scene-card-img{
+  display:block;width:76px;height:57px;object-fit:cover;
+  margin-top:5px;border-radius:7px;border:1px solid var(--sand2);background:#fffdf7;
+}
+/* Nella board il disegno sta sopra la sua riga, come una vignetta con la
+   didascalia sotto. */
+.board-img{
+  display:block;width:100%;aspect-ratio:4/3;object-fit:cover;
+  border-radius:8px;background:#fffdf7;
+}

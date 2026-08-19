@@ -99,13 +99,12 @@ module.exports = () => suite("Scene — un riquadro per volta, cento caratteri",
   ok('numerati di seguito', r.map(x=>x.n).join(',') === '1,2,3', r);
 
   sezione('cento caratteri, e il contatore compare solo in vista del fondo');
-  const A = 'a'.repeat(60), B = 'b'.repeat(85);
-  await scriviNel(2, A);
+  await scriviNel(2, 'a'.repeat(65));
   r = await riquadri();
-  ok('a sessanta caratteri il contatore tace', r[2].conta === null, r);
-  await scriviNel(2, B);
+  ok('a sessantacinque caratteri il contatore tace', r[2].conta === null, r);
+  await scriviNel(2, 'b'.repeat(72));
   r = await riquadri();
-  ok('a ottantacinque compare', r[2].conta === '85/100', r);
+  ok('a settantadue compare', r[2].conta === '72/100', r);
   const tetto = await page.evaluate(()=>{
     const ta = document.querySelectorAll('#scena-beat .beat textarea')[2];
     return ta.getAttribute('maxlength');
@@ -280,4 +279,196 @@ module.exports = () => suite("Scene — un riquadro per volta, cento caratteri",
   ok('e il riquadro vuoto resta in coda, dov\'e\' sempre',
      (await riquadri()).filter(x=>x.nuovo).length === 1 &&
      (await riquadri())[2].nuovo === true, dopo);
+
+  sezione('la card fantasma e\' una CARD, non un pulsante "+"');
+  // La differenza non e' estetica: un "+" chiede di decidere di aggiungere
+  // qualcosa, una card gia' pronta chiede solo di scrivere. Deve essere
+  // tratteggiata (si vede che non e' ancora niente), avere dentro la domanda, e
+  // aprire la tastiera al tocco — cioe' contenere un campo vero.
+  const fantasma = await page.evaluate(()=>{
+    const box = document.querySelector('#scena-beat .beat-nuovo');
+    const ta = box.querySelector('textarea');
+    const st = getComputedStyle(box);
+    const tutti = document.getElementById('scena-beat').textContent;
+    return {
+      tratteggiata: st.borderTopStyle === 'dashed',
+      campo: ta ? ta.tagName : null,
+      invito: ta ? ta.placeholder : null,
+      // Larga quanto le altre: e' una card della fila, non un bottoncino.
+      larga: Math.round(box.getBoundingClientRect().width),
+      largaAltre: Math.round(document.querySelector('#scena-beat .beat:not(.beat-nuovo)').getBoundingClientRect().width),
+      piu: /\+/.test(tutti),
+    };
+  });
+  ok('e\' tratteggiata', fantasma.tratteggiata, fantasma);
+  ok('col campo dentro, cosi\' toccandola si scrive e basta', fantasma.campo === 'TEXTAREA', fantasma);
+  ok('e la domanda sempre quella', fantasma.invito === 'Cosa si vede?', fantasma);
+  ok('larga quanto le altre card', fantasma.larga === fantasma.largaAltre, fantasma);
+  ok('e da nessuna parte c\'e\' un "+" da premere', !fantasma.piu, fantasma);
+
+  sezione('sotto la card fantasma lo spazio non resta deserto');
+  // Con due beat restava mezzo schermo vuoto: e' la pagina bianca vista da
+  // un'altra parte, e demotiva prima di cominciare.
+  const sagome = await page.evaluate(()=>{
+    const cont = document.getElementById('scena-beat');
+    const s = Array.from(cont.querySelectorAll('.beat-sagoma'));
+    const ultima = cont.querySelector('.beat-nuovo');
+    return {
+      quante: s.length,
+      // Dopo la card fantasma, non prima e non in mezzo ai beat.
+      dopo: s.every(x=> x.compareDocumentPosition(ultima) & Node.DOCUMENT_POSITION_PRECEDING),
+      // Non si toccano e non contengono niente.
+      mute: s.every(x=> !x.textContent.trim() && getComputedStyle(x).pointerEvents === 'none'),
+      // Sbiadite: sono un accenno, non due card da riempire.
+      sbiadite: s.every(x=> parseFloat(getComputedStyle(x).opacity) < 0.5),
+      // E non entrano nel riordino: quello prende solo le .beat.
+      fuoriDalGesto: s.every(x=> !x.classList.contains('beat')),
+    };
+  });
+  ok('ci sono due sagome accennate', sagome.quante === 2, sagome);
+  ok('dopo la card fantasma', sagome.dopo, sagome);
+  ok('mute e non toccabili', sagome.mute, sagome);
+  ok('appena accennate', sagome.sbiadite, sagome);
+  ok('e fuori dal riordino', sagome.fuoriDalGesto, sagome);
+
+  sezione('e con pochi beat le card sono piu\' alte');
+  const altezze = await page.evaluate(()=>{
+    const cont = document.getElementById('scena-beat');
+    const pochi = cont.classList.contains('pochi');
+    const alta = Math.round(cont.querySelector('.beat').getBoundingClientRect().height);
+    // Si aggiungono beat finche' non sono tanti, e si rimisura.
+    const s = window.scene.scenaAperta();
+    s.beat = s.beat.concat([1,2,3].map(i=>({ id:'x'+i, testo:'beat '+i })));
+    window.scene.renderBeat();
+    return {
+      pochi, alta,
+      tantiClasse: cont.classList.contains('pochi'),
+      bassa: Math.round(cont.querySelector('.beat').getBoundingClientRect().height),
+    };
+  });
+  ok('con due beat le card sono larghe', altezze.pochi && altezze.alta >= 90, altezze);
+  ok('con cinque tornano normali',
+     !altezze.tantiClasse && altezze.bassa <= altezze.alta - 20, altezze);
+
+  sezione('ogni beat si puo\' disegnare invece che scrivere');
+  // Per chi disegna e' la strada piu' naturale, quindi ha la stessa dignita'
+  // della tastiera: la matita sta dentro OGNI riquadro, card fantasma compresa.
+  const matite = await page.evaluate(()=>{
+    const b = Array.from(document.querySelectorAll('#scena-beat .beat'));
+    return {
+      tutte: b.every(x=> !!x.querySelector('[data-schizzo]')),
+      anchePerLaFantasma: !!document.querySelector('#scena-beat .beat-nuovo [data-schizzo]'),
+    };
+  });
+  ok('la matita c\'e\' in ogni riquadro', matite.tutte, matite);
+  ok('anche nella card fantasma', matite.anchePerLaFantasma, matite);
+
+  await page.evaluate(()=> document.querySelector('#scena-beat .beat-nuovo [data-schizzo]').click());
+  await page.waitForTimeout(400);
+  const foglio = await page.evaluate(()=>{
+    const f = document.getElementById('schizzo');
+    return {
+      aperto: f.classList.contains('open'),
+      // Un tratto solo, niente colori, niente gomma: ogni strumento in piu' e'
+      // una decisione da prendere prima di cominciare a disegnare.
+      strumenti: Array.from(f.querySelectorAll('button')).map(b=> b.id),
+      colori: f.querySelectorAll('input[type=color], .colore').length,
+    };
+  });
+  ok('il foglio da disegno si apre', foglio.aperto, foglio);
+  ok('con annulla e pulisci, e nient\'altro',
+     foglio.strumenti.join(',') === 'schizzo-chiudi,schizzo-annulla,schizzo-pulisci', foglio);
+  ok('nessun colore da scegliere', foglio.colori === 0, foglio);
+
+  // Si disegna col mouse: Playwright genera veri eventi pointer, che e' quello
+  // che il foglio ascolta.
+  const box = await page.evaluate(()=>{
+    const r = document.getElementById('schizzo-tela').getBoundingClientRect();
+    return { x: r.left + r.width/2, y: r.top + r.height/2 };
+  });
+  await page.mouse.move(box.x - 40, box.y - 30);
+  await page.mouse.down();
+  await page.mouse.move(box.x + 30, box.y + 20, { steps: 8 });
+  await page.mouse.move(box.x + 50, box.y - 10, { steps: 6 });
+  await page.mouse.up();
+  await page.waitForTimeout(120);
+  const tratto = await page.evaluate(()=>({
+    annullaAcceso: !document.getElementById('schizzo-annulla').disabled,
+    // Il foglio non e' piu' bianco: qualcosa e' stato dipinto davvero.
+    dipinto: (()=>{
+      const c = document.getElementById('schizzo-tela');
+      const d = c.getContext('2d').getImageData(0,0,c.width,c.height).data;
+      let scuri = 0;
+      for(let i=0;i<d.length;i+=4) if(d[i] < 120) scuri++;
+      return scuri;
+    })(),
+  }));
+  ok('il tratto finisce sul foglio', tratto.dipinto > 50, tratto);
+  ok('e "annulla" si accende', tratto.annullaAcceso, tratto);
+
+  await page.evaluate(()=> document.getElementById('schizzo-chiudi').click());
+  await page.waitForTimeout(600);
+  const dopoDisegno = await page.evaluate(()=>{
+    const b = Array.from(document.querySelectorAll('#scena-beat .beat'));
+    const s = window.scene.scenaAperta();
+    return {
+      chiuso: !document.getElementById('schizzo').classList.contains('open'),
+      // La card fantasma su cui si e' disegnato e' diventata un beat vero, e
+      // sotto ne e' nata un'altra: esattamente come scrivendoci dentro.
+      conDisegno: s.beat.filter(x=> x.img).length,
+      senzaTesto: s.beat.filter(x=> x.img && !(x.testo||'').trim()).length,
+      fantasmaInCoda: b[b.length-1].classList.contains('beat-nuovo'),
+      miniatura: !!document.querySelector('#scena-beat .beat-schizzo.pieno img'),
+    };
+  });
+  ok('chiudendo, il foglio si chiude e il disegno si salva', dopoDisegno.chiuso, dopoDisegno);
+  ok('la card fantasma e\' diventata un beat', dopoDisegno.conDisegno === 1, dopoDisegno);
+  ok('un beat con SOLO il disegno e\' un beat pieno', dopoDisegno.senzaTesto === 1, dopoDisegno);
+  ok('e sotto e\' nata la card fantasma nuova', dopoDisegno.fantasmaInCoda, dopoDisegno);
+  ok('nel riquadro compare la miniatura', dopoDisegno.miniatura, dopoDisegno);
+
+  sezione('e un beat di solo disegno non viene buttato via');
+  // La potatura dei vuoti guarda il testo: senza questa regola, un beat
+  // disegnato sparirebbe appena si esce dal riquadro accanto.
+  await page.evaluate(()=>{
+    document.querySelector('#scena-beat .beat-nuovo textarea').focus();
+    document.activeElement.blur();
+  });
+  await page.waitForTimeout(150);
+  const sopravvive = await page.evaluate(()=> window.scene.scenaAperta().beat.filter(b=> b.img).length);
+  ok('resta dov\'e\'', sopravvive === 1, sopravvive);
+
+  sezione('le scene abbandonate se ne vanno da sole');
+  // Zero o un beat, e ferme da piu' di un giorno: via in silenzio, senza
+  // conferme e senza cestino. Una lista di cose non fatte scoraggia l'apertura
+  // dell'app piu' di quanto un archivio completo aiuti.
+  await page.evaluate(()=> document.getElementById('scena-chiudi').click());
+  await page.waitForTimeout(300);
+  const pulizia = await page.evaluate(async ()=>{
+    const IERI = Date.now() - 25*60*60*1000;
+    const tutte = window.scene.tutteLeScene();
+    // Una piena e vecchia, una vuota e vecchia, una vuota ma di adesso.
+    const piena = tutte.find(s=> s.beat.length >= 2);
+    piena.updatedAt = IERI;
+    const vuote = tutte.filter(s=> s.beat.length <= 1);
+    vuote.forEach((s,i)=>{ s.updatedAt = i === 0 ? IERI : Date.now(); });
+    const prima = tutte.length;
+    window.__cancellati = [];
+    const via = await window.scene.spazzaScarti();
+    return {
+      prima, via,
+      dopo: window.scene.tutteLeScene().length,
+      cancellati: window.__cancellati.map(c=> c.col),
+      pienaViva: window.scene.tutteLeScene().some(s=> s.id === piena.id),
+      vecchiaVuotaVia: !window.scene.tutteLeScene().some(s=> s.id === vuote[0].id),
+      nuovaVuotaViva: vuote.length < 2 || window.scene.tutteLeScene().some(s=> s.id === vuote[1].id),
+    };
+  });
+  ok('la scena vuota e vecchia sparisce', pulizia.vecchiaVuotaVia, pulizia);
+  ok('quella piena resta, per vecchia che sia', pulizia.pienaViva, pulizia);
+  ok('e una vuota di oggi non si tocca', pulizia.nuovaVuotaViva, pulizia);
+  ok('sparisce anche dall\'archivio, non solo da schermo',
+     pulizia.cancellati.length === pulizia.via && pulizia.cancellati.every(c=> c === 'scene'), pulizia);
+  ok('e non chiede niente a nessuno',
+     await page.evaluate(()=> !document.querySelector('.modal-overlay.open')), null);
 });

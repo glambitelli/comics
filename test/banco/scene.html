@@ -7,8 +7,9 @@
 <link rel="stylesheet" href="/css/layout.css">
 <script type="importmap">
 { "imports": {
-  "/js/firebase.js": "/test/finti/firebase.js",
-  "/js/state.js":    "/test/finti/state.js"
+  "/js/firebase.js":   "/test/finti/firebase.js",
+  "/js/state.js":      "/test/finti/state.js",
+  "/js/cloudinary.js": "/test/finti/cloudinary.js"
 } }
 </script>
 </head><body>
@@ -17,7 +18,7 @@
 // li', la prova lo segue. Una copia a mano direbbe che tutto funziona su una
 // schermata che non esiste piu'.
 const dom = new DOMParser().parseFromString(await (await fetch('/index.html')).text(), 'text/html');
-for(const sel of ['#screen-scene', '#scena', '#board']){
+for(const sel of ['#screen-scene', '#scena', '#board', '#schizzo']){
   document.body.appendChild(document.importNode(dom.querySelector(sel), true));
 }
 document.getElementById('screen-scene').classList.add('active');
@@ -31,7 +32,9 @@ scene.initScene();
 // funzioni di chiusura passano apposta dalla cronologia, cosi' il tasto del
 // telefono e quello a schermo fanno la stessa identica cosa. Riprodotto uguale
 // a com'e' li', board prima e scena dopo: la board sta sopra.
-addEventListener('popstate', ()=>{
+addEventListener('popstate', async ()=>{
+  const sz = document.getElementById('schizzo');
+  if(sz.classList.contains('open')){ (await import('/js/schizzo.js')).chiudiSchizzoUI(); return; }
   if(document.getElementById('board').classList.contains('open')){ scene.chiudiBoardUI(); return; }
   if(document.getElementById('scena').classList.contains('open')){ scene.chiudiScenaUI(); return; }
 });

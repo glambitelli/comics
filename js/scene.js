@@ -29,15 +29,26 @@ import { db, collection, doc, onSnapshot, setDoc, deleteDoc } from './firebase.j
 import { haptic, showUndoToast } from './state.js';
 import { actionMenu } from './dialogs.js';
 import { esc } from './testo.js';
+import { cldResize, uploadToCloudinary } from './cloudinary.js';
 import { montaRiordino } from './riordino.js';
 
 const SCENE_COL = 'scene';
 
 // Il limite dei cento caratteri, e la soglia oltre la quale si comincia a
-// contare. Sotto gli ottanta il contatore direbbe solo "hai ancora spazio",
-// che e' un'informazione di cui nessuno ha bisogno mentre scrive.
+// contare. Il limite E' la funzione, non il vincolo: cento caratteri non bastano
+// per fare prosa, e obbligano a dire cosa si VEDE. Sotto i settanta il contatore
+// direbbe solo "hai ancora spazio", che mentre si scrive non serve a niente.
 export const MAX_BEAT = 100;
-const CONTA_DA = 80;
+const CONTA_DA = 70;
+
+// Le due sagome appena accennate dopo la card tratteggiata, e quanti beat
+// bastano perche' le card tornino della loro altezza normale. Vedi renderBeat.
+const SAGOME = 2;
+const POCHI = 3;
+
+// Ogni quanto si passa a buttare le scene abbandonate, e da quanto devono
+// esserlo. Vedi spazzaScarti.
+const SCARTO_MS = 24 * 60 * 60 * 1000;
 
 // Ogni quanto si scrive su Firestore mentre le dita si muovono. Salvare ad
 // ogni carattere vorrebbe dire una scrittura per lettera; salvare solo alla
@@ -53,6 +64,7 @@ let _apertaId = null;       // scena aperta nel foglio, o null
 let _gestoElenco = null;
 let _gestoBeat = null;
 let _timerSalva = null;
+let _spazzato = false;      // la pulizia degli scarti gira una volta per sessione
 
 function genId(){
   return Date.now().toString(36) + Math.random().toString(36).slice(2,8);
@@ -61,6 +73,15 @@ function genId(){
 // Il titolo e' facoltativo per davvero: chiederlo prima di lasciar buttare giu'
 // il primo beat sarebbe la prima domanda a cui rispondere, cioe' il primo
 // motivo per rimandare.
+// UN BEAT CON SOLO UNO SCARABOCCHIO E' UN BEAT. Disegnare qui e' una strada
+// d'ingresso di pari dignita' rispetto alla tastiera — anzi, per chi disegna e'
+// la piu' naturale — quindi il testo non e' mai obbligatorio. Questa funzione e'
+// l'unico posto in cui si decide se un beat esiste: la usano la potatura dei
+// vuoti, la promozione della card fantasma e la pulizia degli scarti.
+export function beatPieno(b){
+  return !!(b && ((b.testo||'').trim().length || b.img));
+}
+
 export function titoloDi(scena){
   const t = (scena && scena.titolo || '').trim();
   return t || 'Scena senza titolo';
@@ -86,6 +107,9 @@ export function startSceneListener(){
     _scene = snap.docs.map(d=>({ id:d.id, ...d.data() }))
       .map(s=>({ ...s, beat: Array.isArray(s.beat) ? s.beat : [] }));
     renderScene();
+    // Una volta per sessione, appena l'elenco arriva: le scene abbandonate se ne
+    // vanno prima ancora che si veda l'elenco pieno di scarti.
+    if(!_spazzato){ _spazzato = true; spazzaScarti(); }
     // La scena aperta va rinfrescata solo se e' cambiata da fuori: ridisegnare
     // i riquadri mentre ci si scrive dentro vorrebbe dire perdere il cursore ad
     // ogni salvataggio.
@@ -168,12 +192,20 @@ export function renderScene(){
   }
 
   lista.innerHTML = _scene.slice().sort(cmpOrdine).map(scena=>{
-    const primo = (scena.beat[0] && scena.beat[0].testo || '').trim();
+    const b0 = scena.beat[0];
+    const primo = (b0 && b0.testo || '').trim();
+    // Il testo del primo beat, come sempre. Se il primo beat e' un disegno e
+    // basta — che e' un beat a tutti gli effetti — si mostra quello: la scena si
+    // presenta comunque col suo contenuto, che e' la regola, e non con un
+    // "1 beat" che non dice niente di cosa c'e' dentro.
+    const anteprima = primo
+      ? `<span>${esc(primo)}</span>`
+      : (b0 && b0.img ? `<img class="scene-card-img" src="${esc(cldResize(b0.img, 160))}" alt=""/>` : '');
     return `<article class="scene-card" data-id="${esc(scena.id)}">
       <div class="scene-card-riga">
         <div class="scene-card-testo">
           <b>${esc(titoloDi(scena))}</b>
-          ${primo ? `<span>${esc(primo)}</span>` : ''}
+          ${anteprima}
         </div>
         <button class="scene-menu" data-menu="${esc(scena.id)}" aria-label="Cosa fare con questa scena">⋯</button>
       </div>
@@ -245,22 +277,39 @@ export function chiudiScena(){
 // esistono, piu' UNO vuoto in coda. Mai due, mai una griglia. Il riquadro vuoto
 // non e' un beat: diventa un beat nel momento in cui ci si scrive dentro, e
 // solo allora ne nasce un altro sotto di lui.
-function riquadroHTML(n, id, testo, nuovo){
+const MATITA = `<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4l10-10a2.8 2.8 0 0 0-4-4L4 16Z"/><path d="M13.5 6.5 17.5 10.5"/></svg>`;
+
+function riquadroHTML(n, id, testo, nuovo, img){
   const l = (testo||'').length;
   return `<div class="beat ${nuovo ? 'beat-nuovo' : ''}" ${id ? `data-id="${esc(id)}"` : ''}>
     <span class="beat-n">${n}</span>
     <textarea rows="1" maxlength="${MAX_BEAT}" placeholder="Cosa si vede?"
       aria-label="Beat ${n}">${esc(testo||'')}</textarea>
     <span class="beat-conta" ${l < CONTA_DA ? 'hidden' : ''}>${l}/${MAX_BEAT}</span>
+    <button class="beat-schizzo ${img ? 'pieno' : ''}" data-schizzo type="button"
+      aria-label="${img ? 'Modifica il disegno' : 'Disegna questo beat'}">${
+      img ? `<img src="${esc(cldResize(img, 160))}" alt=""/>` : MATITA }</button>
   </div>`;
 }
+
+// LE SAGOME: due card appena accennate dopo quella tratteggiata. Non sono un
+// traguardo ne' una quota — non contano niente e non si toccano — servono a non
+// lasciare mezzo schermo deserto sotto due beat, che e' la pagina bianca vista
+// da un'altra parte. Sono fuori dal riordino perche' non hanno la classe .beat.
+const SAGOME_HTML = Array.from({length:SAGOME}, ()=>
+  '<div class="beat-sagoma" aria-hidden="true"></div>').join('');
 
 export function renderBeat(){
   const cont = document.getElementById('scena-beat');
   const scena = scenaAperta();
   if(!cont || !scena) return;
-  cont.innerHTML = scena.beat.map((b,i)=> riquadroHTML(i+1, b.id, b.testo, false)).join('')
-    + riquadroHTML(scena.beat.length + 1, null, '', true);
+  cont.innerHTML = scena.beat.map((b,i)=> riquadroHTML(i+1, b.id, b.testo, false, b.img)).join('')
+    + riquadroHTML(scena.beat.length + 1, null, '', true, null)
+    + SAGOME_HTML;
+  // Con pochi beat le card sono piu' alte: due riquadri bassi in cima a uno
+  // schermo vuoto sembrano l'inizio di un modulo da compilare, gli stessi due
+  // larghi sembrano due inquadrature.
+  cont.classList.toggle('pochi', scena.beat.length <= POCHI);
   cont.querySelectorAll('textarea').forEach(cresci);
 }
 
@@ -297,19 +346,27 @@ function aggiornaConta(box){
 // Il riquadro vuoto in coda diventa un beat vero. Non si ridisegna niente di
 // quello che c'e' gia': si aggiunge il fratello sotto e si lascia il cursore
 // esattamente dov'era, in mezzo alla parola che si sta scrivendo.
-function promuovi(box, testo){
+function promuovi(box, dati){
   const scena = scenaAperta();
-  if(!scena) return;
-  const beat = { id: genId(), testo };
+  if(!scena) return null;
+  const beat = { id: genId(), testo: dati.testo || '', ...(dati.img ? { img: dati.img } : {}) };
   scena.beat = scena.beat.concat([beat]);
   scena.updatedAt = Date.now();
   box.classList.remove('beat-nuovo');
   box.dataset.id = beat.id;
-  box.insertAdjacentHTML('afterend', riquadroHTML(scena.beat.length + 1, null, '', true));
+  // La card fantasma nuova si INFILA dopo questa, e il resto della pagina non
+  // si tocca: ridisegnare tutto sarebbe la scrittura piu' corta e porterebbe via
+  // il cursore a meta' della parola che si sta battendo.
+  box.insertAdjacentHTML('afterend', riquadroHTML(scena.beat.length + 1, null, '', true, null));
   const nuovo = box.nextElementSibling;
   if(nuovo) cresci(nuovo.querySelector('textarea'));
+  // Le sagome devono restare in fondo, dopo la card fantasma appena nata.
+  const cont = document.getElementById('scena-beat');
+  cont.querySelectorAll('.beat-sagoma').forEach(el=> cont.appendChild(el));
+  cont.classList.toggle('pochi', scena.beat.length <= POCHI);
   haptic('tap');
   salvaFraPoco(scena.id);
+  return beat;
 }
 
 // Svuotare un beat equivale a buttarlo — e' lo stesso patto delle Idee. Succede
@@ -321,7 +378,7 @@ function potaVuotiDi(id){
   const cont = document.getElementById('scena-beat');
   if(!scena || !cont) return;
   const prima = scena.beat.length;
-  scena.beat = scena.beat.filter(b=> (b.testo||'').trim().length);
+  scena.beat = scena.beat.filter(beatPieno);
   if(scena.beat.length === prima) return;
   scena.updatedAt = Date.now();
   cont.querySelectorAll('.beat[data-id]').forEach(el=>{
@@ -329,6 +386,72 @@ function potaVuotiDi(id){
   });
   rinumera();
   salvaFraPoco(scena.id);
+}
+
+// ── DISEGNARE UN BEAT ───────────────────────────────────────────────────────
+// Il foglio vive in schizzo.js e si carica al primo tocco sulla matita: chi non
+// disegna mai non se lo porta dietro. Il PNG finisce su Cloudinary come tutte le
+// altre immagini dell'app, e nel beat resta l'indirizzo — dentro il documento
+// starebbero stretti, quindici disegni sfiorerebbero il limite di Firestore.
+async function disegnaBeat(box){
+  const scena = scenaAperta();
+  if(!scena) return;
+  const nuovo = box.classList.contains('beat-nuovo');
+  const beat = nuovo ? null : scena.beat.find(b=> b.id === box.dataset.id);
+  const m = await import('./schizzo.js');
+  m.apriSchizzo({
+    url: beat && beat.img,
+    onSalva: async (blob)=>{
+      const { url } = await uploadToCloudinary(blob, 'schizzo.png');
+      const s2 = _scene.find(x=>x.id===scena.id);
+      if(!s2) return;
+      if(nuovo){
+        // Disegnare dentro la card fantasma la promuove esattamente come
+        // scriverci: e' il punto di tutta questa funzione.
+        promuovi(box, { img: url });
+      } else {
+        const b = s2.beat.find(x=> x.id === box.dataset.id);
+        if(b) b.img = url;
+      }
+      s2.updatedAt = Date.now();
+      // Solo il quadratino: ridisegnare tutto porterebbe via il cursore a chi
+      // stava scrivendo nel riquadro accanto.
+      const q = box.querySelector('[data-schizzo]');
+      if(q){
+        q.classList.add('pieno');
+        q.innerHTML = `<img src="${esc(cldResize(url, 160))}" alt=""/>`;
+        q.setAttribute('aria-label', 'Modifica il disegno');
+      }
+      await salvaSubito(s2.id);
+    },
+  });
+}
+
+// ── LA PULIZIA DEGLI SCARTI ─────────────────────────────────────────────────
+// Le scene rimaste a zero o un beat da piu' di un giorno se ne vanno da sole, in
+// silenzio: niente conferma, niente avviso, niente cestino. Una scena si apre in
+// un tocco e spesso si apre per sbaglio, o per provare; se restassero tutte,
+// l'elenco diventerebbe un cimitero di cose non fatte — ed e' esattamente
+// l'immagine che fa rimandare l'apertura dell'app.
+//
+// Il conto parte da updatedAt, cioe' dall'ultima volta che la scena e' stata
+// toccata: e' l'unico segnale onesto di "abbandonata". E la scena aperta in
+// questo momento non si tocca mai, per ovvi motivi.
+export async function spazzaScarti(adesso = Date.now()){
+  const scarti = _scene.filter(s=>
+    s.id !== _apertaId &&
+    (s.beat || []).filter(beatPieno).length <= 1 &&
+    (s.updatedAt || s.createdAt || adesso) < adesso - SCARTO_MS
+  );
+  if(!scarti.length) return 0;
+  const via = new Set(scarti.map(s=>s.id));
+  _scene = _scene.filter(s=> !via.has(s.id));
+  renderScene();
+  for(const s of scarti){
+    try{ await deleteDoc(doc(db, SCENE_COL, s.id)); }
+    catch(e){ console.warn('pulizia scene fallita:', e); }
+  }
+  return scarti.length;
 }
 
 // ── LA BOARD ────────────────────────────────────────────────────────────────
@@ -346,7 +469,8 @@ export function apriBoard(){
     griglia.innerHTML = scena.beat.length
       ? scena.beat.map((b,i)=> `<div class="board-tessera">
           <span class="board-n">${i+1}</span>
-          <p>${esc(b.testo||'')}</p>
+          ${b.img ? `<img class="board-img" src="${esc(cldResize(b.img, 400))}" alt=""/>` : ''}
+          ${(b.testo||'').trim() ? `<p>${esc(b.testo)}</p>` : ''}
         </div>`).join('')
       : `<div class="scene-vuoto"><p>Questa scena non ha ancora beat.</p></div>`;
   }
@@ -415,6 +539,10 @@ export function initScene(){
   });
 
   const beat = document.getElementById('scena-beat');
+  beat.addEventListener('click', e=>{
+    const q = e.target.closest('[data-schizzo]');
+    if(q) disegnaBeat(q.closest('.beat'));
+  });
   beat.addEventListener('input', e=>{
     const ta = e.target.closest('textarea');
     if(!ta) return;
@@ -422,7 +550,7 @@ export function initScene(){
     cresci(ta);
     aggiornaConta(box);
     if(box.classList.contains('beat-nuovo')){
-      if(ta.value.trim()) promuovi(box, ta.value);
+      if(ta.value.trim()) promuovi(box, { testo: ta.value });
       return;
     }
     const scena = scenaAperta();

@@ -505,6 +505,13 @@ window.addEventListener('popstate', e=>{
     const m = loadedMod('./refs.js');
     if(m){ m.closeLightboxUI(); return; }
   }
+  // Il foglio su cui si disegna sta sopra tutto il resto delle Scene: Indietro
+  // chiude quello per primo — e chiudendolo SALVA, quindi si aspetta.
+  const sz = document.getElementById('schizzo');
+  if(sz && sz.classList.contains('open')){
+    const m = loadedMod('./schizzo.js');
+    if(m){ m.chiudiSchizzoUI(); return; }
+  }
   // La board di una scena sta sopra la scena stessa: Indietro chiude prima
   // quella. loadedMod e non loadMod — se e' aperta il modulo c'e' per forza.
   const bd = document.getElementById('board');

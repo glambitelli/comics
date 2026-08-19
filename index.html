@@ -218,6 +218,27 @@
   <div class="board-scroll"><div id="board-griglia" class="board-griglia"></div></div>
 </div>
 
+<!-- IL FOGLIO SU CUI DISEGNARE (vedi schizzo.js) -->
+<div class="schizzo" id="schizzo">
+  <div class="schizzo-barra">
+    <!-- Una via sola d'uscita: questa freccia salva e chiude. Non c'e' un
+         "annulla tutto e chiudi", perche' sarebbe una domanda da fare a chi sta
+         gia' pensando ad altro. Chi vuole buttare il disegno tocca Pulisci. -->
+    <button class="scena-btn" id="schizzo-chiudi" type="button" aria-label="Chiudi e salva">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+    </button>
+    <span class="schizzo-esito" id="schizzo-esito" hidden></span>
+    <span class="cresci"></span>
+    <button class="scena-btn" id="schizzo-annulla" type="button" aria-label="Annulla l'ultimo tratto">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-4"/></svg>
+    </button>
+    <button class="scena-btn scena-btn-testo" id="schizzo-pulisci" type="button">Pulisci</button>
+  </div>
+  <div class="schizzo-foglio">
+    <canvas id="schizzo-tela" class="schizzo-tela"></canvas>
+  </div>
+</div>
+
 <!-- PROJECT -->
 <!-- RIFERIMENTI -->
 <div class="screen" id="screen-refs">
