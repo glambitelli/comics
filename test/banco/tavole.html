@@ -99,6 +99,7 @@ window.seminaCartelle = (elenco)=>{
 // Nell'app e' main.js a far chiudere il foglio del ritaglio col tasto
 // Indietro: qui si rifa' la stessa cosa, se no dopo un ritaglio il foglio
 // resterebbe aperto e la prova misurerebbe un difetto che nell'app non c'e'.
+window.rifilaDaLightbox = ()=> window.apriRitaglio();
 window.addEventListener('popstate', ()=>{
   const rf = document.getElementById('rifila');
   if(rf && !rf.hidden && window.chiudiRifila) window.chiudiRifila();

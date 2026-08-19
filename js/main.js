@@ -50,7 +50,10 @@ exposeLazy('./refs.js', ['refsBackToFolders','openRefLightbox','closeRefLightbox
   'toggleScelta','annullaScelta','rinominaScelto','eliminaScelti',
   'connectDriveAndSync','disconnectDriveUI','toggleRefsProfile','closeRefsProfile',
   'refsFolderSearch','refsAlbumsSearch','refsGridSortMenu','refsAlbumsSortMenu',
-  'promptLinkProjectFromLightbox','toggleProjectRefPanel']);
+  'promptLinkProjectFromLightbox','toggleProjectRefPanel','apriRitaglio']);
+// L'onclick del pulsante nella barra della vista a schermo intero: senza id,
+// e' il frammento aperto in quel momento (vedi apriRitaglio in refs.js).
+window.rifilaDaLightbox = ()=> window.apriRitaglio();
 exposeLazy('./albums.js', ['openAlbumPicker','openAlbumFromFile','openAlbumFromDrive',
   'createAlbumFromDriveFile']);
 exposeLazy('./scriptment.js', ['openScriptment','closeScriptment','setScriptmentFont',

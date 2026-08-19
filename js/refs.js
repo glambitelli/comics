@@ -2082,6 +2082,14 @@ export function toggleProjectRefPanel(){
   haptic('tap');
 }
 
+// Il foglio per rifilare si carica al primo uso (vedi rifila.js): e' una cosa
+// che non serve all'avvio, e sta in un modulo suo.
+export function apriRitaglio(id){
+  const vero = id || (document.getElementById('refs-lightbox')||{}).dataset?.id;
+  if(!vero) return;
+  return import('./rifila.js').then(m=> m.apriRifila(vero)).catch(()=>{});
+}
+
 // ── MENU AZIONI IMMAGINE — unico punto per spostare/eliminare ──
 // Usato sia dal "⋯" nella vista a schermo intero sia dal tocco prolungato
 // sulla griglia, così le stesse azioni sono raggiungibili da entrambi i posti.
@@ -2108,10 +2116,11 @@ export function refsImageMenu(anchorEl, imageId){
   voci.push({ label:'Tag', icon:'tag', onSelect:()=>promptTagImage(id, anchorEl) });
   // RITAGLIARE DOPO. Uno screenshot preso da un social arriva con dentro
   // l'interfaccia del social; quando lo salvi non hai un ritaglio da fare, hai
-  // solo un'immagine che ti e' piaciuta. Il foglio si carica al primo uso
-  // (vedi rifila.js): e' una cosa che si fa di rado, non deve pesare all'avvio.
-  voci.push({ label:'Ritaglia', icon:'ritaglio',
-    onSelect:()=> import('./rifila.js').then(m=> m.apriRifila(id)).catch(()=>{}) });
+  // solo un'immagine che ti e' piaciuta. A schermo intero il ritaglio e' un
+  // PULSANTE nella barra (come nel lettore degli albi), quindi qui la voce
+  // sarebbe un doppione: resta solo per il menu della griglia.
+  if(!daSchermoIntero)
+    voci.push({ label:'Ritaglia', icon:'ritaglio', onSelect:()=> apriRitaglio(id) });
   // "Sposta" e "Segna come tavola" sembravano la stessa cosa scritta in due
   // modi, e la prima non diceva sposta DOVE. Sono due mestieri diversi: una
   // cambia la CARTELLA (da Bergara a Otomo), l'altra dice COS'E' l'immagine —

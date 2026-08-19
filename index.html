@@ -352,6 +352,14 @@
       <button onclick="promptLinkProjectFromLightbox(this)" id="refs-lightbox-link" class="refs-lightbox-link" aria-label="Collega a un progetto">
         <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path d="M10.2 13.8a3.6 3.6 0 0 0 5.2.3l2.4-2.4a3.6 3.6 0 1 0-5.1-5.1l-1.4 1.4" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/><path d="M13.8 10.2a3.6 3.6 0 0 0-5.2-.3l-2.4 2.4a3.6 3.6 0 1 0 5.1 5.1l1.4-1.4" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>
       </button>
+      <!-- RITAGLIA STA QUI, non nel menu. E' un gesto che si fa spesso — uno
+           screenshot preso da un social ha quasi sempre qualcosa da togliere —
+           e nel lettore degli albi il ritaglio e' gia' un pulsante in barra:
+           nasconderlo dietro i tre puntini avrebbe voluto dire due gesti
+           diversi per la stessa cosa. Stessa icona delle forbici del lettore. -->
+      <button onclick="rifilaDaLightbox()" id="refs-lightbox-crop" class="refs-lightbox-link" aria-label="Ritaglia">
+        <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><circle cx="6.5" cy="6.5" r="2.4" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="6.5" cy="17.5" r="2.4" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8.6 8.2 20 18 M8.6 15.8 20 6" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg>
+      </button>
       <button onclick="refsImageMenu(this)" class="refs-lightbox-more" aria-label="Altre azioni">
         <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
       </button>

@@ -230,7 +230,8 @@ module.exports = () => suite("References — Frammenti e Tavole dentro una carte
     const piu = document.querySelector('#refs-lightbox .refs-lightbox-more');
     await window.refsImageMenu(piu);
     return { voci: Array.from(document.querySelectorAll('.ink-action-menu button')).map(b=>b.textContent),
-             catenella: !!document.getElementById('refs-lightbox-link') };
+             catenella: !!document.getElementById('refs-lightbox-link'),
+             forbici: !!document.getElementById('refs-lightbox-crop') };
   });
   ok('a schermo intero la catenella c\'e\'', vociLightbox.catenella, vociLightbox);
   ok('e il menu non la ripete',
@@ -241,6 +242,14 @@ module.exports = () => suite("References — Frammenti e Tavole dentro una carte
      vociLightbox.voci.some(v=>/elimina/i.test(v)), vociLightbox.voci);
   ok('e dalla griglia invece la voce c\'e\', perche\' li\' la catenella non esiste',
      vociTavola.some(v=>/collega a progetto/i.test(v)), vociTavola);
+  // Stessa storia per il ritaglio: a schermo intero e' un pulsante in barra
+  // (come nel lettore degli albi), quindi nel menu accanto non si ripete.
+  ok('il ritaglio e\' un pulsante in barra, non una voce da cercare',
+     vociLightbox.forbici, vociLightbox);
+  ok('e infatti il menu accanto non lo ripete',
+     !vociLightbox.voci.some(v=>/ritaglia/i.test(v)), vociLightbox.voci);
+  ok('mentre dalla griglia, dove il pulsante non c\'e\', la voce resta',
+     vociTavola.some(v=>/ritaglia/i.test(v)), vociTavola);
   await page.evaluate(()=> window.refs.closeRefLightbox());
   await page.waitForTimeout(300);
 

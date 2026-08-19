@@ -257,6 +257,11 @@ module.exports = () => suite("Impostazioni — il pannello dice solo quello che 
   // il punto piu' lontano dal pollice di chi tiene il telefono in una mano.
   await page.evaluate(()=> document.body.classList.add('is-touch'));
   await apri();
+  // La sezione prima e' andata avanti e indietro nella cronologia, e un
+  // popstate in ritardo chiuderebbe il pannello proprio mentre lo si sta
+  // trascinando: la prova fallirebbe una volta ogni tanto raccontando un
+  // difetto che non c'e'. Si aspetta che la cronologia si sia calmata.
+  await page.waitForTimeout(500);
   const senzaX = await page.evaluate(()=>({
     x: getComputedStyle(document.querySelector('.settings-close')).display,
     maniglia: getComputedStyle(document.querySelector('.settings-handle')).height,
