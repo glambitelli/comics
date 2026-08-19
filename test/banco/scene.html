@@ -1,0 +1,40 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8">
+<title>banco di prova — scene</title>
+<link rel="stylesheet" href="/css/variables.css">
+<link rel="stylesheet" href="/css/scene.css">
+<!-- il menu contestuale e il toast di annullamento vivono qui -->
+<link rel="stylesheet" href="/css/modals.css">
+<link rel="stylesheet" href="/css/layout.css">
+<script type="importmap">
+{ "imports": {
+  "/js/firebase.js": "/test/finti/firebase.js",
+  "/js/state.js":    "/test/finti/state.js"
+} }
+</script>
+</head><body>
+<script type="module">
+// Il markup si PRENDE da index.html invece di riscriverlo: se domani cambia
+// li', la prova lo segue. Una copia a mano direbbe che tutto funziona su una
+// schermata che non esiste piu'.
+const dom = new DOMParser().parseFromString(await (await fetch('/index.html')).text(), 'text/html');
+for(const sel of ['#screen-scene', '#scena', '#board']){
+  document.body.appendChild(document.importNode(dom.querySelector(sel), true));
+}
+document.getElementById('screen-scene').classList.add('active');
+
+const scene = await import('/js/scene.js');
+window.scene = scene;
+scene.initScene();
+
+// IL TASTO INDIETRO. Nell'app lo tiene main.js, che qui non c'e': senza questo
+// pezzo il foglio della scena e la board non si chiuderebbero mai — le loro
+// funzioni di chiusura passano apposta dalla cronologia, cosi' il tasto del
+// telefono e quello a schermo fanno la stessa identica cosa. Riprodotto uguale
+// a com'e' li', board prima e scena dopo: la board sta sopra.
+addEventListener('popstate', ()=>{
+  if(document.getElementById('board').classList.contains('open')){ scene.chiudiBoardUI(); return; }
+  if(document.getElementById('scena').classList.contains('open')){ scene.chiudiScenaUI(); return; }
+});
+window.__ready = true;
+</script>
+</body></html>

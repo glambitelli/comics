@@ -156,7 +156,8 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
   // sotto d'oro invece che azzurro — e a occhio si vedeva solo cambiando
   // schermata: il titolo scattava di lato. Qui si misurano tutte insieme.
   const testate = await page.evaluate(()=>{
-    const quali = { home:'.home-header', refs:'.refs-header', idee:'.idee-header', stats:'.stats-header' };
+    const quali = { home:'.home-header', refs:'.refs-header', idee:'.idee-header',
+                    stats:'.stats-header', scene:'.scene-header' };
     const esito = {};
     for(const [nome, sel] of Object.entries(quali)){
       const el = document.querySelector(sel);
@@ -179,12 +180,51 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
     });
     return esito;
   });
-  const chiavi = ['home','refs','idee','stats'].filter(k=> testate[k]);
+  const chiavi = ['home','refs','idee','stats','scene'].filter(k=> testate[k]);
   const uguali = campo => new Set(chiavi.map(k=> testate[k][campo])).size === 1;
   ok('stessa imbottitura su tutte', uguali('imbottitura'), testate);
   ok('stessi angoli in basso', uguali('angoli'), testate);
   ok('stesso filo colorato sotto', uguali('filo'), testate);
   ok('e il marchio comincia sempre alla stessa distanza dal bordo',
      new Set(testate.marchi.filter(x=> x !== null)).size === 1, testate.marchi);
+
+  console.log('\n── il quarto tondo porta alle Scene, e il taccuino e\' sceso in Impostazioni ──');
+  // I cinque tondi sono per quello che si tocca ogni volta che si apre l'app.
+  // Il taccuino si apre quando passa un pensiero — di rado, e da fermi — e per
+  // questo e' sceso dov'erano gia' andate le Statistiche.
+  const quarto = await page.evaluate(()=>{
+    const b = Array.from(document.querySelectorAll('.dune-btn'));
+    return {
+      etichette: b.map(x=> x.getAttribute('aria-label')),
+      scene: b.some(x=> x.getAttribute('aria-label') === 'Scene'),
+      idee: b.some(x=> x.getAttribute('aria-label') === 'Idee'),
+      quanti: b.length,
+    };
+  });
+  ok('nella barra c\'e\' Scene', quarto.scene, quarto);
+  ok('e Idee non c\'e\' piu\'', !quarto.idee, quarto);
+  ok('i tondi restano cinque', quarto.quanti === 5, quarto);
+
+  await page.evaluate(()=> document.querySelector('.dune-btn[aria-label="Scene"]').click());
+  await page.waitForTimeout(600);
+  const suScene = await page.evaluate(()=>({
+    attiva: document.getElementById('screen-scene').classList.contains('active'),
+    // Un tap dalla home e si e' gia' davanti al pulsante per cominciare.
+    comincia: !!document.getElementById('scene-nuova'),
+  }));
+  ok('un tocco solo e si e\' nelle Scene', suScene.attiva, suScene);
+  ok('col modo di cominciare gia\' a schermo', suScene.comincia, suScene);
+
+  const daImpostazioni = await page.evaluate(()=>{
+    const b = Array.from(document.querySelectorAll('.settings-vai'));
+    return b.map(x=> x.textContent.replace(/[›\s]+/g,' ').trim());
+  });
+  ok('e le Idee si aprono dalle Impostazioni, come le Statistiche',
+     daImpostazioni.some(t=> /idee/i.test(t)) && daImpostazioni.some(t=> /statistiche/i.test(t)),
+     daImpostazioni);
+  await page.evaluate(()=> window.vaiAIdee());
+  await page.waitForTimeout(600);
+  ok('e ci portano davvero', await page.evaluate(()=>
+     document.getElementById('screen-idee').classList.contains('active')), null);
 
 });

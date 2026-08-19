@@ -1,0 +1,211 @@
+/* ── SCENE — la struttura visiva di una scena breve ───────────────────────────
+   Stessi materiali del taccuino e di References: intestazione bianca
+   arrotondata col filo colorato, fondo sabbia, contenuto in schede. Una
+   schermata nuova che sembri nuova sarebbe la settima lingua parlata dall'app.
+   Le misure dell'intestazione sono le stesse di .idee-header e .refs-header —
+   se un giorno cambiano la', vanno cambiate anche qui: due pixel di differenza
+   non si notano fermi, ma passando da una schermata all'altra il marchio
+   "Inkflow" scatta di lato. */
+.scene-header{
+  background:var(--white);padding:calc(24px + var(--safe-top)) 24px 10px;
+  position:relative;overflow:hidden;flex-shrink:0;
+  border-radius:0 0 28px 28px;border-bottom:3px solid var(--sky);z-index:1;
+}
+.scene-header::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:5px;
+  background:linear-gradient(90deg,var(--coral),var(--gold),var(--green),var(--sky));
+}
+.scene-scroll{
+  flex:1;overflow-y:auto;background:#efe6d4;
+  padding:14px 14px calc(20px + var(--safe-bot));
+}
+body.is-touch .scene-scroll{padding-bottom:calc(110px + var(--safe-bot))}
+
+/* ── NUOVA SCENA ──
+   Largo quanto la schermata e in cima, come la casella del taccuino: il valore
+   di questa sezione e' tutto nella distanza fra l'idea e il posto dove buttarla
+   giu'. Un "+" tondo in un angolo sarebbe un bersaglio da centrare. */
+.scene-nuova{
+  width:100%;display:flex;align-items:center;justify-content:center;gap:9px;
+  background:var(--white);border:1.5px dashed var(--sand3);border-radius:14px;
+  padding:14px 13px;margin-bottom:14px;cursor:pointer;color:var(--ink2);
+  font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;
+  transition:border-color .18s,color .18s,transform .1s;
+}
+.scene-nuova:active{transform:scale(.985);border-color:var(--oro);color:var(--ottone)}
+
+/* ── LE SCHEDE ── */
+.scene-card{
+  background:var(--white);border:1.5px solid var(--sand2);border-radius:13px;
+  padding:12px 14px;margin-bottom:8px;cursor:pointer;
+  box-shadow:0 2px 8px rgba(40,30,15,.05);
+  transition:border-color .18s,transform .1s;
+}
+.scene-card:active{transform:scale(.985);border-color:var(--oro-sabbia)}
+/* Tenere premuto e spostare: la scheda si stacca dal foglio. Vedi riordino.js —
+   il gesto e' lo stesso del taccuino, e queste sono le stesse regole. */
+.scene-card.trascinata{
+  transform:scale(1.03);border-color:var(--oro);
+  box-shadow:0 12px 28px rgba(40,30,15,.22);
+  position:relative;z-index:5;transition:none;
+}
+.in-riordino .scene-card:not(.trascinata){
+  transition:transform .16s cubic-bezier(.22,.61,.36,1);
+}
+.scene-card-riga{display:flex;align-items:flex-start;gap:8px}
+.scene-card-testo{flex:1;min-width:0}
+.scene-card-testo b{
+  display:-webkit-box;font-size:15px;font-weight:700;color:var(--ink);line-height:1.35;
+  overflow:hidden;text-overflow:ellipsis;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+}
+.scene-card-testo span{
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+  font-size:13px;color:var(--ink3);line-height:1.45;margin-top:3px;
+}
+.scene-menu{
+  flex-shrink:0;background:none;border:none;cursor:pointer;
+  color:var(--ink3);font-size:19px;line-height:1;
+  /* Bersaglio grande quanto un dito anche se il glifo e' minuscolo. */
+  padding:8px 6px;margin:-8px -6px -8px 0;
+}
+.scene-menu:active{color:var(--ottone)}
+.scene-card-piede{display:flex;align-items:center;gap:9px;margin-top:9px}
+.scene-data{font-size:11px;font-weight:700;letter-spacing:.04em;color:var(--ink3);flex:1}
+
+.scene-vuoto{text-align:center;padding:34px 22px 10px;color:var(--ink3)}
+.scene-vuoto-glifo{font-size:26px;color:var(--oro-sabbia);margin-bottom:10px}
+.scene-vuoto p{font-size:13.5px;line-height:1.6;max-width:32ch;margin:0 auto}
+
+/* ── UNA SCENA APERTA ──
+   Sale dal basso come gli altri fogli dell'app. L'altezza e' quella della parte
+   visibile e non dello schermo (--vv-h, vedi seguiTastiera in dialogs.js): qui
+   dentro si scrive sempre, e con la tastiera alzata il riquadro su cui sta il
+   cursore finirebbe sotto i tasti. */
+.scena{
+  position:fixed;left:0;right:0;top:var(--vv-top,0px);height:var(--vv-h,100%);
+  z-index:210;display:flex;flex-direction:column;background:var(--sand);
+  transform:translateY(100%);transition:transform .3s cubic-bezier(.32,.72,0,1);
+  pointer-events:none;
+}
+.scena.open{transform:translateY(0);pointer-events:auto}
+.scena-barra{
+  display:flex;align-items:center;gap:8px;flex-shrink:0;
+  padding:calc(10px + var(--safe-top)) 12px 10px;
+  background:linear-gradient(135deg,#2a2018,#1a1410);
+}
+.scena-btn{
+  background:none;border:none;padding:7px;cursor:pointer;color:var(--oro);
+  display:flex;line-height:0;opacity:.85;transition:opacity .15s,transform .1s;
+}
+.scena-btn:active{opacity:1;transform:scale(.9)}
+.scena-btn-testo{
+  font-family:'Nunito',sans-serif;font-size:12.5px;font-weight:700;
+  letter-spacing:.06em;text-transform:uppercase;line-height:1;padding:9px 11px;
+  border:1px solid rgba(232,200,120,.28);border-radius:9px;
+}
+/* IL TITOLO E' UN CAMPO SENZA BORDI, in mezzo alla barra: si scrive se viene,
+   e se non viene resta il segnaposto. Un campo disegnato come tale — riquadro,
+   etichetta, sfondo chiaro — sarebbe una domanda a cui rispondere prima di
+   cominciare, che e' esattamente cio' che questa sezione evita. */
+.scena-titolo{
+  flex:1;min-width:0;background:none;border:none;outline:none;
+  font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;color:var(--oro);
+  padding:6px 2px;
+}
+.scena-titolo::placeholder{color:var(--oro);opacity:.42;font-weight:600}
+.scena-scroll{
+  flex:1;overflow-y:auto;background:var(--sand);
+  padding:14px 14px calc(30px + var(--safe-bot));
+}
+
+/* ── I RIQUADRI ──
+   Numero a sinistra, testo al centro, contatore a destra. Il numero e' piccolo
+   e spento: serve a ritrovarsi mentre si disegna, non a dire "sei al terzo su
+   dodici" — quel dodici non esiste da nessuna parte. */
+.beat{
+  display:flex;align-items:flex-start;gap:10px;
+  background:var(--white);border:1.5px solid var(--sand2);border-radius:13px;
+  padding:11px 13px;margin-bottom:10px;
+  box-shadow:0 2px 8px rgba(40,30,15,.05);
+  transition:border-color .18s;
+}
+.beat:focus-within{border-color:var(--oro-sabbia)}
+/* Il riquadro in coda e' PIU' SPENTO degli altri: si vede che e' il posto dove
+   continuare, non un beat rimasto vuoto per sbaglio. Tratteggiato come "Nuova
+   scena", che e' l'altro invito a cominciare qualcosa. */
+.beat-nuovo{border-style:dashed;border-color:var(--sand3);box-shadow:none;background:rgba(255,255,255,.55)}
+.beat-n{
+  flex-shrink:0;width:20px;text-align:right;
+  font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;
+  color:var(--ink3);opacity:.7;line-height:1.7;
+}
+.beat textarea{
+  flex:1;min-width:0;border:none;outline:none;background:none;resize:none;overflow:hidden;
+  font-family:'Nunito',sans-serif;font-size:15px;line-height:1.5;color:var(--ink);
+  min-height:23px;display:block;padding:0;
+}
+.beat textarea::placeholder{color:var(--ink3);opacity:.75}
+/* IL CONTATORE COMPARE SOLO IN VISTA DEL FONDO (dagli 80 caratteri in su, vedi
+   CONTA_DA in scene.js). Prima diceva "hai ancora spazio", che mentre si scrive
+   non serve a niente e trasforma un riquadro in un esercizio. */
+.beat-conta{
+  flex-shrink:0;align-self:flex-end;
+  font-size:10.5px;font-weight:700;letter-spacing:.03em;color:var(--ink3);opacity:.75;
+}
+.beat-conta[hidden]{display:none}
+.beat.trascinata{
+  transform:scale(1.03);border-color:var(--oro);
+  box-shadow:0 12px 28px rgba(40,30,15,.22);
+  position:relative;z-index:5;transition:none;
+}
+.in-riordino .beat:not(.trascinata){transition:transform .16s cubic-bezier(.22,.61,.36,1)}
+
+/* ── LA BOARD ──
+   Sopra la scena (che sta a 210) perche' si apre da dentro. Fondo scuro: si
+   tiene aperta accanto al tavolo mentre si disegna, e uno schermo bianco acceso
+   di fianco al foglio da' fastidio dopo dieci minuti. */
+.board{
+  position:fixed;inset:0;z-index:220;display:flex;flex-direction:column;
+  background:#171310;
+  opacity:0;pointer-events:none;transition:opacity .2s ease;
+}
+.board.open{opacity:1;pointer-events:auto}
+.board-barra{
+  display:flex;align-items:center;gap:10px;flex-shrink:0;
+  padding:calc(12px + var(--safe-top)) 16px 12px;
+  border-bottom:1px solid rgba(232,200,120,.16);
+}
+.board-titolo{
+  flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;
+  letter-spacing:.1em;text-transform:uppercase;color:var(--oro);opacity:.8;
+}
+.board-chiudi{
+  flex-shrink:0;background:none;border:none;padding:7px;cursor:pointer;
+  color:var(--oro);display:flex;line-height:0;opacity:.8;
+}
+/* SUL TELEFONO LA X NON C'E'. Stessa ragione del lettore degli albi e dei
+   frammenti: il tasto Indietro chiude ed e' sotto il pollice, mentre la X sta
+   nell'angolo in alto — il punto piu' lontano dalla mano. Col mouse resta:
+   li' un Indietro sotto il dito non c'e'. */
+body.is-touch .board-chiudi{display:none}
+.board-scroll{flex:1;overflow-y:auto;padding:14px 14px calc(20px + var(--safe-bot))}
+/* Affiancati: e' tutto il punto della board. Due colonne sul telefono, di piu'
+   dove c'e' spazio — senza numero fisso di colonne, cosi' una scena da quattro
+   beat non si ritrova sparsa su tre file. */
+.board-griglia{
+  display:grid;gap:10px;
+  grid-template-columns:repeat(auto-fill,minmax(148px,1fr));
+}
+.board-tessera{
+  background:rgba(255,255,255,.045);border:1px solid rgba(232,200,120,.16);
+  border-radius:12px;padding:11px 12px;
+  display:flex;flex-direction:column;gap:6px;min-height:88px;
+}
+.board-n{
+  font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;
+  color:var(--oro);opacity:.65;letter-spacing:.04em;
+}
+.board-tessera p{
+  margin:0;font-size:13.5px;line-height:1.45;color:#efe4d2;
+}

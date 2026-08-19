@@ -104,7 +104,7 @@ function hideAllScreens(){
   // Elimina" di una cartella di References appoggiato sopra le schede della
   // home, ancora funzionante e riferito a una cosa non piu' a schermo.
   closeActionMenu();
-  ['screen-home','screen-project','screen-stats','screen-evening','screen-refs','screen-idee'].forEach(id=>{
+  ['screen-home','screen-project','screen-stats','screen-evening','screen-refs','screen-idee','screen-scene'].forEach(id=>{
     const el = document.getElementById(id);
     if(el) el.classList.remove('active');
   });
@@ -143,6 +143,17 @@ async function openIdee(){
   if(window.__navSync) window.__navSync('idee');
   const m = await trackResolved('./idee.js');
   m.initIdee();
+}
+
+// Le Scene. Stessa forma del taccuino: la schermata compare subito e il modulo
+// arriva un istante dopo. Qui conta doppio — si entra con una scena in testa, e
+// mezzo secondo di schermo fermo basta a perderla.
+async function openScene(){
+  hideAllScreens();
+  document.getElementById('screen-scene').classList.add('active');
+  if(window.__navSync) window.__navSync('scene');
+  const m = await trackResolved('./scene.js');
+  m.initScene();
 }
 
 // Preparazione comune della schermata References, condivisa da tutti i punti
@@ -231,6 +242,19 @@ window.vaiAStatistiche=()=>{
     try{ history.replaceState({ view:'stats', id:null, depth:s.depth }, ''); }catch(e){}
   }
   openStats();   // navPush vede che lo stato e' gia' 'stats' e non ne aggiunge
+};
+// Dalle Impostazioni al taccuino, con lo stesso identico giro delle
+// Statistiche: il posto in cronologia del pannello viene RIUSATO, cosi'
+// Indietro da li' torna alla home invece di riaprire un pannello che non c'e'
+// piu'. Le Idee sono scese qui quando il loro tondo nella barra e' passato alle
+// Scene.
+window.vaiAIdee=()=>{
+  closeSettingsUI();
+  const s = history.state;
+  if(s && s.view === 'settings'){
+    try{ history.replaceState({ view:'idee', id:null, depth:s.depth }, ''); }catch(e){}
+  }
+  openIdee();
 };
 window.closeStats=closeStats;
 window.toggleSettings=toggleSettings;
@@ -439,6 +463,7 @@ async function showScreen(view, id){
     if(view === 'project' && id && getProject(id)){ openProject(id); }
     else if(view === 'stats'){ await openStats(); }
     else if(view === 'idee'){ await openIdee(); }
+    else if(view === 'scene'){ await openScene(); }
     else if(view === 'refs'){ await openRefsScreen(); }
     else if(view === 'refs-folder' && id){ await openRefsScreenAtFolder(id); }
     else if(view === 'refs-all'){ await openRefsScreenAtAll(); }
@@ -480,6 +505,20 @@ window.addEventListener('popstate', e=>{
     const m = loadedMod('./refs.js');
     if(m){ m.closeLightboxUI(); return; }
   }
+  // La board di una scena sta sopra la scena stessa: Indietro chiude prima
+  // quella. loadedMod e non loadMod — se e' aperta il modulo c'e' per forza.
+  const bd = document.getElementById('board');
+  if(bd && bd.classList.contains('open')){
+    const m = loadedMod('./scene.js');
+    if(m){ m.chiudiBoardUI(); return; }
+  }
+  // E poi la scena aperta: Indietro la chiude salvando, e riporta all'elenco
+  // invece di uscire dalla schermata.
+  const sc = document.getElementById('scena');
+  if(sc && sc.classList.contains('open')){
+    const m = loadedMod('./scene.js');
+    if(m){ m.chiudiScenaUI(); return; }
+  }
   // Un'idea aperta a tutto schermo: Indietro la chiude (salvando) e riporta
   // all'elenco, invece di uscire dalla schermata.
   const ie = document.getElementById('idea-editor');
@@ -497,6 +536,7 @@ try{ if(!history.state) history.replaceState({ view:'home', depth:0 }, ''); }cat
 window.openProject = openProject;
 window.openStats = openStats;
 window.openIdee = openIdee;
+window.openScene = openScene;
 window.enterEveningMode = entraInSera;
 // Azioni "indietro" — passano dalla cronologia, così il back del browser resta coerente.
 // Stats e sera si aprono sempre direttamente sopra la Home (un solo livello),

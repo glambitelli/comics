@@ -23,6 +23,7 @@
 import { db, collection, doc, onSnapshot, setDoc, deleteDoc } from './firebase.js';
 import { haptic, showUndoToast } from './state.js';
 import { actionMenu } from './dialogs.js';
+import { montaRiordino } from './riordino.js';
 import { esc } from './testo.js';
 
 const IDEE_COL = 'ideas';
@@ -234,14 +235,7 @@ export function editorAperto(){
 
 // ── AGGANCI ─────────────────────────────────────────────────────────────────
 let _agganciato = false;
-// Quando è finita l'ultima strisciata. Serve a scartare il click fantasma che
-// il browser genera subito dopo un gesto, che altrimenti aprirebbe l'editor
-// sotto al menu appena comparso. È un ISTANTE e non un interruttore: da
-// interruttore restava alzato quando il gesto non produceva nessun click (dito
-// uscito dalla scheda, gesto annullato dal sistema) e a quel punto si mangiava
-// il primo tocco buono successivo — un tap che non fa niente, senza spiegazione.
-let _stridoA = 0;
-const STRIDO_ECO = 500;
+let _gesto = null;          // il riordino montato sull'elenco (vedi riordino.js)
 export function initIdee(){
   startIdeeListener();
   if(_agganciato) return;
@@ -275,150 +269,30 @@ export function initIdee(){
     if(menu){ e.stopPropagation(); menuIdea(menu, menu.dataset.menu); return; }
     // Un dito che ha appena strisciato per aprire il menu lascia dietro di sé
     // un click: senza questa riga si aprirebbe anche l'editor, sotto al menu.
-    if(Date.now() - _stridoA < STRIDO_ECO){ _stridoA = 0; return; }
+    if(_gesto && _gesto.strisciaRecente()) return;
     const card = e.target.closest('.idee-card');
     if(card) apriEditor(card.dataset.id);
   });
 
-  // ── TRASCINAMENTO: TENERE PREMUTO E SPOSTARE ──
-  //
-  // Il gesto ha tre strade possibili dallo stesso identico punto di partenza —
-  // un dito appoggiato su una scheda — e si distinguono per quello che succede
-  // DOPO, non per dove si tocca:
-  //
-  //   · il dito resta fermo mezzo secondo   → si solleva la scheda, si sposta
-  //   · il dito parte di lato               → menu della scheda
-  //   · il dito parte in verticale          → l'elenco scorre, come sempre
-  //   · il dito si alza subito              → si apre l'idea
-  //
-  // Nessuna maniglia dedicata: su una scheda alta cinquanta pixel un
-  // appiglio da venti sarebbe un bersaglio da centrare, e il gesto smetterebbe
-  // di essere comodo proprio dove serve.
-  const ATTESA = 420;          // quanto tenere premuto prima che si sollevi
-  const FERMO = 9;             // di quanto ci si può muovere senza annullare
-
-  let timerPressione = null;
-  let trascinato = null, altri = [], altezza = 0, daIndice = 0, aIndice = 0, yPartenza = 0;
-
-  const spegniPressione = ()=>{ clearTimeout(timerPressione); timerPressione = null; };
-
-  function sollevaScheda(card, y){
-    const schede = Array.from(lista.querySelectorAll('.idee-card'));
-    daIndice = schede.indexOf(card);
-    if(daIndice < 0) return;
-    aIndice = daIndice;
-    yPartenza = y;
-    trascinato = card;
-    altezza = card.getBoundingClientRect().height + 8;   // scheda + spazio fra le schede
-    // I centri si misurano ORA, una volta sola: leggerli ad ogni movimento del
-    // dito significherebbe chiedere al browser di rifare il layout sessanta
-    // volte al secondo mentre le schede si stanno già muovendo.
-    altri = schede.filter(x=>x!==card).map(el=>({
-      el, centro: el.getBoundingClientRect().top + el.getBoundingClientRect().height/2,
-      indice: schede.indexOf(el),
-    }));
-    card.classList.add('trascinata');
-    lista.classList.add('in-riordino');
-    haptic('done');
-  }
-
-  function muoviScheda(y){
-    const dy = y - yPartenza;
-    trascinato.style.transform = 'translateY(' + dy + 'px)';
-    const centro = trascinato.getBoundingClientRect().top + trascinato.getBoundingClientRect().height/2;
-    // Dove finirebbe la scheda se la si mollasse adesso: quante schede ha
-    // superato, contate sul loro centro.
-    let nuovo = daIndice;
-    for(const a of altri){
-      if(a.indice < daIndice && centro < a.centro) { nuovo = Math.min(nuovo, a.indice); }
-      if(a.indice > daIndice && centro > a.centro) { nuovo = Math.max(nuovo, a.indice); }
-    }
-    if(nuovo !== aIndice) haptic('tap');
-    aIndice = nuovo;
-    // Le altre schede si spostano per aprire il buco: senza, si vede la scheda
-    // volare sopra un elenco immobile e non si capisce dove atterrerà.
-    for(const a of altri){
-      let spostamento = 0;
-      if(daIndice < a.indice && a.indice <= aIndice) spostamento = -altezza;
-      else if(aIndice <= a.indice && a.indice < daIndice) spostamento = altezza;
-      a.el.style.transform = spostamento ? 'translateY(' + spostamento + 'px)' : '';
-    }
-  }
-
-  async function posaScheda(){
-    if(!trascinato) return;
-    const card = trascinato;
-    trascinato = null;
-    card.classList.remove('trascinata');
-    lista.classList.remove('in-riordino');
-    card.style.transform = '';
-    altri.forEach(a=> a.el.style.transform = '');
-    if(aIndice === daIndice) return;
-    // Si riscrive l'ordine di TUTTE le idee, non solo di quella spostata:
-    // numeri consecutivi da zero, così non ci si ritrova mai con due schede
-    // sullo stesso posto né con buchi che crescono ad ogni trascinamento.
-    const fila = _idee.slice().sort(cmpOrdine);
-    const [presa] = fila.splice(daIndice, 1);
-    fila.splice(aIndice, 0, presa);
-    fila.forEach((idea,k)=>{ idea.ordine = k; });
-    _idee = fila;
-    renderIdee();
-    haptic('done');
-    for(const idea of fila) await scrivi(idea);
-  }
-
-  // ── STRISCIATA VERSO SINISTRA ──
-  // Stesse azioni dei tre puntini, raggiunte col gesto invece che mirando a un
-  // bersaglio da venti pixel. Un posto solo dove vivono le azioni: due
-  // interfacce diverse per le stesse tre voci si sarebbero disallineate al
-  // primo cambiamento.
-  //
-  // La soglia sull'asse è quella che conta: l'elenco scorre in verticale, e
-  // senza il confronto fra dx e dy ogni scorrimento un po' storto aprirebbe
-  // un menu. Si chiede che il movimento sia nettamente orizzontale.
-  const SOGLIA_X = 44;
-  let sx = 0, sy = 0, seguendo = false, cardStrisciata = null;
-  lista.addEventListener('touchstart', e=>{
-    spegniPressione();
-    if(e.touches.length !== 1) { seguendo = false; return; }
-    cardStrisciata = e.target.closest('.idee-card');
-    if(!cardStrisciata){ seguendo = false; return; }
-    sx = e.touches[0].clientX; sy = e.touches[0].clientY;
-    seguendo = true;
-    const card = cardStrisciata, y = sy;
-    timerPressione = setTimeout(()=>{ seguendo = false; sollevaScheda(card, y); }, ATTESA);
-  }, { passive:true });
-
-  // passive:false perché durante il trascinamento si deve poter FERMARE lo
-  // scorrimento della pagina: senza, l'elenco scorrerebbe sotto la scheda
-  // sollevata e il dito non riuscirebbe mai a posarla dove vuole.
-  lista.addEventListener('touchmove', e=>{
-    if(trascinato){ e.preventDefault(); muoviScheda(e.touches[0].clientY); return; }
-    if(!seguendo || e.touches.length !== 1) return;
-    const dx = e.touches[0].clientX - sx, dy = e.touches[0].clientY - sy;
-    // Appena il dito si muove davvero, la pressione lunga non vale più: si
-    // stava facendo qualcos'altro.
-    if(Math.hypot(dx, dy) > FERMO) spegniPressione();
-    if(Math.abs(dy) > Math.abs(dx)){ seguendo = false; return; }   // sta scorrendo
-    if(dx < -SOGLIA_X && Math.abs(dx) > Math.abs(dy) * 1.6){
-      seguendo = false;
-      _stridoA = Date.now();
-      haptic('tap');
-      menuIdea(cardStrisciata, cardStrisciata.dataset.id);
-    }
-  }, { passive:false });
-
-  lista.addEventListener('touchend', ()=>{
-    spegniPressione();
-    seguendo = false;
-    if(trascinato){ _stridoA = Date.now(); posaScheda(); }
-  }, { passive:true });
-  // Una telefonata, una notifica a tutto schermo: il sistema porta via il
-  // gesto senza un touchend. Senza questo la scheda resterebbe sollevata.
-  lista.addEventListener('touchcancel', ()=>{
-    spegniPressione(); seguendo = false;
-    if(trascinato){ aIndice = daIndice; posaScheda(); }
-  }, { passive:true });
+  // Il gesto — tenere premuto per sollevare, strisciare a sinistra per il menu
+  // — vive in riordino.js: lo usano anche le Scene, e i suoi numeri sono stati
+  // aggiustati a mano sul telefono. Qui resta solo cosa farne.
+  _gesto = montaRiordino(lista, {
+    selettore: '.idee-card',
+    alStriscia: card=> menuIdea(card, card.dataset.id),
+    alPosa: (da, a)=>{
+      // Si riscrive l'ordine di TUTTE le idee, non solo di quella spostata:
+      // numeri consecutivi da zero, così non ci si ritrova mai con due schede
+      // sullo stesso posto né con buchi che crescono ad ogni trascinamento.
+      const fila = _idee.slice().sort(cmpOrdine);
+      const [presa] = fila.splice(da, 1);
+      fila.splice(a, 0, presa);
+      fila.forEach((idea,k)=>{ idea.ordine = k; });
+      _idee = fila;
+      renderIdee();
+      fila.forEach(idea=> scrivi(idea));
+    },
+  });
 
   document.getElementById('idea-editor-chiudi').addEventListener('click', ()=> chiudiEditor());
 
