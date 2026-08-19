@@ -390,4 +390,22 @@ module.exports = () => suite("References — Frammenti e Tavole dentro una carte
   ok('ma uno scorrimento in diagonale non cambia scaffale',
      (await stato()).attivo === 'ritagli', await stato());
 
+  sezione('e sul telefono la X per chiudere non c\'e\'');
+  // Stessa ragione del lettore: Indietro chiude la vista da sempre ed e' sotto
+  // il pollice, mentre la X sta nell'angolo in alto e ruba un pezzo
+  // dell'immagine che si e' aperta apposta per guardarla.
+  const xLightbox = await page.evaluate(async ()=>{
+    window.refs.openRefLightbox('r1');
+    await new Promise(r=>setTimeout(r,300));
+    const x = document.querySelector('.refs-lightbox-close');
+    document.body.classList.add('is-touch');
+    const conDito = getComputedStyle(x).display;
+    document.body.classList.remove('is-touch');
+    const colMouse = getComputedStyle(x).display;
+    window.refs.closeRefLightbox();
+    return { conDito, colMouse };
+  });
+  ok('col dito la X sparisce', xLightbox.conDito === 'none', xLightbox);
+  ok('col mouse resta', xLightbox.colMouse !== 'none', xLightbox);
+
 });

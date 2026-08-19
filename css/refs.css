@@ -497,6 +497,12 @@ body.is-touch .refs-drop-hint{display:none}
   cursor:pointer;border-radius:50%;padding:0;line-height:1;
   transition:opacity .18s,background .15s,transform .1s;
 }
+/* SUL TELEFONO LA X NON C'E'. Stessa ragione del lettore degli albi: il tasto
+   Indietro chiude la vista da sempre ed e' sotto il pollice, mentre la X sta
+   nell'angolo in alto — il punto piu' lontano dalla mano — e ruba un pezzo
+   dell'immagine che si e' aperta apposta per guardarla. Col mouse resta:
+   li' un Indietro sotto il dito non c'e'. */
+body.is-touch .refs-lightbox-close{display:none}
 .refs-lightbox-close:hover{background:rgba(255,248,232,.18)}
 .refs-lightbox-close:active{transform:scale(.9);background:rgba(255,248,232,.22)}
 
