@@ -694,18 +694,6 @@ function buildReaderDOM(){
       <button class="ar-btn ar-close" aria-label="Chiudi" data-act="close">
         <svg viewBox="0 0 24 24" width="17" height="17"><path d="M6.5 6.5 17.5 17.5 M17.5 6.5 6.5 17.5" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"/></svg>
       </button>
-      <div class="ar-top-actions">
-        <button class="ar-btn ar-retry" data-act="retryclip" title="Ridisegna il riquadro" hidden>
-          <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.6-5.9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M20 4v4.6h-4.6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          <span>Riprova</span>
-        </button>
-        <button class="ar-btn ar-tutta" data-act="tuttalatavola" aria-label="Salva tutta la tavola" title="Tutta la tavola">
-          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V5.6A1.6 1.6 0 0 1 5.6 4H9"/><path d="M15 4h3.4A1.6 1.6 0 0 1 20 5.6V9"/><path d="M20 15v3.4a1.6 1.6 0 0 1-1.6 1.6H15"/><path d="M9 20H5.6A1.6 1.6 0 0 1 4 18.4V15"/></svg>
-        </button>
-        <button class="ar-btn ar-clip" aria-label="Ritaglia" data-act="clip">
-          <svg viewBox="0 0 24 24" width="20" height="20"><circle cx="6.5" cy="6.5" r="2.4" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="6.5" cy="17.5" r="2.4" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8.6 8.2 20 18 M8.6 15.8 20 6" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg>
-        </button>
-      </div>
     </div>
     <div class="ar-stage">
       <div class="ar-track">
@@ -754,10 +742,28 @@ function buildReaderDOM(){
             <svg viewBox="0 0 24 24" width="20" height="20"><path d="M6 5 L14 12 L6 19" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/><path d="M17 5.5v13" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"/></svg>
           </button>
         </div>
+        <!-- I COMANDI STANNO DOVE ARRIVA IL POLLICE. Ritaglio e "tutta la
+             tavola" erano in cima, cioe' nell'angolo piu' lontano dalla mano
+             che tiene il telefono: per ritagliare una vignetta si cambiava
+             presa. Adesso stanno qui, nella stessa riga del numero di pagina,
+             esattamente come nella vista a schermo intero dei frammenti —
+             stesso posto, stesse icone, in tutte e due le schermate. -->
         <div class="ar-controls-row">
           <span class="ar-counter"></span>
           <span class="ar-divider" aria-hidden="true"></span>
           <span class="ar-title"></span>
+          <div class="ar-top-actions">
+            <button class="ar-btn ar-retry" data-act="retryclip" title="Ridisegna il riquadro" hidden>
+              <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.6-5.9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M20 4v4.6h-4.6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <span>Riprova</span>
+            </button>
+            <button class="ar-btn ar-tutta" data-act="tuttalatavola" aria-label="Salva tutta la tavola" title="Tutta la tavola">
+              <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V5.6A1.6 1.6 0 0 1 5.6 4H9"/><path d="M15 4h3.4A1.6 1.6 0 0 1 20 5.6V9"/><path d="M20 15v3.4a1.6 1.6 0 0 1-1.6 1.6H15"/><path d="M9 20H5.6A1.6 1.6 0 0 1 4 18.4V15"/></svg>
+            </button>
+            <button class="ar-btn ar-clip" aria-label="Ritaglia" data-act="clip">
+              <svg viewBox="0 0 24 24" width="20" height="20"><circle cx="6.5" cy="6.5" r="2.4" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="6.5" cy="17.5" r="2.4" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8.6 8.2 20 18 M8.6 15.8 20 6" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg>
+            </button>
+          </div>
         </div>
       </div>
       <div class="ar-clip-hint" hidden>

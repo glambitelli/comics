@@ -329,12 +329,13 @@ module.exports = () => suite("Lettore — nastro, sfoglio, zoom, ritaglio", {"ba
   await settle(300);
   let r = await page.evaluate(()=>({
     visibile: !document.querySelector('.ar-retry').hidden,
-    inAlto: !!document.querySelector('.ar-topbar .ar-retry'),
+    coiComandi: !!document.querySelector('.ar-controls-row .ar-retry'),
     nellaCapsula: !!document.querySelector('.ar-clip-hint .ar-retry'),
     testo: document.querySelector('.ar-retry').textContent.trim(),
   }));
   ok('disegnato il riquadro compare', r.visibile, r);
-  ok('e sta nella barra in alto, non nella capsula delle destinazioni', r.inAlto && !r.nellaCapsula, r);
+  ok('e sta accanto alle forbici, non nella capsula delle destinazioni',
+     r.coiComandi && !r.nellaCapsula, r);
   ok('porta la parola, non solo un\'icona', /Riprova/.test(r.testo), r.testo);
   await page.evaluate(() => T.click('[data-act="retryclip"]'));
   await settle(250);
@@ -362,4 +363,69 @@ module.exports = () => suite("Lettore — nastro, sfoglio, zoom, ritaglio", {"ba
   await settle(900);
   s = await st();
   ok('un albo mai visto riparte dalla prima pagina', s.pages[1] === 1 && s.counter === '01 / 12', s);
+
+  console.log('\n── i comandi stanno dove arriva il pollice ──');
+  // Ritaglio e "tutta la tavola" erano in cima allo schermo, cioe' nell'angolo
+  // piu' lontano dalla mano che tiene il telefono: per ritagliare una vignetta
+  // si cambiava presa. Adesso stanno nella capsula in basso, come nella vista
+  // a schermo intero dei frammenti.
+  const dove = await page.evaluate(()=>{
+    const q = sel => document.querySelector(sel);
+    const r = el => el ? el.getBoundingClientRect() : null;
+    return {
+      inBasso: !!q('.ar-bottombar .ar-clip') && !!q('.ar-bottombar .ar-tutta'),
+      inCima: !!q('.ar-topbar .ar-clip') || !!q('.ar-topbar .ar-tutta'),
+      forbici: r(q('.ar-clip')),
+      alto: window.innerHeight,
+    };
+  });
+  ok('forbici e "tutta la tavola" sono nella barra in basso', dove.inBasso, dove);
+  ok('e non piu\' in cima', !dove.inCima, dove);
+  ok('stanno nella meta\' bassa dello schermo, sotto il pollice',
+     dove.forbici && dove.forbici.top > dove.alto * 0.6, dove);
+
+  console.log('\n── e sul telefono in cima non resta niente ──');
+  // La X per chiudere era l'unica cosa rimasta lassu': il tasto Indietro fa la
+  // stessa cosa ed e' sotto il pollice. Tolta lei sparisce anche la striscia
+  // che teneva la tavola piu' in basso per non finirle dietro, e la pagina si
+  // riprende quello spazio.
+  const conDito = await page.evaluate(()=>{
+    document.body.classList.add('is-touch');
+    const st = getComputedStyle(document.querySelector('.ar-topbar'));
+    const track = document.querySelector('.ar-track').getBoundingClientRect();
+    const stage = document.querySelector('.ar-stage').getBoundingClientRect();
+    return { barra: st.display, dallAlto: Math.round(track.top - stage.top) };
+  });
+  ok('la barra in cima non c\'e\' proprio', conDito.barra === 'none', conDito);
+  ok('e la tavola comincia da subito, senza la striscia vuota',
+     conDito.dallAlto === 0, conDito);
+  const colMouse = await page.evaluate(()=>{
+    document.body.classList.remove('is-touch');
+    const st = getComputedStyle(document.querySelector('.ar-topbar'));
+    const x = document.querySelector('.ar-close');
+    return { barra: st.display, x: !!x && getComputedStyle(x).display !== 'none' };
+  });
+  ok('col mouse invece la X resta, che li\' un tasto Indietro sotto il dito non c\'e\'',
+     colMouse.barra !== 'none' && colMouse.x, colMouse);
+
+  console.log('\n── e in ritaglio i comandi non spariscono ──');
+  // Prima entrando in ritaglio si nascondeva TUTTA la capsula: da quando le
+  // forbici stanno li' dentro, portarsela via vorrebbe dire togliere di mezzo
+  // proprio il comando che serve per uscire.
+  await page.evaluate(() => T.click('[data-act="clip"]'));
+  await settle(250);
+  const inRitaglio = await page.evaluate(()=>{
+    const vis = sel => { const el = document.querySelector(sel);
+      return !!el && !el.hidden && getComputedStyle(el).display !== 'none'; };
+    return { forbici: vis('.ar-clip'), tutta: vis('.ar-tutta'),
+             cursore: vis('.ar-seek-row'), avviso: vis('.ar-clip-hint') };
+  });
+  ok('le forbici restano a schermo, per poter uscire', inRitaglio.forbici, inRitaglio);
+  ok('e "tutta la tavola" anche', inRitaglio.tutta, inRitaglio);
+  ok('mentre il cursore delle pagine si toglie di mezzo', !inRitaglio.cursore, inRitaglio);
+  ok('e compare l\'avviso del ritaglio', inRitaglio.avviso, inRitaglio);
+  await page.evaluate(() => T.click('[data-act="clip"]'));
+  await settle(250);
+  ok('uscendo, il cursore torna',
+     await page.evaluate(()=> !document.querySelector('.ar-seek-row').hidden));
 });

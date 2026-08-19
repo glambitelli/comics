@@ -59,6 +59,15 @@
      sopra e sotto). La tavola comincia sotto questa quota: vedi .ar-track. */
   --ar-top-h:54px;
 }
+/* SUL TELEFONO NON C'E' NIENTE IN CIMA. La X per chiudere era l'unica cosa
+   rimasta lassu' e non serviva a nessuno: il tasto Indietro chiude il lettore
+   da sempre, ed e' sotto il pollice invece che nell'angolo opposto. Tolta lei,
+   sparisce anche la striscia di 54px che teneva la tavola piu' in basso per
+   non finirle dietro: la pagina si riprende quello spazio, che su un fumetto
+   letto al telefono e' esattamente cio' che serve. Col mouse la X resta:
+   li' un tasto Indietro sotto il dito non c'e'. */
+body.is-touch .album-reader{--ar-top-h:0px}
+body.is-touch .ar-topbar{display:none}
 .album-reader.open{display:flex}
 body.album-reading{overflow:hidden}
 
@@ -72,7 +81,15 @@ body.album-reading{overflow:hidden}
   padding:10px 12px;pointer-events:none;background:none;
 }
 .ar-topbar > *{pointer-events:auto}
-.ar-top-actions{display:flex;gap:7px;flex-shrink:0}
+/* Le azioni adesso vivono nella capsula in basso (vedi buildReaderDOM): il
+   nome della classe resta quello di quando stavano in cima, perche' cambiarlo
+   avrebbe voluto dire rincorrerlo in tre file per una parola. */
+.ar-top-actions{display:flex;gap:6px;flex-shrink:0;margin-left:auto}
+/* Dentro la capsula i bottoni sono un filo piu' piccoli: in cima erano soli
+   sopra la tavola, qui dividono la riga col numero di pagina e col titolo, e a
+   34px su uno schermo stretto spingevano il titolo fuori. */
+.ar-controls-row .ar-btn{width:30px;height:30px}
+.ar-controls-row .ar-retry{width:auto;padding:0 9px;gap:5px}
 /* Bottoni in vetro scuro con glifo oro, non più dischi color crema: quelli
    erano il punto più CHIARO dello schermo — l'occhio ci finiva sopra prima
    che sulla tavola, che è esattamente il contrario di quello che deve fare
@@ -387,6 +404,7 @@ body.is-touch .ar-nav{display:none} /* su mobile si naviga con swipe/tap */
    sono i due estremi della stessa corsa — e hanno intorno lo spazio per un
    dito. */
 .ar-seek-row{display:flex;align-items:center;gap:4px;min-width:0}
+.ar-seek-row[hidden]{display:none}
 .ar-divider{width:1px;height:16px;background:rgba(232,200,120,.22);flex-shrink:0}
 .ar-title{
   flex:1;min-width:0;color:#b8ab95;font-family:'Nunito',sans-serif;
