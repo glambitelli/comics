@@ -294,7 +294,7 @@ function riquadroHTML(n, id, testo, nuovo, img){
   return `<div class="beat ${nuovo ? 'beat-nuovo' : ''}" ${id ? `data-id="${esc(id)}"` : ''}>
     <div class="beat-riga">
       <button class="beat-mini ${img ? 'pieno' : ''}" data-schizzo type="button"
-        aria-label="${img ? 'Modifica il disegno del beat ' + n : 'Disegna il beat ' + n}">${
+        aria-label="${img ? 'Cambia l\'immagine del beat ' + n : 'Collega un riferimento al beat ' + n}">${
         img ? `<img src="${esc(cldResize(img, 320))}" alt=""/>` : '' }</button>
       <div class="beat-corpo">
         <span class="beat-n">${n}</span>
@@ -360,7 +360,8 @@ function aggiornaConta(box){
 function promuovi(box, dati){
   const scena = scenaAperta();
   if(!scena) return null;
-  const beat = { id: genId(), testo: dati.testo || '', ...(dati.img ? { img: dati.img } : {}) };
+  const beat = { id: genId(), testo: dati.testo || '',
+    ...(dati.img ? { img: dati.img } : {}), ...(dati.refId ? { refId: dati.refId } : {}) };
   scena.beat = scena.beat.concat([beat]);
   scena.updatedAt = Date.now();
   box.classList.remove('beat-nuovo');
@@ -508,41 +509,141 @@ function zittisciBeat(id){
   salvaFraPoco(scena.id);
 }
 
+// ── COSA C'E' NELLA VIGNETTA ────────────────────────────────────────────────
+//
+// Toccando la vignetta di un beat si apre l'archivio: si sceglie un frammento o
+// una tavola gia' salvata e la si attacca li'. E' la stessa cosa che si fa coi
+// progetti — un riferimento visivo collegato a una cosa da disegnare — solo
+// dall'altro capo: li' si parte dall'immagine e si sceglie il progetto, qui si
+// parte dal beat e si sceglie l'immagine.
+//
+// E IL DISEGNO? E' rimasto, ma non e' piu' la porta: e' la prima tessera della
+// griglia. Col dito su un telefono, o col mouse, disegnare non serviva a niente
+// — su un iPad con la matita si'. Toglierlo del tutto avrebbe buttato via
+// l'unico caso in cui funziona bene; lasciarlo davanti a tutto costringeva a
+// passare di li' anche chi voleva solo collegare un ritaglio che ha gia'.
+let _boxScelta = null;      // il beat su cui si sta scegliendo
+let _cercaRif = '';
+
+async function apriScelta(box){
+  const scena = scenaAperta();
+  if(!scena) return;
+  _boxScelta = box;
+  _cercaRif = '';
+  const campo = document.getElementById('sceltarif-cerca');
+  if(campo) campo.value = '';
+  const foglio = document.getElementById('sceltarif');
+  foglio.classList.add('open');
+  try{ if(!history.state || history.state.view !== 'sceltarif') history.pushState({view:'sceltarif'}, ''); }catch(e){}
+  // L'archivio si carica solo adesso, e solo la parte che serve: ascoltaRefs
+  // NON sveglia Google Drive (vedi la nota in refs.js).
+  const r = await import('./refs.js');
+  r.ascoltaRefs();
+  disegnaScelta();
+}
+
+// Esposta al modulo dell'archivio: quando arrivano immagini nuove mentre questa
+// griglia e' aperta, si rinfresca invece di restare a quello che c'era.
+window.rinfrescaSceltaRif = ()=>{ if(sceltaAperta()) disegnaScelta(); };
+
+export function sceltaAperta(){
+  const f = document.getElementById('sceltarif');
+  return !!(f && f.classList.contains('open'));
+}
+
+async function disegnaScelta(){
+  const griglia = document.getElementById('sceltarif-griglia');
+  const togli = document.getElementById('sceltarif-togli');
+  if(!griglia || !_boxScelta) return;
+  const scena = scenaAperta();
+  const b = scena && scena.beat.find(x=> x.id === _boxScelta.dataset.id);
+  // "Togli" solo quando c'e' qualcosa da togliere: un pulsante acceso che non fa
+  // niente si prova, non funziona, e da quel momento non ci si fida piu'.
+  if(togli) togli.hidden = !(b && b.img);
+
+  const r = await import('./refs.js');
+  const q = _cercaRif.trim().toLowerCase();
+  const tutte = r.refsCache().filter(x=> x && x.url);
+  const lista = q
+    ? tutte.filter(x=> ((x.tags||[]).join(' ') + ' ' + (x.provenance && x.provenance.opera || '')).toLowerCase().includes(q))
+    : tutte;
+
+  const disegna = `<button class="sceltarif-tessera sceltarif-disegna" data-disegna type="button">
+      <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4l10-10a2.8 2.8 0 0 0-4-4L4 16Z"/><path d="M13.5 6.5 17.5 10.5"/></svg>
+      <span>Disegnalo</span>
+    </button>`;
+  griglia.innerHTML = disegna + (lista.length
+    ? lista.map(x=> `<button class="sceltarif-tessera" data-rif="${esc(x.id)}" type="button">
+        <img src="${esc(cldResize(x.url, 320))}" loading="lazy" alt=""/>
+      </button>`).join('')
+    : `<div class="sceltarif-vuoto"><p>${q
+        ? 'Nessun riferimento con questo nome.'
+        : 'Nell\'archivio non c\'e\' ancora niente da collegare.'}</p></div>`);
+}
+
+// Attacca (o stacca) quello che sta nella vignetta. Si tocca SOLO il quadratino
+// della card: ridisegnare i riquadri porterebbe via il cursore a chi stava
+// scrivendo nel beat accanto.
+function metti(box, url, refId){
+  const scena = scenaAperta();
+  if(!scena || !box) return;
+  const nuovo = box.classList.contains('beat-nuovo');
+  if(nuovo){
+    if(!url) return;
+    // Collegare un riferimento dentro la card fantasma la promuove esattamente
+    // come scriverci dentro: e' un beat a tutti gli effetti.
+    promuovi(box, { img: url, refId });
+  } else {
+    const b = scena.beat.find(x=> x.id === box.dataset.id);
+    if(!b) return;
+    if(url){ b.img = url; b.refId = refId || null; }
+    else { delete b.img; delete b.refId; }
+  }
+  scena.updatedAt = Date.now();
+  const q = box.querySelector('[data-schizzo]');
+  if(q){
+    q.classList.toggle('pieno', !!url);
+    q.innerHTML = url ? `<img src="${esc(cldResize(url, 320))}" alt=""/>` : '';
+    q.setAttribute('aria-label', url ? 'Cambia l\'immagine del beat' : 'Collega un riferimento');
+  }
+  haptic('done');
+  salvaSubito(scena.id);
+  // Se la scelta e' ancora aperta — succede tornando dal foglio da disegno — la
+  // griglia si rinfresca, cosi' "Togli" compare senza dover riaprire tutto.
+  if(sceltaAperta()) disegnaScelta();
+}
+
+export function chiudiSceltaUI(){
+  const foglio = document.getElementById('sceltarif');
+  if(foglio) foglio.classList.remove('open');
+  _boxScelta = null;
+}
+export function chiudiScelta(){
+  const foglio = document.getElementById('sceltarif');
+  if(foglio && foglio.classList.contains('open') && history.state && history.state.view === 'sceltarif'){
+    history.back();
+    return;
+  }
+  chiudiSceltaUI();
+}
+
 // ── DISEGNARE UN BEAT ───────────────────────────────────────────────────────
-// Il foglio vive in schizzo.js e si carica al primo tocco sulla matita: chi non
+// Il foglio vive in schizzo.js e si carica solo se lo si apre davvero: chi non
 // disegna mai non se lo porta dietro. Il PNG finisce su Cloudinary come tutte le
 // altre immagini dell'app, e nel beat resta l'indirizzo — dentro il documento
 // starebbero stretti, quindici disegni sfiorerebbero il limite di Firestore.
 async function disegnaBeat(box){
   const scena = scenaAperta();
-  if(!scena) return;
-  const nuovo = box.classList.contains('beat-nuovo');
-  const beat = nuovo ? null : scena.beat.find(b=> b.id === box.dataset.id);
+  if(!scena || !box) return;
+  const b = scena.beat.find(x=> x.id === box.dataset.id);
   const m = await import('./schizzo.js');
   m.apriSchizzo({
-    url: beat && beat.img,
+    // Si riapre quello che c'e' solo se e' un disegno: un riferimento collegato
+    // arriva dall'archivio e non si scarabocchia sopra.
+    url: b && !b.refId ? b.img : null,
     onSalva: async (blob)=>{
       const { url } = await uploadToCloudinary(blob, 'schizzo.png');
-      const s2 = _scene.find(x=>x.id===scena.id);
-      if(!s2) return;
-      if(nuovo){
-        // Disegnare dentro la card fantasma la promuove esattamente come
-        // scriverci: e' il punto di tutta questa funzione.
-        promuovi(box, { img: url });
-      } else {
-        const b = s2.beat.find(x=> x.id === box.dataset.id);
-        if(b) b.img = url;
-      }
-      s2.updatedAt = Date.now();
-      // Solo il quadratino: ridisegnare tutto porterebbe via il cursore a chi
-      // stava scrivendo nel riquadro accanto.
-      const q = box.querySelector('[data-schizzo]');
-      if(q){
-        q.classList.add('pieno');
-        q.innerHTML = `<img src="${esc(cldResize(url, 320))}" alt=""/>`;
-        q.setAttribute('aria-label', 'Modifica il disegno');
-      }
-      await salvaSubito(s2.id);
+      metti(box, url, null);
     },
   });
 }
@@ -673,7 +774,7 @@ export function initScene(){
     const zitto = e.target.closest('[data-zitto]');
     if(zitto){ zittisciBeat(zitto.dataset.zitto); return; }
     const q = e.target.closest('[data-schizzo]');
-    if(q) disegnaBeat(q.closest('.beat'));
+    if(q) apriScelta(q.closest('.beat'));
   });
   beat.addEventListener('input', e=>{
     const ta = e.target.closest('textarea');
@@ -715,6 +816,32 @@ export function initScene(){
     },
   });
 
+  const griglia = document.getElementById('sceltarif-griglia');
+  griglia.addEventListener('click', e=>{
+    const box = _boxScelta;
+    if(e.target.closest('[data-disegna]')){
+      // Il foglio da disegno si apre SOPRA questo, e chiudendosi torna qui:
+      // per questo la scelta non si chiude adesso.
+      disegnaBeat(box);
+      return;
+    }
+    const t = e.target.closest('[data-rif]');
+    if(!t) return;
+    import('./refs.js').then(r=>{
+      const rif = r.refsCache().find(x=> x.id === t.dataset.rif);
+      if(rif) metti(box, rif.url, rif.id);
+      chiudiScelta();
+    });
+  });
+  document.getElementById('sceltarif-cerca').addEventListener('input', e=>{
+    _cercaRif = e.target.value;
+    disegnaScelta();
+  });
+  document.getElementById('sceltarif-togli').addEventListener('click', ()=>{
+    metti(_boxScelta, null, null);
+    chiudiScelta();
+  });
+  document.getElementById('sceltarif-chiudi').addEventListener('click', ()=> chiudiScelta());
   document.getElementById('scena-chiudi').addEventListener('click', ()=> chiudiScena());
   document.getElementById('scena-board').addEventListener('click', ()=> apriBoard());
   document.getElementById('board-chiudi').addEventListener('click', ()=> chiudiBoard());

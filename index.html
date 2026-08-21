@@ -218,6 +218,20 @@
   <div class="board-scroll"><div id="board-griglia" class="board-griglia"></div></div>
 </div>
 
+<!-- SCEGLIERE UN RIFERIMENTO PER UN BEAT (vedi scene.js) -->
+<div class="sceltarif" id="sceltarif">
+  <div class="scena-barra">
+    <button class="scena-btn" id="sceltarif-chiudi" type="button" aria-label="Chiudi">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+    </button>
+    <input id="sceltarif-cerca" class="scena-titolo" type="text" placeholder="Cerca nell'archivio" aria-label="Cerca un riferimento">
+    <button class="scena-btn scena-btn-testo" id="sceltarif-togli" type="button" hidden>Togli</button>
+  </div>
+  <div class="sceltarif-scroll">
+    <div id="sceltarif-griglia" class="sceltarif-griglia"></div>
+  </div>
+</div>
+
 <!-- IL FOGLIO SU CUI DISEGNARE (vedi schizzo.js) -->
 <div class="schizzo" id="schizzo">
   <div class="schizzo-barra">

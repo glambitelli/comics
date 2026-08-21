@@ -2,6 +2,7 @@
 <title>banco di prova — scene</title>
 <link rel="stylesheet" href="/css/variables.css">
 <link rel="stylesheet" href="/css/scene.css">
+<link rel="stylesheet" href="/css/refs.css">
 <!-- il menu contestuale e il toast di annullamento vivono qui -->
 <link rel="stylesheet" href="/css/modals.css">
 <link rel="stylesheet" href="/css/layout.css">
@@ -18,7 +19,12 @@
 // li', la prova lo segue. Una copia a mano direbbe che tutto funziona su una
 // schermata che non esiste piu'.
 const dom = new DOMParser().parseFromString(await (await fetch('/index.html')).text(), 'text/html');
-for(const sel of ['#screen-scene', '#scena', '#board', '#schizzo']){
+for(const sel of ['#screen-scene', '#scena', '#board', '#sceltarif', '#schizzo']){
+  // La schermata References non si monta qui, ma scene.js importa refs.js per
+  // leggere l'archivio: senza i suoi contenitori il modulo si lamenterebbe
+  // disegnandosi addosso al nulla. Si prendono anche quelli, nascosti.
+}
+for(const sel of ['#screen-scene', '#scena', '#board', '#sceltarif', '#schizzo', '#screen-refs', '#refs-lightbox', '#ref-panel', '#rifila']){
   document.body.appendChild(document.importNode(dom.querySelector(sel), true));
 }
 document.getElementById('screen-scene').classList.add('active');
@@ -35,9 +41,28 @@ scene.initScene();
 addEventListener('popstate', async ()=>{
   const sz = document.getElementById('schizzo');
   if(sz.classList.contains('open')){ (await import('/js/schizzo.js')).chiudiSchizzoUI(); return; }
+  if(document.getElementById('sceltarif').classList.contains('open')){ scene.chiudiSceltaUI(); return; }
   if(document.getElementById('board').classList.contains('open')){ scene.chiudiBoardUI(); return; }
   if(document.getElementById('scena').classList.contains('open')){ scene.chiudiScenaUI(); return; }
 });
+// L'ARCHIVIO FINTO da cui la scelta di un riferimento pesca. Nell'app arriva dal
+// listener realtime di refs.js; qui si scrive direttamente nella sua cache, che
+// e' lo stesso array (vedi getRefs).
+window.seminaRif = async (n)=>{
+  const refs = await import('/js/refs.js');
+  const arr = refs.getRefs(); arr.length = 0;
+  arr.push(...Array.from({length:n}, (_,i)=>{
+    const c = document.createElement('canvas');
+    c.width = 40; c.height = 30;
+    const x = c.getContext('2d');
+    x.fillStyle = ['#c05a3a','#2a6aa0','#3a8a5a','#8a5aa0'][i % 4];
+    x.fillRect(0,0,40,30);
+    return { id:'rif'+i, url:c.toDataURL('image/png'), folderId:'F1',
+             tags: i % 2 ? ['mani'] : ['citta'],
+             provenance:{ opera: i % 2 ? 'Akira' : 'Blame', pagina:i+1 } };
+  }));
+};
+
 window.__ready = true;
 </script>
 </body></html>

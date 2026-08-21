@@ -366,3 +366,45 @@ body.is-touch .board-chiudi{display:none}
   display:block;width:100%;aspect-ratio:4/3;object-fit:cover;
   border-radius:8px;background:#fffdf7;
 }
+
+/* ── SCEGLIERE UN RIFERIMENTO PER UN BEAT ──
+   Stesso foglio della scena, stessa barra scura, stesso gesto d'uscita: si apre
+   da dentro una scena e ci si torna. Sta a 225, cioe' sopra la board (220) e
+   sotto il foglio da disegno (230), perche' e' da qui che il disegno si apre. */
+.sceltarif{
+  position:fixed;left:0;right:0;top:var(--vv-top,0px);height:var(--vv-h,100%);
+  z-index:225;display:flex;flex-direction:column;background:var(--sand);
+  transform:translateY(100%);transition:transform .28s cubic-bezier(.32,.72,0,1);
+  pointer-events:none;
+}
+.sceltarif.open{transform:translateY(0);pointer-events:auto}
+.sceltarif-scroll{
+  flex:1;overflow-y:auto;background:var(--sand);
+  padding:12px 12px calc(20px + var(--safe-bot));
+}
+/* Tessere in proporzione da vignetta, come quelle dei beat e della board: si
+   sceglie guardando la forma che avra' nella card, non un quadrato. */
+.sceltarif-griglia{display:grid;gap:9px;grid-template-columns:repeat(2,1fr)}
+@media (min-width:620px){ .sceltarif-griglia{grid-template-columns:repeat(3,1fr)} }
+@media (min-width:900px){ .sceltarif-griglia{grid-template-columns:repeat(4,1fr)} }
+.sceltarif-tessera{
+  position:relative;aspect-ratio:4/3;overflow:hidden;cursor:pointer;padding:0;
+  border:1.5px solid var(--sand2);border-radius:10px;background:#fffdf7;
+  transition:border-color .15s,transform .1s;
+}
+.sceltarif-tessera:active{transform:scale(.97);border-color:var(--oro)}
+.sceltarif-tessera img{width:100%;height:100%;object-fit:cover;display:block}
+/* IL DISEGNO E' RIMASTO, ma non e' piu' la porta principale: e' la prima
+   tessera di questa griglia. Sul telefono e col mouse disegnare col dito non
+   serviva a niente — su iPad con la matita si'. Toglierlo del tutto avrebbe
+   buttato via l'unico caso in cui funziona bene; tenerlo davanti a tutto
+   costringeva a passare da li' anche chi voleva solo collegare un ritaglio. */
+.sceltarif-disegna{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+  border-style:dashed;border-color:var(--sand3);background:rgba(255,255,255,.55);
+  color:var(--ink3);font-family:'Nunito',sans-serif;font-size:11.5px;font-weight:700;
+}
+.sceltarif-vuoto{
+  grid-column:1 / -1;text-align:center;padding:34px 22px 10px;color:var(--ink3);
+}
+.sceltarif-vuoto p{font-size:13.5px;line-height:1.6;max-width:32ch;margin:0 auto}

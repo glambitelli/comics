@@ -464,6 +464,18 @@ module.exports = () => suite("Scene — un riquadro per volta, cento caratteri",
 
   await page.evaluate(()=> document.querySelector('#scena-beat .beat-nuovo [data-schizzo]').click());
   await page.waitForTimeout(400);
+  const scelta = await page.evaluate(()=>({
+    aperta: document.getElementById('sceltarif').classList.contains('open'),
+    disegna: !!document.querySelector('#sceltarif-griglia [data-disegna]'),
+    // "Togli" solo quando c'e' qualcosa da togliere.
+    togli: !document.getElementById('sceltarif-togli').hidden,
+  }));
+  ok('toccando la vignetta si apre l\'archivio', scelta.aperta, scelta);
+  ok('con dentro anche "Disegnalo"', scelta.disegna, scelta);
+  ok('e "Togli" spento, perche\' non c\'e\' niente da togliere', !scelta.togli, scelta);
+
+  await page.evaluate(()=> document.querySelector('#sceltarif-griglia [data-disegna]').click());
+  await page.waitForTimeout(400);
   const foglio = await page.evaluate(()=>{
     const f = document.getElementById('schizzo');
     return {
@@ -506,7 +518,17 @@ module.exports = () => suite("Scene — un riquadro per volta, cento caratteri",
   ok('e "annulla" si accende', tratto.annullaAcceso, tratto);
 
   await page.evaluate(()=> document.getElementById('schizzo-chiudi').click());
-  await page.waitForTimeout(600);
+  await page.waitForTimeout(700);
+  // Chiuso il foglio si torna alla scelta, che resta aperta: si vede la
+  // miniatura appena fatta e "Togli" che si e' acceso. Da li' si esce a mano.
+  const tornati = await page.evaluate(()=>({
+    scelta: document.getElementById('sceltarif').classList.contains('open'),
+    togli: !document.getElementById('sceltarif-togli').hidden,
+  }));
+  ok('chiuso il disegno si torna alla scelta', tornati.scelta, tornati);
+  ok('e adesso "Togli" c\'e\'', tornati.togli, tornati);
+  await page.evaluate(()=> document.getElementById('sceltarif-chiudi').click());
+  await page.waitForTimeout(400);
   const dopoDisegno = await page.evaluate(()=>{
     const b = Array.from(document.querySelectorAll('#scena-beat .beat'));
     const s = window.scene.scenaAperta();
@@ -525,6 +547,96 @@ module.exports = () => suite("Scene — un riquadro per volta, cento caratteri",
   ok('un beat con SOLO il disegno e\' un beat pieno', dopoDisegno.senzaTesto === 1, dopoDisegno);
   ok('e sotto e\' nata la card fantasma nuova', dopoDisegno.fantasmaInCoda, dopoDisegno);
   ok('nel riquadro compare la miniatura', dopoDisegno.miniatura, dopoDisegno);
+
+  sezione('e nella vignetta ci si collega un riferimento dell\'archivio');
+  // E' la cosa che serve davvero, ed e' la stessa che si fa coi progetti — un
+  // riferimento visivo attaccato a qualcosa da disegnare — solo dall'altro
+  // capo: li' si parte dall'immagine e si sceglie il progetto, qui si parte dal
+  // beat e si sceglie l'immagine.
+  await page.evaluate(()=> window.seminaRif(6));
+  await page.evaluate(()=> document.querySelector('#scena-beat .beat-nuovo [data-schizzo]').click());
+  await page.waitForTimeout(500);
+  const archivio = await page.evaluate(()=>({
+    tessere: document.querySelectorAll('#sceltarif-griglia [data-rif]').length,
+    // In proporzione da vignetta, come nella card e nella board: si sceglie
+    // guardando la forma che avra' una volta collegata.
+    forma: (()=>{
+      const r = document.querySelector('#sceltarif-griglia [data-rif]').getBoundingClientRect();
+      return +(r.width / r.height).toFixed(2);
+    })(),
+  }));
+  ok('l\'archivio compare tutto', archivio.tessere === 6, archivio);
+  ok('in tessere da vignetta', Math.abs(archivio.forma - 4/3) < 0.06, archivio);
+
+  // La ricerca: un archivio vero e' lungo, e scorrerlo per intero e' l'attrito
+  // che questa sezione evita ovunque.
+  await page.evaluate(()=>{
+    const c = document.getElementById('sceltarif-cerca');
+    c.value = 'mani';
+    c.dispatchEvent(new Event('input', {bubbles:true}));
+  });
+  await page.waitForTimeout(250);
+  const cercate = await page.evaluate(()=> document.querySelectorAll('#sceltarif-griglia [data-rif]').length);
+  ok('cercando si restringe', cercate === 3, cercate);
+  await page.evaluate(()=>{
+    const c = document.getElementById('sceltarif-cerca');
+    c.value = '';
+    c.dispatchEvent(new Event('input', {bubbles:true}));
+  });
+  await page.waitForTimeout(250);
+
+  const collegato = await page.evaluate(async ()=>{
+    document.querySelectorAll('#sceltarif-griglia [data-rif]')[2].click();
+    await new Promise(r=> setTimeout(r, 400));
+    const s = window.scene.scenaAperta();
+    const ultimo = s.beat[s.beat.length-1];
+    return {
+      chiusa: !document.getElementById('sceltarif').classList.contains('open'),
+      // Collegare dentro la card fantasma la promuove, come scriverci dentro.
+      beat: s.beat.length,
+      img: !!ultimo.img,
+      rif: ultimo.refId,
+      senzaTesto: !(ultimo.testo||'').trim(),
+      // Non ":last-of-type": in coda ci sono le sagome, che sono div come le
+      // card ma non sono .beat.
+      fantasmaInCoda: (()=>{
+        const b = document.querySelectorAll('#scena-beat .beat');
+        return b[b.length-1].classList.contains('beat-nuovo');
+      })(),
+    };
+  });
+  ok('scegliendo, la scelta si chiude', collegato.chiusa, collegato);
+  ok('la card fantasma diventa un beat', collegato.img, collegato);
+  ok('e si ricorda da quale riferimento arriva', collegato.rif === 'rif2', collegato);
+  ok('un beat di solo riferimento, senza una parola, e\' valido', collegato.senzaTesto, collegato);
+  ok('e sotto e\' nata la card fantasma nuova', collegato.fantasmaInCoda, collegato);
+
+  sezione('e si puo\' togliere quello che si e\' collegato');
+  await page.evaluate(()=>{
+    const b = Array.from(document.querySelectorAll('#scena-beat .beat[data-id]'));
+    b[b.length-1].querySelector('[data-schizzo]').click();
+  });
+  await page.waitForTimeout(500);
+  ok('riaprendo la vignetta piena, "Togli" c\'e\'',
+     await page.evaluate(()=> !document.getElementById('sceltarif-togli').hidden), null);
+  const tolto = await page.evaluate(async ()=>{
+    document.getElementById('sceltarif-togli').click();
+    await new Promise(r=> setTimeout(r, 400));
+    const s = window.scene.scenaAperta();
+    return {
+      conImg: s.beat.filter(b=> b.img).length,
+      chiusa: !document.getElementById('sceltarif').classList.contains('open'),
+    };
+  });
+  ok('e toglie davvero l\'immagine', tolto.conImg === 1, tolto);
+  ok('chiudendo la scelta', tolto.chiusa, tolto);
+  // Il beat rimasto senza immagine e senza testo se ne va alla prima uscita dal
+  // riquadro, come tutti i vuoti: la regola vale anche qui.
+  await page.evaluate(()=>{
+    const t = document.querySelector('#scena-beat .beat-nuovo textarea');
+    t.focus(); t.blur();
+  });
+  await page.waitForTimeout(200);
 
   sezione('e un beat di solo disegno non viene buttato via');
   // La potatura dei vuoti guarda il testo: senza questa regola, un beat

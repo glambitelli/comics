@@ -781,6 +781,37 @@ export async function connectDriveAndSync(){
 
 
 // ── LISTENER REALTIME ──
+// SOLO L'ASCOLTO DELLE IMMAGINI, senza il corredo di questa schermata. Serve
+// alle Scene: da li' si collega un riferimento a un beat, e per farlo bisogna
+// avere l'archivio in mano — ma non c'e' nessun motivo di svegliare anche
+// Google Drive, che startRefsListener fa perche' e' quello che serve entrando
+// in References. Chiedere l'accesso a Drive per scegliere una miniatura sarebbe
+// una porta che si apre da sola in mezzo a un'altra cosa.
+export function ascoltaRefs(){
+  if(_refsUnsub) return;
+  _refsUnsub = onSnapshot(collection(db, REFS_COL), snap=>{
+    _refs = snap.docs.map(d=>({id:d.id, ...d.data()}))
+      .sort((a,b)=>{
+        const ta=a.addedAt&&a.addedAt.toMillis?a.addedAt.toMillis():0;
+        const tb=b.addedAt&&b.addedAt.toMillis?b.addedAt.toMillis():0;
+        return tb-ta;
+      });
+    renderRefsScreen();
+    migrateLegacyBase64Refs();
+    // Se in questo momento è aperta la schermata Progetto, il suo pannello
+    // "Riferimenti visivi" pesca anche lui da _refs: senza questa riga
+    // resterebbe fermo alla foto scattata all'apertura del progetto finché
+    // non lo si riapriva da capo.
+    const projScreen = document.getElementById('screen-project');
+    if(projScreen && projScreen.classList.contains('active') && currentId){
+      renderProjectRefPanel(currentId);
+    }
+    // E se e' aperta la scelta di un riferimento per un beat, la griglia si
+    // rinfresca da sola invece di restare a quello che c'era all'apertura.
+    if(window.rinfrescaSceltaRif) window.rinfrescaSceltaRif();
+  }, err=>console.warn('refs listener error:', err));
+}
+
 export function startRefsListener(){
   if(!_driveAuthHooked){
     _driveAuthHooked = true;
@@ -802,26 +833,7 @@ export function startRefsListener(){
     // in References (vedi la nota in drive.js): adesso il collegamento parte
     // solo da un tocco, e finche' non arriva lo scaffale mostra "Ricollega".
   }
-  if(!_refsUnsub){
-    _refsUnsub = onSnapshot(collection(db, REFS_COL), snap=>{
-      _refs = snap.docs.map(d=>({id:d.id, ...d.data()}))
-        .sort((a,b)=>{
-          const ta=a.addedAt&&a.addedAt.toMillis?a.addedAt.toMillis():0;
-          const tb=b.addedAt&&b.addedAt.toMillis?b.addedAt.toMillis():0;
-          return tb-ta;
-        });
-      renderRefsScreen();
-      migrateLegacyBase64Refs();
-      // Se in questo momento è aperta la schermata Progetto, il suo pannello
-      // "Riferimenti visivi" pesca anche lui da _refs: senza questa riga
-      // resterebbe fermo alla foto scattata all'apertura del progetto finché
-      // non lo si riapriva da capo.
-      const projScreen = document.getElementById('screen-project');
-      if(projScreen && projScreen.classList.contains('active') && currentId){
-        renderProjectRefPanel(currentId);
-      }
-    }, err=>console.warn('refs listener error:', err));
-  }
+  ascoltaRefs();
   if(!_foldersUnsub){
     _foldersUnsub = onSnapshot(collection(db, FOLDERS_COL), snap=>{
       _folders = snap.docs.map(d=>({id:d.id, ...d.data()}));

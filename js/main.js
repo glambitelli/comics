@@ -512,6 +512,13 @@ window.addEventListener('popstate', e=>{
     const m = loadedMod('./schizzo.js');
     if(m){ m.chiudiSchizzoUI(); return; }
   }
+  // La scelta di un riferimento per un beat sta sopra la scena e sotto il foglio
+  // da disegno, che si apre proprio da li'.
+  const sr = document.getElementById('sceltarif');
+  if(sr && sr.classList.contains('open')){
+    const m = loadedMod('./scene.js');
+    if(m){ m.chiudiSceltaUI(); return; }
+  }
   // La board di una scena sta sopra la scena stessa: Indietro chiude prima
   // quella. loadedMod e non loadMod — se e' aperta il modulo c'e' per forza.
   const bd = document.getElementById('board');
