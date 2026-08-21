@@ -41,7 +41,12 @@ scene.initScene();
 addEventListener('popstate', async ()=>{
   const sz = document.getElementById('schizzo');
   if(sz.classList.contains('open')){ (await import('/js/schizzo.js')).chiudiSchizzoUI(); return; }
-  if(document.getElementById('sceltarif').classList.contains('open')){ scene.chiudiSceltaUI(); return; }
+  if(document.getElementById('sceltarif').classList.contains('open')){
+    // Come in main.js: dentro una cartella si risale di un livello, e solo dal
+    // secondo passo si chiude il foglio.
+    if(scene.dentroUnaCartella()){ scene.risaliScelta(); return; }
+    scene.chiudiSceltaUI(); return;
+  }
   if(document.getElementById('board').classList.contains('open')){ scene.chiudiBoardUI(); return; }
   if(document.getElementById('scena').classList.contains('open')){ scene.chiudiScenaUI(); return; }
 });
@@ -50,6 +55,9 @@ addEventListener('popstate', async ()=>{
 // e' lo stesso array (vedi getRefs).
 window.seminaRif = async (n)=>{
   const refs = await import('/js/refs.js');
+  const cart = refs.getFolders(); cart.length = 0;
+  cart.push({ id:'F1', category:'Artists', name:'OTOMO' },
+            { id:'F2', category:'Artists', name:'MOEBIUS' });
   const arr = refs.getRefs(); arr.length = 0;
   arr.push(...Array.from({length:n}, (_,i)=>{
     const c = document.createElement('canvas');
@@ -57,7 +65,7 @@ window.seminaRif = async (n)=>{
     const x = c.getContext('2d');
     x.fillStyle = ['#c05a3a','#2a6aa0','#3a8a5a','#8a5aa0'][i % 4];
     x.fillRect(0,0,40,30);
-    return { id:'rif'+i, url:c.toDataURL('image/png'), folderId:'F1',
+    return { id:'rif'+i, url:c.toDataURL('image/png'), folderId: i < 4 ? 'F1' : 'F2',
              tags: i % 2 ? ['mani'] : ['citta'],
              provenance:{ opera: i % 2 ? 'Akira' : 'Blame', pagina:i+1 } };
   }));

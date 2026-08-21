@@ -408,3 +408,78 @@ body.is-touch .board-chiudi{display:none}
   grid-column:1 / -1;text-align:center;padding:34px 22px 10px;color:var(--ink3);
 }
 .sceltarif-vuoto p{font-size:13.5px;line-height:1.6;max-width:32ch;margin:0 auto}
+
+/* ── LA PILA DEI RIFERIMENTI ──
+   Un'inquadratura si costruisce guardando piu' cose insieme — la posa da una
+   parte, la luce da un'altra — quindi la vignetta di un beat tiene piu' di
+   un'immagine. Impilate come fotografie sul tavolo: la prima scelta sopra, le
+   altre che sbucano dietro all'angolo. Oltre tre fogli non si distingue piu'
+   niente, e da li' in poi parla il numerino.
+   overflow VISIBILE, perche' i fogli dietro devono poter sbordare: restano
+   dentro l'imbottitura della card, che e' di 11px contro i 10 di sporgenza. */
+.beat-mini.pieno{overflow:visible;background:none;border:none}
+.pila-foglio{
+  position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+  border-radius:9px;border:1.5px solid var(--sand2);background:#fffdf7;
+  transform:translate(calc(var(--g) * 5px), calc(var(--g) * -5px))
+            rotate(calc(var(--g) * 2.2deg)) scale(calc(1 - var(--g) * 0.035));
+  box-shadow:0 1px 3px rgba(60,44,20,.14);
+}
+/* Il numero sull'angolo in basso a destra del foglio in cima: dice quante ce ne
+   sono in tutto, comprese quelle che non si vedono. */
+.pila-conta{
+  position:absolute;right:-5px;bottom:-5px;
+  font-family:'Nunito',sans-serif;font-size:10.5px;font-weight:800;
+  color:var(--oro);background:rgba(26,20,16,.86);
+  border-radius:9px;padding:2px 6px;line-height:1.25;
+}
+/* Nella board basta dire che ce n'e' altre: li' si guarda la sequenza, non la
+   pila. */
+.board-piu{
+  position:absolute;right:5px;bottom:5px;
+  font-family:'Nunito',sans-serif;font-size:10px;font-weight:800;
+  color:var(--oro);background:rgba(23,19,16,.7);border-radius:5px;padding:1px 5px;
+}
+
+/* ── LE CARTELLE DELL'ARCHIVIO ──
+   Si entra da qui e non da una parete di miniature in ordine di data: le
+   cartelle sono gia' il modo in cui l'archivio e' organizzato — un artista, uno
+   studio — e cercare la posa che si ha in mente scorrendo tutto e' esattamente
+   l'attrito che questa sezione evita ovunque.
+   Un mosaico di quattro invece di un nome e basta: una cartella di riferimenti
+   si riconosce da cosa c'e' dentro. */
+.sceltarif-cartella{
+  position:relative;aspect-ratio:4/3;overflow:hidden;cursor:pointer;padding:0;
+  border:1.5px solid var(--sand2);border-radius:10px;background:#fffdf7;
+  display:flex;flex-direction:column;transition:border-color .15s,transform .1s;
+}
+.sceltarif-cartella:active{transform:scale(.97);border-color:var(--oro)}
+.sceltarif-mosaico{
+  flex:1;min-height:0;display:grid;gap:1px;
+  grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;background:var(--sand2);
+}
+.sceltarif-mosaico img{width:100%;height:100%;object-fit:cover;display:block}
+.sceltarif-nome{
+  flex-shrink:0;padding:5px 8px;text-align:left;
+  font-family:'Nunito',sans-serif;font-size:11.5px;font-weight:700;color:var(--ink);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:var(--white);
+}
+.sceltarif-quante{
+  position:absolute;top:5px;right:6px;
+  font-family:'Nunito',sans-serif;font-size:10px;font-weight:800;
+  color:var(--oro);background:rgba(26,20,16,.72);border-radius:5px;padding:1px 5px;
+}
+/* Presa: un velo d'oro e una spunta. Toccandola di nuovo si toglie — stesso
+   gesto nei due sensi, e nessun secondo posto dove andare a sganciarla. */
+.sceltarif-tessera.presa{border-color:var(--oro);border-width:2.5px}
+.sceltarif-segno{
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  background:rgba(200,152,48,.28);color:#fff;font-size:22px;font-weight:800;
+  text-shadow:0 1px 4px rgba(0,0,0,.4);
+}
+.sceltarif-dove{
+  flex-shrink:0;max-width:38%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  font-family:'Nunito',sans-serif;font-size:11px;font-weight:700;
+  letter-spacing:.09em;text-transform:uppercase;color:var(--oro);opacity:.75;
+}
+.sceltarif-dove:empty{display:none}

@@ -80,7 +80,34 @@ function genId(){
 // l'unico posto in cui si decide se un beat esiste: la usano la potatura dei
 // vuoti, la promozione della card fantasma e la pulizia degli scarti.
 export function beatPieno(b){
-  return !!(b && ((b.testo||'').trim().length || b.img));
+  return !!(b && ((b.testo||'').trim().length || rifiDi(b).length));
+}
+
+// I RIFERIMENTI DI UN BEAT SONO UNA PILA, non uno solo. Un'inquadratura si
+// costruisce guardando piu' cose insieme — la posa da una parte, la luce da
+// un'altra, l'ambiente da una terza — e tenerne una sola voleva dire scegliere
+// quale buttare.
+// Le scene scritte prima avevano un campo `img` singolo: si leggono come una
+// pila di uno, senza toccare niente in archivio. La conversione avviene da sola
+// alla prima modifica del beat.
+export function rifiDi(b){
+  if(b && Array.isArray(b.rifs)) return b.rifs;
+  if(b && b.img) return [{ url: b.img, refId: b.refId || null }];
+  return [];
+}
+// Quante ne mostra la pila prima di limitarsi a contarle: oltre tre fogli
+// sovrapposti non si distingue piu' niente, si vede solo un pasticcio.
+const PILA_MAX = 3;
+function pilaHTML(rifi){
+  if(!rifi.length) return '';
+  // Si dipingono dal fondo verso l'alto, cosi' il PRIMO riferimento resta
+  // quello sopra: e' quello che si e' scelto per primo, ed e' quello che di
+  // solito comanda l'inquadratura.
+  const visti = rifi.slice(0, PILA_MAX);
+  const fogli = visti.map((r,i)=>
+    `<img class="pila-foglio" style="--g:${visti.length-1-i}" src="${esc(cldResize(r.url, 320))}" alt=""/>`
+  ).reverse().join('');
+  return fogli + (rifi.length > 1 ? `<span class="pila-conta">${rifi.length}</span>` : '');
 }
 
 export function titoloDi(scena){
@@ -199,9 +226,10 @@ export function renderScene(){
     // basta — che e' un beat a tutti gli effetti — si mostra quello: la scena si
     // presenta comunque col suo contenuto, che e' la regola, e non con un
     // "1 beat" che non dice niente di cosa c'e' dentro.
+    const foto0 = rifiDi(b0)[0];
     const anteprima = primo
       ? `<span>${esc(primo)}</span>`
-      : (b0 && b0.img ? `<img class="scene-card-img" src="${esc(cldResize(b0.img, 160))}" alt=""/>` : '');
+      : (foto0 ? `<img class="scene-card-img" src="${esc(cldResize(foto0.url, 160))}" alt=""/>` : '');
     return `<article class="scene-card" data-id="${esc(scena.id)}">
       <div class="scene-card-riga">
         <div class="scene-card-testo">
@@ -240,13 +268,11 @@ export function apriScena(id){
   // Come il lettore degli albi: il foglio si registra nella cronologia, cosi'
   // il tasto Indietro lo chiude invece di uscire dalla schermata.
   try{ if(!history.state || history.state.view !== 'scena') history.pushState({view:'scena', id}, ''); }catch(e){}
-  // Il cursore va da solo nel primo riquadro vuoto: aperta la scena si scrive,
-  // non si cerca dove scrivere. Dopo l'animazione, se no la tastiera si alza
-  // mentre il foglio sta ancora salendo e il salto si vede tutto.
-  setTimeout(()=>{
-    const vuoto = document.querySelector('#scena-beat .beat-nuovo textarea');
-    if(vuoto) vuoto.focus();
-  }, 320);
+  // NIENTE TASTIERA ALL'APERTURA. Il cursore ci andava da solo, nel primo
+  // riquadro vuoto, col ragionamento che aperta la scena si scrive. Sbagliato
+  // per due motivi: aprendo una scena che esiste gia' si vuole prima GUARDARLA,
+  // e la tastiera che sale si mangia meta' schermo proprio mentre il foglio sta
+  // ancora salendo. Chi vuole scrivere tocca il riquadro, che e' li'.
 }
 
 export function chiudiScenaUI(){
@@ -289,13 +315,14 @@ export function chiudiScena(){
 // E la matita e' sparita: la miniatura STESSA e' il punto d'ingresso al
 // disegno. Un bersaglio grande mezza card non ha bisogno di un'icona che spieghi
 // che si puo' toccare.
-function riquadroHTML(n, id, testo, nuovo, img){
+function riquadroHTML(n, id, testo, nuovo, rifi){
   const l = (testo||'').length;
+  rifi = rifi || [];
   return `<div class="beat ${nuovo ? 'beat-nuovo' : ''}" ${id ? `data-id="${esc(id)}"` : ''}>
     <div class="beat-riga">
-      <button class="beat-mini ${img ? 'pieno' : ''}" data-schizzo type="button"
-        aria-label="${img ? 'Cambia l\'immagine del beat ' + n : 'Collega un riferimento al beat ' + n}">${
-        img ? `<img src="${esc(cldResize(img, 320))}" alt=""/>` : '' }</button>
+      <button class="beat-mini ${rifi.length ? 'pieno' : ''}" data-schizzo type="button"
+        aria-label="${rifi.length ? 'Riferimenti del beat ' + n : 'Collega un riferimento al beat ' + n}">${
+        pilaHTML(rifi)}</button>
       <div class="beat-corpo">
         <span class="beat-n">${n}</span>
         <textarea rows="1" maxlength="${MAX_BEAT}" placeholder="Cosa si vede?"
@@ -317,7 +344,7 @@ export function renderBeat(){
   const cont = document.getElementById('scena-beat');
   const scena = scenaAperta();
   if(!cont || !scena) return;
-  cont.innerHTML = scena.beat.map((b,i)=> riquadroHTML(i+1, b.id, b.testo, false, b.img)).join('')
+  cont.innerHTML = scena.beat.map((b,i)=> riquadroHTML(i+1, b.id, b.testo, false, rifiDi(b))).join('')
     + riquadroHTML(scena.beat.length + 1, null, '', true, null)
     + SAGOME_HTML;
   cont.querySelectorAll('textarea').forEach(cresci);
@@ -361,7 +388,7 @@ function promuovi(box, dati){
   const scena = scenaAperta();
   if(!scena) return null;
   const beat = { id: genId(), testo: dati.testo || '',
-    ...(dati.img ? { img: dati.img } : {}), ...(dati.refId ? { refId: dati.refId } : {}) };
+    ...(dati.rifs && dati.rifs.length ? { rifs: dati.rifs } : {}) };
   scena.beat = scena.beat.concat([beat]);
   scena.updatedAt = Date.now();
   box.classList.remove('beat-nuovo');
@@ -511,25 +538,35 @@ function zittisciBeat(id){
 
 // ── COSA C'E' NELLA VIGNETTA ────────────────────────────────────────────────
 //
-// Toccando la vignetta di un beat si apre l'archivio: si sceglie un frammento o
-// una tavola gia' salvata e la si attacca li'. E' la stessa cosa che si fa coi
-// progetti — un riferimento visivo collegato a una cosa da disegnare — solo
+// Toccando la vignetta di un beat si apre l'archivio: si scelgono i frammenti o
+// le tavole che servono e si attaccano li'. E' la stessa cosa che si fa coi
+// progetti — riferimenti visivi collegati a qualcosa da disegnare — solo
 // dall'altro capo: li' si parte dall'immagine e si sceglie il progetto, qui si
-// parte dal beat e si sceglie l'immagine.
+// parte dal beat e si scelgono le immagini.
 //
-// E IL DISEGNO? E' rimasto, ma non e' piu' la porta: e' la prima tessera della
-// griglia. Col dito su un telefono, o col mouse, disegnare non serviva a niente
-// — su un iPad con la matita si'. Toglierlo del tutto avrebbe buttato via
-// l'unico caso in cui funziona bene; lasciarlo davanti a tutto costringeva a
-// passare di li' anche chi voleva solo collegare un ritaglio che ha gia'.
+// SI NAVIGA PER CARTELLE, non si guarda tutto l'archivio in fila. La prima
+// versione buttava a schermo ogni frammento in ordine di data: con un archivio
+// vero e' una parete di miniature senza un ordine riconoscibile, e cercare la
+// posa che si ha in mente diventa scorrere. Le cartelle sono gia' il modo in cui
+// l'archivio e' organizzato — un artista, uno studio — quindi si entra da li'.
+// La ricerca invece taglia trasversale: quando si scrive, le cartelle spariscono
+// e si vede tutto quello che corrisponde, ovunque stia.
+//
+// E IL DISEGNO? E' rimasto, ma non e' piu' la porta: e' la prima tessera. Col
+// dito su un telefono, o col mouse, disegnare non serviva a niente — su un iPad
+// con la matita si'. Toglierlo del tutto avrebbe buttato via l'unico caso in cui
+// funziona bene; lasciarlo davanti a tutto costringeva a passare di li' anche
+// chi voleva solo collegare un ritaglio che ha gia'.
 let _boxScelta = null;      // il beat su cui si sta scegliendo
 let _cercaRif = '';
+let _cartellaRif = null;    // la cartella aperta, o null per l'elenco
 
 async function apriScelta(box){
   const scena = scenaAperta();
   if(!scena) return;
   _boxScelta = box;
   _cercaRif = '';
+  _cartellaRif = null;
   const campo = document.getElementById('sceltarif-cerca');
   if(campo) campo.value = '';
   const foglio = document.getElementById('sceltarif');
@@ -551,99 +588,211 @@ export function sceltaAperta(){
   return !!(f && f.classList.contains('open'));
 }
 
+// Il beat su cui si sta scegliendo, e la sua pila.
+function beatDiScelta(){
+  const scena = scenaAperta();
+  if(!scena || !_boxScelta) return null;
+  return scena.beat.find(x=> x.id === _boxScelta.dataset.id) || null;
+}
+
+function tesseraHTML(x, presa){
+  return `<button class="sceltarif-tessera ${presa ? 'presa' : ''}" data-rif="${esc(x.id)}" type="button"
+      aria-pressed="${presa ? 'true' : 'false'}">
+      <img src="${esc(cldResize(x.url, 320))}" loading="lazy" alt=""/>
+      ${presa ? '<span class="sceltarif-segno">✓</span>' : ''}
+    </button>`;
+}
+
 async function disegnaScelta(){
   const griglia = document.getElementById('sceltarif-griglia');
   const togli = document.getElementById('sceltarif-togli');
+  const dove = document.getElementById('sceltarif-dove');
   if(!griglia || !_boxScelta) return;
-  const scena = scenaAperta();
-  const b = scena && scena.beat.find(x=> x.id === _boxScelta.dataset.id);
-  // "Togli" solo quando c'e' qualcosa da togliere: un pulsante acceso che non fa
-  // niente si prova, non funziona, e da quel momento non ci si fida piu'.
-  if(togli) togli.hidden = !(b && b.img);
+  const b = beatDiScelta();
+  const presi = new Set(rifiDi(b).map(r=> r.refId).filter(Boolean));
+  // "Togli tutto" solo quando c'e' qualcosa da togliere: un pulsante acceso che
+  // non fa niente si prova, non funziona, e da quel momento non ci si fida piu'.
+  if(togli) togli.hidden = !rifiDi(b).length;
 
   const r = await import('./refs.js');
-  const q = _cercaRif.trim().toLowerCase();
   const tutte = r.refsCache().filter(x=> x && x.url);
-  const lista = q
-    ? tutte.filter(x=> ((x.tags||[]).join(' ') + ' ' + (x.provenance && x.provenance.opera || '')).toLowerCase().includes(q))
-    : tutte;
+  const q = _cercaRif.trim().toLowerCase();
 
+  // ── cercando: tutto l'archivio in fila, ovunque stia ──
+  if(q){
+    const trovate = tutte.filter(x=>
+      ((x.tags||[]).join(' ') + ' ' + (x.provenance && x.provenance.opera || '')).toLowerCase().includes(q));
+    if(dove) dove.textContent = trovate.length ? '' : '';
+    griglia.innerHTML = trovate.length
+      ? trovate.map(x=> tesseraHTML(x, presi.has(x.id))).join('')
+      : `<div class="sceltarif-vuoto"><p>Nessun riferimento con questo nome.</p></div>`;
+    return;
+  }
+
+  // ── dentro una cartella: le sue immagini ──
+  if(_cartellaRif){
+    const dentro = tutte.filter(x=> (x.folderId || '__sciolte') === _cartellaRif);
+    if(dove) dove.textContent = nomeCartella(_cartellaRif, r);
+    griglia.innerHTML = dentro.length
+      ? dentro.map(x=> tesseraHTML(x, presi.has(x.id))).join('')
+      : `<div class="sceltarif-vuoto"><p>Questa cartella e\' vuota.</p></div>`;
+    return;
+  }
+
+  // ── l'elenco delle cartelle, con un assaggio di cosa c'e' dentro ──
+  if(dove) dove.textContent = '';
+  const perCartella = new Map();
+  for(const x of tutte){
+    const k = x.folderId || '__sciolte';
+    if(!perCartella.has(k)) perCartella.set(k, []);
+    perCartella.get(k).push(x);
+  }
   const disegna = `<button class="sceltarif-tessera sceltarif-disegna" data-disegna type="button">
       <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4l10-10a2.8 2.8 0 0 0-4-4L4 16Z"/><path d="M13.5 6.5 17.5 10.5"/></svg>
       <span>Disegnalo</span>
     </button>`;
-  griglia.innerHTML = disegna + (lista.length
-    ? lista.map(x=> `<button class="sceltarif-tessera" data-rif="${esc(x.id)}" type="button">
-        <img src="${esc(cldResize(x.url, 320))}" loading="lazy" alt=""/>
-      </button>`).join('')
-    : `<div class="sceltarif-vuoto"><p>${q
-        ? 'Nessun riferimento con questo nome.'
-        : 'Nell\'archivio non c\'e\' ancora niente da collegare.'}</p></div>`);
+  if(!perCartella.size){
+    griglia.innerHTML = disegna
+      + `<div class="sceltarif-vuoto"><p>Nell\'archivio non c\'e\' ancora niente da collegare.</p></div>`;
+    return;
+  }
+  // Un mosaico di quattro invece di un nome e basta: una cartella di riferimenti
+  // si riconosce da cosa c'e' dentro, non da come si chiama.
+  const cartelle = [...perCartella.entries()]
+    .sort((a,c)=> nomeCartella(a[0], r).localeCompare(nomeCartella(c[0], r), 'it', {sensitivity:'base'}))
+    .map(([k, foto])=> `<button class="sceltarif-cartella" data-cartella="${esc(k)}" type="button">
+      <span class="sceltarif-mosaico">${foto.slice(0,4).map(x=>
+        `<img src="${esc(cldResize(x.url, 160))}" loading="lazy" alt=""/>`).join('')}</span>
+      <span class="sceltarif-nome">${esc(nomeCartella(k, r))}</span>
+      <span class="sceltarif-quante">${foto.length}</span>
+    </button>`).join('');
+  griglia.innerHTML = disegna + cartelle;
 }
 
-// Attacca (o stacca) quello che sta nella vignetta. Si tocca SOLO il quadratino
-// della card: ridisegnare i riquadri porterebbe via il cursore a chi stava
-// scrivendo nel beat accanto.
-function metti(box, url, refId){
+function nomeCartella(id, r){
+  if(id === '__sciolte') return 'Senza cartella';
+  const f = r.getFolders().find(x=> x.id === id);
+  return f ? (f.name || 'Senza nome') : 'Senza cartella';
+}
+
+// Dentro una cartella e fuori: si passa dalla cronologia, cosi' il tasto
+// Indietro del telefono e la freccia a schermo risalgono allo stesso modo.
+function entraCartella(id){
+  _cartellaRif = id;
+  try{ history.pushState({view:'sceltarif-cartella'}, ''); }catch(e){}
+  disegnaScelta();
+}
+export function risaliScelta(){
+  _cartellaRif = null;
+  disegnaScelta();
+}
+
+// Accende o spegne un riferimento sulla pila del beat. Toccarne uno gia' preso
+// lo toglie: e' lo stesso gesto in tutte e due i sensi, e non c'e' un secondo
+// posto in cui andare a sganciarlo.
+function tocca(refId, url){
   const scena = scenaAperta();
-  if(!scena || !box) return;
-  const nuovo = box.classList.contains('beat-nuovo');
+  if(!scena || !_boxScelta) return;
+  const nuovo = _boxScelta.classList.contains('beat-nuovo');
   if(nuovo){
-    if(!url) return;
-    // Collegare un riferimento dentro la card fantasma la promuove esattamente
-    // come scriverci dentro: e' un beat a tutti gli effetti.
-    promuovi(box, { img: url, refId });
+    // Collegare dentro la card fantasma la promuove esattamente come scriverci
+    // dentro: e' un beat a tutti gli effetti.
+    promuovi(_boxScelta, { rifs: [{ url, refId: refId || null }] });
   } else {
-    const b = scena.beat.find(x=> x.id === box.dataset.id);
+    const b = beatDiScelta();
     if(!b) return;
-    if(url){ b.img = url; b.refId = refId || null; }
-    else { delete b.img; delete b.refId; }
+    const pila = rifiDi(b).slice();
+    const i = refId ? pila.findIndex(x=> x.refId === refId) : -1;
+    if(i >= 0) pila.splice(i, 1);
+    else pila.push({ url, refId: refId || null });
+    b.rifs = pila;
+    // La conversione dal vecchio campo singolo avviene qui, alla prima modifica.
+    delete b.img; delete b.refId;
   }
   scena.updatedAt = Date.now();
-  const q = box.querySelector('[data-schizzo]');
-  if(q){
-    q.classList.toggle('pieno', !!url);
-    q.innerHTML = url ? `<img src="${esc(cldResize(url, 320))}" alt=""/>` : '';
-    q.setAttribute('aria-label', url ? 'Cambia l\'immagine del beat' : 'Collega un riferimento');
-  }
+  aggiornaPila();
+  haptic('tap');
+  salvaSubito(scena.id);
+  // Si ritocca SOLO la tessera toccata, non tutta la griglia. Ridisegnarla ad
+  // ogni scelta faceva due danni: dentro una cartella lunga lo scorrimento
+  // tornava in cima — cioe' scegliendo la quinta immagine si perdeva il posto —
+  // e le tessere venivano ricreate sotto il dito, quindi due tocchi rapidi di
+  // fila arrivavano su elementi diversi e il secondo si perdeva.
+  segnaTessere();
+}
+
+// Aggiorna le spunte e il pulsante "Togli tutto" senza rifare la griglia.
+function segnaTessere(){
+  const griglia = document.getElementById('sceltarif-griglia');
+  const togli = document.getElementById('sceltarif-togli');
+  if(!griglia) return;
+  const presi = new Set(rifiDi(beatDiScelta()).map(r=> r.refId).filter(Boolean));
+  griglia.querySelectorAll('[data-rif]').forEach(el=>{
+    const presa = presi.has(el.dataset.rif);
+    el.classList.toggle('presa', presa);
+    el.setAttribute('aria-pressed', presa ? 'true' : 'false');
+    const segno = el.querySelector('.sceltarif-segno');
+    if(presa && !segno) el.insertAdjacentHTML('beforeend', '<span class="sceltarif-segno">✓</span>');
+    if(!presa && segno) segno.remove();
+  });
+  if(togli) togli.hidden = !rifiDi(beatDiScelta()).length;
+}
+
+function svuotaPila(){
+  const scena = scenaAperta();
+  const b = beatDiScelta();
+  if(!scena || !b) return;
+  b.rifs = [];
+  delete b.img; delete b.refId;
+  scena.updatedAt = Date.now();
+  aggiornaPila();
   haptic('done');
   salvaSubito(scena.id);
-  // Se la scelta e' ancora aperta — succede tornando dal foglio da disegno — la
-  // griglia si rinfresca, cosi' "Togli" compare senza dover riaprire tutto.
-  if(sceltaAperta()) disegnaScelta();
+  segnaTessere();
+}
+
+// Si ridipinge SOLO la vignetta della card: rifare i riquadri porterebbe via il
+// cursore a chi stava scrivendo nel beat accanto.
+function aggiornaPila(){
+  const b = beatDiScelta();
+  const q = _boxScelta && _boxScelta.querySelector('[data-schizzo]');
+  if(!q) return;
+  const rifi = rifiDi(b);
+  q.classList.toggle('pieno', !!rifi.length);
+  q.innerHTML = pilaHTML(rifi);
+  q.setAttribute('aria-label', rifi.length ? 'Riferimenti del beat' : 'Collega un riferimento');
 }
 
 export function chiudiSceltaUI(){
   const foglio = document.getElementById('sceltarif');
   if(foglio) foglio.classList.remove('open');
   _boxScelta = null;
+  _cartellaRif = null;
 }
 export function chiudiScelta(){
   const foglio = document.getElementById('sceltarif');
-  if(foglio && foglio.classList.contains('open') && history.state && history.state.view === 'sceltarif'){
+  if(foglio && foglio.classList.contains('open') && history.state
+     && /^sceltarif/.test(history.state.view || '')){
     history.back();
     return;
   }
   chiudiSceltaUI();
 }
+export function dentroUnaCartella(){ return !!_cartellaRif; }
 
 // ── DISEGNARE UN BEAT ───────────────────────────────────────────────────────
 // Il foglio vive in schizzo.js e si carica solo se lo si apre davvero: chi non
 // disegna mai non se lo porta dietro. Il PNG finisce su Cloudinary come tutte le
 // altre immagini dell'app, e nel beat resta l'indirizzo — dentro il documento
 // starebbero stretti, quindici disegni sfiorerebbero il limite di Firestore.
-async function disegnaBeat(box){
-  const scena = scenaAperta();
-  if(!scena || !box) return;
-  const b = scena.beat.find(x=> x.id === box.dataset.id);
+// Un disegno si AGGIUNGE alla pila come un riferimento qualsiasi: non ha un
+// refId perche' non sta in archivio, sta solo qui.
+async function disegnaBeat(){
   const m = await import('./schizzo.js');
   m.apriSchizzo({
-    // Si riapre quello che c'e' solo se e' un disegno: un riferimento collegato
-    // arriva dall'archivio e non si scarabocchia sopra.
-    url: b && !b.refId ? b.img : null,
     onSalva: async (blob)=>{
       const { url } = await uploadToCloudinary(blob, 'schizzo.png');
-      metti(box, url, null);
+      tocca(null, url);
     },
   });
 }
@@ -694,13 +843,14 @@ export function apriBoard(){
       // disegnare — e la riga sotto e' alta due righe fisse, troncata con i
       // puntini. Cosi' la griglia non ha buchi e la scena, da qui, si guarda
       // come si guarda una tavola.
-      ? scena.beat.map((b,i)=> `<div class="board-tessera">
+      ? scena.beat.map((b,i)=>{ const rr = rifiDi(b); return `<div class="board-tessera">
           <div class="board-vignetta">
-            ${b.img ? `<img src="${esc(cldResize(b.img, 400))}" alt=""/>` : ''}
+            ${rr[0] ? `<img src="${esc(cldResize(rr[0].url, 400))}" alt=""/>` : ''}
             <span class="board-n">${i+1}</span>
+            ${rr.length > 1 ? `<span class="board-piu">+${rr.length-1}</span>` : ''}
           </div>
           <p>${esc((b.testo||'').trim())}</p>
-        </div>`).join('')
+        </div>`; }).join('')
       : `<div class="scene-vuoto"><p>Questa scena non ha ancora beat.</p></div>`;
   }
   board.classList.add('open');
@@ -818,29 +968,31 @@ export function initScene(){
 
   const griglia = document.getElementById('sceltarif-griglia');
   griglia.addEventListener('click', e=>{
-    const box = _boxScelta;
     if(e.target.closest('[data-disegna]')){
       // Il foglio da disegno si apre SOPRA questo, e chiudendosi torna qui:
       // per questo la scelta non si chiude adesso.
-      disegnaBeat(box);
+      disegnaBeat();
       return;
     }
+    const cart = e.target.closest('[data-cartella]');
+    if(cart){ entraCartella(cart.dataset.cartella); return; }
     const t = e.target.closest('[data-rif]');
     if(!t) return;
+    // Il foglio NON si chiude scegliendo: di riferimenti se ne attaccano
+    // quanti se ne vuole, e chiudere al primo obbligherebbe a riaprire per il
+    // secondo. Si esce quando si e' finito, con la freccia.
     import('./refs.js').then(r=>{
       const rif = r.refsCache().find(x=> x.id === t.dataset.rif);
-      if(rif) metti(box, rif.url, rif.id);
-      chiudiScelta();
+      if(rif) tocca(rif.id, rif.url);
     });
   });
   document.getElementById('sceltarif-cerca').addEventListener('input', e=>{
     _cercaRif = e.target.value;
     disegnaScelta();
   });
-  document.getElementById('sceltarif-togli').addEventListener('click', ()=>{
-    metti(_boxScelta, null, null);
-    chiudiScelta();
-  });
+  document.getElementById('sceltarif-togli').addEventListener('click', ()=> svuotaPila());
+  // La freccia risale di un passo: dentro una cartella torna all'elenco, e
+  // dall'elenco chiude. Passa dalla cronologia, come il tasto del telefono.
   document.getElementById('sceltarif-chiudi').addEventListener('click', ()=> chiudiScelta());
   document.getElementById('scena-chiudi').addEventListener('click', ()=> chiudiScena());
   document.getElementById('scena-board').addEventListener('click', ()=> apriBoard());

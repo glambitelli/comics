@@ -67,6 +67,15 @@ module.exports = () => suite("Scene — un riquadro per volta, cento caratteri",
   ok('il foglio della scena si apre nello stesso tocco', aperta.foglio, aperta);
   ok('il titolo non e\' una domanda da sbrigare: e\' vuoto', aperta.titolo === '', aperta);
   ok('e dice come si chiamera\' se non lo scrivi', /senza titolo/i.test(aperta.invito), aperta);
+  // NIENTE TASTIERA ALL'APERTURA. Il cursore ci andava da solo, nel primo
+  // riquadro vuoto: aprendo una scena che esiste gia' si vuole prima
+  // GUARDARLA, e la tastiera che sale si mangia meta' schermo proprio mentre il
+  // foglio sta ancora salendo.
+  const fuocoIniziale = await page.evaluate(()=>{
+    const a = document.activeElement;
+    return { dentro: !!(a && a.closest && a.closest('#scena')), tag: a ? a.tagName : null };
+  });
+  ok('nessun campo prende il cursore da solo', !fuocoIniziale.dentro, fuocoIniziale);
   let r = await riquadri();
   ok('c\'e\' UN SOLO riquadro', r.length === 1, r);
   ok('ed e\' quello vuoto in coda', r[0].nuovo === true && r[0].testo === '', r);
@@ -306,6 +315,11 @@ module.exports = () => suite("Scene — un riquadro per volta, cento caratteri",
   await apriPerTitolo('La finestra sul cortile');
   ok('la scena si riapre toccandola in elenco',
      await page.evaluate(()=> document.getElementById('scena').classList.contains('open')), null);
+  ok('e nemmeno riaprendone una che esiste gia\' si alza la tastiera',
+     await page.evaluate(()=>{
+       const a = document.activeElement;
+       return !(a && a.closest && a.closest('#scena'));
+     }), null);
   const riaperta = await riquadri();
   ok('e ritrova i suoi beat, piu\' il vuoto in coda',
      riaperta.length === 3 && /ladro entra/.test(riaperta[0].testo), riaperta);
@@ -536,8 +550,8 @@ module.exports = () => suite("Scene — un riquadro per volta, cento caratteri",
       chiuso: !document.getElementById('schizzo').classList.contains('open'),
       // La card fantasma su cui si e' disegnato e' diventata un beat vero, e
       // sotto ne e' nata un'altra: esattamente come scrivendoci dentro.
-      conDisegno: s.beat.filter(x=> x.img).length,
-      senzaTesto: s.beat.filter(x=> x.img && !(x.testo||'').trim()).length,
+      conDisegno: s.beat.filter(x=> window.scene.rifiDi(x).length).length,
+      senzaTesto: s.beat.filter(x=> window.scene.rifiDi(x).length && !(x.testo||'').trim()).length,
       fantasmaInCoda: b[b.length-1].classList.contains('beat-nuovo'),
       miniatura: !!document.querySelector('#scena-beat .beat-mini.pieno img'),
     };
@@ -556,8 +570,35 @@ module.exports = () => suite("Scene — un riquadro per volta, cento caratteri",
   await page.evaluate(()=> window.seminaRif(6));
   await page.evaluate(()=> document.querySelector('#scena-beat .beat-nuovo [data-schizzo]').click());
   await page.waitForTimeout(500);
+
+  // SI ENTRA DALLE CARTELLE, non da una parete di miniature in ordine di data:
+  // le cartelle sono gia' il modo in cui l'archivio e' organizzato, e cercare
+  // scorrendo tutto e' l'attrito che questa sezione evita ovunque.
+  const cartelle = await page.evaluate(()=>({
+    quante: document.querySelectorAll('#sceltarif-griglia [data-cartella]').length,
+    // Nessuna immagine sciolta a schermo: prima si sceglie dove guardare.
+    immaginiSubito: document.querySelectorAll('#sceltarif-griglia [data-rif]').length,
+    nomi: Array.from(document.querySelectorAll('.sceltarif-nome')).map(x=> x.textContent),
+    // Un mosaico di quattro invece di un nome e basta: una cartella di
+    // riferimenti si riconosce da cosa c'e' dentro.
+    conMosaico: Array.from(document.querySelectorAll('[data-cartella]'))
+      .every(x=> x.querySelectorAll('.sceltarif-mosaico img').length > 0),
+    quanteDentro: Array.from(document.querySelectorAll('.sceltarif-quante')).map(x=> x.textContent),
+  }));
+  ok('si aprono le cartelle, non i frammenti', cartelle.quante === 2 && cartelle.immaginiSubito === 0, cartelle);
+  ok('con i nomi dell\'archivio', cartelle.nomi.sort().join(',') === 'MOEBIUS,OTOMO', cartelle);
+  ok('e un assaggio di cosa c\'e\' dentro', cartelle.conMosaico, cartelle);
+  ok('e quante ce ne sono', cartelle.quanteDentro.sort().join(',') === '2,4', cartelle);
+
+  await page.evaluate(()=>{
+    const c = Array.from(document.querySelectorAll('[data-cartella]'))
+      .find(x=> /OTOMO/.test(x.textContent));
+    c.click();
+  });
+  await page.waitForTimeout(300);
   const archivio = await page.evaluate(()=>({
     tessere: document.querySelectorAll('#sceltarif-griglia [data-rif]').length,
+    dove: (document.getElementById('sceltarif-dove')||{}).textContent,
     // In proporzione da vignetta, come nella card e nella board: si sceglie
     // guardando la forma che avra' una volta collegata.
     forma: (()=>{
@@ -565,19 +606,26 @@ module.exports = () => suite("Scene — un riquadro per volta, cento caratteri",
       return +(r.width / r.height).toFixed(2);
     })(),
   }));
-  ok('l\'archivio compare tutto', archivio.tessere === 6, archivio);
+  ok('entrando si vedono le sue immagini', archivio.tessere === 4, archivio);
+  ok('e la barra dice dove si e\'', /OTOMO/.test(archivio.dove||''), archivio);
   ok('in tessere da vignetta', Math.abs(archivio.forma - 4/3) < 0.06, archivio);
 
-  // La ricerca: un archivio vero e' lungo, e scorrerlo per intero e' l'attrito
-  // che questa sezione evita ovunque.
+  sezione('la ricerca invece taglia trasversale');
+  // Quando si cerca le cartelle spariscono: si vede tutto quello che
+  // corrisponde, ovunque stia.
+
   await page.evaluate(()=>{
     const c = document.getElementById('sceltarif-cerca');
     c.value = 'mani';
     c.dispatchEvent(new Event('input', {bubbles:true}));
   });
   await page.waitForTimeout(250);
-  const cercate = await page.evaluate(()=> document.querySelectorAll('#sceltarif-griglia [data-rif]').length);
-  ok('cercando si restringe', cercate === 3, cercate);
+  const cercate = await page.evaluate(()=>({
+    trovate: document.querySelectorAll('#sceltarif-griglia [data-rif]').length,
+    cartelle: document.querySelectorAll('#sceltarif-griglia [data-cartella]').length,
+  }));
+  ok('trova anche fuori dalla cartella in cui si era', cercate.trovate === 3, cercate);
+  ok('e mentre si cerca le cartelle si tolgono di mezzo', cercate.cartelle === 0, cercate);
   await page.evaluate(()=>{
     const c = document.getElementById('sceltarif-cerca');
     c.value = '';
@@ -585,52 +633,117 @@ module.exports = () => suite("Scene — un riquadro per volta, cento caratteri",
   });
   await page.waitForTimeout(250);
 
-  const collegato = await page.evaluate(async ()=>{
-    document.querySelectorAll('#sceltarif-griglia [data-rif]')[2].click();
+  sezione('e se ne collega piu\' di uno: una pila, non uno solo');
+  // Un'inquadratura si costruisce guardando piu' cose insieme — la posa da una
+  // parte, la luce da un'altra, l'ambiente da una terza — e tenerne una sola
+  // voleva dire scegliere quale buttare. Quindi la scelta NON si chiude al
+  // primo tocco: se ne prendono quanti servono e si esce quando si e' finito.
+  const primoTocco = await page.evaluate(async ()=>{
+    document.querySelectorAll('#sceltarif-griglia [data-rif]')[0].click();
     await new Promise(r=> setTimeout(r, 400));
     const s = window.scene.scenaAperta();
     const ultimo = s.beat[s.beat.length-1];
     return {
-      chiusa: !document.getElementById('sceltarif').classList.contains('open'),
-      // Collegare dentro la card fantasma la promuove, come scriverci dentro.
+      restaAperta: document.getElementById('sceltarif').classList.contains('open'),
       beat: s.beat.length,
-      img: !!ultimo.img,
-      rif: ultimo.refId,
+      pila: window.scene.rifiDi(ultimo).length,
+      rif: (window.scene.rifiDi(ultimo)[0]||{}).refId,
       senzaTesto: !(ultimo.testo||'').trim(),
-      // Non ":last-of-type": in coda ci sono le sagome, che sono div come le
-      // card ma non sono .beat.
+      // La tessera scelta si vede che e' scelta.
+      spuntata: document.querySelectorAll('#sceltarif-griglia .presa').length,
       fantasmaInCoda: (()=>{
-        const b = document.querySelectorAll('#scena-beat .beat');
-        return b[b.length-1].classList.contains('beat-nuovo');
+        const bb = document.querySelectorAll('#scena-beat .beat');
+        return bb[bb.length-1].classList.contains('beat-nuovo');
       })(),
     };
   });
-  ok('scegliendo, la scelta si chiude', collegato.chiusa, collegato);
-  ok('la card fantasma diventa un beat', collegato.img, collegato);
-  ok('e si ricorda da quale riferimento arriva', collegato.rif === 'rif2', collegato);
-  ok('un beat di solo riferimento, senza una parola, e\' valido', collegato.senzaTesto, collegato);
-  ok('e sotto e\' nata la card fantasma nuova', collegato.fantasmaInCoda, collegato);
+  ok('scegliendo, la scelta resta aperta', primoTocco.restaAperta, primoTocco);
+  ok('la card fantasma diventa un beat', primoTocco.pila === 1, primoTocco);
+  ok('e si ricorda da quale riferimento arriva', primoTocco.rif === 'rif0', primoTocco);
+  ok('un beat di solo riferimento, senza una parola, e\' valido', primoTocco.senzaTesto, primoTocco);
+  ok('la tessera scelta porta la sua spunta', primoTocco.spuntata === 1, primoTocco);
+  ok('e sotto e\' nata la card fantasma nuova', primoTocco.fantasmaInCoda, primoTocco);
 
-  sezione('e si puo\' togliere quello che si e\' collegato');
-  await page.evaluate(()=>{
-    const b = Array.from(document.querySelectorAll('#scena-beat .beat[data-id]'));
-    b[b.length-1].querySelector('[data-schizzo]').click();
+  const dueTre = await page.evaluate(async ()=>{
+    const t = document.querySelectorAll('#sceltarif-griglia [data-rif]');
+    t[1].click(); await new Promise(r=> setTimeout(r, 250));
+    t[2].click(); await new Promise(r=> setTimeout(r, 250));
+    const s = window.scene.scenaAperta();
+    const b = s.beat[s.beat.length-1];
+    const q = document.querySelectorAll('#scena-beat .beat[data-id]');
+    const mini = q[q.length-1].querySelector('.beat-mini');
+    return {
+      pila: window.scene.rifiDi(b).map(x=> x.refId),
+      spuntate: document.querySelectorAll('#sceltarif-griglia .presa').length,
+      // A schermo: i fogli sovrapposti e il numero che dice quante sono.
+      fogli: mini.querySelectorAll('.pila-foglio').length,
+      conta: (mini.querySelector('.pila-conta')||{}).textContent,
+      // Sfalsati, non uno sopra l'altro esatto: si deve vedere che sono piu' di
+      // uno anche senza leggere il numero.
+      sfalsati: (()=>{
+        const f = mini.querySelectorAll('.pila-foglio');
+        if(f.length < 2) return false;
+        const a = f[0].getBoundingClientRect(), c = f[1].getBoundingClientRect();
+        return Math.abs(a.left - c.left) > 2 || Math.abs(a.top - c.top) > 2;
+      })(),
+    };
   });
-  await page.waitForTimeout(500);
-  ok('riaprendo la vignetta piena, "Togli" c\'e\'',
+  ok('la pila arriva a tre', dueTre.pila.join(',') === 'rif0,rif1,rif2', dueTre);
+  ok('e tutte e tre sono spuntate', dueTre.spuntate === 3, dueTre);
+  ok('a schermo i fogli sono sovrapposti', dueTre.fogli === 3, dueTre);
+  ok('sfalsati, cosi\' si vede che sono piu\' di uno', dueTre.sfalsati, dueTre);
+  ok('col numero di quante sono in tutto', dueTre.conta === '3', dueTre);
+
+  sezione('e ritoccandone una la si toglie');
+  // Stesso gesto nei due sensi: non c'e' un secondo posto dove andare a
+  // sganciare quello che si e' attaccato.
+  const ritocco = await page.evaluate(async ()=>{
+    document.querySelectorAll('#sceltarif-griglia [data-rif]')[1].click();
+    await new Promise(r=> setTimeout(r, 350));
+    const s = window.scene.scenaAperta();
+    const b = s.beat[s.beat.length-1];
+    return {
+      pila: window.scene.rifiDi(b).map(x=> x.refId),
+      spuntate: document.querySelectorAll('#sceltarif-griglia .presa').length,
+    };
+  });
+  ok('quella ritoccata esce dalla pila', ritocco.pila.join(',') === 'rif0,rif2', ritocco);
+  ok('e perde la spunta', ritocco.spuntate === 2, ritocco);
+
+  sezione('"Togli tutto" svuota la pila');
+  ok('il pulsante c\'e\', perche\' c\'e\' qualcosa da togliere',
      await page.evaluate(()=> !document.getElementById('sceltarif-togli').hidden), null);
   const tolto = await page.evaluate(async ()=>{
     document.getElementById('sceltarif-togli').click();
-    await new Promise(r=> setTimeout(r, 400));
+    await new Promise(r=> setTimeout(r, 350));
     const s = window.scene.scenaAperta();
+    const b = s.beat[s.beat.length-1];
     return {
-      conImg: s.beat.filter(b=> b.img).length,
-      chiusa: !document.getElementById('sceltarif').classList.contains('open'),
+      pila: window.scene.rifiDi(b).length,
+      spuntate: document.querySelectorAll('#sceltarif-griglia .presa').length,
+      pulsante: document.getElementById('sceltarif-togli').hidden,
     };
   });
-  ok('e toglie davvero l\'immagine', tolto.conImg === 1, tolto);
-  ok('chiudendo la scelta', tolto.chiusa, tolto);
-  // Il beat rimasto senza immagine e senza testo se ne va alla prima uscita dal
+  ok('la pila si svuota', tolto.pila === 0, tolto);
+  ok('le spunte se ne vanno con lei', tolto.spuntate === 0, tolto);
+  ok('e il pulsante si spegne, perche\' non c\'e\' piu\' niente da togliere',
+     tolto.pulsante, tolto);
+
+  sezione('e la freccia risale un passo per volta');
+  // Dentro una cartella Indietro torna all'elenco, e solo dal secondo passo
+  // chiude: e' un livello di navigazione, e come tale costa un passo indietro.
+  await page.goBack();
+  await page.waitForTimeout(300);
+  const risalito = await page.evaluate(()=>({
+    aperta: document.getElementById('sceltarif').classList.contains('open'),
+    cartelle: document.querySelectorAll('#sceltarif-griglia [data-cartella]').length,
+  }));
+  ok('il primo passo torna alle cartelle', risalito.aperta && risalito.cartelle === 2, risalito);
+  await page.goBack();
+  await page.waitForTimeout(300);
+  ok('il secondo chiude la scelta',
+     await page.evaluate(()=> !document.getElementById('sceltarif').classList.contains('open')), null);
+  // Il beat rimasto senza pila e senza testo se ne va alla prima uscita dal
   // riquadro, come tutti i vuoti: la regola vale anche qui.
   await page.evaluate(()=>{
     const t = document.querySelector('#scena-beat .beat-nuovo textarea');
@@ -646,7 +759,8 @@ module.exports = () => suite("Scene — un riquadro per volta, cento caratteri",
     document.activeElement.blur();
   });
   await page.waitForTimeout(150);
-  const sopravvive = await page.evaluate(()=> window.scene.scenaAperta().beat.filter(b=> b.img).length);
+  const sopravvive = await page.evaluate(()=>
+    window.scene.scenaAperta().beat.filter(b=> window.scene.rifiDi(b).length).length);
   ok('resta dov\'e\'', sopravvive === 1, sopravvive);
 
   sezione('"sembrano piu\' vignette": un beat = una inquadratura');

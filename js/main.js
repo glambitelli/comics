@@ -517,6 +517,10 @@ window.addEventListener('popstate', e=>{
   const sr = document.getElementById('sceltarif');
   if(sr && sr.classList.contains('open')){
     const m = loadedMod('./scene.js');
+    // Dentro una cartella Indietro risale all'elenco delle cartelle, e solo dal
+    // secondo passo chiude il foglio: e' un livello di navigazione, e come tale
+    // deve costare un passo indietro.
+    if(m && m.dentroUnaCartella()){ m.risaliScelta(); return; }
     if(m){ m.chiudiSceltaUI(); return; }
   }
   // La board di una scena sta sopra la scena stessa: Indietro chiude prima
