@@ -639,6 +639,11 @@ module.exports = () => suite("Scene — un riquadro per volta, cento caratteri",
       const r = document.querySelector('#sceltarif-griglia [data-rif]').getBoundingClientRect();
       return +(r.width / r.height).toFixed(2);
     })(),
+    perRiga: (()=>{
+      const t = Array.from(document.querySelectorAll('#sceltarif-griglia [data-rif]'));
+      const cima = Math.round(t[0].getBoundingClientRect().top);
+      return t.filter(x=> Math.abs(x.getBoundingClientRect().top - cima) < 3).length;
+    })(),
   }));
   // Dentro OTOMO ci sono quattro immagini, di cui una segnata come tavola:
   // nella scheda Frammenti se ne vedono tre.
@@ -646,23 +651,28 @@ module.exports = () => suite("Scene — un riquadro per volta, cento caratteri",
   // Anche qui il muretto: le tessere non hanno tutte la stessa altezza, si
   // incastrano. Con riquadri uguali venti ritagli diventavano venti quadratini
   // indistinguibili.
-  const muro = await page.evaluate(()=>{
-    const t = Array.from(document.querySelectorAll('#sceltarif-griglia .sceltarif-tessera[data-rif]'));
-    const alte = t.map(x=> Math.round(x.getBoundingClientRect().height));
-    return {
-      colonne: getComputedStyle(document.getElementById('sceltarif-griglia'))
-                 .gridTemplateColumns.split(' ').length,
-      alte,
-      // Due tessere sulla stessa riga cominciano alla stessa altezza, ma non
-      // devono finire per forza insieme.
-      diverse: new Set(alte).size > 1,
-      taglio: t.length ? getComputedStyle(t[0].querySelector('img')).objectFit : null,
-    };
+  // Le stesse misure di .refs-grid: se un giorno cambiano la', questa prova lo
+  // dice prima che le due schermate comincino a somigliarsi solo un po'.
+  // Il numero di colonne dipende da quanto e' larga la schermata, e le due non
+  // sono larghe uguali: quello che deve coincidere e' la REGOLA — stesso spazio
+  // fra le tessere, stessa larghezza minima, stessa forma quadrata.
+  // Gli 8px di spazio e i 78 di larghezza minima sono quelli di .refs-grid in
+  // refs.css. Scritti qui perche' la griglia dell'archivio, in questo banco, non
+  // e' a schermo e non si puo' misurare: se un giorno cambiano li', questa prova
+  // cade e ricorda che vanno cambiati anche nella scelta.
+  const stesseMisure = await page.evaluate(()=>{
+    const st = getComputedStyle(document.getElementById('sceltarif-griglia'));
+    const col = st.gridTemplateColumns.split(' ').map(parseFloat).filter(n=> !isNaN(n));
+    return { gap: st.gap, larga: Math.round(Math.min(...col)) };
   });
-  ok('su due colonne, non tre', muro.colonne === 2, muro);
-  ok('e le immagini non sono tagliate', muro.taglio !== 'cover', muro);
+  ok('stesso spazio fra le tessere dell\'archivio', stesseMisure.gap === '8px', stesseMisure);
+  ok('e tessere larghe almeno quanto le sue', stesseMisure.larga >= 78, stesseMisure);
   ok('e la barra dice dove si e\'', /OTOMO/.test(archivio.dove||''), archivio);
-  ok('in tessere da vignetta', Math.abs(archivio.forma - 4/3) < 0.06, archivio);
+  // LE STESSE MINIATURE DELL'ARCHIVIO: quadrate e fitte. E' la stessa roba
+  // guardata dall'altra parte, e passare dall'archivio alla scelta non deve
+  // sembrare di cambiare app.
+  ok('in tessere quadrate, come nell\'archivio', Math.abs(archivio.forma - 1) < 0.06, archivio);
+  ok('e fitte, non due per riga', archivio.perRiga >= 3, archivio);
 
   sezione('e dentro una cartella ci sono le due schede dell\'archivio');
   // Dentro un autore ci sono i frammenti e ci sono le tavole, e sono due cose
@@ -848,8 +858,7 @@ module.exports = () => suite("Scene — un riquadro per volta, cento caratteri",
       cartelle: g.querySelectorAll('[data-cartella]').length,
       tessere: g.querySelectorAll('[data-rif]').length,
       // MINIATURE, non immagini a tutta pagina: a tutta larghezza se ne vedeva
-      // una per schermata. Due per riga — con tre un dettaglio diventa un
-      // francobollo, che e' il problema opposto.
+      // una per schermata. Sono quelle dell'archivio, quadrate e fitte.
       quota: mini.length ? +(mini[0].getBoundingClientRect().width / foglio.width).toFixed(2) : 0,
       sullaStessaRiga: mini.length > 1 &&
         Math.abs(mini[0].getBoundingClientRect().top - mini[1].getBoundingClientRect().top) < 3,
@@ -865,63 +874,54 @@ module.exports = () => suite("Scene — un riquadro per volta, cento caratteri",
   ok('si atterra sulla pila del beat', laPila.vista === 'pila', laPila);
   ok('e ci sono solo le sue immagini', laPila.quante === 2, laPila);
   ok('senza una riga di catalogo', laPila.cartelle === 0 && laPila.tessere === 0, laPila);
-  ok('sono miniature, non immagini a tutta pagina',
-     laPila.quota > 0.35 && laPila.quota < 0.55, laPila);
+  ok('sono miniature, non immagini a tutta pagina', laPila.quota < 0.35, laPila);
   ok('e stanno affiancate, non una per schermata', laPila.sullaStessaRiga, laPila);
   ok('la ricerca si toglie di mezzo', !laPila.cerca, laPila);
   ok('e la barra dice cosa sono', /riferimenti/i.test(laPila.dove||''), laPila);
   ok('con il modo di aggiungerne altre', laPila.aggiungi, laPila);
   ok('senza una ✕ appiccicata su ognuna', laPila.crocette === 0, laPila);
 
-  sezione('e si vedono INTERE, senza il taglio al centro');
-  // Il taglio al centro (object-fit:cover) e' quello che faceva il danno: un
-  // frammento e' quasi sempre un dettaglio — una mano, una posa, un angolo di
-  // strada — e tagliargli i bordi toglie proprio quello che serve per
-  // riconoscerlo. A schermo restavano quadratini indistinguibili.
-  const intere = await page.evaluate(async ()=>{
-    // Due immagini di forma molto diversa: e' la differenza che un muretto deve
-    // saper incastrare e una griglia di riquadri uguali appiattisce.
-    const alta = (w,h)=>{
-      const c = document.createElement('canvas');
-      c.width = w; c.height = h;
-      const x = c.getContext('2d'); x.fillStyle = '#c05a3a'; x.fillRect(0,0,w,h);
-      return c.toDataURL('image/png');
+  sezione('e le TAVOLE si guardano intere, non tagliate');
+  // Un frammento e' un dettaglio e il quadrato lo incornicia: e' la scelta che
+  // l'archivio fa da sempre, e qui si ripete. Una tavola no — la vignetta
+  // d'apertura, il ballon in alto e la striscia in fondo sono proprio quello
+  // che si cerca — quindi la tessera prende le proporzioni della SUA pagina e
+  // l'immagine ci sta dentro tutta.
+  await page.evaluate(()=> document.querySelector('[data-archivio]') ? null : null);
+  const tavole = await page.evaluate(async ()=>{
+    // Si torna nell'archivio, dentro OTOMO, sulla scheda delle tavole.
+    const g = document.getElementById('sceltarif-griglia');
+    if(g.querySelector('[data-archivio]')) g.querySelector('[data-archivio]').click();
+    await new Promise(r=> setTimeout(r, 350));
+    const c = Array.from(document.querySelectorAll('[data-cartella]'))
+      .find(x=> /OTOMO/.test(x.textContent));
+    if(c) c.click();
+    await new Promise(r=> setTimeout(r, 350));
+    document.querySelector('#sceltarif-tab [data-tab="tavole"]').click();
+    await new Promise(r=> setTimeout(r, 400));
+    const t = document.querySelector('#sceltarif-griglia [data-rif]');
+    const im = t.querySelector('img');
+    const rt = t.getBoundingClientRect(), ri = im.getBoundingClientRect();
+    return {
+      taglio: getComputedStyle(im).objectFit,
+      naturale: +(im.naturalWidth / im.naturalHeight).toFixed(2),
+      tessera: +(rt.width / rt.height).toFixed(2),
+      dentro: ri.width <= rt.width + 1 && ri.height <= rt.height + 1,
     };
-    const s = window.scene.scenaAperta();
-    const b = s.beat[s.beat.length-1];
-    b.rifs = [{url: alta(40,90), refId:'rif0'}, {url: alta(90,40), refId:'rif1'}];
-    window.scene.renderBeat();
-    const bb = document.querySelectorAll('#scena-beat .beat[data-id]');
-    bb[bb.length-1].querySelector('[data-schizzo]').click();
-    await new Promise(r=> setTimeout(r, 700));
-    const mini = Array.from(document.querySelectorAll('.pila-mini'));
-    return mini.map(el=>{
-      const im = el.querySelector('img');
-      const r = el.getBoundingClientRect(), ri = im.getBoundingClientRect();
-      return {
-        taglio: getComputedStyle(im).objectFit,
-        naturale: +(im.naturalWidth / im.naturalHeight).toFixed(2),
-        forma: +(ri.width / ri.height).toFixed(2),
-        // L'immagine riempie la tessera: niente strisce di fondo ai lati.
-        piena: Math.abs(ri.height - r.height) < 5,
-      };
-    });
   });
-  ok('nessuna e\' tagliata al centro', intere.every(x=> x.taglio !== 'cover'), intere);
-  ok('ognuna conserva le sue proporzioni',
-     intere.every(x=> Math.abs(x.forma - x.naturale) < 0.05), intere);
-  ok('e le due forme diverse restano diverse',
-     Math.abs(intere[0].forma - intere[1].forma) > 0.5, intere);
-  ok('senza lasciare strisce di fondo attorno', intere.every(x=> x.piena), intere);
-  // Rimesse com'erano, cosi' le prove che seguono ripartono da dove stavano.
-  await page.evaluate(()=>{
-    const s = window.scene.scenaAperta();
-    const b = s.beat[s.beat.length-1];
-    b.rifs = [{url:'data:image/gif;base64,R0lGODlhAQABAAAAACw=',refId:'rif0'},
-              {url:'data:image/gif;base64,R0lGODlhAQABAAAAACw=',refId:'rif1'}];
-    window.scene.renderBeat();
+  ok('la tavola non e\' tagliata', tavole.taglio === 'contain', tavole);
+  ok('e la tessera prende la forma della sua pagina',
+     Math.abs(tavole.tessera - tavole.naturale) < 0.06, tavole);
+  ok('cosi\' ci sta tutta dentro', tavole.dentro, tavole);
+  // Si torna dov'erano le prove che seguono.
+  await page.evaluate(async ()=>{
+    document.querySelector('#sceltarif-tab [data-tab="ritagli"]').click();
+    await new Promise(r=> setTimeout(r, 250));
   });
-  await page.waitForTimeout(200);
+  await page.goBack();
+  await page.waitForTimeout(300);
+  await page.goBack();
+  await page.waitForTimeout(300);
 
   sezione('e toccandone una si apre la galleria dei frammenti');
   // La stessa dell'archivio — provenienza, tag, frecce — solo che le frecce

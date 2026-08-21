@@ -97,3 +97,14 @@ prova che comincia dal presupposto sbagliato misura la cosa sbagliata senza
 fallire. Dove conta, si riparte da una condizione dichiarata e verificata
 (`ingrandita()` in `lettore-zoom.js` azzera lo zoom e lo rifà, controllando di
 essere davvero dove crede).
+
+## Controllare la sintassi di un modulo
+
+`node --check js/qualcosa.js` **non basta**: Node legge un `.js` come CommonJS e
+su un file pieno di `export` non si lamenta come farebbe il browser. Un `export`
+finito per sbaglio dentro una funzione — che nel browser e' un errore secco e
+lascia la pagina bianca — passa liscio.
+
+Per controllare davvero, si legge come modulo:
+
+    cp js/qualcosa.js /tmp/x.mjs && node --check /tmp/x.mjs

@@ -627,10 +627,10 @@ function beatDiScelta(){
   return scena.beat.find(x=> x.id === _boxScelta.dataset.id) || null;
 }
 
-function tesseraHTML(x, presa){
+function tesseraHTML(x, presa, tavola){
   return `<button class="sceltarif-tessera ${presa ? 'presa' : ''}" data-rif="${esc(x.id)}" type="button"
-      aria-pressed="${presa ? 'true' : 'false'}">
-      <img src="${esc(cldResize(x.url, 320))}" loading="lazy" alt=""/>
+      aria-pressed="${presa ? 'true' : 'false'}"${tavola ? forma(x) : ''}>
+      <img src="${esc(cldResize(x.url, tavola ? 420 : 300))}" loading="lazy" alt=""/>
       ${presa ? '<span class="sceltarif-segno">✓</span>' : ''}
     </button>`;
 }
@@ -682,7 +682,7 @@ async function disegnaScelta(){
     // Toccandone una si apre la galleria vera dell'archivio — la stessa dei
     // frammenti, con la provenienza e le frecce — solo che scorre fra QUESTE.
     const pila = rifiDi(b);
-    griglia.className = 'sceltarif-mura sceltarif-pila';
+    griglia.className = 'sceltarif-tessere sceltarif-pila';
     montaSceltaPila(griglia);
     const n = _sceltaPila ? _sceltaPila.quante() : 0;
     // Mentre si sceglie la barra dice quante ne hai prese e il pulsante diventa
@@ -695,7 +695,6 @@ async function disegnaScelta(){
       togli.textContent = n === 1 ? 'Togli' : 'Togli ' + n;
     }
     griglia.classList.toggle('scegliendo', n > 0);
-    murature(griglia);
     // NIENTE ✕ SU OGNI MINIATURA. Era un bersaglio da ventiquattro pixel
     // appiccicato all'angolo di ognuna, e per toglierne tre servivano tre
     // tocchi centrati bene. Adesso si tiene premuto per cominciare a scegliere
@@ -705,7 +704,7 @@ async function disegnaScelta(){
     griglia.innerHTML = pila.map((x,i)=> {
       const preso = _sceltaPila && _sceltaPila.ha(String(i));
       return `<div class="pila-mini${preso ? ' scelta' : ''}" data-mini="${i}">
-        <img src="${esc(cldResize(x.url, 400))}" alt=""/>
+        <img src="${esc(cldResize(x.url, 300))}" alt=""/>
         <span class="refs-spunta${preso ? ' on' : ''}" role="checkbox" aria-checked="${preso}" aria-label="Scegli"></span>
       </div>`;
     }).join('')
@@ -723,11 +722,10 @@ async function disegnaScelta(){
     if(dove) dove.textContent = '';
     const trovate = tutte.filter(x=>
       ((x.tags||[]).join(' ') + ' ' + (x.provenance && x.provenance.opera || '')).toLowerCase().includes(q));
-    griglia.className = 'sceltarif-mura';
+    griglia.className = 'sceltarif-tessere';
     griglia.innerHTML = trovate.length
-      ? trovate.map(x=> tesseraHTML(x, presi.has(x.id))).join('')
+      ? trovate.map(x=> tesseraHTML(x, presi.has(x.id), false)).join('')
       : `<div class="sceltarif-vuoto"><p>Nessun riferimento con questo nome.</p></div>`;
-    murature(griglia);
     return;
   }
 
@@ -744,12 +742,15 @@ async function disegnaScelta(){
       const n = dentro.filter(x=> btn.dataset.tab === 'tavole' ? !!x.tavola : !x.tavola).length;
       btn.textContent = (btn.dataset.tab === 'tavole' ? 'Tavole' : 'Frammenti') + ' ' + n;
     });
-    griglia.className = 'sceltarif-mura';
+    // Le tavole si guardano INTERE: tessere con le proporzioni della pagina e
+    // immagine contenuta, come nello scaffale delle tavole dell'archivio.
+    const suTavole = _tabRif === 'tavole';
+    griglia.className = 'sceltarif-tessere' + (suTavole ? ' tavole' : '');
     griglia.innerHTML = scelte.length
-      ? scelte.map(x=> tesseraHTML(x, presi.has(x.id))).join('')
+      ? scelte.map(x=> tesseraHTML(x, presi.has(x.id), suTavole)).join('')
       : `<div class="sceltarif-vuoto"><p>Qui dentro non c\'e\' niente${
-          _tabRif === 'tavole' ? ' fra le tavole' : ' fra i frammenti'}.</p></div>`;
-    murature(griglia);
+          suTavole ? ' fra le tavole' : ' fra i frammenti'}.</p></div>`;
+    if(suTavole) correggiForme(griglia);
     return;
   }
 
@@ -800,36 +801,37 @@ async function disegnaScelta(){
   ).join('');
 }
 
-// ── IL MURETTO ──────────────────────────────────────────────────────────────
-// Le miniature erano riquadri 4:3 tutti uguali con l'immagine tagliata al
-// centro (object-fit:cover). Su una griglia di ritagli e' il taglio a fare il
-// danno: un frammento e' quasi sempre un dettaglio — una mano, una posa, un
-// angolo di strada — e tagliargli i bordi toglie proprio quello che serve per
-// riconoscerlo. A schermo restavano venti quadratini indistinguibili.
+// ── LE MINIATURE, QUELLE DEI FRAMMENTI ──────────────────────────────────────
+// Qui c'e' stato per un giorno un muretto alla Pinterest: ogni immagine intera,
+// alta quanto le tocca, incastrata nelle colonne. Non funzionava, e non per una
+// svista: una griglia CSS piazza gli elementi per RIGHE e il cursore non torna
+// mai indietro, quindi accanto a una tessera alta ne resta una corta con sotto
+// il vuoto fino alla banda successiva. A schermo erano buchi grandi come le
+// immagini. Il muretto vero si fa con le colonne CSS, che pero' riempiono
+// dall'alto in basso — e nella pila di un beat l'ordine e' quello in cui le hai
+// scelte, non a serpentina.
 //
-// Adesso ogni immagine sta INTERA e alta quanto le tocca, incastrata nelle
-// colonne come i mattoni di un muretto. E il muretto e' fatto con la griglia e
-// non con le colonne CSS — che sarebbe una riga di codice invece di quindici —
-// perche' le colonne riempiono dall'alto in basso: cinque immagini in tre
-// colonne si leggerebbero 1,3,5 sulla prima riga e 2,4 sulla seconda, e nella
-// pila di un beat l'ordine e' l'ordine in cui le hai scelte.
+// Quindi si fa come lo fa gia' l'archivio, che e' la stessa roba guardata
+// dall'altra parte: tessere quadrate e fitte per i frammenti (un frammento e'
+// un dettaglio, e il quadrato lo incornicia), e per le tavole tessere con le
+// proporzioni della pagina, che una tavola si guarda intera. Stesse misure,
+// stesse regole: passare dall'archivio alla scelta non deve sembrare di
+// cambiare app.
 //
-// La misura si prende dall'immagine caricata e non dai dati salvati: le
-// proporzioni scritte sul documento possono mancare (roba archiviata da
-// versioni vecchie) o non essere quelle vere, mentre la miniatura che si sta
-// guardando non puo' sbagliarsi.
-const RIGA = 8, MALTA = 9;
-function murature(griglia){
-  griglia.querySelectorAll('img').forEach(im=>{
-    const posa = ()=>{
-      const tessera = im.closest('.sceltarif-tessera, .pila-mini');
-      if(!tessera || !im.naturalWidth || !im.naturalHeight) return;
-      const largo = tessera.getBoundingClientRect().width;
-      if(!largo) return;
-      const alto = largo * (im.naturalHeight / im.naturalWidth);
-      tessera.style.gridRowEnd = 'span ' + Math.max(2, Math.ceil((alto + MALTA) / (RIGA + MALTA)));
+// Le proporzioni delle tavole si prendono dai dati e poi si correggono
+// sull'immagine caricata: quelle scritte sul documento possono mancare (roba
+// archiviata da versioni vecchie) o non essere quelle vere, la miniatura che si
+// sta guardando no.
+function forma(x){
+  return (x && x.w && x.h) ? ` style="aspect-ratio:${x.w} / ${x.h}"` : '';
+}
+function correggiForme(griglia){
+  griglia.querySelectorAll('.sceltarif-tessera img').forEach(im=>{
+    const adatta = ()=>{
+      if(!im.naturalWidth || !im.naturalHeight) return;
+      im.parentElement.style.aspectRatio = im.naturalWidth + ' / ' + im.naturalHeight;
     };
-    if(im.complete) posa(); else im.addEventListener('load', posa, { once:true });
+    if(im.complete) adatta(); else im.addEventListener('load', adatta, { once:true });
   });
 }
 
