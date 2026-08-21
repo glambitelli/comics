@@ -214,9 +214,14 @@ function apriEditor(id){
   ta.value = idea.testo;
   ov.classList.add('open');
   document.body.classList.add('idea-editor-open');
+  // Il foglio si registra nella cronologia, come tutti gli altri dell'app: col
+  // dito la freccia in alto non c'e' (chiude il tasto Indietro), e senza questo
+  // passo il tasto Indietro si sarebbe portato via anche la schermata sotto.
+  try{ if(!history.state || history.state.view !== 'idea') history.pushState({view:'idea'}, ''); }catch(e){}
   setTimeout(()=>{ ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }, 260);
 }
 
+// Chiusura VERA: la chiama il gestore del tasto Indietro.
 export async function chiudiEditor(){
   const ov = document.getElementById('idea-editor');
   if(!ov || !ov.classList.contains('open')) return;
@@ -294,7 +299,13 @@ export function initIdee(){
     },
   });
 
-  document.getElementById('idea-editor-chiudi').addEventListener('click', ()=> chiudiEditor());
+  // La freccia passa dalla cronologia e lascia che sia il gestore di popstate a
+  // chiudere davvero: cosi' c'e' una strada sola, e il tasto del telefono e
+  // quello a schermo fanno la stessa identica cosa.
+  document.getElementById('idea-editor-chiudi').addEventListener('click', ()=>{
+    if(history.state && history.state.view === 'idea'){ history.back(); return; }
+    chiudiEditor();
+  });
 
   renderIdee();
 }

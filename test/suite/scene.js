@@ -226,6 +226,24 @@ module.exports = () => suite("Scene — un riquadro per volta, cento caratteri",
     window.scene.renderBeat();
   });
 
+  sezione('e col dito nessun foglio ha la sua freccia');
+  // Stessa regola del lettore degli albi, dei frammenti a schermo intero e
+  // della board: il tasto Indietro chiude, sta sotto il pollice ed e' li' da
+  // sempre, mentre una freccia nell'angolo in alto a sinistra e' il punto piu'
+  // lontano dalla mano che regge il telefono. Le due chiusure passano dalla
+  // stessa strada — la cronologia — quindi nessuna fa qualcosa che l'altra non
+  // farebbe.
+  const frecce = await page.evaluate(()=>{
+    const quali = ['scena-chiudi','sceltarif-chiudi','schizzo-chiudi'];
+    document.body.classList.add('is-touch');
+    const conDito = quali.map(id=> getComputedStyle(document.getElementById(id)).display);
+    document.body.classList.remove('is-touch');
+    const colMouse = quali.map(id=> getComputedStyle(document.getElementById(id)).display);
+    return { quali, conDito, colMouse };
+  });
+  ok('col dito spariscono tutte', frecce.conDito.every(d=> d === 'none'), frecce);
+  ok('col mouse restano tutte', frecce.colMouse.every(d=> d !== 'none'), frecce);
+
   sezione('sul telefono la X della board non c\'e\'');
   // Stessa regola del lettore degli albi e dei frammenti: chiude il tasto
   // Indietro, che sta sotto il pollice.
@@ -822,45 +840,84 @@ module.exports = () => suite("Scene — un riquadro per volta, cento caratteri",
   await page.waitForTimeout(500);
   const laPila = await page.evaluate(()=>{
     const g = document.getElementById('sceltarif-griglia');
-    const righe = g.querySelectorAll('.pila-riga');
+    const mini = g.querySelectorAll('.pila-mini');
     const foglio = document.getElementById('sceltarif').getBoundingClientRect();
     return {
       vista: window.scene.vistaScelta(),
-      quante: righe.length,
+      quante: mini.length,
       // Niente catalogo: nessuna cartella, nessuna tessera dell'archivio.
       cartelle: g.querySelectorAll('[data-cartella]').length,
       tessere: g.querySelectorAll('[data-rif]').length,
-      // Grandi e in colonna: e' una vista da guardare, non da scegliere.
-      larghezza: righe.length ? +(righe[0].getBoundingClientRect().width / foglio.width).toFixed(2) : 0,
-      inColonna: righe.length > 1 &&
-        righe[1].getBoundingClientRect().top > righe[0].getBoundingClientRect().bottom - 1,
+      // MINIATURE, non immagini intere: a tutta larghezza se ne vedeva una per
+      // schermata, e per avere il quadro di cosa si era messo da parte bisognava
+      // scorrere. Qui ne stanno tre per riga.
+      quota: mini.length ? +(mini[0].getBoundingClientRect().width / foglio.width).toFixed(2) : 0,
+      sullaStessaRiga: mini.length > 1 &&
+        Math.abs(mini[0].getBoundingClientRect().top - mini[1].getBoundingClientRect().top) < 3,
       // La ricerca sparisce: qui non c'e' niente da cercare, ci sono le tue.
       cerca: !document.getElementById('sceltarif-cerca').hidden,
       dove: (document.getElementById('sceltarif-dove')||{}).textContent,
       aggiungi: !!g.querySelector('[data-archivio]'),
+      // Ognuna si apre, e ognuna si toglie.
+      apribili: g.querySelectorAll('[data-apri]').length,
+      togliibili: g.querySelectorAll('[data-via]').length,
     };
   });
   ok('si atterra sulla pila del beat', laPila.vista === 'pila', laPila);
   ok('e ci sono solo le sue immagini', laPila.quante === 2, laPila);
   ok('senza una riga di catalogo', laPila.cartelle === 0 && laPila.tessere === 0, laPila);
-  ok('grandi quanto il foglio', laPila.larghezza >= 0.85, laPila);
-  ok('una sotto l\'altra', laPila.inColonna, laPila);
+  ok('sono miniature, non immagini a tutta pagina', laPila.quota < 0.45, laPila);
+  ok('e stanno affiancate, non una per schermata', laPila.sullaStessaRiga, laPila);
   ok('la ricerca si toglie di mezzo', !laPila.cerca, laPila);
   ok('e la barra dice cosa sono', /riferimenti/i.test(laPila.dove||''), laPila);
   ok('con il modo di aggiungerne altre', laPila.aggiungi, laPila);
+  ok('ognuna si apre e ognuna si toglie',
+     laPila.apribili === 2 && laPila.togliibili === 2, laPila);
+
+  sezione('e toccandone una si apre la galleria dei frammenti');
+  // La stessa dell'archivio — provenienza, tag, frecce — solo che le frecce
+  // scorrono fra i riferimenti DI QUESTO BEAT: sfogliare la cartella da cui
+  // erano stati presi, partendo da una miniatura aperta per guardarla, non e'
+  // quello che si stava chiedendo.
+  const galleria = await page.evaluate(async ()=>{
+    document.querySelector('[data-apri]').click();
+    await new Promise(r=> setTimeout(r, 500));
+    const lb = document.getElementById('refs-lightbox');
+    return {
+      aperta: lb.classList.contains('open'),
+      quale: lb.dataset.id,
+      // Il contatore dice quante ne scorre: due, non tutta la cartella.
+      contatore: (document.getElementById('refs-lightbox-counter')||{}).textContent,
+    };
+  });
+  ok('si apre la galleria', galleria.aperta, galleria);
+  ok('sulla miniatura toccata', galleria.quale === 'rif0', galleria);
+  ok('e scorre fra i riferimenti del beat, non fra quelli della cartella',
+     /\b2\b/.test(galleria.contatore || '') && !/\b[4-9]\b/.test(galleria.contatore || ''), galleria);
+  // Indietro chiude la galleria e lascia aperta la scelta sotto: e' lo strato
+  // piu' alto, e la catena in main.js e' ordinata per strati proprio per questo.
+  await page.goBack();
+  await page.waitForTimeout(350);
+  const dopoGalleria = await page.evaluate(()=>({
+    galleria: document.getElementById('refs-lightbox').classList.contains('open'),
+    scelta: document.getElementById('sceltarif').classList.contains('open'),
+    vista: window.scene.vistaScelta(),
+  }));
+  ok('Indietro chiude la galleria', !dopoGalleria.galleria, dopoGalleria);
+  ok('e lascia la scelta dov\'era, sotto', dopoGalleria.scelta && dopoGalleria.vista === 'pila', dopoGalleria);
 
   sezione('da li\' si toglie quello che non serve piu\'');
   const menoUna = await page.evaluate(async ()=>{
-    document.querySelector('.pila-riga [data-via]').click();
+    document.querySelector('.pila-mini [data-via]').click();
     await new Promise(r=> setTimeout(r, 350));
     const s = window.scene.scenaAperta();
     return {
       pila: window.scene.rifiDi(s.beat[s.beat.length-1]).map(x=> x.refId),
-      righe: document.querySelectorAll('.pila-riga').length,
+      miniature: document.querySelectorAll('.pila-mini').length,
     };
   });
   ok('la prima esce dalla pila', menoUna.pila.join(',') === 'rif1', menoUna);
-  ok('e sparisce anche da qui', menoUna.righe === 1, menoUna);
+  ok('e sparisce anche da qui', menoUna.miniature === 1, menoUna);
 
   sezione('e "Aggiungi" scende nell\'archivio');
   await page.evaluate(()=> document.querySelector('[data-archivio]').click());

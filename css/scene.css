@@ -513,37 +513,49 @@ body.is-touch .board-chiudi{display:none}
 
 /* ── I RIFERIMENTI DI UN BEAT, e nient'altro ──
    Si arriva qui toccando una vignetta gia' piena, ed e' quasi sempre per
-   guardare cosa ci si era messo mentre si disegna. Quindi le immagini sono
-   GRANDI e in colonna, una sotto l'altra: e' una vista da consultare, non un
-   catalogo da cui scegliere — quello sta un livello sotto.
-   Prima toccando una vignetta piena si riapriva l'archivio intero, e per
-   rivedere le proprie tre referenze bisognava ricercarle una per una. */
-.sceltarif-pila{display:flex;flex-direction:column;gap:12px}
-.pila-riga{
-  position:relative;border-radius:12px;overflow:hidden;
-  border:1.5px solid var(--sand2);background:#fffdf7;
-  box-shadow:0 1px 2px rgba(60,44,20,.05), 0 6px 20px rgba(60,44,20,.07);
-}
-/* Larghe quanto il foglio e alte quanto vogliono, fino a un tetto: una tavola
-   verticale altrimenti si mangia due schermate da sola. */
-.pila-riga img{display:block;width:100%;max-height:62vh;object-fit:contain;background:#fffdf7}
-/* IL BERSAGLIO E' PICCOLO APPOSTA, e sta in un angolo: e' l'unica cosa
-   distruttiva di questa schermata, e non deve capitare sfiorando l'immagine che
-   si stava guardando. */
-.pila-via{
-  position:absolute;top:7px;right:7px;cursor:pointer;
-  width:28px;height:28px;border-radius:50%;border:none;
-  background:rgba(26,20,16,.62);color:var(--oro);
-  font-size:13px;line-height:1;display:flex;align-items:center;justify-content:center;
-}
-.pila-via:active{background:rgba(26,20,16,.85)}
-.pila-aggiungi{
-  display:flex;align-items:center;justify-content:center;gap:8px;
-  padding:14px 13px;cursor:pointer;
-  border:1.5px dashed var(--sand3);border-radius:12px;background:rgba(255,255,255,.6);
-  font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;color:var(--ink2);
-}
-.pila-aggiungi:active{border-color:var(--oro);color:var(--ottone)}
+   rivedere cosa ci si era messo mentre si disegna. Le miniature stanno tutte
+   insieme (vedi .sceltarif-pila piu' sotto) e toccandone una si apre la
+   galleria vera dell'archivio. Prima toccando una vignetta piena si riapriva
+   l'archivio intero, e per rivedere le proprie tre referenze bisognava
+   ricercarle una per una. */
 /* La ricerca sparisce sulla pila: li' non c'e' niente da cercare, ci sono le
    tue. */
 #sceltarif-cerca[hidden]{display:none}
+
+/* ── COL DITO LA FRECCIA NON C'E' ──
+   Vale per i tre fogli delle Scene come vale gia' per il lettore degli albi,
+   per i frammenti a schermo intero e per la board: il tasto Indietro chiude,
+   sta sotto il pollice ed e' li' da sempre, mentre una freccia nell'angolo in
+   alto a sinistra e' il punto piu' lontano dalla mano che regge il telefono.
+   Col mouse resta: li' un Indietro sotto il dito non c'e'.
+   Le due chiusure passano dalla stessa strada — la cronologia — quindi nessuna
+   delle due fa qualcosa che l'altra non farebbe. */
+body.is-touch #scena-chiudi,
+body.is-touch #sceltarif-chiudi,
+body.is-touch #schizzo-chiudi{display:none}
+
+/* ── LE MINIATURE DI UN BEAT ──
+   A tutta larghezza si vedeva una referenza per schermata e per averne il
+   quadro bisognava scorrere: qui servono tutte insieme, per capire in un colpo
+   cosa si era messo da parte. Tre per riga sul telefono, di piu' dove c'e'
+   spazio. Toccandone una si apre la galleria vera dell'archivio. */
+.sceltarif-pila{display:grid;gap:9px;grid-template-columns:repeat(3,1fr)}
+@media (min-width:620px){ .sceltarif-pila{grid-template-columns:repeat(5,1fr)} }
+.pila-mini{position:relative}
+.pila-apri{
+  display:block;width:100%;aspect-ratio:4/3;overflow:hidden;cursor:pointer;padding:0;
+  border:1.5px solid var(--sand2);border-radius:10px;background:#fffdf7;
+  transition:border-color .15s,transform .1s;
+}
+.pila-apri:active{transform:scale(.97);border-color:var(--oro)}
+.pila-apri img{width:100%;height:100%;object-fit:cover;display:block}
+/* IL BERSAGLIO E' PICCOLO APPOSTA, e sta in un angolo: e' l'unica cosa
+   distruttiva di questa schermata, e non deve capitare volendo aprire la
+   miniatura che ci sta sotto. */
+.pila-via{
+  position:absolute;top:-6px;right:-6px;cursor:pointer;
+  width:24px;height:24px;border-radius:50%;border:1.5px solid var(--sand);
+  background:rgba(26,20,16,.78);color:var(--oro);
+  font-size:11px;line-height:1;display:flex;align-items:center;justify-content:center;
+}
+.pila-via:active{background:rgba(26,20,16,.95)}

@@ -26,6 +26,15 @@ document.getElementById('screen-idee').classList.add('active');
 const idee = await import('/js/idee.js');
 window.idee = idee;
 idee.initIdee();
+
+// IL TASTO INDIETRO. Nell'app lo tiene main.js, che qui non c'e': senza questo
+// pezzo l'editor non si chiuderebbe mai — la sua freccia passa apposta dalla
+// cronologia, cosi' il tasto del telefono e quello a schermo fanno la stessa
+// identica cosa (col dito la freccia non c'e' proprio).
+addEventListener('popstate', ()=>{
+  const ov = document.getElementById('idea-editor');
+  if(ov && ov.classList.contains('open')) idee.chiudiEditor();
+});
 window.__ready = true;
 </script>
 </body></html>

@@ -675,15 +675,22 @@ async function disegnaScelta(){
     if(dove) dove.textContent = 'Riferimenti';
     // Niente ricerca: qui non c'e' niente da cercare, ci sono le tue.
     if(cerca) cerca.hidden = true;
+    // MINIATURE, non le immagini intere. A tutta larghezza si vedeva una
+    // referenza per schermata e per averne il quadro bisognava scorrere: qui
+    // servono tutte insieme, per capire in un colpo cosa si era messo da parte.
+    // Toccandone una si apre la galleria vera dell'archivio — la stessa dei
+    // frammenti, con la provenienza e le frecce — solo che scorre fra QUESTE.
     const pila = rifiDi(b);
     griglia.className = 'sceltarif-pila';
-    griglia.innerHTML = pila.map((x,i)=> `<div class="pila-riga">
-        <img src="${esc(cldResize(x.url, 900))}" alt=""/>
+    griglia.innerHTML = pila.map((x,i)=> `<div class="pila-mini">
+        <button class="pila-apri" data-apri="${i}" type="button" aria-label="Guarda questo riferimento">
+          <img src="${esc(cldResize(x.url, 320))}" loading="lazy" alt=""/>
+        </button>
         <button class="pila-via" data-via="${i}" type="button" aria-label="Togli questo riferimento">✕</button>
       </div>`).join('')
-      + `<button class="pila-aggiungi" data-archivio type="button">
-          <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M12 5.5v13M5.5 12h13" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"/></svg>
-          <span>Aggiungi dall'archivio</span>
+      + `<button class="sceltarif-tessera sceltarif-disegna" data-archivio type="button">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 5.5v13M5.5 12h13" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"/></svg>
+          <span>Aggiungi</span>
         </button>`;
     return;
   }
@@ -844,6 +851,23 @@ function segnaTessere(){
     if(!presa && segno) segno.remove();
   });
   if(togli) togli.hidden = !rifiDi(beatDiScelta()).length;
+}
+
+// Guarda un riferimento a schermo intero. Se e' roba d'archivio si apre la
+// galleria vera — quella dei frammenti, con provenienza, tag e frecce — e le
+// frecce scorrono fra i riferimenti DI QUESTO BEAT, non fra quelli della
+// cartella da cui erano stati presi.
+// Se invece e' uno schizzo fatto qui non sta in archivio, e allora si riapre il
+// foglio da disegno: per un disegno "guardarlo" e "continuarlo" sono la stessa
+// cosa.
+async function apriRiferimento(i){
+  const pila = rifiDi(beatDiScelta());
+  const x = pila[i];
+  if(!x) return;
+  if(!x.refId){ disegnaBeat(); return; }
+  const r = await import('./refs.js');
+  const elenco = pila.map(y=> y.refId && r.refsCache().find(z=> z.id === y.refId)).filter(Boolean);
+  r.openRefLightbox(x.refId, elenco);
 }
 
 // Toglie una sola immagine dalla pila, dalla vista che le mostra. Il bersaglio
@@ -1107,6 +1131,8 @@ export function initScene(){
     }
     const via = e.target.closest('[data-via]');
     if(via){ togliDallaPila(+via.dataset.via); return; }
+    const apri = e.target.closest('[data-apri]');
+    if(apri){ apriRiferimento(+apri.dataset.apri); return; }
     if(e.target.closest('[data-archivio]')){ scendi('cartelle'); return; }
     const cart = e.target.closest('[data-cartella]');
     if(cart){ entraCartella(cart.dataset.cartella); return; }

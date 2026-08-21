@@ -39,6 +39,12 @@ scene.initScene();
 // telefono e quello a schermo fanno la stessa identica cosa. Riprodotto uguale
 // a com'e' li', board prima e scena dopo: la board sta sopra.
 addEventListener('popstate', async ()=>{
+  // ORDINATO PER STRATI, come in main.js: la galleria a schermo intero (9500)
+  // puo' aprirsi da dentro la scelta di un riferimento (225), e va chiusa per
+  // prima — se no un Indietro risale un livello nella scelta, sotto, lasciando
+  // la galleria a schermo.
+  const lb = document.getElementById('refs-lightbox');
+  if(lb.classList.contains('open')){ (await import('/js/refs.js')).closeLightboxUI(); return; }
   const sz = document.getElementById('schizzo');
   if(sz.classList.contains('open')){ (await import('/js/schizzo.js')).chiudiSchizzoUI(); return; }
   if(document.getElementById('sceltarif').classList.contains('open')){

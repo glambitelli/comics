@@ -93,10 +93,14 @@ async function preloadCell(cell, index, hideUntilReady){
   if(hideUntilReady) cell.el.style.visibility = '';
 }
 
-export function openRefLightbox(id){
+// `elenco` serve a chi la galleria la apre da FUORI dall'archivio: le Scene
+// mostrano i riferimenti di un beat, e scorrendo devono comparire quelli — non
+// tutta la cartella da cui erano stati presi. Senza, si finiva a sfogliare
+// l'archivio partendo da una miniatura che si era aperta per guardarla e basta.
+export function openRefLightbox(id, elenco){
   const item = refsCache().find(r=>r.id===id);
   if(!item) return;
-  _lightboxList = currentGridList();
+  _lightboxList = Array.isArray(elenco) && elenco.length ? elenco : currentGridList();
   _lightboxIndex = _lightboxList.findIndex(r=>r.id===id);
   // Registra uno stato nella cronologia: così il tasto Indietro (browser o
   // gesto Android) chiude l'immagine e torna alla griglia, invece di uscire.

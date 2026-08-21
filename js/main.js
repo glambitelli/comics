@@ -498,8 +498,12 @@ window.addEventListener('popstate', e=>{
     const m = loadedMod('./albums.js');
     if(m){ m.closeReaderUI(); return; }
   }
-  // Stessa logica per un'immagine aperta a schermo intero: si torna alla
-  // griglia da cui era stata aperta.
+  // QUESTA CATENA E' ORDINATA PER STRATI, dal piu' alto al piu' basso, e non e'
+  // un dettaglio: si chiude sempre e solo quello che sta davanti agli occhi.
+  // La galleria a schermo intero (9500) puo' aprirsi anche da DENTRO la scelta
+  // di un riferimento nelle Scene (225): con la scelta controllata per prima, un
+  // Indietro con la galleria aperta risaliva un livello nella scelta — sotto —
+  // lasciando la galleria a schermo.
   const lb = document.getElementById('refs-lightbox');
   if(lb && lb.classList.contains('open')){
     const m = loadedMod('./refs.js');
