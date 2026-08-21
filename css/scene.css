@@ -510,3 +510,40 @@ body.is-touch .board-chiudi{display:none}
   color:var(--ink3);opacity:.75;
 }
 .sceltarif-categoria:first-of-type{margin-top:2px}
+
+/* ── I RIFERIMENTI DI UN BEAT, e nient'altro ──
+   Si arriva qui toccando una vignetta gia' piena, ed e' quasi sempre per
+   guardare cosa ci si era messo mentre si disegna. Quindi le immagini sono
+   GRANDI e in colonna, una sotto l'altra: e' una vista da consultare, non un
+   catalogo da cui scegliere — quello sta un livello sotto.
+   Prima toccando una vignetta piena si riapriva l'archivio intero, e per
+   rivedere le proprie tre referenze bisognava ricercarle una per una. */
+.sceltarif-pila{display:flex;flex-direction:column;gap:12px}
+.pila-riga{
+  position:relative;border-radius:12px;overflow:hidden;
+  border:1.5px solid var(--sand2);background:#fffdf7;
+  box-shadow:0 1px 2px rgba(60,44,20,.05), 0 6px 20px rgba(60,44,20,.07);
+}
+/* Larghe quanto il foglio e alte quanto vogliono, fino a un tetto: una tavola
+   verticale altrimenti si mangia due schermate da sola. */
+.pila-riga img{display:block;width:100%;max-height:62vh;object-fit:contain;background:#fffdf7}
+/* IL BERSAGLIO E' PICCOLO APPOSTA, e sta in un angolo: e' l'unica cosa
+   distruttiva di questa schermata, e non deve capitare sfiorando l'immagine che
+   si stava guardando. */
+.pila-via{
+  position:absolute;top:7px;right:7px;cursor:pointer;
+  width:28px;height:28px;border-radius:50%;border:none;
+  background:rgba(26,20,16,.62);color:var(--oro);
+  font-size:13px;line-height:1;display:flex;align-items:center;justify-content:center;
+}
+.pila-via:active{background:rgba(26,20,16,.85)}
+.pila-aggiungi{
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  padding:14px 13px;cursor:pointer;
+  border:1.5px dashed var(--sand3);border-radius:12px;background:rgba(255,255,255,.6);
+  font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;color:var(--ink2);
+}
+.pila-aggiungi:active{border-color:var(--oro);color:var(--ottone)}
+/* La ricerca sparisce sulla pila: li' non c'e' niente da cercare, ci sono le
+   tue. */
+#sceltarif-cerca[hidden]{display:none}

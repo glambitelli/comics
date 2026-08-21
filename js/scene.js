@@ -574,6 +574,16 @@ function zittisciBeat(id){
 let _boxScelta = null;      // il beat su cui si sta scegliendo
 let _cercaRif = '';
 let _cartellaRif = null;    // la cartella aperta, o null per l'elenco
+// TRE VISTE, UNA DENTRO L'ALTRA.
+//   'pila'     — i riferimenti di QUESTO beat, e nient'altro
+//   'cartelle' — l'archivio, raggruppato per categoria
+//   'dentro'   — una cartella, con le sue due schede
+// Toccando una vignetta gia' piena si atterra sulla PILA e non sull'archivio:
+// il momento in cui si tocca una vignetta piena e' quasi sempre "fammi
+// rivedere cosa avevo messo qui" — si sta disegnando, e si vuole guardare le
+// proprie referenze, non ricominciare a sceglierne. Ritrovarsi il catalogo
+// intero voleva dire dover cercare due volte la stessa cosa.
+let _vista = 'cartelle';
 
 async function apriScelta(box){
   const scena = scenaAperta();
@@ -581,6 +591,8 @@ async function apriScelta(box){
   _boxScelta = box;
   _cercaRif = '';
   _cartellaRif = null;
+  const b0 = scena.beat.find(x=> x.id === box.dataset.id);
+  _vista = rifiDi(b0).length ? 'pila' : 'cartelle';
   const campo = document.getElementById('sceltarif-cerca');
   if(campo) campo.value = '';
   const foglio = document.getElementById('sceltarif');
@@ -651,6 +663,32 @@ async function disegnaScelta(){
   const r = await import('./refs.js');
   const tutte = r.refsCache().filter(x=> x && x.url);
   const q = _cercaRif.trim().toLowerCase();
+  const cerca = document.getElementById('sceltarif-cerca');
+
+  // ── LA PILA DI QUESTO BEAT, e nient'altro ──
+  // Si arriva qui toccando una vignetta gia' piena, ed e' quasi sempre per
+  // guardare cosa ci si era messo mentre si disegna: quindi le immagini sono
+  // grandi e in colonna, una sotto l'altra, non tessere da catalogo. Da qui si
+  // toglie quello che non serve piu' e si scende nell'archivio per aggiungerne.
+  if(_vista === 'pila'){
+    mostraTab(false);
+    if(dove) dove.textContent = 'Riferimenti';
+    // Niente ricerca: qui non c'e' niente da cercare, ci sono le tue.
+    if(cerca) cerca.hidden = true;
+    const pila = rifiDi(b);
+    griglia.className = 'sceltarif-pila';
+    griglia.innerHTML = pila.map((x,i)=> `<div class="pila-riga">
+        <img src="${esc(cldResize(x.url, 900))}" alt=""/>
+        <button class="pila-via" data-via="${i}" type="button" aria-label="Togli questo riferimento">✕</button>
+      </div>`).join('')
+      + `<button class="pila-aggiungi" data-archivio type="button">
+          <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M12 5.5v13M5.5 12h13" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"/></svg>
+          <span>Aggiungi dall'archivio</span>
+        </button>`;
+    return;
+  }
+  griglia.className = 'sceltarif-griglia';
+  if(cerca) cerca.hidden = false;
 
   // ── cercando: tutto l'archivio in fila, ovunque stia ──
   if(q){
@@ -734,17 +772,27 @@ function nomeCartella(id, r){
   return f ? (f.name || 'Senza nome') : 'Senza cartella';
 }
 
-// Dentro una cartella e fuori: si passa dalla cronologia, cosi' il tasto
-// Indietro del telefono e la freccia a schermo risalgono allo stesso modo.
+// Si scende di un livello per volta, e ogni discesa lascia il suo segno nella
+// cronologia: cosi' il tasto Indietro del telefono e la freccia a schermo
+// risalgono allo stesso modo, un passo alla volta.
+function scendi(dove){
+  _vista = dove;
+  try{ history.pushState({view:'sceltarif-' + dove}, ''); }catch(e){}
+  disegnaScelta();
+}
 function entraCartella(id){
   _cartellaRif = id;
   _tabRif = 'ritagli';
-  try{ history.pushState({view:'sceltarif-cartella'}, ''); }catch(e){}
-  disegnaScelta();
+  scendi('dentro');
 }
+// Torna true se c'era un livello da risalire, false se si era gia' alla radice
+// — e allora chi ha chiamato chiude il foglio.
 export function risaliScelta(){
-  _cartellaRif = null;
-  disegnaScelta();
+  if(_vista === 'dentro'){ _cartellaRif = null; _vista = 'cartelle'; disegnaScelta(); return true; }
+  // Dall'archivio si torna alla pila solo se una pila c'e': un beat vuoto parte
+  // dall'archivio, e li' l'archivio E' la radice.
+  if(_vista === 'cartelle' && rifiDi(beatDiScelta()).length){ _vista = 'pila'; disegnaScelta(); return true; }
+  return false;
 }
 
 // Accende o spegne un riferimento sulla pila del beat. Toccarne uno gia' preso
@@ -798,6 +846,28 @@ function segnaTessere(){
   if(togli) togli.hidden = !rifiDi(beatDiScelta()).length;
 }
 
+// Toglie una sola immagine dalla pila, dalla vista che le mostra. Il bersaglio
+// e' piccolo apposta e sta in un angolo: e' l'unica cosa distruttiva di questa
+// schermata, e non deve capitare sfiorando l'immagine che si stava guardando.
+function togliDallaPila(i){
+  const scena = scenaAperta();
+  const b = beatDiScelta();
+  if(!scena || !b) return;
+  const pila = rifiDi(b).slice();
+  if(i < 0 || i >= pila.length) return;
+  pila.splice(i, 1);
+  b.rifs = pila;
+  delete b.img; delete b.refId;
+  scena.updatedAt = Date.now();
+  aggiornaPila();
+  haptic('tap');
+  salvaSubito(scena.id);
+  // Svuotata del tutto, restare su una schermata vuota non ha senso: si scende
+  // dove si sceglie.
+  if(!pila.length){ _vista = 'cartelle'; }
+  disegnaScelta();
+}
+
 function svuotaPila(){
   const scena = scenaAperta();
   const b = beatDiScelta();
@@ -808,6 +878,7 @@ function svuotaPila(){
   aggiornaPila();
   haptic('done');
   salvaSubito(scena.id);
+  if(_vista === 'pila'){ _vista = 'cartelle'; disegnaScelta(); return; }
   segnaTessere();
 }
 
@@ -838,7 +909,7 @@ export function chiudiScelta(){
   }
   chiudiSceltaUI();
 }
-export function dentroUnaCartella(){ return !!_cartellaRif; }
+export function vistaScelta(){ return _vista; }
 
 // ── DISEGNARE UN BEAT ───────────────────────────────────────────────────────
 // Il foglio vive in schizzo.js e si carica solo se lo si apre davvero: chi non
@@ -1034,6 +1105,9 @@ export function initScene(){
       disegnaBeat();
       return;
     }
+    const via = e.target.closest('[data-via]');
+    if(via){ togliDallaPila(+via.dataset.via); return; }
+    if(e.target.closest('[data-archivio]')){ scendi('cartelle'); return; }
     const cart = e.target.closest('[data-cartella]');
     if(cart){ entraCartella(cart.dataset.cartella); return; }
     const t = e.target.closest('[data-rif]');

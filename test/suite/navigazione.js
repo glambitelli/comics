@@ -202,6 +202,24 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
     };
   });
   ok('nella barra c\'e\' Scene', quarto.scene, quarto);
+  // IL GLIFO E' UNA TAVOLA, non l'icona "griglia" che mettono tutti: nella
+  // barra c'e' gia' un rettangolo con dentro un disegno (References), e due
+  // rettangoli generici accanto si scambiano. Una gabbia da fumetto invece dice
+  // di cosa parla la sezione — ed e' quello che la Board mostra.
+  const glifo = await page.evaluate(()=>{
+    const b = document.querySelector('.dune-btn[aria-label="Scene"]');
+    const svg = b.querySelector('svg');
+    return {
+      rettangoli: svg.querySelectorAll('rect').length,
+      divisioni: svg.querySelectorAll('path').length,
+      // Grande come gli altri glifi della barra: uno diverso si nota subito.
+      lato: svg.getAttribute('width'),
+    };
+  });
+  ok('il glifo e\' una gabbia: una cornice e due divisioni',
+     glifo.rettangoli === 1 && glifo.divisioni === 2, glifo);
+  ok('e non quattro quadratini staccati', glifo.rettangoli < 4, glifo);
+  ok('grande come gli altri', glifo.lato === '18', glifo);
   ok('e Idee non c\'e\' piu\'', !quarto.idee, quarto);
   ok('i tondi restano cinque', quarto.quanti === 5, quarto);
 

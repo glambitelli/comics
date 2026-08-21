@@ -42,9 +42,9 @@ addEventListener('popstate', async ()=>{
   const sz = document.getElementById('schizzo');
   if(sz.classList.contains('open')){ (await import('/js/schizzo.js')).chiudiSchizzoUI(); return; }
   if(document.getElementById('sceltarif').classList.contains('open')){
-    // Come in main.js: dentro una cartella si risale di un livello, e solo dal
-    // secondo passo si chiude il foglio.
-    if(scene.dentroUnaCartella()){ scene.risaliScelta(); return; }
+    // Come in main.js: si risale un livello per volta, e quando non ce ne sono
+    // piu' il passo chiude il foglio.
+    if(scene.risaliScelta()) return;
     scene.chiudiSceltaUI(); return;
   }
   if(document.getElementById('board').classList.contains('open')){ scene.chiudiBoardUI(); return; }

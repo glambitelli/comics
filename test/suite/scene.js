@@ -805,19 +805,102 @@ module.exports = () => suite("Scene — un riquadro per volta, cento caratteri",
   ok('e il pulsante si spegne, perche\' non c\'e\' piu\' niente da togliere',
      tolto.pulsante, tolto);
 
+  sezione('riaprendo una vignetta piena si vedono SOLO le sue immagini');
+  // Toccare una vignetta gia' piena e' quasi sempre "fammi rivedere cosa avevo
+  // messo qui": si sta disegnando e si vogliono guardare le proprie referenze,
+  // non ricominciare a sceglierne. Prima si riapriva il catalogo intero, e per
+  // rivedere le proprie tre bisognava ricercarle una per una.
+  await page.evaluate(()=>{
+    const s = window.scene.scenaAperta();
+    const b = s.beat[s.beat.length-1];
+    b.rifs = [{url:'data:image/gif;base64,R0lGODlhAQABAAAAACw=',refId:'rif0'},
+              {url:'data:image/gif;base64,R0lGODlhAQABAAAAACw=',refId:'rif1'}];
+    window.scene.renderBeat();
+    const bb = document.querySelectorAll('#scena-beat .beat[data-id]');
+    bb[bb.length-1].querySelector('[data-schizzo]').click();
+  });
+  await page.waitForTimeout(500);
+  const laPila = await page.evaluate(()=>{
+    const g = document.getElementById('sceltarif-griglia');
+    const righe = g.querySelectorAll('.pila-riga');
+    const foglio = document.getElementById('sceltarif').getBoundingClientRect();
+    return {
+      vista: window.scene.vistaScelta(),
+      quante: righe.length,
+      // Niente catalogo: nessuna cartella, nessuna tessera dell'archivio.
+      cartelle: g.querySelectorAll('[data-cartella]').length,
+      tessere: g.querySelectorAll('[data-rif]').length,
+      // Grandi e in colonna: e' una vista da guardare, non da scegliere.
+      larghezza: righe.length ? +(righe[0].getBoundingClientRect().width / foglio.width).toFixed(2) : 0,
+      inColonna: righe.length > 1 &&
+        righe[1].getBoundingClientRect().top > righe[0].getBoundingClientRect().bottom - 1,
+      // La ricerca sparisce: qui non c'e' niente da cercare, ci sono le tue.
+      cerca: !document.getElementById('sceltarif-cerca').hidden,
+      dove: (document.getElementById('sceltarif-dove')||{}).textContent,
+      aggiungi: !!g.querySelector('[data-archivio]'),
+    };
+  });
+  ok('si atterra sulla pila del beat', laPila.vista === 'pila', laPila);
+  ok('e ci sono solo le sue immagini', laPila.quante === 2, laPila);
+  ok('senza una riga di catalogo', laPila.cartelle === 0 && laPila.tessere === 0, laPila);
+  ok('grandi quanto il foglio', laPila.larghezza >= 0.85, laPila);
+  ok('una sotto l\'altra', laPila.inColonna, laPila);
+  ok('la ricerca si toglie di mezzo', !laPila.cerca, laPila);
+  ok('e la barra dice cosa sono', /riferimenti/i.test(laPila.dove||''), laPila);
+  ok('con il modo di aggiungerne altre', laPila.aggiungi, laPila);
+
+  sezione('da li\' si toglie quello che non serve piu\'');
+  const menoUna = await page.evaluate(async ()=>{
+    document.querySelector('.pila-riga [data-via]').click();
+    await new Promise(r=> setTimeout(r, 350));
+    const s = window.scene.scenaAperta();
+    return {
+      pila: window.scene.rifiDi(s.beat[s.beat.length-1]).map(x=> x.refId),
+      righe: document.querySelectorAll('.pila-riga').length,
+    };
+  });
+  ok('la prima esce dalla pila', menoUna.pila.join(',') === 'rif1', menoUna);
+  ok('e sparisce anche da qui', menoUna.righe === 1, menoUna);
+
+  sezione('e "Aggiungi" scende nell\'archivio');
+  await page.evaluate(()=> document.querySelector('[data-archivio]').click());
+  await page.waitForTimeout(350);
+  const sceso = await page.evaluate(()=>({
+    vista: window.scene.vistaScelta(),
+    cartelle: document.querySelectorAll('#sceltarif-griglia [data-cartella]').length,
+    cerca: !document.getElementById('sceltarif-cerca').hidden,
+  }));
+  ok('si arriva alle cartelle', sceso.vista === 'cartelle' && sceso.cartelle === 2, sceso);
+  ok('e la ricerca torna', sceso.cerca, sceso);
+
   sezione('e la freccia risale un passo per volta');
   // Dentro una cartella Indietro torna all'elenco, e solo dal secondo passo
   // chiude: e' un livello di navigazione, e come tale costa un passo indietro.
+  // Tre livelli, tre passi: una cartella, l'archivio, la pila del beat. E solo
+  // dopo il foglio si chiude.
+  await page.evaluate(()=>{
+    const c = Array.from(document.querySelectorAll('[data-cartella]'))
+      .find(x=> /OTOMO/.test(x.textContent));
+    c.click();
+  });
+  await page.waitForTimeout(300);
+  ok('si e\' dentro una cartella',
+     await page.evaluate(()=> window.scene.vistaScelta()) === 'dentro', null);
   await page.goBack();
   await page.waitForTimeout(300);
-  const risalito = await page.evaluate(()=>({
+  const passo1 = await page.evaluate(()=> window.scene.vistaScelta());
+  ok('il primo passo torna alle cartelle', passo1 === 'cartelle', passo1);
+  await page.goBack();
+  await page.waitForTimeout(300);
+  const passo2 = await page.evaluate(()=>({
+    vista: window.scene.vistaScelta(),
     aperta: document.getElementById('sceltarif').classList.contains('open'),
-    cartelle: document.querySelectorAll('#sceltarif-griglia [data-cartella]').length,
   }));
-  ok('il primo passo torna alle cartelle', risalito.aperta && risalito.cartelle === 2, risalito);
+  ok('il secondo torna ai riferimenti del beat',
+     passo2.vista === 'pila' && passo2.aperta, passo2);
   await page.goBack();
   await page.waitForTimeout(300);
-  ok('il secondo chiude la scelta',
+  ok('e il terzo chiude la scelta',
      await page.evaluate(()=> !document.getElementById('sceltarif').classList.contains('open')), null);
   // Il beat rimasto senza pila e senza testo se ne va alla prima uscita dal
   // riquadro, come tutti i vuoti: la regola vale anche qui.
@@ -831,13 +914,17 @@ module.exports = () => suite("Scene — un riquadro per volta, cento caratteri",
   // La potatura dei vuoti guarda il testo: senza questa regola, un beat
   // disegnato sparirebbe appena si esce dal riquadro accanto.
   await page.evaluate(()=>{
+    const conta = ()=> window.scene.scenaAperta().beat.filter(b=> window.scene.rifiDi(b).length).length;
+    window.__conImmagini = { prima: conta() };
     document.querySelector('#scena-beat .beat-nuovo textarea').focus();
     document.activeElement.blur();
+    setTimeout(()=>{ window.__conImmagini.dopo = conta(); }, 50);
   });
   await page.waitForTimeout(150);
-  const sopravvive = await page.evaluate(()=>
-    window.scene.scenaAperta().beat.filter(b=> window.scene.rifiDi(b).length).length);
-  ok('resta dov\'e\'', sopravvive === 1, sopravvive);
+  const sopravvive = await page.evaluate(()=> window.__conImmagini);
+  // Prima e dopo: quello che conta e' che uscendo dal riquadro accanto non ne
+  // sparisca nessuno, non quanti fossero.
+  ok('restano tutti dove sono', sopravvive.dopo === sopravvive.prima && sopravvive.dopo > 0, sopravvive);
 
   sezione('"sembrano piu\' vignette": un beat = una inquadratura');
   // "Prende il telefono, gira su se stesso e inizia a correre" non e' una
