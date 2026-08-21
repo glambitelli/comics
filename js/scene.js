@@ -682,7 +682,7 @@ async function disegnaScelta(){
     // Toccandone una si apre la galleria vera dell'archivio — la stessa dei
     // frammenti, con la provenienza e le frecce — solo che scorre fra QUESTE.
     const pila = rifiDi(b);
-    griglia.className = 'sceltarif-pila';
+    griglia.className = 'sceltarif-mura sceltarif-pila';
     montaSceltaPila(griglia);
     const n = _sceltaPila ? _sceltaPila.quante() : 0;
     // Mentre si sceglie la barra dice quante ne hai prese e il pulsante diventa
@@ -695,6 +695,7 @@ async function disegnaScelta(){
       togli.textContent = n === 1 ? 'Togli' : 'Togli ' + n;
     }
     griglia.classList.toggle('scegliendo', n > 0);
+    murature(griglia);
     // NIENTE ✕ SU OGNI MINIATURA. Era un bersaglio da ventiquattro pixel
     // appiccicato all'angolo di ognuna, e per toglierne tre servivano tre
     // tocchi centrati bene. Adesso si tiene premuto per cominciare a scegliere
@@ -704,7 +705,7 @@ async function disegnaScelta(){
     griglia.innerHTML = pila.map((x,i)=> {
       const preso = _sceltaPila && _sceltaPila.ha(String(i));
       return `<div class="pila-mini${preso ? ' scelta' : ''}" data-mini="${i}">
-        <img src="${esc(cldResize(x.url, 320))}" loading="lazy" alt=""/>
+        <img src="${esc(cldResize(x.url, 400))}" alt=""/>
         <span class="refs-spunta${preso ? ' on' : ''}" role="checkbox" aria-checked="${preso}" aria-label="Scegli"></span>
       </div>`;
     }).join('')
@@ -714,7 +715,6 @@ async function disegnaScelta(){
         </button>`;
     return;
   }
-  griglia.className = 'sceltarif-griglia';
   if(cerca) cerca.hidden = false;
 
   // ── cercando: tutto l'archivio in fila, ovunque stia ──
@@ -723,9 +723,11 @@ async function disegnaScelta(){
     if(dove) dove.textContent = '';
     const trovate = tutte.filter(x=>
       ((x.tags||[]).join(' ') + ' ' + (x.provenance && x.provenance.opera || '')).toLowerCase().includes(q));
+    griglia.className = 'sceltarif-mura';
     griglia.innerHTML = trovate.length
       ? trovate.map(x=> tesseraHTML(x, presi.has(x.id))).join('')
       : `<div class="sceltarif-vuoto"><p>Nessun riferimento con questo nome.</p></div>`;
+    murature(griglia);
     return;
   }
 
@@ -742,14 +744,19 @@ async function disegnaScelta(){
       const n = dentro.filter(x=> btn.dataset.tab === 'tavole' ? !!x.tavola : !x.tavola).length;
       btn.textContent = (btn.dataset.tab === 'tavole' ? 'Tavole' : 'Frammenti') + ' ' + n;
     });
+    griglia.className = 'sceltarif-mura';
     griglia.innerHTML = scelte.length
       ? scelte.map(x=> tesseraHTML(x, presi.has(x.id))).join('')
       : `<div class="sceltarif-vuoto"><p>Qui dentro non c\'e\' niente${
           _tabRif === 'tavole' ? ' fra le tavole' : ' fra i frammenti'}.</p></div>`;
+    murature(griglia);
     return;
   }
 
   // ── l'elenco: le cartelle raggruppate per categoria, come nell'archivio ──
+  // Qui NON si mura: le cartelle non sono fotografie, sono contenitori, e a
+  // tessere tutte uguali si contano a colpo d'occhio.
+  griglia.className = 'sceltarif-griglia';
   mostraTab(false);
   if(dove) dove.textContent = '';
   const perCartella = new Map();
@@ -791,6 +798,39 @@ async function disegnaScelta(){
         <span class="sceltarif-quante">${foto.length}</span>
       </button>`).join('')
   ).join('');
+}
+
+// ── IL MURETTO ──────────────────────────────────────────────────────────────
+// Le miniature erano riquadri 4:3 tutti uguali con l'immagine tagliata al
+// centro (object-fit:cover). Su una griglia di ritagli e' il taglio a fare il
+// danno: un frammento e' quasi sempre un dettaglio — una mano, una posa, un
+// angolo di strada — e tagliargli i bordi toglie proprio quello che serve per
+// riconoscerlo. A schermo restavano venti quadratini indistinguibili.
+//
+// Adesso ogni immagine sta INTERA e alta quanto le tocca, incastrata nelle
+// colonne come i mattoni di un muretto. E il muretto e' fatto con la griglia e
+// non con le colonne CSS — che sarebbe una riga di codice invece di quindici —
+// perche' le colonne riempiono dall'alto in basso: cinque immagini in tre
+// colonne si leggerebbero 1,3,5 sulla prima riga e 2,4 sulla seconda, e nella
+// pila di un beat l'ordine e' l'ordine in cui le hai scelte.
+//
+// La misura si prende dall'immagine caricata e non dai dati salvati: le
+// proporzioni scritte sul documento possono mancare (roba archiviata da
+// versioni vecchie) o non essere quelle vere, mentre la miniatura che si sta
+// guardando non puo' sbagliarsi.
+const RIGA = 8, MALTA = 9;
+function murature(griglia){
+  griglia.querySelectorAll('img').forEach(im=>{
+    const posa = ()=>{
+      const tessera = im.closest('.sceltarif-tessera, .pila-mini');
+      if(!tessera || !im.naturalWidth || !im.naturalHeight) return;
+      const largo = tessera.getBoundingClientRect().width;
+      if(!largo) return;
+      const alto = largo * (im.naturalHeight / im.naturalWidth);
+      tessera.style.gridRowEnd = 'span ' + Math.max(2, Math.ceil((alto + MALTA) / (RIGA + MALTA)));
+    };
+    if(im.complete) posa(); else im.addEventListener('load', posa, { once:true });
+  });
 }
 
 function nomeCartella(id, r){

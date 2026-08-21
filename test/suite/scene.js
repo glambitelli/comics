@@ -643,6 +643,24 @@ module.exports = () => suite("Scene — un riquadro per volta, cento caratteri",
   // Dentro OTOMO ci sono quattro immagini, di cui una segnata come tavola:
   // nella scheda Frammenti se ne vedono tre.
   ok('entrando si vedono i suoi frammenti', archivio.tessere === 3, archivio);
+  // Anche qui il muretto: le tessere non hanno tutte la stessa altezza, si
+  // incastrano. Con riquadri uguali venti ritagli diventavano venti quadratini
+  // indistinguibili.
+  const muro = await page.evaluate(()=>{
+    const t = Array.from(document.querySelectorAll('#sceltarif-griglia .sceltarif-tessera[data-rif]'));
+    const alte = t.map(x=> Math.round(x.getBoundingClientRect().height));
+    return {
+      colonne: getComputedStyle(document.getElementById('sceltarif-griglia'))
+                 .gridTemplateColumns.split(' ').length,
+      alte,
+      // Due tessere sulla stessa riga cominciano alla stessa altezza, ma non
+      // devono finire per forza insieme.
+      diverse: new Set(alte).size > 1,
+      taglio: t.length ? getComputedStyle(t[0].querySelector('img')).objectFit : null,
+    };
+  });
+  ok('su due colonne, non tre', muro.colonne === 2, muro);
+  ok('e le immagini non sono tagliate', muro.taglio !== 'cover', muro);
   ok('e la barra dice dove si e\'', /OTOMO/.test(archivio.dove||''), archivio);
   ok('in tessere da vignetta', Math.abs(archivio.forma - 4/3) < 0.06, archivio);
 
@@ -829,9 +847,9 @@ module.exports = () => suite("Scene — un riquadro per volta, cento caratteri",
       // Niente catalogo: nessuna cartella, nessuna tessera dell'archivio.
       cartelle: g.querySelectorAll('[data-cartella]').length,
       tessere: g.querySelectorAll('[data-rif]').length,
-      // MINIATURE, non immagini intere: a tutta larghezza se ne vedeva una per
-      // schermata, e per avere il quadro di cosa si era messo da parte bisognava
-      // scorrere. Qui ne stanno tre per riga.
+      // MINIATURE, non immagini a tutta pagina: a tutta larghezza se ne vedeva
+      // una per schermata. Due per riga — con tre un dettaglio diventa un
+      // francobollo, che e' il problema opposto.
       quota: mini.length ? +(mini[0].getBoundingClientRect().width / foglio.width).toFixed(2) : 0,
       sullaStessaRiga: mini.length > 1 &&
         Math.abs(mini[0].getBoundingClientRect().top - mini[1].getBoundingClientRect().top) < 3,
@@ -847,12 +865,63 @@ module.exports = () => suite("Scene — un riquadro per volta, cento caratteri",
   ok('si atterra sulla pila del beat', laPila.vista === 'pila', laPila);
   ok('e ci sono solo le sue immagini', laPila.quante === 2, laPila);
   ok('senza una riga di catalogo', laPila.cartelle === 0 && laPila.tessere === 0, laPila);
-  ok('sono miniature, non immagini a tutta pagina', laPila.quota < 0.45, laPila);
+  ok('sono miniature, non immagini a tutta pagina',
+     laPila.quota > 0.35 && laPila.quota < 0.55, laPila);
   ok('e stanno affiancate, non una per schermata', laPila.sullaStessaRiga, laPila);
   ok('la ricerca si toglie di mezzo', !laPila.cerca, laPila);
   ok('e la barra dice cosa sono', /riferimenti/i.test(laPila.dove||''), laPila);
   ok('con il modo di aggiungerne altre', laPila.aggiungi, laPila);
   ok('senza una ✕ appiccicata su ognuna', laPila.crocette === 0, laPila);
+
+  sezione('e si vedono INTERE, senza il taglio al centro');
+  // Il taglio al centro (object-fit:cover) e' quello che faceva il danno: un
+  // frammento e' quasi sempre un dettaglio — una mano, una posa, un angolo di
+  // strada — e tagliargli i bordi toglie proprio quello che serve per
+  // riconoscerlo. A schermo restavano quadratini indistinguibili.
+  const intere = await page.evaluate(async ()=>{
+    // Due immagini di forma molto diversa: e' la differenza che un muretto deve
+    // saper incastrare e una griglia di riquadri uguali appiattisce.
+    const alta = (w,h)=>{
+      const c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      const x = c.getContext('2d'); x.fillStyle = '#c05a3a'; x.fillRect(0,0,w,h);
+      return c.toDataURL('image/png');
+    };
+    const s = window.scene.scenaAperta();
+    const b = s.beat[s.beat.length-1];
+    b.rifs = [{url: alta(40,90), refId:'rif0'}, {url: alta(90,40), refId:'rif1'}];
+    window.scene.renderBeat();
+    const bb = document.querySelectorAll('#scena-beat .beat[data-id]');
+    bb[bb.length-1].querySelector('[data-schizzo]').click();
+    await new Promise(r=> setTimeout(r, 700));
+    const mini = Array.from(document.querySelectorAll('.pila-mini'));
+    return mini.map(el=>{
+      const im = el.querySelector('img');
+      const r = el.getBoundingClientRect(), ri = im.getBoundingClientRect();
+      return {
+        taglio: getComputedStyle(im).objectFit,
+        naturale: +(im.naturalWidth / im.naturalHeight).toFixed(2),
+        forma: +(ri.width / ri.height).toFixed(2),
+        // L'immagine riempie la tessera: niente strisce di fondo ai lati.
+        piena: Math.abs(ri.height - r.height) < 5,
+      };
+    });
+  });
+  ok('nessuna e\' tagliata al centro', intere.every(x=> x.taglio !== 'cover'), intere);
+  ok('ognuna conserva le sue proporzioni',
+     intere.every(x=> Math.abs(x.forma - x.naturale) < 0.05), intere);
+  ok('e le due forme diverse restano diverse',
+     Math.abs(intere[0].forma - intere[1].forma) > 0.5, intere);
+  ok('senza lasciare strisce di fondo attorno', intere.every(x=> x.piena), intere);
+  // Rimesse com'erano, cosi' le prove che seguono ripartono da dove stavano.
+  await page.evaluate(()=>{
+    const s = window.scene.scenaAperta();
+    const b = s.beat[s.beat.length-1];
+    b.rifs = [{url:'data:image/gif;base64,R0lGODlhAQABAAAAACw=',refId:'rif0'},
+              {url:'data:image/gif;base64,R0lGODlhAQABAAAAACw=',refId:'rif1'}];
+    window.scene.renderBeat();
+  });
+  await page.waitForTimeout(200);
 
   sezione('e toccandone una si apre la galleria dei frammenti');
   // La stessa dell'archivio — provenienza, tag, frecce — solo che le frecce

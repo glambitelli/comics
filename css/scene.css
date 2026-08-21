@@ -390,13 +390,37 @@ body.is-touch .board-chiudi{display:none}
 .sceltarif-griglia{display:grid;gap:9px;grid-template-columns:repeat(2,1fr)}
 @media (min-width:620px){ .sceltarif-griglia{grid-template-columns:repeat(3,1fr)} }
 @media (min-width:900px){ .sceltarif-griglia{grid-template-columns:repeat(4,1fr)} }
+/* ── IL MURETTO ──
+   Le tessere erano riquadri 4:3 tutti uguali con l'immagine tagliata al centro.
+   Su una griglia di ritagli e' il taglio a fare il danno: un frammento e' quasi
+   sempre un dettaglio — una mano, una posa, un angolo di strada — e tagliargli
+   i bordi toglie proprio quello che serve per riconoscerlo; a schermo restavano
+   venti quadratini indistinguibili.
+   Adesso ogni immagine sta INTERA e alta quanto le tocca. Le righe della
+   griglia sono alte 8px e ogni tessera ne occupa quante gliene servono (il
+   conto lo fa murature() in scene.js, sulla misura vera dell'immagine
+   caricata): e' un muretto, e le tessere si incastrano invece di lasciare
+   strisce vuote.
+   Due colonne sul telefono e non tre: con tre, un dettaglio diventa un
+   francobollo — che e' il problema da cui si e' partiti. */
+.sceltarif-mura{
+  display:grid;gap:9px;grid-template-columns:repeat(2,1fr);
+  grid-auto-rows:8px;align-items:start;
+}
+@media (min-width:620px){ .sceltarif-mura{grid-template-columns:repeat(3,1fr)} }
+@media (min-width:900px){ .sceltarif-mura{grid-template-columns:repeat(4,1fr)} }
 .sceltarif-tessera{
-  position:relative;aspect-ratio:4/3;overflow:hidden;cursor:pointer;padding:0;
+  position:relative;overflow:hidden;cursor:pointer;padding:0;
   border:1.5px solid var(--sand2);border-radius:10px;background:#fffdf7;
   transition:border-color .15s,transform .1s;
+  /* Finche' l'immagine non e' caricata la tessera occupa un'altezza di comodo:
+     senza, tutte partirebbero da una riga sola e la griglia salterebbe. */
+  grid-row-end:span 14;
 }
 .sceltarif-tessera:active{transform:scale(.97);border-color:var(--oro)}
-.sceltarif-tessera img{width:100%;height:100%;object-fit:cover;display:block}
+.sceltarif-tessera img{width:100%;height:auto;display:block}
+/* "Disegnalo" e "Aggiungi" non sono immagini: altezza fissa, e non si murano. */
+.sceltarif-mura .sceltarif-disegna{grid-row-end:span 10;aspect-ratio:auto}
 /* IL DISEGNO E' RIMASTO, ma non e' piu' la porta principale: e' la prima
    tessera di questa griglia. Sul telefono e col mouse disegnare col dito non
    serviva a niente — su iPad con la matita si'. Toglierlo del tutto avrebbe
@@ -408,7 +432,8 @@ body.is-touch .board-chiudi{display:none}
   color:var(--ink3);font-family:'Nunito',sans-serif;font-size:11.5px;font-weight:700;
 }
 .sceltarif-vuoto{
-  grid-column:1 / -1;text-align:center;padding:34px 22px 10px;color:var(--ink3);
+  grid-column:1 / -1;grid-row-end:span 20;
+  text-align:center;padding:34px 22px 10px;color:var(--ink3);
 }
 .sceltarif-vuoto p{font-size:13.5px;line-height:1.6;max-width:32ch;margin:0 auto}
 
@@ -539,16 +564,17 @@ body.is-touch #schizzo-chiudi{display:none}
    quadro bisognava scorrere: qui servono tutte insieme, per capire in un colpo
    cosa si era messo da parte. Tre per riga sul telefono, di piu' dove c'e'
    spazio. Toccandone una si apre la galleria vera dell'archivio. */
-.sceltarif-pila{display:grid;gap:9px;grid-template-columns:repeat(3,1fr)}
-@media (min-width:620px){ .sceltarif-pila{grid-template-columns:repeat(5,1fr)} }
+/* La pila di un beat e' lo stesso muretto: sono le stesse immagini, e guardarle
+   qui o nell'archivio non deve sembrare di guardare due cose diverse. */
 .pila-mini{
-  position:relative;display:block;width:100%;aspect-ratio:4/3;
+  position:relative;display:block;width:100%;
   overflow:hidden;cursor:pointer;
   border:1.5px solid var(--sand2);border-radius:10px;background:#fffdf7;
   transition:border-color .15s,transform .1s;
+  grid-row-end:span 14;
 }
 .pila-mini:active{transform:scale(.97);border-color:var(--oro)}
-.pila-mini > img{width:100%;height:100%;object-fit:cover;display:block}
+.pila-mini > img{width:100%;height:auto;display:block}
 /* La spunta e' la stessa delle miniature dei frammenti e delle righe degli
    artisti: col dito non si vede finche' non si comincia a scegliere, col mouse
    c'e' sempre (li' il tocco prolungato non esiste). Le regole vere stanno in
