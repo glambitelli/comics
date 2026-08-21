@@ -696,3 +696,30 @@ body.is-touch .refs-lightbox-nav{display:none}
 }
 .rifila-ok{background:var(--gold);border-color:var(--gold);color:#231b12}
 .rifila-btn:disabled{opacity:.55}
+
+/* LA SPUNTA SULLE MINIATURE, la stessa delle righe degli artisti e per la
+   stessa ragione: col dito non si vede finche' non si comincia a scegliere —
+   il tocco prolungato basta — mentre col mouse c'e' sempre, perche' li' il
+   tocco prolungato non esiste e il tasto destro funziona ma non lo prova
+   nessuno. Sta in alto a sinistra, cioe' nell'angolo che non e' gia' occupato
+   dal puntino del progetto (in basso) ne' dal cancelletto dei tag. */
+.refs-thumb .refs-spunta{
+  position:absolute;top:5px;left:5px;z-index:2;
+  width:19px;height:19px;border-radius:50%;
+  border:1.5px solid rgba(255,255,255,.85);background:rgba(26,20,16,.35);
+  box-shadow:0 1px 3px rgba(0,0,0,.3);
+  opacity:0;transition:opacity .15s,background .15s;pointer-events:none;
+}
+.refs-grid.scegliendo .refs-thumb .refs-spunta{opacity:1;pointer-events:auto}
+@media (hover:hover){ .refs-thumb .refs-spunta{opacity:.55;pointer-events:auto} }
+.refs-thumb .refs-spunta.on{
+  background:var(--oro);border-color:#fff;opacity:1;pointer-events:auto;
+}
+.refs-thumb .refs-spunta.on::after{
+  content:'';position:absolute;left:5px;top:2px;width:5px;height:9px;
+  border:solid #2a2018;border-width:0 2px 2px 0;transform:rotate(43deg);
+}
+/* La miniatura scelta si stacca dalle altre: bordo d'oro e un velo, cosi' a
+   colpo d'occhio si vede quante e quali sono senza contare le spunte. */
+.refs-thumb.scelta{outline:2.5px solid var(--oro);outline-offset:-2.5px}
+.refs-thumb.scelta img{opacity:.72}

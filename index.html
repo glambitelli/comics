@@ -327,6 +327,13 @@
     <button class="refs-scelta-btn" id="refs-scelta-rinomina" onclick="window.rinominaScelto()" type="button" aria-label="Rinomina" title="Rinomina">
       <svg viewBox="0 0 24 24" width="19" height="19"><path d="M4 20h16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M15.5 5.2a1.9 1.9 0 0 1 2.7 2.7L9.6 16.5l-3.6.9.9-3.6Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>
     </button>
+    <!-- I tre puntini valgono per UNA immagine sola, e portano il menu di
+         sempre: tag, ritaglio, cambia cartella, segna come tavola. Sta al
+         posto di "Rinomina", che invece vale per le cartelle: la barra e' la
+         stessa, cambia l'azione che ha senso su quello che si e' scelto. -->
+    <button class="refs-scelta-btn" id="refs-scelta-menu" onclick="window.menuScelto(this)" type="button" aria-label="Altro" title="Altro" hidden>
+      <svg viewBox="0 0 24 24" width="19" height="19"><circle cx="5.5" cy="12" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="18.5" cy="12" r="1.6" fill="currentColor"/></svg>
+    </button>
     <button class="refs-scelta-btn rosso" id="refs-scelta-elimina" onclick="window.eliminaScelti()" type="button" aria-label="Elimina" title="Elimina">
       <svg viewBox="0 0 24 24" width="19" height="19"><path d="M4.5 6.5h15" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M9.5 6.5V5a1.2 1.2 0 0 1 1.2-1.2h2.6A1.2 1.2 0 0 1 14.5 5v1.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M6.8 6.5 7.6 19a1.4 1.4 0 0 0 1.4 1.3h6a1.4 1.4 0 0 0 1.4-1.3l.8-12.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>
     </button>

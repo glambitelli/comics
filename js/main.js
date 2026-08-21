@@ -47,7 +47,7 @@ exposeLazy('./refs.js', ['refsBackToFolders','openRefLightbox','closeRefLightbox
   'nextRefImage','prevRefImage','refsImageMenu','deleteRefImageWithUndo',
   'openFolderBrowser','openAllGrid','openFolder','openTag','openTagList','setArchivio','promptNewFolder','promptTagImage',
   'promptRenameFolder','promptDeleteFolder','setFolderTab','albumShelfMenu',
-  'toggleScelta','annullaScelta','rinominaScelto','eliminaScelti',
+  'toggleScelta','annullaScelta','rinominaScelto','eliminaScelti','menuScelto',
   'connectDriveAndSync',
   'refsFolderSearch','refsAlbumsSearch','refsGridSortMenu','refsAlbumsSortMenu',
   'promptLinkProjectFromLightbox','toggleProjectRefPanel','apriRitaglio']);

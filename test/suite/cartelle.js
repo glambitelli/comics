@@ -479,6 +479,10 @@ module.exports = () => suite("References — artisti e menu contestuali", {"banc
   ok('e ogni riga si porta la sua spunta',
      inScelta.spunte === 3 && inScelta.prese === 1, inScelta);
 
+  // Piu' dell'eco della pressione lunga (500ms, vedi scelta.js): entro quella
+  // finestra il click che il browser manda al distacco del dito va ignorato, e
+  // un secondo tocco vero non arriva mai cosi' presto.
+  await page.waitForTimeout(550);
   const inDue = await page.evaluate(async ()=>{
     const righe = document.querySelectorAll('.refs-folder-row[data-folder-id]');
     righe[1].dispatchEvent(new MouseEvent('click',{bubbles:true}));
@@ -733,41 +737,92 @@ module.exports = () => suite("References — artisti e menu contestuali", {"banc
   ok('la piu\' lunga sta sotto i venti caratteri', vociImg.lunga <= 20, vociImg);
   ok('e ognuna ha la sua icona', vociImg.icone.every(Boolean), vociImg);
 
-  sezione('il menu aperto col tocco prolungato non lampeggia');
-  // Il difetto: il menu nasceva mentre il dito era ancora giu' (480ms di
-  // pressione), e il click che il browser manda al distacco veniva letto come
-  // "toccato fuori" — il gesto che apriva il menu era anche quello che lo
-  // chiudeva. Qui si riproduce il gesto INTERO, rilascio compreso.
-  await page.evaluate(()=>{ window.semina(2,1); window.refs.openFolder('F1'); });
+  sezione('tenendo premuto una miniatura si comincia a SCEGLIERE');
+  // Prima il tocco prolungato apriva il menu di quella miniatura: per buttare
+  // via cinque frammenti servivano cinque pressioni e cinque conferme, mentre
+  // due righe piu' su — nell'elenco degli artisti — lo stesso identico gesto
+  // sceglieva. Due gesti uguali che facevano due cose diverse nella stessa
+  // schermata. Adesso e' lo stesso gesto e lo stesso codice (vedi scelta.js).
+  await page.evaluate(()=>{ window.semina(3,1); window.refs.openFolder('F1'); });
   await page.waitForTimeout(300);
-  const sopravvive = await page.evaluate(async ()=>{
-    const el = document.querySelector('.refs-thumb');
+  const tieni = async (n)=> page.evaluate(async (i)=>{
+    const el = document.querySelectorAll('.refs-thumb')[i];
     const r = el.getBoundingClientRect();
     const x = r.left + r.width/2, y = r.top + r.height/2;
     const t = ()=> [new Touch({identifier:1, target:el, clientX:x, clientY:y})];
-    el.dispatchEvent(new PointerEvent('pointerdown',{pointerId:1,clientX:x,clientY:y,bubbles:true}));
     el.dispatchEvent(new TouchEvent('touchstart',{bubbles:true,touches:t(),targetTouches:t()}));
     await new Promise(r=>setTimeout(r,600));            // il tocco prolungato scatta
-    const apertoDurante = !!document.querySelector('.ink-action-menu');
-    // Il dito si stacca: touchend, pointerup e il click che ne consegue.
+    const durante = document.querySelectorAll('.refs-thumb.scelta').length;
+    // Il dito si stacca: touchend e il click che il browser manda comunque.
     el.dispatchEvent(new TouchEvent('touchend',{bubbles:true,touches:[],targetTouches:[]}));
-    el.dispatchEvent(new PointerEvent('pointerup',{pointerId:1,clientX:x,clientY:y,bubbles:true}));
     el.dispatchEvent(new MouseEvent('click',{bubbles:true,clientX:x,clientY:y}));
-    await new Promise(r=>setTimeout(r,200));
-    return { apertoDurante, apertoDopo: !!document.querySelector('.ink-action-menu'),
+    // Piu' dell'eco della pressione lunga (500ms): e' il tempo entro cui il
+    // click che il browser manda al distacco va ignorato, e un secondo tocco
+    // vero non arriva mai cosi' presto.
+    await new Promise(r=>setTimeout(r,650));
+    return { durante, dopo: document.querySelectorAll('.refs-thumb.scelta').length,
              lightbox: document.getElementById('refs-lightbox').classList.contains('open') };
-  });
-  ok('il menu compare tenendo premuto', sopravvive.apertoDurante, sopravvive);
-  ok('e RESTA aperto quando il dito si stacca', sopravvive.apertoDopo, sopravvive);
-  ok('senza aprire anche l\'immagine sotto', !sopravvive.lightbox, sopravvive);
+  }, n);
+  const prima = await tieni(0);
+  ok('la miniatura si sceglie tenendola premuta', prima.durante === 1, prima);
+  ok('e RESTA scelta quando il dito si stacca', prima.dopo === 1, prima);
+  // Il click che il browser manda al distacco: senza ignorarlo si sceglieva la
+  // miniatura e sotto si apriva anche l'immagine.
+  ok('senza aprire anche l\'immagine sotto', !prima.lightbox, prima);
 
-  sezione('ma un tocco vero fuori lo chiude');
-  const chiuso = await page.evaluate(async ()=>{
-    document.body.dispatchEvent(new PointerEvent('pointerdown',{pointerId:2,clientX:5,clientY:5,bubbles:true}));
-    await new Promise(r=>setTimeout(r,150));
-    return !document.querySelector('.ink-action-menu');
+  const barra = await page.evaluate(()=>{
+    const b = document.getElementById('refs-scelta');
+    return {
+      accesa: b.classList.contains('show'),
+      conto: document.getElementById('refs-scelta-conto').textContent,
+      // Per un'immagine sola i tre puntini portano il menu di sempre; per una
+      // cartella al loro posto c'e' "Rinomina".
+      menu: !document.getElementById('refs-scelta-menu').hidden,
+      rinomina: !document.getElementById('refs-scelta-rinomina').hidden,
+    };
   });
-  ok('toccando altrove il menu se ne va', chiuso, chiuso);
+  ok('la barra delle azioni si accende', barra.accesa, barra);
+  ok('e dice quante ne hai scelte', /1 scelta/.test(barra.conto), barra);
+  ok('coi tre puntini al posto di "Rinomina"', barra.menu && !barra.rinomina, barra);
+
+  sezione('e da li\' in poi ogni tocco ne aggiunge un\'altra');
+  const due = await page.evaluate(async ()=>{
+    document.querySelectorAll('.refs-thumb')[1].dispatchEvent(new MouseEvent('click',{bubbles:true}));
+    await new Promise(r=>setTimeout(r,200));
+    return {
+      scelte: document.querySelectorAll('.refs-thumb.scelta').length,
+      conto: document.getElementById('refs-scelta-conto').textContent,
+      // Con due scelte i tre puntini si spengono: quel menu vale per una sola.
+      menu: document.getElementById('refs-scelta-menu').disabled,
+      lightbox: document.getElementById('refs-lightbox').classList.contains('open'),
+    };
+  });
+  ok('un tocco normale aggiunge invece di aprire', due.scelte === 2 && !due.lightbox, due);
+  ok('e il conto lo dice', /2 scelte/.test(due.conto), due);
+  ok('i tre puntini si spengono, perche\' valgono per una sola', due.menu, due);
+
+  sezione('e le si butta via tutte insieme');
+  // Niente finestra di conferma e cinque secondi per ripensarci, come per una
+  // sola: e' il modo in cui l'app tratta tutto quello che si puo' rimettere a
+  // posto, e cinque immagini si rimettono a posto come una.
+  const buttate = await page.evaluate(async ()=>{
+    window.__cancellati = [];
+    window.__undo = null;
+    document.getElementById('refs-scelta-elimina').click();
+    await new Promise(r=>setTimeout(r,400));
+    return {
+      rimaste: document.querySelectorAll('.refs-thumb').length,
+      cancellati: window.__cancellati.length,
+      finestre: document.querySelectorAll('.modal-overlay.open').length,
+      annulla: !!window.__undo,
+      barra: document.getElementById('refs-scelta').classList.contains('show'),
+    };
+  });
+  ok('spariscono tutte e due in un colpo', buttate.rimaste === 1, buttate);
+  ok('e dall\'archivio, non solo da schermo', buttate.cancellati === 2, buttate);
+  ok('senza chiedere niente a schermo intero', buttate.finestre === 0, buttate);
+  ok('ma con cinque secondi per ripensarci', buttate.annulla, buttate);
+  ok('e la barra si spegne con loro', !buttate.barra, buttate);
 
   sezione('e scorrendo il menu si toglie di mezzo');
   // Il menu e' ancorato a un punto fisso dello schermo e non insegue la

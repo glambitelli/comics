@@ -7,6 +7,7 @@ import { db, collection, doc, onSnapshot, setDoc, deleteDoc, serverTimestamp, ge
 import { haptic, showUndoToast, projects, currentId } from './state.js';
 import { compressImageFile, dataUrlToBlob } from './imgcompress.js';
 import { esc } from './testo.js';
+import { montaScelta } from './scelta.js';
 import { uploadToCloudinary, cldResize } from './cloudinary.js';
 import { promptModal, promptCampi, confirmModal, actionMenu } from './dialogs.js';
 import {
@@ -908,12 +909,12 @@ function clearSearchInputs(){
 // e' il modo migliore per cancellare qualcosa che non si voleva cancellare.
 export function openFolderBrowser(){
   _view = 'folders'; _activeFolderId = null; _activeTag = null;
-  _folderQuery = ''; _scelti.clear();
+  _folderQuery = ''; azzeraScelte();
   clearSearchInputs();
   renderRefsScreen();
 }
 export function openAllGrid(){
-  _scelti.clear();
+  azzeraScelte();
   _view = 'all'; _activeFolderId = null; _activeTag = null;
   clearSearchInputs();
   if(window.__navSync) window.__navSync('refs-all', null);
@@ -923,7 +924,7 @@ export function openAllGrid(){
 // fondo a References. Cosi' i tag non si confondono con le cartelle di Study,
 // che come righe si somigliano ma sono un'altra cosa.
 export function openTagList(){
-  _scelti.clear();
+  azzeraScelte();
   _view = 'tags'; _activeFolderId = null; _activeTag = null;
   _folderQuery = '';
   clearSearchInputs();
@@ -936,7 +937,7 @@ export function openTagList(){
 export function openTag(tag){
   const n = normTag(tag);
   if(!n) return;
-  _scelti.clear();
+  azzeraScelte();
   _view = 'tag'; _activeFolderId = null; _activeTag = n;
   _albumQuery = '';
   clearSearchInputs();
@@ -945,7 +946,7 @@ export function openTag(tag){
 }
 
 export function openFolder(id){
-  _scelti.clear();
+  azzeraScelte();
   _view = 'folder'; _activeFolderId = id; _activeTag = null;
   // La ricerca degli albi resta legata a dove sei: portarsela dietro da una
   // cartella all'altra nasconderebbe albi senza che se ne veda il motivo.
@@ -984,7 +985,7 @@ export function setArchivio(asse){
   // Le cartelle scelte stanno nell'asse in cui sono state scelte: portarsele
   // di la' vorrebbe dire vedere "2 scelti" con l'elenco che non ne mostra
   // nessuno.
-  _scelti.clear();
+  azzeraScelte();
   // La ricerca vale per l'asse in cui e' stata scritta: portarsela dietro
   // farebbe sembrare vuoto l'altro.
   _folderQuery = '';
@@ -1147,10 +1148,20 @@ export function toggleScelta(id){
   if(_scelti.has(id)) _scelti.delete(id); else _scelti.add(id);
   renderFolderBrowser();
 }
+// L'insieme e' uno solo, ma chi lo tiene sono due: le righe degli artisti lo
+// scrivono direttamente, la griglia lo scrive attraverso il suo gesto (vedi
+// scelta.js). Azzerarne uno solo lasciava l'altro convinto del contrario, e la
+// spunta successiva ripartiva da una selezione fantasma.
+export function azzeraScelte(){
+  _scelti.clear();
+  if(_sceltaGriglia) _sceltaGriglia.azzera();
+  if(_sceltaCartelle) _sceltaCartelle.azzera();
+}
 export function annullaScelta(){
   if(!_scelti.size) return;
-  _scelti.clear();
-  renderFolderBrowser();
+  azzeraScelte();
+  if(_view === 'folders') renderFolderBrowser(); else renderRefsGrid();
+  renderBarraScelta();
 }
 export function scelti(){ return Array.from(_scelti); }
 
@@ -1160,12 +1171,13 @@ export function scelti(){ return Array.from(_scelti); }
 export async function rinominaScelto(){
   if(_scelti.size !== 1) return;
   const id = Array.from(_scelti)[0];
-  _scelti.clear();
+  azzeraScelte();
   renderFolderBrowser();
   await promptRenameFolder(id);
 }
 
 export async function eliminaScelti(){
+  if(_view !== 'folders') return eliminaImmaginiScelte();
   const ids = Array.from(_scelti);
   if(!ids.length) return;
   const nomi = ids.map(id=> (_folders.find(f=>f.id===id)||{}).name).filter(Boolean);
@@ -1181,10 +1193,44 @@ export async function eliminaScelti(){
     confirmLabel: 'Elimina',
   });
   if(!ok) return;
-  _scelti.clear();
+  azzeraScelte();
   for(const id of ids) await deleteFolder(id);
   haptic('done');
   openFolderBrowser();
+}
+
+// LE IMMAGINI SCELTE. Niente finestra di conferma e cinque secondi per
+// ripensarci, come per una sola: e' il modo in cui l'app tratta tutto quello
+// che si puo' rimettere a posto, e cinque immagini si rimettono a posto come
+// una. La domanda a schermo intero la si tiene per le cartelle, dove a
+// cambiare e' anche dove finiscono le immagini che c'erano dentro.
+export async function eliminaImmaginiScelte(){
+  const ids = Array.from(_scelti);
+  if(!ids.length) return;
+  const prima = ids.map(id=> _refs.find(r=> r.id === id)).filter(Boolean);
+  azzeraScelte();
+  _refs = _refs.filter(r=> !ids.includes(r.id));
+  renderRefsScreen();
+  haptic('done');
+  for(const r of prima){
+    try{ await deleteDoc(doc(db, REFS_COL, r.id)); }
+    catch(e){ console.warn('eliminazione immagine fallita:', e); }
+  }
+  showUndoToast(prima.length === 1 ? 'Immagine eliminata' : `${prima.length} immagini eliminate`, async ()=>{
+    _refs = prima.concat(_refs);
+    renderRefsScreen();
+    for(const r of prima){
+      try{ await setDoc(doc(db, REFS_COL, r.id), r); }
+      catch(e){ console.warn('ripristino immagine fallito:', e); }
+    }
+  });
+}
+
+// I tre puntini della barra, quando la scelta e' UNA immagine sola: apre il
+// menu di sempre, ancorato alla barra invece che alla miniatura.
+export function menuScelto(ancora){
+  if(_view === 'folders' || _scelti.size !== 1) return;
+  refsImageMenu(ancora, Array.from(_scelti)[0]);
 }
 
 export async function promptDeleteFolder(id){
@@ -1708,70 +1754,53 @@ function renderBarraScelta(){
   const assi = document.getElementById('refs-axis');
   if(!barra) return;
   const n = _scelti.size;
-  const acceso = n > 0 && _view === 'folders';
+  const acceso = n > 0;
+  const suCartelle = _view === 'folders';
   barra.classList.toggle('show', acceso);
   // L'interruttore si nasconde solo se era a schermo: dentro una cartella non
   // c'entra niente.
-  if(assi) assi.classList.toggle('coperto', acceso);
+  if(assi) assi.classList.toggle('coperto', acceso && suCartelle);
   if(!acceso) return;
   const conto = document.getElementById('refs-scelta-conto');
-  if(conto) conto.textContent = n === 1 ? '1 scelto' : `${n} scelti`;
+  // Il genere segue quello che si sta scegliendo: "1 scelto" per un artista,
+  // "1 scelta" per un'immagine. Sono due parole diverse e leggerle sbagliate,
+  // in una barra di tre parole, si nota.
+  if(conto) conto.textContent = suCartelle
+    ? (n === 1 ? '1 scelto' : `${n} scelti`)
+    : (n === 1 ? '1 scelta' : `${n} scelte`);
+  // Rinominare vale per le cartelle; per un'immagine sola la barra porta invece
+  // i tre puntini col menu di sempre — tag, ritaglio, cambia cartella, segna
+  // come tavola. Nessuna di quelle azioni si perde: cambia solo da dove si
+  // arriva, che adesso e' lo stesso posto per tutti e due.
   const rin = document.getElementById('refs-scelta-rinomina');
-  if(rin) rin.disabled = n !== 1;
+  if(rin){ rin.hidden = !suCartelle; rin.disabled = n !== 1; }
+  const menu = document.getElementById('refs-scelta-menu');
+  if(menu){ menu.hidden = suCartelle; menu.disabled = n !== 1; }
 }
 
 // Tocco = entra · tocco prolungato (o tasto destro) = comincia a scegliere.
-// Sono gli stessi 480ms delle miniature piu' sotto, e per la stessa ragione:
-// e' il tempo in cui una pressione smette di sembrare un tocco andato lungo.
+// Il gesto e' quello condiviso (vedi scelta.js): lo stesso identico che sceglie
+// le miniature dei frammenti e i riferimenti di un beat. Prima viveva qui, in
+// una copia sola, e quando e' servito altrove le copie sarebbero diventate tre —
+// coi loro 480ms aggiustati a mano che non si ereditano.
 //
-// Il gesto lungo non apre piu' un menu con Rinomina/Elimina: SCEGLIE la riga, e
-// da li' in poi ogni tocco ne aggiunge o ne toglie una. Le due azioni sono
-// diventate una barra sopra l'elenco, perche' cancellare cinque artisti col
-// menu voleva dire cinque tocchi prolungati e cinque conferme.
-//
-// Il click NON sta scritto nell'HTML della riga perche' dopo il tocco
-// prolungato il browser manda comunque un click al distacco del dito: se ad
-// aprire la cartella fosse un onclick nell'attributo, si sceglierebbe la riga e
-// sotto si aprirebbe anche la cartella. Con `tenuto` quel click si ignora.
+// Il gesto lungo non apre un menu con Rinomina/Elimina: SCEGLIE la riga, e da li'
+// in poi ogni tocco ne aggiunge o ne toglie una. Le due azioni sono diventate
+// una barra sopra l'elenco, perche' cancellare cinque artisti col menu voleva
+// dire cinque tocchi prolungati e cinque conferme.
+let _sceltaCartelle = null;
 function wireRigheCartelle(el){
-  el.querySelectorAll('.refs-folder-row[data-folder-id]').forEach(riga=>{
-    const id = riga.dataset.folderId;
-    let attesa = null, tenuto = false, dito = false;
-    riga.addEventListener('click', ev=>{
-      // La spunta e' un bersaglio a se': cliccarla sceglie e basta, senza
-      // aprire la cartella sotto. E' l'unico modo di scegliere che esista col
-      // mouse, dove il tocco prolungato non c'e'.
-      if(ev.target.closest && ev.target.closest('.refs-spunta')){
-        ev.stopPropagation();
-        toggleScelta(id);
-        tenuto = false;
-        return;
-      }
-      // Mentre si sceglie, il tocco normale spunta e basta: aprire una cartella
-      // in mezzo a una selezione la butterebbe via senza averlo chiesto.
-      if(!tenuto){ if(_scelti.size) toggleScelta(id); else openFolder(id); }
-      tenuto = false;
-    });
-    // Su Android il tocco prolungato fa scattare ANCHE il contextmenu del
-    // browser: si spegne il timer, se no la riga verrebbe scelta e subito
-    // deselezionata (l'altra meta' della cura sta in actionMenu).
-    riga.addEventListener('contextmenu', e=>{
-      e.preventDefault(); clearTimeout(attesa);
-      // "Il click che segue va ignorato" vale solo se a scegliere e' stato un
-      // DITO: col tasto destro del mouse nessun click arriva, e alzare la
-      // bandierina li' vorrebbe dire mangiarsi il clic sinistro successivo.
-      if(dito) tenuto = true;
-      if(!_scelti.has(id)) toggleScelta(id);
-    });
-    riga.addEventListener('touchstart', ()=>{
-      tenuto = false; dito = true;
-      attesa = setTimeout(()=>{
-        tenuto = true; haptic('done');
-        if(!_scelti.has(id)) toggleScelta(id);
-      }, 480);
-    }, {passive:true});
-    ['touchend','touchmove','touchcancel'].forEach(ev=>
-      riga.addEventListener(ev, ()=>{ clearTimeout(attesa); dito = false; }, {passive:true}));
+  if(_sceltaCartelle) return;
+  _sceltaCartelle = montaScelta(el, {
+    selettore: '.refs-folder-row[data-folder-id]',
+    id: riga=> riga.dataset.folderId,
+    spunta: '.refs-spunta',
+    apri: id=> openFolder(id),
+    cambiato: ()=>{
+      _scelti.clear();
+      for(const id of _sceltaCartelle.scelti()) _scelti.add(id);
+      renderFolderBrowser();
+    },
   });
 }
 
@@ -1894,7 +1923,9 @@ export function renderRefsGrid(){
   // ridisegnare la griglia.
   // In coda anche lo scaffale: cambia la forma delle tessere E la larghezza
   // della sorgente, quindi due elenchi identici vanno comunque ridisegnati.
-  const sig = (mostraTavole ? 'T|' : 'R|')
+  // Chi e' scelto fa parte della firma: senza, spuntare una miniatura non
+  // ridisegnerebbe niente e la spunta non comparirebbe.
+  const sig = (mostraTavole ? 'T|' : 'R|') + 'S' + Array.from(_scelti).sort().join('+') + '|'
     + list.map(r=>r.id+':'+r.url+':'+projectIdsOf(r).join(',')+':'+tagsOf(r).join(',')).join('|');
   if(grid.dataset.sig === sig) return;
   grid.dataset.sig = sig;
@@ -1916,10 +1947,16 @@ export function renderRefsGrid(){
     const suoiTag = tagsOf(r);
     const tag = suoiTag.length
       ? `<span class="refs-thumb-tag" title="${esc(suoiTag.join(' · '))}">#</span>` : '';
+    // La spunta e' lo stesso bersaglio delle righe degli artisti: col dito non
+    // si vede finche' non si comincia a scegliere, col mouse c'e' sempre —
+    // li' il tocco prolungato non esiste, e il tasto destro funziona ma non lo
+    // prova nessuno (vedi .refs-spunta in refs.css).
+    const preso = _scelti.has(r.id);
     return `
-    <div class="refs-thumb"${forma(r)} data-id="${r.id}">
+    <div class="refs-thumb${preso ? ' scelta' : ''}"${forma(r)} data-id="${r.id}">
       <img src="${cldResize(r.url, mostraTavole ? TAVOLA_W : THUMB_W)}" loading="lazy" decoding="async" alt=""/>
       ${dot}${tag}
+      <span class="refs-spunta${preso ? ' on' : ''}" role="checkbox" aria-checked="${preso}" aria-label="Scegli"></span>
     </div>
   `;
   }).join('');
@@ -1937,22 +1974,33 @@ export function renderRefsGrid(){
     if(im.complete) adatta(); else im.addEventListener('load', adatta, { once:true });
   });
 
-  // Tap = apri · tocco prolungato (o tasto destro) = menu sposta/elimina
-  grid.querySelectorAll('.refs-thumb').forEach(el=>{
-    const id = el.dataset.id;
-    let holdTimer = null, held = false, dito = false;
-    el.addEventListener('click', ()=>{ if(!held) openRefLightbox(id); held=false; });
-    el.addEventListener('contextmenu', e=>{
-      e.preventDefault(); clearTimeout(holdTimer);
-      if(dito) held = true;          // vedi wireRigheCartelle: solo per il dito
-      refsImageMenu(el, id);
-    });
-    el.addEventListener('touchstart', ()=>{
-      held = false; dito = true;
-      holdTimer = setTimeout(()=>{ held = true; haptic('done'); refsImageMenu(el, id); }, 480);
-    }, {passive:true});
-    ['touchend','touchmove','touchcancel'].forEach(ev=>
-      el.addEventListener(ev, ()=>{ clearTimeout(holdTimer); dito = false; }, {passive:true}));
+  // Una classe sola dice al CSS "si sta scegliendo": da li' dipende se le
+  // spunte si vedono anche col dito.
+  grid.classList.toggle('scegliendo', _scelti.size > 0);
+  montaSceltaGriglia(grid);
+}
+
+// IL GESTO E' QUELLO DEGLI ARTISTI, non uno somigliante: tocco prolungato per
+// cominciare a scegliere, poi ogni tocco aggiunge o toglie (vedi scelta.js).
+// Prima il tocco prolungato apriva il menu di QUELLA miniatura: per buttare via
+// cinque ritagli servivano cinque pressioni e cinque conferme, mentre due righe
+// piu' su — nell'elenco degli artisti — lo stesso gesto sceglieva. Due gesti
+// uguali che facevano due cose diverse nella stessa schermata.
+// Il menu non si perde: con UNA sola miniatura scelta la barra porta i tre
+// puntini, esattamente come porta "Rinomina" quando l'artista scelto e' uno.
+let _sceltaGriglia = null;
+function montaSceltaGriglia(grid){
+  if(_sceltaGriglia) return;
+  _sceltaGriglia = montaScelta(grid, {
+    selettore: '.refs-thumb',
+    spunta: '.refs-spunta',
+    apri: id=> openRefLightbox(id),
+    cambiato: ()=>{
+      _scelti.clear();
+      for(const id of _sceltaGriglia.scelti()) _scelti.add(id);
+      renderRefsGrid();
+      renderBarraScelta();
+    },
   });
 }
 

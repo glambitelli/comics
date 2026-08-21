@@ -541,21 +541,31 @@ body.is-touch #schizzo-chiudi{display:none}
    spazio. Toccandone una si apre la galleria vera dell'archivio. */
 .sceltarif-pila{display:grid;gap:9px;grid-template-columns:repeat(3,1fr)}
 @media (min-width:620px){ .sceltarif-pila{grid-template-columns:repeat(5,1fr)} }
-.pila-mini{position:relative}
-.pila-apri{
-  display:block;width:100%;aspect-ratio:4/3;overflow:hidden;cursor:pointer;padding:0;
+.pila-mini{
+  position:relative;display:block;width:100%;aspect-ratio:4/3;
+  overflow:hidden;cursor:pointer;
   border:1.5px solid var(--sand2);border-radius:10px;background:#fffdf7;
   transition:border-color .15s,transform .1s;
 }
-.pila-apri:active{transform:scale(.97);border-color:var(--oro)}
-.pila-apri img{width:100%;height:100%;object-fit:cover;display:block}
-/* IL BERSAGLIO E' PICCOLO APPOSTA, e sta in un angolo: e' l'unica cosa
-   distruttiva di questa schermata, e non deve capitare volendo aprire la
-   miniatura che ci sta sotto. */
-.pila-via{
-  position:absolute;top:-6px;right:-6px;cursor:pointer;
-  width:24px;height:24px;border-radius:50%;border:1.5px solid var(--sand);
-  background:rgba(26,20,16,.78);color:var(--oro);
-  font-size:11px;line-height:1;display:flex;align-items:center;justify-content:center;
+.pila-mini:active{transform:scale(.97);border-color:var(--oro)}
+.pila-mini > img{width:100%;height:100%;object-fit:cover;display:block}
+/* La spunta e' la stessa delle miniature dei frammenti e delle righe degli
+   artisti: col dito non si vede finche' non si comincia a scegliere, col mouse
+   c'e' sempre (li' il tocco prolungato non esiste). Le regole vere stanno in
+   refs.css — qui si dice solo dove va. */
+.pila-mini .refs-spunta{
+  position:absolute;top:5px;left:5px;z-index:2;
+  width:19px;height:19px;border-radius:50%;
+  border:1.5px solid rgba(255,255,255,.85);background:rgba(26,20,16,.35);
+  box-shadow:0 1px 3px rgba(0,0,0,.3);
+  opacity:0;transition:opacity .15s,background .15s;pointer-events:none;
 }
-.pila-via:active{background:rgba(26,20,16,.95)}
+.sceltarif-pila.scegliendo .pila-mini .refs-spunta{opacity:1;pointer-events:auto}
+@media (hover:hover){ .pila-mini .refs-spunta{opacity:.55;pointer-events:auto} }
+.pila-mini .refs-spunta.on{background:var(--oro);border-color:#fff;opacity:1;pointer-events:auto}
+.pila-mini .refs-spunta.on::after{
+  content:'';position:absolute;left:5px;top:2px;width:5px;height:9px;
+  border:solid #2a2018;border-width:0 2px 2px 0;transform:rotate(43deg);
+}
+.pila-mini.scelta{border-color:var(--oro);border-width:2.5px}
+.pila-mini.scelta > img{opacity:.72}

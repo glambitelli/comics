@@ -31,6 +31,7 @@ import { actionMenu } from './dialogs.js';
 import { esc } from './testo.js';
 import { cldResize, uploadToCloudinary } from './cloudinary.js';
 import { montaRiordino } from './riordino.js';
+import { montaScelta } from './scelta.js';
 
 const SCENE_COL = 'scene';
 
@@ -593,6 +594,7 @@ async function apriScelta(box){
   _cartellaRif = null;
   const b0 = scena.beat.find(x=> x.id === box.dataset.id);
   _vista = rifiDi(b0).length ? 'pila' : 'cartelle';
+  if(_sceltaPila) _sceltaPila.azzera();
   const campo = document.getElementById('sceltarif-cerca');
   if(campo) campo.value = '';
   const foglio = document.getElementById('sceltarif');
@@ -656,9 +658,8 @@ async function disegnaScelta(){
   if(!griglia || !_boxScelta) return;
   const b = beatDiScelta();
   const presi = new Set(rifiDi(b).map(r=> r.refId).filter(Boolean));
-  // "Togli tutto" solo quando c'e' qualcosa da togliere: un pulsante acceso che
-  // non fa niente si prova, non funziona, e da quel momento non ci si fida piu'.
-  if(togli) togli.hidden = !rifiDi(b).length;
+  // Fuori dalla pila il pulsante non serve: li' non si butta via niente.
+  if(togli){ togli.hidden = true; togli.textContent = 'Togli'; }
 
   const r = await import('./refs.js');
   const tutte = r.refsCache().filter(x=> x && x.url);
@@ -682,12 +683,31 @@ async function disegnaScelta(){
     // frammenti, con la provenienza e le frecce — solo che scorre fra QUESTE.
     const pila = rifiDi(b);
     griglia.className = 'sceltarif-pila';
-    griglia.innerHTML = pila.map((x,i)=> `<div class="pila-mini">
-        <button class="pila-apri" data-apri="${i}" type="button" aria-label="Guarda questo riferimento">
-          <img src="${esc(cldResize(x.url, 320))}" loading="lazy" alt=""/>
-        </button>
-        <button class="pila-via" data-via="${i}" type="button" aria-label="Togli questo riferimento">✕</button>
-      </div>`).join('')
+    montaSceltaPila(griglia);
+    const n = _sceltaPila ? _sceltaPila.quante() : 0;
+    // Mentre si sceglie la barra dice quante ne hai prese e il pulsante diventa
+    // il cestino: la stessa forma della barra di References, e per lo stesso
+    // motivo — si sceglie, poi si agisce, che e' l'ordine in cui la cosa si
+    // pensa.
+    if(dove) dove.textContent = n ? (n === 1 ? '1 scelta' : n + ' scelte') : 'Riferimenti';
+    if(togli){
+      togli.hidden = !n;
+      togli.textContent = n === 1 ? 'Togli' : 'Togli ' + n;
+    }
+    griglia.classList.toggle('scegliendo', n > 0);
+    // NIENTE ✕ SU OGNI MINIATURA. Era un bersaglio da ventiquattro pixel
+    // appiccicato all'angolo di ognuna, e per toglierne tre servivano tre
+    // tocchi centrati bene. Adesso si tiene premuto per cominciare a scegliere
+    // e poi si butta via in blocco — lo stesso identico gesto degli artisti e
+    // dei frammenti (vedi scelta.js), che e' il punto: in tutta l'app le cose
+    // si scelgono in un modo solo.
+    griglia.innerHTML = pila.map((x,i)=> {
+      const preso = _sceltaPila && _sceltaPila.ha(String(i));
+      return `<div class="pila-mini${preso ? ' scelta' : ''}" data-mini="${i}">
+        <img src="${esc(cldResize(x.url, 320))}" loading="lazy" alt=""/>
+        <span class="refs-spunta${preso ? ' on' : ''}" role="checkbox" aria-checked="${preso}" aria-label="Scegli"></span>
+      </div>`;
+    }).join('')
       + `<button class="sceltarif-tessera sceltarif-disegna" data-archivio type="button">
           <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 5.5v13M5.5 12h13" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"/></svg>
           <span>Aggiungi</span>
@@ -795,6 +815,10 @@ function entraCartella(id){
 // Torna true se c'era un livello da risalire, false se si era gia' alla radice
 // — e allora chi ha chiamato chiude il foglio.
 export function risaliScelta(){
+  // Prima si esce dalla scelta, poi si risale: uscire dalla schermata con delle
+  // miniature ancora spuntate vorrebbe dire ritrovarsele spuntate al ritorno,
+  // senza ricordarsi di averle scelte.
+  if(_vista === 'pila' && _sceltaPila && _sceltaPila.azzera()){ disegnaScelta(); return true; }
   if(_vista === 'dentro'){ _cartellaRif = null; _vista = 'cartelle'; disegnaScelta(); return true; }
   // Dall'archivio si torna alla pila solo se una pila c'e': un beat vuoto parte
   // dall'archivio, e li' l'archivio E' la radice.
@@ -870,22 +894,38 @@ async function apriRiferimento(i){
   r.openRefLightbox(x.refId, elenco);
 }
 
-// Toglie una sola immagine dalla pila, dalla vista che le mostra. Il bersaglio
-// e' piccolo apposta e sta in un angolo: e' l'unica cosa distruttiva di questa
-// schermata, e non deve capitare sfiorando l'immagine che si stava guardando.
-function togliDallaPila(i){
+// LO STESSO GESTO DI TUTTO IL RESTO: si tiene premuta una miniatura per
+// cominciare a scegliere, poi ogni tocco ne aggiunge o ne toglie una, e dalla
+// barra in alto si buttano via tutte insieme. Prima ognuna aveva la sua ✕
+// nell'angolo: un bersaglio da ventiquattro pixel, tre tocchi centrati bene per
+// toglierne tre, e un modo di cancellare diverso da quello che l'app usa
+// dappertutto.
+let _sceltaPila = null;
+function montaSceltaPila(griglia){
+  if(_sceltaPila) return;
+  _sceltaPila = montaScelta(griglia, {
+    selettore: '.pila-mini',
+    id: el=> el.dataset.mini,
+    spunta: '.refs-spunta',
+    apri: i=> apriRiferimento(+i),
+    cambiato: ()=>{ disegnaScelta(); },
+  });
+}
+
+// Toglie dalla pila tutte le miniature scelte.
+function togliDallaPila(indici){
   const scena = scenaAperta();
   const b = beatDiScelta();
-  if(!scena || !b) return;
-  const pila = rifiDi(b).slice();
-  if(i < 0 || i >= pila.length) return;
-  pila.splice(i, 1);
+  if(!scena || !b || !indici.length) return;
+  const via = new Set(indici.map(Number));
+  const pila = rifiDi(b).filter((_,i)=> !via.has(i));
   b.rifs = pila;
   delete b.img; delete b.refId;
   scena.updatedAt = Date.now();
   aggiornaPila();
-  haptic('tap');
+  haptic('done');
   salvaSubito(scena.id);
+  if(_sceltaPila) _sceltaPila.azzera();
   // Svuotata del tutto, restare su una schermata vuota non ha senso: si scende
   // dove si sceglie.
   if(!pila.length){ _vista = 'cartelle'; }
@@ -1129,10 +1169,6 @@ export function initScene(){
       disegnaBeat();
       return;
     }
-    const via = e.target.closest('[data-via]');
-    if(via){ togliDallaPila(+via.dataset.via); return; }
-    const apri = e.target.closest('[data-apri]');
-    if(apri){ apriRiferimento(+apri.dataset.apri); return; }
     if(e.target.closest('[data-archivio]')){ scendi('cartelle'); return; }
     const cart = e.target.closest('[data-cartella]');
     if(cart){ entraCartella(cart.dataset.cartella); return; }
@@ -1157,7 +1193,9 @@ export function initScene(){
     _cercaRif = e.target.value;
     disegnaScelta();
   });
-  document.getElementById('sceltarif-togli').addEventListener('click', ()=> svuotaPila());
+  document.getElementById('sceltarif-togli').addEventListener('click', ()=>{
+    if(_sceltaPila) togliDallaPila(_sceltaPila.scelti());
+  });
   // La freccia risale di un passo: dentro una cartella torna all'elenco, e
   // dall'elenco chiude. Passa dalla cronologia, come il tasto del telefono.
   document.getElementById('sceltarif-chiudi').addEventListener('click', ()=> chiudiScelta());

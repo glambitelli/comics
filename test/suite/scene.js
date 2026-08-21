@@ -804,25 +804,6 @@ module.exports = () => suite("Scene — un riquadro per volta, cento caratteri",
   ok('quella ritoccata esce dalla pila', ritocco.pila.length === 2, ritocco);
   ok('e perde la spunta', ritocco.spuntate === 2, ritocco);
 
-  sezione('"Togli tutto" svuota la pila');
-  ok('il pulsante c\'e\', perche\' c\'e\' qualcosa da togliere',
-     await page.evaluate(()=> !document.getElementById('sceltarif-togli').hidden), null);
-  const tolto = await page.evaluate(async ()=>{
-    document.getElementById('sceltarif-togli').click();
-    await new Promise(r=> setTimeout(r, 350));
-    const s = window.scene.scenaAperta();
-    const b = s.beat[s.beat.length-1];
-    return {
-      pila: window.scene.rifiDi(b).length,
-      spuntate: document.querySelectorAll('#sceltarif-griglia .presa').length,
-      pulsante: document.getElementById('sceltarif-togli').hidden,
-    };
-  });
-  ok('la pila si svuota', tolto.pila === 0, tolto);
-  ok('le spunte se ne vanno con lei', tolto.spuntate === 0, tolto);
-  ok('e il pulsante si spegne, perche\' non c\'e\' piu\' niente da togliere',
-     tolto.pulsante, tolto);
-
   sezione('riaprendo una vignetta piena si vedono SOLO le sue immagini');
   // Toccare una vignetta gia' piena e' quasi sempre "fammi rivedere cosa avevo
   // messo qui": si sta disegnando e si vogliono guardare le proprie referenze,
@@ -858,9 +839,9 @@ module.exports = () => suite("Scene — un riquadro per volta, cento caratteri",
       cerca: !document.getElementById('sceltarif-cerca').hidden,
       dove: (document.getElementById('sceltarif-dove')||{}).textContent,
       aggiungi: !!g.querySelector('[data-archivio]'),
-      // Ognuna si apre, e ognuna si toglie.
-      apribili: g.querySelectorAll('[data-apri]').length,
-      togliibili: g.querySelectorAll('[data-via]').length,
+      // Nessuna ✕ appiccicata all'angolo di ognuna: si sceglie tenendo premuto,
+      // come dappertutto nell'app.
+      crocette: g.querySelectorAll('[data-via]').length,
     };
   });
   ok('si atterra sulla pila del beat', laPila.vista === 'pila', laPila);
@@ -871,8 +852,7 @@ module.exports = () => suite("Scene — un riquadro per volta, cento caratteri",
   ok('la ricerca si toglie di mezzo', !laPila.cerca, laPila);
   ok('e la barra dice cosa sono', /riferimenti/i.test(laPila.dove||''), laPila);
   ok('con il modo di aggiungerne altre', laPila.aggiungi, laPila);
-  ok('ognuna si apre e ognuna si toglie',
-     laPila.apribili === 2 && laPila.togliibili === 2, laPila);
+  ok('senza una ✕ appiccicata su ognuna', laPila.crocette === 0, laPila);
 
   sezione('e toccandone una si apre la galleria dei frammenti');
   // La stessa dell'archivio — provenienza, tag, frecce — solo che le frecce
@@ -880,7 +860,7 @@ module.exports = () => suite("Scene — un riquadro per volta, cento caratteri",
   // erano stati presi, partendo da una miniatura aperta per guardarla, non e'
   // quello che si stava chiedendo.
   const galleria = await page.evaluate(async ()=>{
-    document.querySelector('[data-apri]').click();
+    document.querySelector('.pila-mini').dispatchEvent(new MouseEvent('click',{bubbles:true}));
     await new Promise(r=> setTimeout(r, 500));
     const lb = document.getElementById('refs-lightbox');
     return {
@@ -906,18 +886,56 @@ module.exports = () => suite("Scene — un riquadro per volta, cento caratteri",
   ok('Indietro chiude la galleria', !dopoGalleria.galleria, dopoGalleria);
   ok('e lascia la scelta dov\'era, sotto', dopoGalleria.scelta && dopoGalleria.vista === 'pila', dopoGalleria);
 
-  sezione('da li\' si toglie quello che non serve piu\'');
+  sezione('da li\' si sceglie e si butta, come dappertutto');
+  // Prima ogni miniatura aveva la sua ✕ nell'angolo: un bersaglio da
+  // ventiquattro pixel, e per toglierne tre servivano tre tocchi centrati bene.
+  // Adesso e' lo stesso gesto degli artisti e dei frammenti — si tiene premuto,
+  // si spunta, si butta in blocco (vedi scelta.js).
+  const scelte = await page.evaluate(async ()=>{
+    const el = document.querySelector('.pila-mini');
+    const r = el.getBoundingClientRect();
+    const x = r.left + r.width/2, y = r.top + r.height/2;
+    const t = ()=> [new Touch({identifier:1, target:el, clientX:x, clientY:y})];
+    el.dispatchEvent(new TouchEvent('touchstart',{bubbles:true,touches:t(),targetTouches:t()}));
+    await new Promise(r=>setTimeout(r,600));
+    const durante = document.querySelectorAll('.pila-mini.scelta').length;
+    el.dispatchEvent(new TouchEvent('touchend',{bubbles:true,touches:[],targetTouches:[]}));
+    el.dispatchEvent(new MouseEvent('click',{bubbles:true,clientX:x,clientY:y}));
+    await new Promise(r=>setTimeout(r,650));
+    return {
+      durante,
+      dopo: document.querySelectorAll('.pila-mini.scelta').length,
+      // Il tocco prolungato non apre la galleria sotto.
+      galleria: document.getElementById('refs-lightbox').classList.contains('open'),
+      // La barra in alto dice quante e diventa il cestino.
+      dove: (document.getElementById('sceltarif-dove')||{}).textContent,
+      pulsante: document.getElementById('sceltarif-togli').textContent.trim(),
+      acceso: !document.getElementById('sceltarif-togli').hidden,
+    };
+  });
+  ok('tenendo premuta una miniatura si comincia a scegliere', scelte.durante === 1, scelte);
+  ok('e resta scelta quando il dito si stacca', scelte.dopo === 1, scelte);
+  ok('senza aprire la galleria sotto', !scelte.galleria, scelte);
+  ok('la barra dice quante ne hai prese', /1 scelta/.test(scelte.dove||''), scelte);
+  ok('e il pulsante diventa il cestino', scelte.acceso && /^togli$/i.test(scelte.pulsante), scelte);
+
   const menoUna = await page.evaluate(async ()=>{
-    document.querySelector('.pila-mini [data-via]').click();
-    await new Promise(r=> setTimeout(r, 350));
+    document.getElementById('sceltarif-togli').click();
+    await new Promise(r=> setTimeout(r, 400));
     const s = window.scene.scenaAperta();
     return {
       pila: window.scene.rifiDi(s.beat[s.beat.length-1]).map(x=> x.refId),
       miniature: document.querySelectorAll('.pila-mini').length,
+      spuntate: document.querySelectorAll('.pila-mini.scelta').length,
+      pulsante: document.getElementById('sceltarif-togli').hidden,
+      dove: (document.getElementById('sceltarif-dove')||{}).textContent,
     };
   });
-  ok('la prima esce dalla pila', menoUna.pila.join(',') === 'rif1', menoUna);
+  ok('la scelta esce dalla pila', menoUna.pila.join(',') === 'rif1', menoUna);
   ok('e sparisce anche da qui', menoUna.miniature === 1, menoUna);
+  ok('la selezione si azzera con lei', menoUna.spuntate === 0, menoUna);
+  ok('il cestino si spegne', menoUna.pulsante, menoUna);
+  ok('e la barra torna a dire cosa sono', /riferimenti/i.test(menoUna.dove||''), menoUna);
 
   sezione('e "Aggiungi" scende nell\'archivio');
   await page.evaluate(()=> document.querySelector('[data-archivio]').click());
