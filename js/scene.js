@@ -41,10 +41,11 @@ const SCENE_COL = 'scene';
 export const MAX_BEAT = 100;
 const CONTA_DA = 70;
 
-// Le due sagome appena accennate dopo la card tratteggiata, e quanti beat
-// bastano perche' le card tornino della loro altezza normale. Vedi renderBeat.
+// Le due sagome appena accennate dopo la card tratteggiata. Vedi renderBeat.
+// (C'era anche una regola che alzava le card quando i beat erano pochi: da
+// quando la miniatura 4:3 occupa mezza card, ogni card e' gia' piu' alta di
+// quanto quella regola sapesse alzarla, e non serviva piu' a niente.)
 const SAGOME = 2;
-const POCHI = 3;
 
 // Ogni quanto si passa a buttare le scene abbandonate, e da quanto devono
 // esserlo. Vedi spazzaScarti.
@@ -277,18 +278,31 @@ export function chiudiScena(){
 // esistono, piu' UNO vuoto in coda. Mai due, mai una griglia. Il riquadro vuoto
 // non e' un beat: diventa un beat nel momento in cui ci si scrive dentro, e
 // solo allora ne nasce un altro sotto di lui.
-const MATITA = `<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4l10-10a2.8 2.8 0 0 0-4-4L4 16Z"/><path d="M13.5 6.5 17.5 10.5"/></svg>`;
-
+// ── IL BEAT, RIBALTATO ──
+// La miniatura sta a SINISTRA e occupa quasi meta' della card, in proporzione
+// 4:3 come una vignetta. Prima era un quadratino da 42px nell'angolo destro,
+// con accanto una matita: il disegno era un'opzione da scovare, e la card era
+// un campo di testo con un vuoto bianco intorno. Ribaltata, la card si riempie
+// da sola e aprendo la sezione si vedono immagini invece di righe — che per chi
+// disegna e' la differenza fra una sezione che si apre e una che si rimanda.
+//
+// E la matita e' sparita: la miniatura STESSA e' il punto d'ingresso al
+// disegno. Un bersaglio grande mezza card non ha bisogno di un'icona che spieghi
+// che si puo' toccare.
 function riquadroHTML(n, id, testo, nuovo, img){
   const l = (testo||'').length;
   return `<div class="beat ${nuovo ? 'beat-nuovo' : ''}" ${id ? `data-id="${esc(id)}"` : ''}>
-    <span class="beat-n">${n}</span>
-    <textarea rows="1" maxlength="${MAX_BEAT}" placeholder="Cosa si vede?"
-      aria-label="Beat ${n}">${esc(testo||'')}</textarea>
-    <span class="beat-conta" ${l < CONTA_DA ? 'hidden' : ''}>${l}/${MAX_BEAT}</span>
-    <button class="beat-schizzo ${img ? 'pieno' : ''}" data-schizzo type="button"
-      aria-label="${img ? 'Modifica il disegno' : 'Disegna questo beat'}">${
-      img ? `<img src="${esc(cldResize(img, 160))}" alt=""/>` : MATITA }</button>
+    <div class="beat-riga">
+      <button class="beat-mini ${img ? 'pieno' : ''}" data-schizzo type="button"
+        aria-label="${img ? 'Modifica il disegno del beat ' + n : 'Disegna il beat ' + n}">${
+        img ? `<img src="${esc(cldResize(img, 320))}" alt=""/>` : '' }</button>
+      <div class="beat-corpo">
+        <span class="beat-n">${n}</span>
+        <textarea rows="1" maxlength="${MAX_BEAT}" placeholder="Cosa si vede?"
+          aria-label="Beat ${n}">${esc(testo||'')}</textarea>
+        <span class="beat-conta" ${l < CONTA_DA ? 'hidden' : ''}>${l}/${MAX_BEAT}</span>
+      </div>
+    </div>
   </div>`;
 }
 
@@ -306,11 +320,8 @@ export function renderBeat(){
   cont.innerHTML = scena.beat.map((b,i)=> riquadroHTML(i+1, b.id, b.testo, false, b.img)).join('')
     + riquadroHTML(scena.beat.length + 1, null, '', true, null)
     + SAGOME_HTML;
-  // Con pochi beat le card sono piu' alte: due riquadri bassi in cima a uno
-  // schermo vuoto sembrano l'inizio di un modulo da compilare, gli stessi due
-  // larghi sembrano due inquadrature.
-  cont.classList.toggle('pochi', scena.beat.length <= POCHI);
   cont.querySelectorAll('textarea').forEach(cresci);
+  cont.querySelectorAll('.beat[data-id]').forEach(aggiornaAvviso);
 }
 
 // I riquadri crescono col testo invece di far scorrere dentro due righe: cento
@@ -363,7 +374,6 @@ function promuovi(box, dati){
   // Le sagome devono restare in fondo, dopo la card fantasma appena nata.
   const cont = document.getElementById('scena-beat');
   cont.querySelectorAll('.beat-sagoma').forEach(el=> cont.appendChild(el));
-  cont.classList.toggle('pochi', scena.beat.length <= POCHI);
   haptic('tap');
   salvaFraPoco(scena.id);
   return beat;
@@ -385,6 +395,116 @@ function potaVuotiDi(id){
     if(!scena.beat.some(b=> b.id === el.dataset.id)) el.remove();
   });
   rinumera();
+  salvaFraPoco(scena.id);
+}
+
+// ── UN BEAT = UNA INQUADRATURA ──────────────────────────────────────────────
+//
+// "Prende il telefono, gira su se stesso e inizia a correre" non e' una
+// vignetta: sono tre. E' l'errore piu' facile da fare qui dentro — si scrive
+// come si racconta, di seguito — e chi disegna se ne accorge solo dopo, davanti
+// alla tavola, quando quella riga non entra in un riquadro.
+//
+// COME LO SI RICONOSCE, e perche' cosi'. Riconoscere i verbi italiani a regola
+// (desinenze, ausiliari) da' troppi falsi allarmi: "la porta" e "porta" si
+// scrivono uguale, e un avviso che compare quando non serve si impara a
+// ignorare in due giorni — cioe' smette di funzionare anche quando serve.
+// Quindi si va per elenco: un centinaio di verbi d'azione alla terza persona,
+// quelli che si usano davvero scrivendo cosa si vede. Sbagliare per DIFETTO qui
+// non costa niente (nessun avviso), sbagliare per eccesso costa tutto.
+//
+// E il suggerimento non blocca, non colora di rosso, non impedisce di salvare:
+// e' una riga sotto la card, con due tocchi possibili — separale, o taci.
+const VERBI = ('entra esce apre chiude prende posa lascia guarda osserva alza abbassa corre '
+  + 'cammina sale scende cade salta lancia tira spinge afferra molla tocca accende spegne '
+  + 'legge scrive beve mangia sorride ride piange urla grida sussurra parla risponde chiede '
+  + 'gira volta torna arriva parte fugge scappa insegue bussa suona colpisce spara punta mira '
+  + 'sbatte rompe strappa accarezza abbraccia bacia indica annuisce scuote respira sospira '
+  + 'aspetta attraversa supera scavalca nasconde appare scompare estrae infila sfila stringe '
+  + 'solleva appoggia getta raccoglie conta cerca trova perde segue precede indossa toglie '
+  + 'siede china inginocchia stende sdraia ferma inizia comincia finisce smette continua '
+  + 'entrano escono aprono chiudono prendono guardano corrono salgono scendono cadono '
+  + 'girano tornano arrivano partono fuggono colpiscono parlano rispondono si').split(' ');
+const VERBO = new Set(VERBI);
+
+// I punti in cui una riga si spezza in piu' inquadrature: la virgola, la "e"
+// che incolla due azioni, e gli avverbi di seguito. "Mentre" NON c'e' apposta —
+// dice che le due cose succedono insieme, cioe' in una vignetta sola.
+const CUCITURE = /\s*(?:,|;|\be poi\b|\bpoi\b|\bquindi\b|\binfine\b|\bdopo di che\b|\bed\b|\be\b)\s+/gi;
+
+function spezzoni(testo){
+  return (testo||'').split(CUCITURE).map(t=> t.trim()).filter(t=> t.length);
+}
+
+// Un pezzo "e' un'azione" se comincia con un verbo dell'elenco, saltando gli
+// eventuali pronomi davanti ("si volta", "lo prende").
+const PRONOMI = new Set(['si','lo','la','li','le','gli','ne','ci','mi','ti']);
+function eAzione(pezzo){
+  const parole = pezzo.toLowerCase().replace(/[^a-zàèéìòù\s]/g,'').split(/\s+/).filter(Boolean);
+  for(let i=0; i<Math.min(2, parole.length); i++){
+    if(PRONOMI.has(parole[i])) continue;
+    return VERBO.has(parole[i]);
+  }
+  return false;
+}
+
+// Quante inquadrature sembra contenere questo testo. Due o piu' → si suggerisce.
+export function inquadrature(testo){
+  const pezzi = spezzoni(testo);
+  if(pezzi.length < 2) return [testo];
+  const azioni = pezzi.filter(eAzione);
+  return azioni.length >= 2 ? pezzi : [testo];
+}
+
+// La riga sotto la card. Compare e sparisce senza ridisegnare i riquadri: chi
+// sta scrivendo non deve vedersi portare via il cursore da un consiglio.
+function avvisoHTML(id){
+  return `<div class="beat-avviso" data-avviso="${esc(id)}">
+    <span>Sembrano piu\' vignette, le separo?</span>
+    <button data-separa="${esc(id)}" type="button">Separa</button>
+    <button data-zitto="${esc(id)}" type="button" aria-label="Lascia com\'e\'">✕</button>
+  </div>`;
+}
+
+// L'avviso sta DENTRO la card, appeso in fondo. Fuori — fra una card e l'altra —
+// avrebbe falsato le altezze che il riordino misura una volta sola quando il
+// dito solleva la scheda, e la card sarebbe atterrata nel posto sbagliato.
+function aggiornaAvviso(box){
+  const scena = scenaAperta();
+  const b = scena && scena.beat.find(x=> x.id === box.dataset.id);
+  const appeso = box.querySelector('.beat-avviso');
+  // "zitto" e' la memoria del rifiuto, e sta nel beat perche' deve durare: un
+  // consiglio gia' scartato che ritorna riaprendo la scena e' peggio del
+  // consiglio stesso.
+  const serve = b && !b.zitto && inquadrature(b.testo).length > 1;
+  if(serve && !appeso) box.insertAdjacentHTML('beforeend', avvisoHTML(b.id));
+  else if(!serve && appeso) appeso.remove();
+}
+
+// Spezza il beat nei suoi pezzi: il primo resta dov'e', gli altri nascono
+// sotto di lui. Non e' un annulla-bile: e' testo che si puo' riscrivere.
+function separaBeat(id){
+  const scena = scenaAperta();
+  const i = scena ? scena.beat.findIndex(b=> b.id === id) : -1;
+  if(i < 0) return;
+  const pezzi = inquadrature(scena.beat[i].testo);
+  if(pezzi.length < 2) return;
+  const primo = { ...scena.beat[i], testo: pezzi[0].slice(0, MAX_BEAT) };
+  const altri = pezzi.slice(1).map(t=> ({ id: genId(), testo: t.slice(0, MAX_BEAT) }));
+  scena.beat = scena.beat.slice(0,i).concat([primo], altri, scena.beat.slice(i+1));
+  scena.updatedAt = Date.now();
+  haptic('done');
+  renderBeat();
+  salvaFraPoco(scena.id);
+}
+
+function zittisciBeat(id){
+  const scena = scenaAperta();
+  const b = scena && scena.beat.find(x=> x.id === id);
+  if(!b) return;
+  b.zitto = true;
+  const av = document.querySelector(`[data-avviso="${CSS.escape(id)}"]`);
+  if(av) av.remove();
   salvaFraPoco(scena.id);
 }
 
@@ -419,7 +539,7 @@ async function disegnaBeat(box){
       const q = box.querySelector('[data-schizzo]');
       if(q){
         q.classList.add('pieno');
-        q.innerHTML = `<img src="${esc(cldResize(url, 160))}" alt=""/>`;
+        q.innerHTML = `<img src="${esc(cldResize(url, 320))}" alt=""/>`;
         q.setAttribute('aria-label', 'Modifica il disegno');
       }
       await salvaSubito(s2.id);
@@ -467,10 +587,18 @@ export function apriBoard(){
   if(tit) tit.textContent = titoloDi(scena);
   if(griglia){
     griglia.innerHTML = scena.beat.length
+      // TUTTE LE TESSERE UGUALI, e non "grandi quanto il loro contenuto": e' la
+      // differenza fra una pagina di storyboard e un foglio di appunti. Quindi
+      // la vignetta c'e' sempre — anche vuota, come un riquadro ancora da
+      // disegnare — e la riga sotto e' alta due righe fisse, troncata con i
+      // puntini. Cosi' la griglia non ha buchi e la scena, da qui, si guarda
+      // come si guarda una tavola.
       ? scena.beat.map((b,i)=> `<div class="board-tessera">
-          <span class="board-n">${i+1}</span>
-          ${b.img ? `<img class="board-img" src="${esc(cldResize(b.img, 400))}" alt=""/>` : ''}
-          ${(b.testo||'').trim() ? `<p>${esc(b.testo)}</p>` : ''}
+          <div class="board-vignetta">
+            ${b.img ? `<img src="${esc(cldResize(b.img, 400))}" alt=""/>` : ''}
+            <span class="board-n">${i+1}</span>
+          </div>
+          <p>${esc((b.testo||'').trim())}</p>
         </div>`).join('')
       : `<div class="scene-vuoto"><p>Questa scena non ha ancora beat.</p></div>`;
   }
@@ -540,6 +668,10 @@ export function initScene(){
 
   const beat = document.getElementById('scena-beat');
   beat.addEventListener('click', e=>{
+    const separa = e.target.closest('[data-separa]');
+    if(separa){ separaBeat(separa.dataset.separa); return; }
+    const zitto = e.target.closest('[data-zitto]');
+    if(zitto){ zittisciBeat(zitto.dataset.zitto); return; }
     const q = e.target.closest('[data-schizzo]');
     if(q) disegnaBeat(q.closest('.beat'));
   });
@@ -558,6 +690,7 @@ export function initScene(){
     if(!b) return;
     b.testo = ta.value;
     scena.updatedAt = Date.now();
+    aggiornaAvviso(box);
     salvaFraPoco(scena.id);
   });
   // Uscendo da un riquadro rimasto vuoto lo si butta, e la scena si ricompatta.

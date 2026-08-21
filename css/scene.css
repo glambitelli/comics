@@ -15,8 +15,18 @@
   content:'';position:absolute;top:0;left:0;right:0;height:5px;
   background:linear-gradient(90deg,var(--coral),var(--gold),var(--green),var(--sky));
 }
+/* ── LA GRANA DI CARTA ──
+   Un velo di rumore sopra il beige, ripetuto su una piastrella da 140px. Serve a
+   una cosa sola: togliere al fondo l'aspetto di superficie stampata a tinta
+   piatta, che sotto una fila di card bianche legge freddo. E' tarata bassissima
+   apposta (l'alfa del rumore e' 0,05, cioe' cinque parti su cento): a occhio non
+   si vede la grana, si vede che il fondo non e' piatto. Piu' su darebbe fastidio
+   a leggere, che e' esattamente quello che non deve fare.
+   SVG e non un'immagine: pesa duecento byte, non fa una richiesta di rete, e non
+   sgrana sugli schermi ad alta densita'. */
 .scene-scroll{
-  flex:1;overflow-y:auto;background:#efe6d4;
+  flex:1;overflow-y:auto;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='linear' slope='0.05'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23g)'/%3E%3C/svg%3E"), #efe6d4;
   padding:14px 14px calc(20px + var(--safe-bot));
 }
 body.is-touch .scene-scroll{padding-bottom:calc(110px + var(--safe-bot))}
@@ -27,7 +37,7 @@ body.is-touch .scene-scroll{padding-bottom:calc(110px + var(--safe-bot))}
    giu'. Un "+" tondo in un angolo sarebbe un bersaglio da centrare. */
 .scene-nuova{
   width:100%;display:flex;align-items:center;justify-content:center;gap:9px;
-  background:var(--white);border:1.5px dashed var(--sand3);border-radius:14px;
+  background:rgba(255,255,255,.7);border:1.5px dashed var(--sand3);border-radius:14px;
   padding:14px 13px;margin-bottom:14px;cursor:pointer;color:var(--ink2);
   font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;
   transition:border-color .18s,color .18s,transform .1s;
@@ -37,8 +47,12 @@ body.is-touch .scene-scroll{padding-bottom:calc(110px + var(--safe-bot))}
 /* ── LE SCHEDE ── */
 .scene-card{
   background:var(--white);border:1.5px solid var(--sand2);border-radius:13px;
-  padding:12px 14px;margin-bottom:8px;cursor:pointer;
-  box-shadow:0 2px 8px rgba(40,30,15,.05);
+  padding:12px 14px;margin-bottom:10px;cursor:pointer;
+  /* Ombra morbida e diffusa in due strati, la stessa delle card dei beat: uno
+     stretto che stacca il bordo dalla carta, uno largo e quasi trasparente che
+     fa il calore. Una sola ombra larga sfuma nel nulla, una sola stretta
+     disegna un secondo bordo. */
+  box-shadow:0 1px 2px rgba(60,44,20,.05), 0 6px 20px rgba(60,44,20,.07);
   transition:border-color .18s,transform .1s;
 }
 .scene-card:active{transform:scale(.985);border-color:var(--oro-sabbia)}
@@ -113,52 +127,124 @@ body.is-touch .scene-scroll{padding-bottom:calc(110px + var(--safe-bot))}
   padding:6px 2px;
 }
 .scena-titolo::placeholder{color:var(--oro);opacity:.42;font-weight:600}
+/* Stessa carta dell'elenco: si passa dall'una all'altra e il fondo e' lo stesso
+   foglio. Vedi la nota sulla grana piu' su. */
 .scena-scroll{
-  flex:1;overflow-y:auto;background:var(--sand);
+  flex:1;overflow-y:auto;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='linear' slope='0.05'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23g)'/%3E%3C/svg%3E"), var(--sand);
   padding:14px 14px calc(30px + var(--safe-bot));
 }
 
 /* ── I RIQUADRI ──
-   Numero a sinistra, testo al centro, contatore a destra. Il numero e' piccolo
-   e spento: serve a ritrovarsi mentre si disegna, non a dire "sei al terzo su
-   dodici" — quel dodici non esiste da nessuna parte. */
+   LA CARD E' RIBALTATA: la miniatura a sinistra, larga il 42% e in proporzione
+   4:3 come una vignetta; a destra il numero, il testo e il contatore. Prima era
+   il contrario — un campo di testo con un quadratino da 42px in un angolo e una
+   matita dentro — e il risultato era una fila di righe bianche in cui il disegno
+   era un'opzione da scovare. Ribaltata, la card si riempie da sola e la sezione,
+   aperta, mostra immagini.
+   La miniatura E' il punto d'ingresso al disegno: mezza card e' un bersaglio che
+   non ha bisogno di un'icona che spieghi che si puo' toccare. */
 .beat{
-  display:flex;align-items:flex-start;gap:10px;
+  display:flex;flex-direction:column;
   background:var(--white);border:1.5px solid var(--sand2);border-radius:13px;
-  padding:11px 13px;margin-bottom:10px;
-  box-shadow:0 2px 8px rgba(40,30,15,.05);
+  padding:11px;margin-bottom:12px;position:relative;
+  /* Ombra morbida e diffusa, non un gradino: serve a staccare la card dalla
+     carta sotto, non a farla galleggiare. Due strati — uno stretto e denso, uno
+     largo e quasi trasparente — perche' una sola ombra larga sfuma nel nulla e
+     una sola stretta disegna un bordo. */
+  box-shadow:0 1px 2px rgba(60,44,20,.05), 0 6px 20px rgba(60,44,20,.07);
   transition:border-color .18s;
 }
 .beat:focus-within{border-color:var(--oro-sabbia)}
+.beat-riga{display:flex;align-items:flex-start;gap:11px}
 /* Il riquadro in coda e' PIU' SPENTO degli altri: si vede che e' il posto dove
-   continuare, non un beat rimasto vuoto per sbaglio. Tratteggiato come "Nuova
-   scena", che e' l'altro invito a cominciare qualcosa. */
-.beat-nuovo{border-style:dashed;border-color:var(--sand3);box-shadow:none;background:rgba(255,255,255,.55)}
+   continuare, non un beat rimasto vuoto per sbaglio. */
+.beat-nuovo{border-style:dashed;border-color:var(--sand3);box-shadow:none;background:rgba(255,255,255,.6)}
+
+/* ── LA SPINA DORSALE ──
+   Un filo verticale che scende dal fondo di una card al bordo di quella dopo.
+   Una fila di card e' un elenco; le stesse card infilate su un filo sono una
+   sequenza — che e' quello che una scena e'. Riempie anche il vuoto fra una e
+   l'altra, che era spazio morto.
+   Si interrompe DOPO la card fantasma: da li' in giu' non c'e' piu' niente di
+   scritto, e un filo che continuasse nel vuoto prometterebbe qualcosa. */
+.beat::after{
+  content:'';position:absolute;left:calc(11px + 21%);bottom:-12px;
+  width:1.5px;height:12px;background:var(--sand3);opacity:.85;
+}
+.beat-nuovo::after{display:none}
+
+.beat-mini{
+  flex:0 0 45%;aspect-ratio:4/3;padding:0;cursor:pointer;overflow:hidden;
+  border:1.5px dashed var(--sand3);border-radius:9px;background:rgba(250,244,232,.6);
+  transition:border-color .18s,transform .1s;
+}
+.beat-mini:active{transform:scale(.985)}
+.beat-mini.pieno{border-style:solid;border-color:var(--sand2);background:#fffdf7}
+.beat-mini img{width:100%;height:100%;object-fit:cover;display:block}
+
+.beat-corpo{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;align-self:stretch}
 .beat-n{
-  flex-shrink:0;width:20px;text-align:right;
-  font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;
-  color:var(--ink3);opacity:.7;line-height:1.7;
+  font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;
+  color:var(--ink3);opacity:.65;letter-spacing:.04em;line-height:1;
 }
 .beat textarea{
-  flex:1;min-width:0;border:none;outline:none;background:none;resize:none;overflow:hidden;
-  font-family:'Nunito',sans-serif;font-size:15px;line-height:1.5;color:var(--ink);
-  min-height:23px;display:block;padding:0;
+  flex:1;width:100%;border:none;outline:none;background:none;resize:none;overflow:hidden;
+  font-family:'Nunito',sans-serif;font-size:15px;line-height:1.45;color:var(--ink);
+  min-height:22px;display:block;padding:0;
 }
 .beat textarea::placeholder{color:var(--ink3);opacity:.75}
-/* IL CONTATORE COMPARE SOLO IN VISTA DEL FONDO (dagli 80 caratteri in su, vedi
+/* IL CONTATORE COMPARE SOLO IN VISTA DEL FONDO (dai 70 caratteri in su, vedi
    CONTA_DA in scene.js). Prima diceva "hai ancora spazio", che mentre si scrive
    non serve a niente e trasforma un riquadro in un esercizio. */
 .beat-conta{
-  flex-shrink:0;align-self:flex-end;
+  align-self:flex-end;
   font-size:10.5px;font-weight:700;letter-spacing:.03em;color:var(--ink3);opacity:.75;
 }
 .beat-conta[hidden]{display:none}
 .beat.trascinata{
   transform:scale(1.03);border-color:var(--oro);
   box-shadow:0 12px 28px rgba(40,30,15,.22);
-  position:relative;z-index:5;transition:none;
+  z-index:5;transition:none;
 }
 .in-riordino .beat:not(.trascinata){transition:transform .16s cubic-bezier(.22,.61,.36,1)}
+
+/* ── "SEMBRANO PIU' VIGNETTE" ──
+   Sta DENTRO la card, appesa in fondo oltre una riga sottile. Non e' un errore:
+   niente rosso, niente bordo acceso, niente che impedisca di salvare. E' un
+   consiglio, e come tutti i consigli si puo' non ascoltare — la ✕ lo fa tacere
+   per sempre su quel beat. */
+.beat-avviso{
+  display:flex;align-items:center;gap:8px;
+  margin-top:10px;padding-top:9px;border-top:1px solid var(--sand2);
+  font-size:11.5px;color:var(--ink3);line-height:1.35;
+}
+.beat-avviso span{flex:1;min-width:0}
+.beat-avviso button{
+  flex-shrink:0;cursor:pointer;border-radius:7px;
+  font-family:'Nunito',sans-serif;font-size:11.5px;font-weight:700;
+  padding:5px 9px;border:1px solid var(--sand3);background:none;color:var(--ottone);
+}
+.beat-avviso button:active{background:var(--sand)}
+.beat-avviso button[data-zitto]{border:none;padding:5px 4px;color:var(--ink3);font-size:13px}
+
+/* ── LE SAGOME ──
+   Due card appena accennate dopo quella tratteggiata. Non sono un traguardo da
+   raggiungere ne' una quota da riempire: servono a non lasciare mezzo schermo
+   deserto sotto due beat, che e' la pagina bianca vista da un'altra parte.
+   Non si toccano, non contengono niente, e non entrano nel riordino.
+   Alte quanto le card vere, cosi' la fila continua invece di sfilacciarsi in
+   due rettangoli qualsiasi. Il conto e' quello della card: larghezza dello
+   schermo meno i 28 dello scorrimento, i 22 dell'imbottitura e i 3 del bordo;
+   di quel che resta la vignetta prende il 45%, e la sua altezza e' tre quarti
+   della sua larghezza. Piu' i 25 di imbottitura e bordo. */
+.beat-sagoma{
+  border:1.5px solid var(--sand2);border-radius:13px;
+  margin-bottom:12px;
+  height:calc(0.3375 * (100vw - 53px) + 25px);max-height:190px;min-height:96px;
+  opacity:.3;pointer-events:none;
+}
+.beat-sagoma + .beat-sagoma{opacity:.15}
 
 /* ── LA BOARD ──
    Sopra la scena (che sta a 210) perche' si apre da dentro. Fondo scuro: si
@@ -190,24 +276,41 @@ body.is-touch .scene-scroll{padding-bottom:calc(110px + var(--safe-bot))}
    li' un Indietro sotto il dito non c'e'. */
 body.is-touch .board-chiudi{display:none}
 .board-scroll{flex:1;overflow-y:auto;padding:14px 14px calc(20px + var(--safe-bot))}
-/* Affiancati: e' tutto il punto della board. Due colonne sul telefono, di piu'
-   dove c'e' spazio — senza numero fisso di colonne, cosi' una scena da quattro
-   beat non si ritrova sparsa su tre file. */
-.board-griglia{
-  display:grid;gap:10px;
-  grid-template-columns:repeat(auto-fill,minmax(148px,1fr));
-}
+
+/* GRIGLIA RIGIDA, e "rigida" e' la parola giusta. Prima era auto-fill: le
+   tessere si allargavano quanto potevano, l'ultima riga lasciava un buco a
+   destra e le altezze cambiavano con la lunghezza del testo — si leggeva come
+   un foglio di appunti. Due colonne fisse (tre dove c'e' spazio), tutte le
+   tessere della stessa forma, nessun buco: da qui una scena da dodici beat si
+   guarda come si guarda una tavola, ed e' li' che si vede che esiste. */
+.board-griglia{display:grid;gap:10px;grid-template-columns:repeat(2,1fr)}
+@media (min-width:760px){ .board-griglia{grid-template-columns:repeat(3,1fr)} }
 .board-tessera{
   background:rgba(255,255,255,.045);border:1px solid rgba(232,200,120,.16);
-  border-radius:12px;padding:11px 12px;
-  display:flex;flex-direction:column;gap:6px;min-height:88px;
+  border-radius:10px;padding:7px;
+  display:flex;flex-direction:column;gap:7px;
 }
+/* La vignetta c'e' SEMPRE, anche vuota: un riquadro ancora da disegnare fa
+   parte della tavola, un buco no. */
+.board-vignetta{
+  position:relative;width:100%;aspect-ratio:4/3;overflow:hidden;
+  border-radius:6px;background:rgba(255,253,247,.06);
+}
+.board-vignetta img{width:100%;height:100%;object-fit:cover;display:block}
+/* Piccolo, in alto a sinistra, appoggiato sull'angolo della vignetta: e' un
+   numero di riferimento mentre si disegna, non un'etichetta da leggere. */
 .board-n{
-  font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;
-  color:var(--oro);opacity:.65;letter-spacing:.04em;
+  position:absolute;top:5px;left:6px;
+  font-family:'Nunito',sans-serif;font-size:10.5px;font-weight:800;
+  color:var(--oro);letter-spacing:.04em;
+  background:rgba(23,19,16,.62);border-radius:5px;padding:1px 5px;
 }
+/* DUE RIGHE ESATTE, sempre, anche quando il testo e' corto o non c'e': e' cosi'
+   che tutte le tessere restano alte uguali e la griglia non si scompone. */
 .board-tessera p{
-  margin:0;font-size:13.5px;line-height:1.45;color:#efe4d2;
+  margin:0;font-size:12px;line-height:1.4;color:#e6dbc9;
+  height:33.6px;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
 }
 
 /* ── IL FOGLIO SU CUI DISEGNARE ──
@@ -249,45 +352,6 @@ body.is-touch .board-chiudi{display:none}
   /* Il dito deve DISEGNARE, non far scorrere la pagina sotto il foglio. */
   touch-action:none;cursor:crosshair;
 }
-
-/* ── LA MINIATURA DENTRO IL BEAT ──
-   Un quadratino a destra del testo, alla stessa altezza della prima riga.
-   Vuoto e' una matita spenta: e' l'altra porta d'ingresso del beat, e deve
-   vedersi senza gridare piu' del testo. */
-.beat-schizzo{
-  flex-shrink:0;width:42px;height:42px;padding:0;cursor:pointer;
-  border:1.5px dashed var(--sand3);border-radius:9px;background:none;
-  display:flex;align-items:center;justify-content:center;
-  color:var(--ink3);opacity:.75;overflow:hidden;
-  transition:border-color .18s,opacity .15s,transform .1s;
-}
-.beat-schizzo:active{transform:scale(.94)}
-.beat-schizzo.pieno{border-style:solid;border-color:var(--sand2);opacity:1;background:#fffdf7}
-.beat-schizzo img{width:100%;height:100%;object-fit:cover;display:block}
-
-/* ── LE SAGOME ──
-   Due card appena accennate dopo quella tratteggiata. Non sono un traguardo da
-   raggiungere ne' una quota da riempire: servono a non lasciare mezzo schermo
-   deserto sotto due beat, che e' la pagina bianca vista da un'altra parte.
-   Non si toccano, non contengono niente, e non entrano nel riordino. */
-.beat-sagoma{
-  border:1.5px solid var(--sand2);border-radius:13px;
-  margin-bottom:10px;min-height:52px;
-  opacity:.35;pointer-events:none;
-}
-.beat-sagoma + .beat-sagoma{opacity:.18}
-
-/* CON POCHI BEAT LE CARD SONO PIU' ALTE. Due riquadri bassi in cima a uno
-   schermo vuoto sembrano l'inizio di un modulo da compilare; gli stessi due,
-   larghi, sembrano due inquadrature. Da quattro in su l'altezza torna quella
-   normale, che a quel punto e' lo scorrimento a contare.
-   I 96 non sono a caso: con due beat, la card fantasma e le due sagome fanno
-   cinque riquadri da ~106px con i margini, cioe' poco piu' di 530 — quanto
-   basta a riempire lo schermo di un telefono invece di lasciarlo mezzo vuoto.
-   L'altezza normale (senza questa regola) e' gia' 66 per via del quadratino del
-   disegno, che da solo ne occupa 42: alzarla di poco non si vedrebbe. */
-.pochi .beat{min-height:96px}
-.pochi .beat-sagoma{min-height:96px}
 
 /* L'anteprima della scena quando il primo beat e' un disegno e basta: al posto
    della riga di testo, il disegno. La scena si presenta col suo contenuto in

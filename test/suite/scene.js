@@ -152,6 +152,71 @@ module.exports = () => suite("Scene — un riquadro per volta, cento caratteri",
   ok('sola lettura: nessun campo in cui il dito possa finire', board.campi === 0, board);
   ok('e i beat stanno affiancati, non in colonna', board.dueSullaRiga, board);
 
+  sezione('e con dodici beat la board deve sembrare una tavola');
+  // Prima era auto-fill: le tessere si allargavano quanto potevano, l'ultima
+  // riga lasciava un buco a destra e le altezze cambiavano con la lunghezza del
+  // testo — si leggeva come un foglio di appunti. Questa e' la schermata da cui
+  // si vede che la scena esiste, quindi deve leggersi come una pagina.
+  const tavola = await page.evaluate(()=>{
+    const s = window.scene.scenaAperta();
+    // Dodici beat con testi di lunghezza molto diversa: e' proprio la
+    // differenza che faceva ballare le altezze.
+    s.beat = Array.from({length:12}, (_,i)=>({
+      id:'b'+i,
+      testo: i % 3 === 0 ? 'Corto' : 'Un testo molto piu\' lungo degli altri, che da solo occuperebbe tre righe abbondanti',
+    }));
+    window.scene.apriBoard();
+    const t = Array.from(document.querySelectorAll('.board-tessera'));
+    const r = t.map(x=> x.getBoundingClientRect());
+    const colonne = getComputedStyle(document.getElementById('board-griglia')).gridTemplateColumns.split(' ').length;
+    // Le righe: quante tessere condividono lo stesso bordo superiore.
+    const cime = {};
+    r.forEach(x=>{ const k = Math.round(x.top); cime[k] = (cime[k]||0) + 1; });
+    return {
+      quante: t.length,
+      colonne,
+      perRiga: Object.values(cime),
+      // Stessa forma per tutte: altezze uguali e larghezze uguali.
+      alteUguali: new Set(r.map(x=> Math.round(x.height))).size === 1,
+      largheUguali: new Set(r.map(x=> Math.round(x.width))).size === 1,
+      // La vignetta c'e' sempre, anche dove non si e' ancora disegnato: un
+      // riquadro vuoto fa parte della tavola, un buco no.
+      vignette: t.filter(x=> !!x.querySelector('.board-vignetta')).length,
+      formaVignetta: (()=>{
+        const v = t[0].querySelector('.board-vignetta').getBoundingClientRect();
+        return +(v.width / v.height).toFixed(2);
+      })(),
+      // Il testo lungo e' troncato, non srotolato.
+      troncato: (()=>{
+        const p = t[1].querySelector('p');
+        return getComputedStyle(p).webkitLineClamp === '2' && p.scrollHeight > p.clientHeight;
+      })(),
+      // Il numero in alto a sinistra, sopra la vignetta.
+      numeroInAlto: (()=>{
+        const n = t[0].querySelector('.board-n').getBoundingClientRect();
+        const v = t[0].querySelector('.board-vignetta').getBoundingClientRect();
+        return n.top - v.top < 12 && n.left - v.left < 12;
+      })(),
+    };
+  });
+  ok('ci sono tutte e dodici le tessere', tavola.quante === 12, tavola);
+  ok('su due colonne fisse', tavola.colonne === 2, tavola);
+  ok('senza buchi: ogni riga e\' piena', tavola.perRiga.every(n=> n === 2), tavola);
+  ok('tutte della stessa altezza, per lungo che sia il testo', tavola.alteUguali, tavola);
+  ok('e della stessa larghezza', tavola.largheUguali, tavola);
+  ok('ognuna con la sua vignetta, anche dove non c\'e\' ancora un disegno',
+     tavola.vignette === 12, tavola);
+  ok('in proporzione da vignetta', Math.abs(tavola.formaVignetta - 4/3) < 0.06, tavola);
+  ok('il testo lungo e\' troncato a due righe', tavola.troncato, tavola);
+  ok('e il numero sta in alto a sinistra', tavola.numeroInAlto, tavola);
+  // Rimessa com'era, cosi' le prove che seguono ripartono da dove stavano.
+  await page.evaluate(()=>{
+    const s = window.scene.scenaAperta();
+    s.beat = s.beat.slice(0,2).map((b,i)=>({ id:'r'+i,
+      testo: i === 0 ? 'Il ladro entra dalla finestra, di spalle' : 'Primo piano della mano sul davanzale' }));
+    window.scene.renderBeat();
+  });
+
   sezione('sul telefono la X della board non c\'e\'');
   // Stessa regola del lettore degli albi e dei frammenti: chiude il tasto
   // Indietro, che sta sotto il pollice.
@@ -331,24 +396,58 @@ module.exports = () => suite("Scene — un riquadro per volta, cento caratteri",
   ok('appena accennate', sagome.sbiadite, sagome);
   ok('e fuori dal riordino', sagome.fuoriDalGesto, sagome);
 
-  sezione('e con pochi beat le card sono piu\' alte');
-  const altezze = await page.evaluate(()=>{
-    const cont = document.getElementById('scena-beat');
-    const pochi = cont.classList.contains('pochi');
-    const alta = Math.round(cont.querySelector('.beat').getBoundingClientRect().height);
-    // Si aggiungono beat finche' non sono tanti, e si rimisura.
-    const s = window.scene.scenaAperta();
-    s.beat = s.beat.concat([1,2,3].map(i=>({ id:'x'+i, testo:'beat '+i })));
-    window.scene.renderBeat();
+  sezione('la card e\' ribaltata: il disegno e\' il protagonista');
+  // Prima la card era un campo di testo con un quadratino da 42px in un angolo e
+  // una matita dentro: una fila di righe bianche in cui il disegno era
+  // un'opzione da scovare. Adesso la vignetta occupa mezza card ed E' il punto
+  // d'ingresso al disegno — un bersaglio cosi' non ha bisogno di un'icona che
+  // spieghi che si puo' toccare.
+  const carta = await page.evaluate(()=>{
+    const b = document.querySelector('#scena-beat .beat');
+    const mini = b.querySelector('.beat-mini');
+    const corpo = b.querySelector('.beat-corpo');
+    const rb = b.getBoundingClientRect(), rm = mini.getBoundingClientRect(), rc = corpo.getBoundingClientRect();
     return {
-      pochi, alta,
-      tantiClasse: cont.classList.contains('pochi'),
-      bassa: Math.round(cont.querySelector('.beat').getBoundingClientRect().height),
+      quota: +(rm.width / rb.width).toFixed(3),
+      forma: +(rm.width / rm.height).toFixed(2),
+      aSinistra: rm.left < rc.left,
+      alta: Math.round(rb.height),
+      // La miniatura E' il pulsante del disegno.
+      apreIlDisegno: mini.hasAttribute('data-schizzo'),
+      // E la vecchia matita d'angolo non c'e' piu' da nessuna parte.
+      matita: document.querySelectorAll('#scena-beat .beat-schizzo').length,
+      // Vuota: tratteggiata, come la card fantasma. Si vede che non c'e' ancora
+      // niente, senza che nessuno lo scriva.
+      vuotaTratteggiata: getComputedStyle(mini).borderTopStyle === 'dashed',
     };
   });
-  ok('con due beat le card sono larghe', altezze.pochi && altezze.alta >= 90, altezze);
-  ok('con cinque tornano normali',
-     !altezze.tantiClasse && altezze.bassa <= altezze.alta - 20, altezze);
+  ok('la miniatura occupa fra il 40 e il 45% della card',
+     carta.quota >= 0.40 && carta.quota <= 0.45, carta);
+  ok('in proporzione 4:3, formato vignetta', Math.abs(carta.forma - 4/3) < 0.05, carta);
+  ok('e sta a sinistra, col testo a destra', carta.aSinistra, carta);
+  ok('toccandola si apre il disegno', carta.apreIlDisegno, carta);
+  ok('la matita nell\'angolo non c\'e\' piu\'', carta.matita === 0, carta);
+  ok('vuota e\' tratteggiata', carta.vuotaTratteggiata, carta);
+  ok('e la card si riempie da sola: non e\' piu\' una riga', carta.alta >= 100, carta);
+
+  sezione('e un filo verticale infila le card una nell\'altra');
+  // Una fila di card e' un elenco; le stesse card infilate su un filo sono una
+  // sequenza — che e' quello che una scena e'.
+  const spina = await page.evaluate(()=>{
+    const leggi = el => getComputedStyle(el, '::after');
+    const prima = document.querySelector('#scena-beat .beat:not(.beat-nuovo)');
+    const fantasma = document.querySelector('#scena-beat .beat-nuovo');
+    return {
+      suUnaCard: leggi(prima).content !== 'none' && parseFloat(leggi(prima).height) > 0,
+      sottile: parseFloat(leggi(prima).width) <= 2,
+      // Si interrompe DOPO la card fantasma: sotto non c'e' piu' niente di
+      // scritto, e un filo che continuasse nel vuoto prometterebbe qualcosa.
+      nonDopoLaFantasma: leggi(fantasma).display === 'none',
+    };
+  });
+  ok('il filo c\'e\' sotto le card', spina.suUnaCard, spina);
+  ok('ed e\' sottile, non una barra', spina.sottile, spina);
+  ok('e si ferma dopo la card fantasma', spina.nonDopoLaFantasma, spina);
 
   sezione('ogni beat si puo\' disegnare invece che scrivere');
   // Per chi disegna e' la strada piu' naturale, quindi ha la stessa dignita'
@@ -356,11 +455,11 @@ module.exports = () => suite("Scene — un riquadro per volta, cento caratteri",
   const matite = await page.evaluate(()=>{
     const b = Array.from(document.querySelectorAll('#scena-beat .beat'));
     return {
-      tutte: b.every(x=> !!x.querySelector('[data-schizzo]')),
-      anchePerLaFantasma: !!document.querySelector('#scena-beat .beat-nuovo [data-schizzo]'),
+      tutte: b.every(x=> !!x.querySelector('.beat-mini[data-schizzo]')),
+      anchePerLaFantasma: !!document.querySelector('#scena-beat .beat-nuovo .beat-mini[data-schizzo]'),
     };
   });
-  ok('la matita c\'e\' in ogni riquadro', matite.tutte, matite);
+  ok('la vignetta da disegnare c\'e\' in ogni riquadro', matite.tutte, matite);
   ok('anche nella card fantasma', matite.anchePerLaFantasma, matite);
 
   await page.evaluate(()=> document.querySelector('#scena-beat .beat-nuovo [data-schizzo]').click());
@@ -418,7 +517,7 @@ module.exports = () => suite("Scene — un riquadro per volta, cento caratteri",
       conDisegno: s.beat.filter(x=> x.img).length,
       senzaTesto: s.beat.filter(x=> x.img && !(x.testo||'').trim()).length,
       fantasmaInCoda: b[b.length-1].classList.contains('beat-nuovo'),
-      miniatura: !!document.querySelector('#scena-beat .beat-schizzo.pieno img'),
+      miniatura: !!document.querySelector('#scena-beat .beat-mini.pieno img'),
     };
   });
   ok('chiudendo, il foglio si chiude e il disegno si salva', dopoDisegno.chiuso, dopoDisegno);
@@ -437,6 +536,88 @@ module.exports = () => suite("Scene — un riquadro per volta, cento caratteri",
   await page.waitForTimeout(150);
   const sopravvive = await page.evaluate(()=> window.scene.scenaAperta().beat.filter(b=> b.img).length);
   ok('resta dov\'e\'', sopravvive === 1, sopravvive);
+
+  sezione('"sembrano piu\' vignette": un beat = una inquadratura');
+  // "Prende il telefono, gira su se stesso e inizia a correre" non e' una
+  // vignetta: sono tre. E' l'errore piu' facile da fare qui dentro — si scrive
+  // come si racconta — e chi disegna se ne accorge solo dopo, davanti alla
+  // tavola, quando quella riga non entra in un riquadro.
+  const conta = ()=> page.evaluate(()=> document.querySelectorAll('#scena-beat .beat').length);
+  const avviso = ()=> page.evaluate(()=>{
+    const a = document.querySelector('#scena-beat .beat-avviso');
+    if(!a) return null;
+    const st = getComputedStyle(a);
+    const card = a.closest('.beat');
+    return {
+      testo: a.querySelector('span').textContent,
+      dentroLaCard: !!card,
+      // Non e' un errore: niente rosso, niente bordo acceso.
+      bordoCard: getComputedStyle(card).borderTopColor,
+      separa: !!a.querySelector('[data-separa]'),
+      zitto: !!a.querySelector('[data-zitto]'),
+    };
+  });
+  const nBeatPrima = await conta();
+  await scriviNel(2, 'prende il telefono, gira su se stesso e inizia a correre');
+  await page.waitForTimeout(150);
+  let a = await avviso();
+  ok('l\'avviso compare', !!a, a);
+  ok('e dice quello che c\'e\' da dire', /piu\' vignette/.test(a.testo||''), a);
+  ok('sta dentro la card, sotto il testo', a.dentroLaCard, a);
+  ok('con l\'azione per separarle', a.separa, a);
+  ok('e il modo di farlo tacere', a.zitto, a);
+  // NIENTE ALLARMI: nessuna finestra, nessun bordo rosso, e il salvataggio non
+  // si ferma — la riga e' gia' in archivio mentre l'avviso e' a schermo.
+  const niente = await page.evaluate(()=>({
+    finestre: document.querySelectorAll('.modal-overlay.open').length,
+    salvato: (window.scene.scenaAperta().beat.find(b=> /gira su se stesso/.test(b.testo||'')) ? true : false),
+  }));
+  ok('nessuna finestra si apre', niente.finestre === 0, niente);
+  ok('e il testo e\' gia\' salvato lo stesso', niente.salvato, niente);
+
+  sezione('e una riga sola non lo sveglia');
+  await scriviNel(2, 'primo piano del telefono sul tavolo');
+  await page.waitForTimeout(150);
+  ok('su una inquadratura sola l\'avviso sparisce', (await avviso()) === null, null);
+  // Nemmeno "mentre": due cose che succedono INSIEME stanno in una vignetta.
+  await scriviNel(2, 'corre mentre guarda indietro');
+  await page.waitForTimeout(150);
+  ok('e "mentre" non e\' una sequenza: e\' una vignetta sola',
+     (await avviso()) === null, null);
+
+  sezione('toccando "Separa" la riga diventa tre beat');
+  await scriviNel(2, 'prende il telefono, gira su se stesso e inizia a correre');
+  await page.waitForTimeout(150);
+  await page.evaluate(()=> document.querySelector('#scena-beat [data-separa]').click());
+  await page.waitForTimeout(200);
+  const separati = await page.evaluate(()=> window.scene.scenaAperta().beat.map(b=> b.testo));
+  ok('i pezzi diventano beat distinti', separati.length === nBeatPrima + 1, separati);
+  ok('e ognuno porta la sua azione',
+     /prende il telefono/.test(separati[2]||'') &&
+     /gira su se stesso/.test(separati[3]||'') &&
+     /inizia a correre/.test(separati[4]||''), separati);
+  ok('l\'avviso se ne va con la riga che l\'aveva chiamato',
+     (await avviso()) === null, null);
+
+  sezione('e la ✕ lo fa tacere per sempre su quel beat');
+  await scriviNel(2, 'apre la porta, entra e chiude');
+  await page.waitForTimeout(150);
+  ok('l\'avviso torna su una riga nuova', !!(await avviso()), null);
+  await page.evaluate(()=> document.querySelector('#scena-beat [data-zitto]').click());
+  await page.waitForTimeout(150);
+  ok('un tocco e sparisce', (await avviso()) === null, null);
+  // E non torna: ne' riscrivendo, ne' riaprendo la scena. Un consiglio gia'
+  // scartato che ricompare e' peggio del consiglio stesso.
+  await page.evaluate(()=>{
+    const ta = document.querySelectorAll('#scena-beat .beat textarea')[2];
+    ta.value = 'apre la porta, entra e chiude piano';
+    ta.dispatchEvent(new Event('input', {bubbles:true}));
+  });
+  await page.waitForTimeout(150);
+  ok('e non torna riscrivendo la stessa riga', (await avviso()) === null, null);
+  await page.evaluate(()=> window.scene.renderBeat());
+  await page.waitForTimeout(150);
+  ok('nemmeno ridisegnando la scena', (await avviso()) === null, null);
 
   sezione('le scene abbandonate se ne vanno da sole');
   // Zero o un beat, e ferme da piu' di un giorno: via in silenzio, senza
