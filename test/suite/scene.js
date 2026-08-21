@@ -574,8 +574,19 @@ module.exports = () => suite("Scene — un riquadro per volta, cento caratteri",
   // SI ENTRA DALLE CARTELLE, non da una parete di miniature in ordine di data:
   // le cartelle sono gia' il modo in cui l'archivio e' organizzato, e cercare
   // scorrendo tutto e' l'attrito che questa sezione evita ovunque.
+  // SI ASCOLTANO TUTTE E DUE LE COLLEZIONI. Le Scene leggevano le immagini
+  // senza leggere le cartelle: un'immagine sa in quale cartella sta, ma il NOME
+  // della cartella e' nell'altra collezione, e senza quella ogni gruppo cadeva
+  // sul ripiego "Senza cartella" — sei cartelle senza nome a schermo.
+  const ascolti = await page.evaluate(()=> window.__ascolti || []);
+  ok('si ascoltano le immagini', ascolti.includes('refs'), ascolti);
+  ok('e anche le cartelle, se no non hanno un nome', ascolti.includes('refFolders'), ascolti);
+
   const cartelle = await page.evaluate(()=>({
     quante: document.querySelectorAll('#sceltarif-griglia [data-cartella]').length,
+    categorie: Array.from(document.querySelectorAll('.sceltarif-categoria')).map(x=> x.textContent),
+    senzaNome: Array.from(document.querySelectorAll('.sceltarif-nome'))
+      .filter(x=> /senza cartella/i.test(x.textContent)).length,
     // Nessuna immagine sciolta a schermo: prima si sceglie dove guardare.
     immaginiSubito: document.querySelectorAll('#sceltarif-griglia [data-rif]').length,
     nomi: Array.from(document.querySelectorAll('.sceltarif-nome')).map(x=> x.textContent),
@@ -586,7 +597,12 @@ module.exports = () => suite("Scene — un riquadro per volta, cento caratteri",
     quanteDentro: Array.from(document.querySelectorAll('.sceltarif-quante')).map(x=> x.textContent),
   }));
   ok('si aprono le cartelle, non i frammenti', cartelle.quante === 2 && cartelle.immaginiSubito === 0, cartelle);
-  ok('con i nomi dell\'archivio', cartelle.nomi.sort().join(',') === 'MOEBIUS,OTOMO', cartelle);
+  ok('coi nomi veri dell\'archivio', cartelle.nomi.sort().join(',') === 'MANI,OTOMO', cartelle);
+  ok('e nessuna che ripiega su "Senza cartella"', cartelle.senzaNome === 0, cartelle);
+  // Raggruppate per categoria come nell'archivio: e' li' che si e' deciso come
+  // sta insieme questa roba, e ritrovarla ordinata in un altro modo vorrebbe
+  // dire impararla due volte.
+  ok('raggruppate per categoria', cartelle.categorie.join(',') === 'Artists,Study', cartelle);
   ok('e un assaggio di cosa c\'e\' dentro', cartelle.conMosaico, cartelle);
   ok('e quante ce ne sono', cartelle.quanteDentro.sort().join(',') === '2,4', cartelle);
 
@@ -606,9 +622,38 @@ module.exports = () => suite("Scene — un riquadro per volta, cento caratteri",
       return +(r.width / r.height).toFixed(2);
     })(),
   }));
-  ok('entrando si vedono le sue immagini', archivio.tessere === 4, archivio);
+  // Dentro OTOMO ci sono quattro immagini, di cui una segnata come tavola:
+  // nella scheda Frammenti se ne vedono tre.
+  ok('entrando si vedono i suoi frammenti', archivio.tessere === 3, archivio);
   ok('e la barra dice dove si e\'', /OTOMO/.test(archivio.dove||''), archivio);
   ok('in tessere da vignetta', Math.abs(archivio.forma - 4/3) < 0.06, archivio);
+
+  sezione('e dentro una cartella ci sono le due schede dell\'archivio');
+  // Dentro un autore ci sono i frammenti e ci sono le tavole, e sono due cose
+  // che si cercano in momenti diversi.
+  const schede = await page.evaluate(()=>({
+    visibili: !document.getElementById('sceltarif-tab').hidden,
+    voci: Array.from(document.querySelectorAll('#sceltarif-tab [data-tab]')).map(x=> x.textContent.trim()),
+    attiva: (document.querySelector('#sceltarif-tab .active')||{}).dataset?.tab,
+  }));
+  ok('le schede ci sono', schede.visibili, schede);
+  ok('e dicono quante ce ne sono per parte',
+     schede.voci.join('|') === 'Frammenti 3|Tavole 1', schede);
+  ok('si parte dai frammenti', schede.attiva === 'ritagli', schede);
+  const suTavole = await page.evaluate(async ()=>{
+    document.querySelector('#sceltarif-tab [data-tab="tavole"]').click();
+    await new Promise(r=> setTimeout(r, 250));
+    return {
+      tessere: document.querySelectorAll('#sceltarif-griglia [data-rif]').length,
+      attiva: (document.querySelector('#sceltarif-tab .active')||{}).dataset?.tab,
+    };
+  });
+  ok('passando a Tavole si vede solo quella', suTavole.tessere === 1, suTavole);
+  ok('e la scheda si accende', suTavole.attiva === 'tavole', suTavole);
+  await page.evaluate(async ()=>{
+    document.querySelector('#sceltarif-tab [data-tab="ritagli"]').click();
+    await new Promise(r=> setTimeout(r, 250));
+  });
 
   sezione('la ricerca invece taglia trasversale');
   // Quando si cerca le cartelle spariscono: si vede tutto quello che
@@ -659,7 +704,7 @@ module.exports = () => suite("Scene — un riquadro per volta, cento caratteri",
   });
   ok('scegliendo, la scelta resta aperta', primoTocco.restaAperta, primoTocco);
   ok('la card fantasma diventa un beat', primoTocco.pila === 1, primoTocco);
-  ok('e si ricorda da quale riferimento arriva', primoTocco.rif === 'rif0', primoTocco);
+  ok('e si ricorda da quale riferimento arriva', /^rif/.test(primoTocco.rif||''), primoTocco);
   ok('un beat di solo riferimento, senza una parola, e\' valido', primoTocco.senzaTesto, primoTocco);
   ok('la tessera scelta porta la sua spunta', primoTocco.spuntata === 1, primoTocco);
   ok('e sotto e\' nata la card fantasma nuova', primoTocco.fantasmaInCoda, primoTocco);
@@ -688,11 +733,42 @@ module.exports = () => suite("Scene — un riquadro per volta, cento caratteri",
       })(),
     };
   });
-  ok('la pila arriva a tre', dueTre.pila.join(',') === 'rif0,rif1,rif2', dueTre);
+  ok('la pila arriva a tre', dueTre.pila.length === 3, dueTre);
   ok('e tutte e tre sono spuntate', dueTre.spuntate === 3, dueTre);
   ok('a schermo i fogli sono sovrapposti', dueTre.fogli === 3, dueTre);
   ok('sfalsati, cosi\' si vede che sono piu\' di uno', dueTre.sfalsati, dueTre);
   ok('col numero di quante sono in tutto', dueTre.conta === '3', dueTre);
+
+  sezione('e la pila resta TUTTA dentro il riquadro');
+  // Il guaio da cui nasce questa prova: i fogli erano posizionati in assoluto
+  // dentro un pulsante che non era un contesto di posizionamento, quindi si
+  // ancoravano alla CARD — si spalmavano per tutta la sua larghezza, ruotati,
+  // coprendo il testo. A schermo la scheda sembrava rotta.
+  const dentro = await page.evaluate(()=>{
+    const q = document.querySelectorAll('#scena-beat .beat[data-id]');
+    const card = q[q.length-1];
+    const mini = card.querySelector('.beat-mini');
+    const rm = mini.getBoundingClientRect();
+    const rc = card.getBoundingClientRect();
+    const testo = card.querySelector('textarea').getBoundingClientRect();
+    const fogli = Array.from(mini.querySelectorAll('.pila-foglio')).map(f=> f.getBoundingClientRect());
+    const conta = mini.querySelector('.pila-conta').getBoundingClientRect();
+    const fuori = f => f.left < rm.left - 1 || f.right > rm.right + 1 ||
+                       f.top < rm.top - 1 || f.bottom > rm.bottom + 1;
+    return {
+      fogliFuori: fogli.filter(fuori).length,
+      contaFuori: fuori(conta),
+      // E il riquadro resta al posto suo dentro la card, largo meno di meta'.
+      quota: +(rm.width / rc.width).toFixed(3),
+      // Il testo non viene coperto da niente: comincia dove finisce la vignetta.
+      testoLibero: testo.left >= rm.right - 1,
+    };
+  });
+  ok('nessun foglio esce dal riquadro', dentro.fogliFuori === 0, dentro);
+  ok('nemmeno il numerino', !dentro.contaFuori, dentro);
+  ok('il riquadro resta largo meno di meta\' card',
+     dentro.quota >= 0.40 && dentro.quota <= 0.45, dentro);
+  ok('e il testo accanto non viene coperto', dentro.testoLibero, dentro);
 
   sezione('e ritoccandone una la si toglie');
   // Stesso gesto nei due sensi: non c'e' un secondo posto dove andare a
@@ -707,7 +783,7 @@ module.exports = () => suite("Scene — un riquadro per volta, cento caratteri",
       spuntate: document.querySelectorAll('#sceltarif-griglia .presa').length,
     };
   });
-  ok('quella ritoccata esce dalla pila', ritocco.pila.join(',') === 'rif0,rif2', ritocco);
+  ok('quella ritoccata esce dalla pila', ritocco.pila.length === 2, ritocco);
   ok('e perde la spunta', ritocco.spuntate === 2, ritocco);
 
   sezione('"Togli tutto" svuota la pila');

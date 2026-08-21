@@ -7,7 +7,14 @@ export function collection(_db, nome){ return { nome }; }
 // verificare COSA si sta scrivendo e SU QUALE documento — e restava scoperto
 // tutto il lato "scrittura" della galleria.
 export function doc(_db, col, id){ return { col, id }; }
-export function onSnapshot(){ return ()=>{}; }
+// Chi si mette in ascolto, e su quale collezione. Serve a una prova precisa:
+// le Scene leggevano le immagini senza leggere le CARTELLE, e ogni cartella
+// finiva col ripiego "Senza cartella" — un'immagine sa dove sta, ma il nome
+// della cartella e' nell'altra collezione.
+export function onSnapshot(ref){
+  (window.__ascolti || (window.__ascolti = [])).push(ref && ref.nome);
+  return ()=>{};
+}
 // Nell'app vera la modifica torna indietro dal listener onSnapshot, che
 // aggiorna la cache locale e ridisegna. Qui il listener non c'è: le scritture
 // si accumulano in window.__scritture, e chi vuole l'eco se la applica a mano

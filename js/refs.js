@@ -812,6 +812,21 @@ export function ascoltaRefs(){
   }, err=>console.warn('refs listener error:', err));
 }
 
+// E LE CARTELLE INSIEME ALLE IMMAGINI. Erano legate a startRefsListener come
+// tutto il resto, e le Scene — che leggono l'archivio con ascoltaRefs — si
+// ritrovavano l'elenco delle cartelle vuoto: ogni gruppo cadeva sul ripiego
+// "Senza cartella", e la scelta di un riferimento mostrava sei cartelle senza
+// nome. Un'immagine sa in quale cartella sta, ma il NOME della cartella sta
+// nell'altra collezione: servono tutte e due o non serve nessuna delle due.
+export function ascoltaCartelle(){
+  if(_foldersUnsub) return;
+  _foldersUnsub = onSnapshot(collection(db, FOLDERS_COL), snap=>{
+    _folders = snap.docs.map(d=>({id:d.id, ...d.data()}));
+    renderRefsScreen();
+    if(window.rinfrescaSceltaRif) window.rinfrescaSceltaRif();
+  }, err=>console.warn('refFolders listener error:', err));
+}
+
 export function startRefsListener(){
   if(!_driveAuthHooked){
     _driveAuthHooked = true;
@@ -834,12 +849,7 @@ export function startRefsListener(){
     // solo da un tocco, e finche' non arriva lo scaffale mostra "Ricollega".
   }
   ascoltaRefs();
-  if(!_foldersUnsub){
-    _foldersUnsub = onSnapshot(collection(db, FOLDERS_COL), snap=>{
-      _folders = snap.docs.map(d=>({id:d.id, ...d.data()}));
-      renderRefsScreen();
-    }, err=>console.warn('refFolders listener error:', err));
-  }
+  ascoltaCartelle();
   if(!_albumsUnsub){
     _albumsUnsub = onSnapshot(collection(db, ALBUMS_COL), snap=>{
       _albums = snap.docs.map(d=>({id:d.id, ...d.data()}));

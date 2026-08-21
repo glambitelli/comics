@@ -169,7 +169,7 @@ body.is-touch .scene-scroll{padding-bottom:calc(110px + var(--safe-bot))}
    Si interrompe DOPO la card fantasma: da li' in giu' non c'e' piu' niente di
    scritto, e un filo che continuasse nel vuoto prometterebbe qualcosa. */
 .beat::after{
-  content:'';position:absolute;left:calc(11px + 21%);bottom:-12px;
+  content:'';position:absolute;left:calc(11px + 22.5%);bottom:-12px;
   width:1.5px;height:12px;background:var(--sand3);opacity:.85;
 }
 .beat-nuovo::after{display:none}
@@ -181,7 +181,10 @@ body.is-touch .scene-scroll{padding-bottom:calc(110px + var(--safe-bot))}
 }
 .beat-mini:active{transform:scale(.985)}
 .beat-mini.pieno{border-style:solid;border-color:var(--sand2);background:#fffdf7}
-.beat-mini img{width:100%;height:100%;object-fit:cover;display:block}
+/* Nessuna regola generica sulle immagini qui dentro: le foto della pila hanno
+   misure loro (vedi .pila-foglio), e una `.beat-mini img` — che pesa piu' di
+   una classe sola — se le mangiava rimettendole a tutto riquadro. E' il motivo
+   per cui i fogli sbucavano fuori dalla card invece di sfalsarsi dentro. */
 
 .beat-corpo{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;align-self:stretch}
 .beat-n{
@@ -412,26 +415,32 @@ body.is-touch .board-chiudi{display:none}
 /* ── LA PILA DEI RIFERIMENTI ──
    Un'inquadratura si costruisce guardando piu' cose insieme — la posa da una
    parte, la luce da un'altra — quindi la vignetta di un beat tiene piu' di
-   un'immagine. Impilate come fotografie sul tavolo: la prima scelta sopra, le
-   altre che sbucano dietro all'angolo. Oltre tre fogli non si distingue piu'
-   niente, e da li' in poi parla il numerino.
-   overflow VISIBILE, perche' i fogli dietro devono poter sbordare: restano
-   dentro l'imbottitura della card, che e' di 11px contro i 10 di sporgenza. */
-.beat-mini.pieno{overflow:visible;background:none;border:none}
+   un'immagine, impilate come fotografie sul tavolo.
+   .
+   E STANNO TUTTE DENTRO IL RIQUADRO. Nella prima versione i fogli erano
+   posizionati in assoluto dentro il pulsante, che pero' non era un contesto di
+   posizionamento: si ancoravano alla CARD e si spalmavano per tutta la sua
+   larghezza, ruotati, coprendo il testo — la scheda sembrava rotta. Adesso il
+   contenitore e' posizionato, il riquadro ritaglia, e lo spazio per far sbucare
+   i fogli dietro viene TOLTO dal foglio in cima invece che aggiunto attorno
+   (vedi --r, calcolato in scene.js): niente esce di un millimetro. */
+.beat-mini.pieno{position:relative;overflow:hidden;background:#fffdf7;border-style:solid;border-color:var(--sand2)}
+.pila{position:absolute;inset:0;display:block}
 .pila-foglio{
-  position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
-  border-radius:9px;border:1.5px solid var(--sand2);background:#fffdf7;
-  transform:translate(calc(var(--g) * 5px), calc(var(--g) * -5px))
-            rotate(calc(var(--g) * 2.2deg)) scale(calc(1 - var(--g) * 0.035));
-  box-shadow:0 1px 3px rgba(60,44,20,.14);
+  position:absolute;
+  left:calc(var(--g) * 6px);bottom:calc(var(--g) * 6px);
+  width:calc(100% - var(--r));height:calc(100% - var(--r));
+  object-fit:cover;border-radius:7px;
+  border:1px solid var(--sand2);background:#fffdf7;
+  box-shadow:0 1px 3px rgba(60,44,20,.18);
 }
-/* Il numero sull'angolo in basso a destra del foglio in cima: dice quante ce ne
-   sono in tutto, comprese quelle che non si vedono. */
+/* Il numero sull'angolo in basso a destra: dice quante ce ne sono in tutto,
+   comprese quelle che non si vedono. Dentro il riquadro, non appeso fuori. */
 .pila-conta{
-  position:absolute;right:-5px;bottom:-5px;
-  font-family:'Nunito',sans-serif;font-size:10.5px;font-weight:800;
+  position:absolute;right:3px;bottom:3px;
+  font-family:'Nunito',sans-serif;font-size:10px;font-weight:800;
   color:var(--oro);background:rgba(26,20,16,.86);
-  border-radius:9px;padding:2px 6px;line-height:1.25;
+  border-radius:7px;padding:1px 5px;line-height:1.3;
 }
 /* Nella board basta dire che ce n'e' altre: li' si guarda la sequenza, non la
    pila. */
@@ -483,3 +492,21 @@ body.is-touch .board-chiudi{display:none}
   letter-spacing:.09em;text-transform:uppercase;color:var(--oro);opacity:.75;
 }
 .sceltarif-dove:empty{display:none}
+
+/* Le due schede di una cartella: lo STESSO interruttore dell'archivio (vedi
+   .seg-vasca in refs.css), non uno somigliante. Dentro un autore ci sono i
+   frammenti e ci sono le tavole, e sono due cose che si cercano in momenti
+   diversi. Compaiono solo dentro una cartella: nell'elenco non ci sarebbe
+   niente da separare. */
+.sceltarif-tab{margin:0 2px 12px}
+.sceltarif-tab[hidden]{display:none}
+/* L'etichetta di una categoria, larga quanto tutta la griglia: le cartelle sono
+   raggruppate come nell'archivio, perche' e' li' che si e' deciso come sta
+   insieme questa roba e ritrovarla ordinata in un altro modo vorrebbe dire
+   impararla due volte. */
+.sceltarif-categoria{
+  grid-column:1 / -1;margin:6px 2px 0;
+  font-size:10.5px;font-weight:700;letter-spacing:.11em;text-transform:uppercase;
+  color:var(--ink3);opacity:.75;
+}
+.sceltarif-categoria:first-of-type{margin-top:2px}

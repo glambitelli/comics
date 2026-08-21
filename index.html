@@ -231,6 +231,14 @@
     <button class="scena-btn scena-btn-testo" id="sceltarif-togli" type="button" hidden>Togli tutto</button>
   </div>
   <div class="sceltarif-scroll">
+    <!-- Le due schede di una cartella, le stesse dell'archivio: dentro un
+         autore ci sono i frammenti e ci sono le tavole, e sono due cose che si
+         cercano in momenti diversi. Compaiono solo dentro una cartella. -->
+    <div id="sceltarif-tab" class="sceltarif-tab seg-vasca" hidden>
+      <span class="seg-cursore" id="sceltarif-cursore" aria-hidden="true"></span>
+      <button class="seg-tab" data-tab="ritagli" type="button">Frammenti</button>
+      <button class="seg-tab" data-tab="tavole" type="button">Tavole</button>
+    </div>
     <div id="sceltarif-griglia" class="sceltarif-griglia"></div>
   </div>
 </div>

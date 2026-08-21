@@ -98,16 +98,30 @@ export function rifiDi(b){
 // Quante ne mostra la pila prima di limitarsi a contarle: oltre tre fogli
 // sovrapposti non si distingue piu' niente, si vede solo un pasticcio.
 const PILA_MAX = 3;
+// Di quanto sbuca ogni foglio da sotto quello sopra.
+const SBUCA = 6;
+// LA PILA STA TUTTA DENTRO IL RIQUADRO, e questa e' la correzione di un guaio
+// vero: i fogli erano posizionati in assoluto dentro un pulsante che non era un
+// contesto di posizionamento, quindi si ancoravano alla CARD — si spalmavano
+// per tutta la sua larghezza, ruotati, coprendo il testo. A schermo sembrava
+// che la scheda si fosse rotta.
+// Adesso i fogli vivono dentro un contenitore loro, e lo spazio che serve a
+// farli sbucare viene TOLTO dal foglio in cima invece che aggiunto attorno:
+// con tre riferimenti il primo e' piu' piccolo di dodici pixel, e nessuno esce
+// dal riquadro di un millimetro. Con un riferimento solo non si toglie niente,
+// perche' non c'e' niente da far sbucare.
 function pilaHTML(rifi){
   if(!rifi.length) return '';
+  const visti = rifi.slice(0, PILA_MAX);
+  const riserva = (visti.length - 1) * SBUCA;
   // Si dipingono dal fondo verso l'alto, cosi' il PRIMO riferimento resta
   // quello sopra: e' quello che si e' scelto per primo, ed e' quello che di
   // solito comanda l'inquadratura.
-  const visti = rifi.slice(0, PILA_MAX);
   const fogli = visti.map((r,i)=>
     `<img class="pila-foglio" style="--g:${visti.length-1-i}" src="${esc(cldResize(r.url, 320))}" alt=""/>`
   ).reverse().join('');
-  return fogli + (rifi.length > 1 ? `<span class="pila-conta">${rifi.length}</span>` : '');
+  return `<span class="pila" style="--r:${riserva}px">${fogli}${
+    rifi.length > 1 ? `<span class="pila-conta">${rifi.length}</span>` : ''}</span>`;
 }
 
 export function titoloDi(scena){
@@ -575,7 +589,11 @@ async function apriScelta(box){
   // L'archivio si carica solo adesso, e solo la parte che serve: ascoltaRefs
   // NON sveglia Google Drive (vedi la nota in refs.js).
   const r = await import('./refs.js');
+  // TUTTE E DUE le collezioni. Un'immagine sa in quale cartella sta, ma il NOME
+  // della cartella e' nell'altra: ascoltando solo le immagini ogni gruppo cadeva
+  // sul ripiego "Senza cartella", e la scelta mostrava sei cartelle senza nome.
   r.ascoltaRefs();
+  r.ascoltaCartelle();
   disegnaScelta();
 }
 
@@ -603,6 +621,22 @@ function tesseraHTML(x, presa){
     </button>`;
 }
 
+// Quale delle due schede di una cartella si sta guardando. Si parte dai
+// frammenti perche' sono la maggior parte di quello che si collega a un beat:
+// le tavole intere si guardano nel lettore, i frammenti si sono ritagliati
+// apposta per riguardarli.
+let _tabRif = 'ritagli';
+
+function mostraTab(dentro){
+  const tab = document.getElementById('sceltarif-tab');
+  if(!tab) return;
+  tab.hidden = !dentro;
+  const cur = document.getElementById('sceltarif-cursore');
+  if(cur) cur.style.setProperty('--i', _tabRif === 'tavole' ? 1 : 0);
+  tab.querySelectorAll('[data-tab]').forEach(b=>
+    b.classList.toggle('active', b.dataset.tab === _tabRif));
+}
+
 async function disegnaScelta(){
   const griglia = document.getElementById('sceltarif-griglia');
   const togli = document.getElementById('sceltarif-togli');
@@ -620,26 +654,38 @@ async function disegnaScelta(){
 
   // ── cercando: tutto l'archivio in fila, ovunque stia ──
   if(q){
+    mostraTab(false);
+    if(dove) dove.textContent = '';
     const trovate = tutte.filter(x=>
       ((x.tags||[]).join(' ') + ' ' + (x.provenance && x.provenance.opera || '')).toLowerCase().includes(q));
-    if(dove) dove.textContent = trovate.length ? '' : '';
     griglia.innerHTML = trovate.length
       ? trovate.map(x=> tesseraHTML(x, presi.has(x.id))).join('')
       : `<div class="sceltarif-vuoto"><p>Nessun riferimento con questo nome.</p></div>`;
     return;
   }
 
-  // ── dentro una cartella: le sue immagini ──
+  // ── dentro una cartella: le sue due schede ──
   if(_cartellaRif){
-    const dentro = tutte.filter(x=> (x.folderId || '__sciolte') === _cartellaRif);
+    mostraTab(true);
     if(dove) dove.textContent = nomeCartella(_cartellaRif, r);
-    griglia.innerHTML = dentro.length
-      ? dentro.map(x=> tesseraHTML(x, presi.has(x.id))).join('')
-      : `<div class="sceltarif-vuoto"><p>Questa cartella e\' vuota.</p></div>`;
+    const dentro = tutte.filter(x=> (x.folderId || '__sciolte') === _cartellaRif);
+    const scelte = dentro.filter(x=> _tabRif === 'tavole' ? !!x.tavola : !x.tavola);
+    // I numeri sulle due schede: si vede se vale la pena passare all'altra
+    // prima di toccarla e trovarla vuota.
+    const tab = document.getElementById('sceltarif-tab');
+    if(tab) tab.querySelectorAll('[data-tab]').forEach(btn=>{
+      const n = dentro.filter(x=> btn.dataset.tab === 'tavole' ? !!x.tavola : !x.tavola).length;
+      btn.textContent = (btn.dataset.tab === 'tavole' ? 'Tavole' : 'Frammenti') + ' ' + n;
+    });
+    griglia.innerHTML = scelte.length
+      ? scelte.map(x=> tesseraHTML(x, presi.has(x.id))).join('')
+      : `<div class="sceltarif-vuoto"><p>Qui dentro non c\'e\' niente${
+          _tabRif === 'tavole' ? ' fra le tavole' : ' fra i frammenti'}.</p></div>`;
     return;
   }
 
-  // ── l'elenco delle cartelle, con un assaggio di cosa c'e' dentro ──
+  // ── l'elenco: le cartelle raggruppate per categoria, come nell'archivio ──
+  mostraTab(false);
   if(dove) dove.textContent = '';
   const perCartella = new Map();
   for(const x of tutte){
@@ -656,17 +702,30 @@ async function disegnaScelta(){
       + `<div class="sceltarif-vuoto"><p>Nell\'archivio non c\'e\' ancora niente da collegare.</p></div>`;
     return;
   }
-  // Un mosaico di quattro invece di un nome e basta: una cartella di riferimenti
-  // si riconosce da cosa c'e' dentro, non da come si chiama.
-  const cartelle = [...perCartella.entries()]
-    .sort((a,c)=> nomeCartella(a[0], r).localeCompare(nomeCartella(c[0], r), 'it', {sensitivity:'base'}))
-    .map(([k, foto])=> `<button class="sceltarif-cartella" data-cartella="${esc(k)}" type="button">
-      <span class="sceltarif-mosaico">${foto.slice(0,4).map(x=>
-        `<img src="${esc(cldResize(x.url, 160))}" loading="lazy" alt=""/>`).join('')}</span>
-      <span class="sceltarif-nome">${esc(nomeCartella(k, r))}</span>
-      <span class="sceltarif-quante">${foto.length}</span>
-    </button>`).join('');
-  griglia.innerHTML = disegna + cartelle;
+  // RAGGRUPPATE PER CATEGORIA, nello stesso ordine dell'archivio: e' li' che si
+  // e' deciso come sta insieme questa roba, e ritrovarla ordinata in un altro
+  // modo vorrebbe dire impararla due volte. Le immagini senza cartella stanno
+  // in fondo, in un gruppo loro.
+  const cartelle = r.getFolders();
+  const gruppi = new Map();
+  for(const [k, foto] of perCartella){
+    const f = k === '__sciolte' ? null : cartelle.find(c=> c.id === k);
+    const cat = f ? (f.category || 'Senza categoria') : '\u00ff';   // le sciolte in fondo
+    if(!gruppi.has(cat)) gruppi.set(cat, []);
+    gruppi.get(cat).push([k, foto]);
+  }
+  const ordinati = [...gruppi.entries()].sort((x,y)=> x[0].localeCompare(y[0], 'it', {sensitivity:'base'}));
+  griglia.innerHTML = disegna + ordinati.map(([cat, elenco])=>
+    `<div class="sceltarif-categoria">${esc(cat === '\u00ff' ? 'Senza cartella' : cat)}</div>` +
+    elenco
+      .sort((x,y)=> nomeCartella(x[0], r).localeCompare(nomeCartella(y[0], r), 'it', {sensitivity:'base'}))
+      .map(([k, foto])=> `<button class="sceltarif-cartella" data-cartella="${esc(k)}" type="button">
+        <span class="sceltarif-mosaico">${foto.slice(0,4).map(x=>
+          `<img src="${esc(cldResize(x.url, 160))}" loading="lazy" alt=""/>`).join('')}</span>
+        <span class="sceltarif-nome">${esc(nomeCartella(k, r))}</span>
+        <span class="sceltarif-quante">${foto.length}</span>
+      </button>`).join('')
+  ).join('');
 }
 
 function nomeCartella(id, r){
@@ -679,6 +738,7 @@ function nomeCartella(id, r){
 // Indietro del telefono e la freccia a schermo risalgono allo stesso modo.
 function entraCartella(id){
   _cartellaRif = id;
+  _tabRif = 'ritagli';
   try{ history.pushState({view:'sceltarif-cartella'}, ''); }catch(e){}
   disegnaScelta();
 }
@@ -985,6 +1045,13 @@ export function initScene(){
       const rif = r.refsCache().find(x=> x.id === t.dataset.rif);
       if(rif) tocca(rif.id, rif.url);
     });
+  });
+  document.getElementById('sceltarif-tab').addEventListener('click', e=>{
+    const t = e.target.closest('[data-tab]');
+    if(!t || t.dataset.tab === _tabRif) return;
+    _tabRif = t.dataset.tab;
+    haptic('tap');
+    disegnaScelta();
   });
   document.getElementById('sceltarif-cerca').addEventListener('input', e=>{
     _cercaRif = e.target.value;

@@ -57,7 +57,7 @@ window.seminaRif = async (n)=>{
   const refs = await import('/js/refs.js');
   const cart = refs.getFolders(); cart.length = 0;
   cart.push({ id:'F1', category:'Artists', name:'OTOMO' },
-            { id:'F2', category:'Artists', name:'MOEBIUS' });
+            { id:'F2', category:'Study', name:'MANI' });
   const arr = refs.getRefs(); arr.length = 0;
   arr.push(...Array.from({length:n}, (_,i)=>{
     const c = document.createElement('canvas');
@@ -66,6 +66,7 @@ window.seminaRif = async (n)=>{
     x.fillStyle = ['#c05a3a','#2a6aa0','#3a8a5a','#8a5aa0'][i % 4];
     x.fillRect(0,0,40,30);
     return { id:'rif'+i, url:c.toDataURL('image/png'), folderId: i < 4 ? 'F1' : 'F2',
+             tavola: i === 3,
              tags: i % 2 ? ['mani'] : ['citta'],
              provenance:{ opera: i % 2 ? 'Akira' : 'Blame', pagina:i+1 } };
   }));
