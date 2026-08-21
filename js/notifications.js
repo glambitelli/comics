@@ -1,8 +1,39 @@
 let swReg = null;
 
+// ── DOPO UNA PUBBLICAZIONE, LA PAGINA RESTA COL VECCHIO IN MANO ──
+//
+// Il service worker che serve i file a QUESTA pagina e' quello che l'aveva in
+// carico quando e' partita. Pubblicando, il nuovo si installa e prende il posto
+// (skipWaiting + claim, vedi sw.js) — ma i file di questa pagina sono gia'
+// stati serviti dal vecchio, e sono quelli di ieri. Il nuovo comincia a servire
+// dal giro dopo.
+//
+// Da fuori si vede cosi': si chiude e si riapre l'app dopo un aggiornamento, e
+// si vede ancora la versione vecchia. Bisogna chiuderla e riaprirla una SECONDA
+// volta, e nessuno ha motivo di immaginarlo — anzi, l'unica conclusione
+// ragionevole e' che l'aggiornamento non sia arrivato. E' costato piu' di una
+// segnalazione di difetti gia' corretti.
+//
+// Quando il ricambio avviene davvero, quindi, si ricarica una volta sola. Il
+// controllo avviene un istante dopo l'avvio — installazione, attivazione e
+// presa in carico stanno tutte li' — quindi non capita mai in mezzo a qualcosa
+// che si stava scrivendo.
+function ricaricaAlRicambio(){
+  // Al PRIMISSIMO avvio non c'e' nessun vecchio da sostituire: il controller
+  // arriva per la prima volta, e ricaricare li' sarebbe un giro a vuoto.
+  const cEraGiaUnVecchio = !!navigator.serviceWorker.controller;
+  let fatto = false;
+  navigator.serviceWorker.addEventListener('controllerchange', ()=>{
+    if(!cEraGiaUnVecchio || fatto) return;
+    fatto = true;
+    location.reload();
+  });
+}
+
 export async function initNotifications(){
   if(!('serviceWorker' in navigator) || !('Notification' in window)) return;
   try {
+    ricaricaAlRicambio();
     swReg = await navigator.serviceWorker.register('./sw.js');
     await navigator.serviceWorker.ready;
     restoreReminderUI();

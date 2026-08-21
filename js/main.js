@@ -505,16 +505,16 @@ window.addEventListener('popstate', e=>{
   // Indietro con la galleria aperta risaliva un livello nella scelta — sotto —
   // lasciando la galleria a schermo.
   const lb = document.getElementById('refs-lightbox');
-  if(lb && lb.classList.contains('open')){
-    const m = loadedMod('./refs.js');
-    if(m){ m.closeLightboxUI(); return; }
+  if(lb && lb.classList.contains('open') && window.chiudiGalleriaUI){
+    window.chiudiGalleriaUI(); return;
   }
   // Il foglio su cui si disegna sta sopra tutto il resto delle Scene: Indietro
   // chiude quello per primo — e chiudendolo SALVA, quindi si aspetta.
+  // window e non loadedMod: schizzo.js lo carica scene.js per conto suo, e nel
+  // registro di questo file non c'e' mai stato (vedi la nota in schizzo.js).
   const sz = document.getElementById('schizzo');
-  if(sz && sz.classList.contains('open')){
-    const m = loadedMod('./schizzo.js');
-    if(m){ m.chiudiSchizzoUI(); return; }
+  if(sz && sz.classList.contains('open') && window.chiudiSchizzoUI){
+    window.chiudiSchizzoUI(); return;
   }
   // La scelta di un riferimento per un beat sta sopra la scena e sotto il foglio
   // da disegno, che si apre proprio da li'.

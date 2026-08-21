@@ -356,6 +356,14 @@ export function closeRefLightbox(){
 }
 
 // Chiusura immediata della sola interfaccia, senza toccare la cronologia.
+// LA CHIUSURA LA LASCIA SU WINDOW, come fa il foglio del ritaglio, e non e' una
+// scorciatoia: il tasto Indietro cerca i moduli nel registro di main.js, ma
+// questa galleria puo' essere aperta anche dalle Scene — che importano refs.js
+// per conto loro, senza passare da li'. In quel caso il registro non sapeva
+// niente, Indietro non trovava la galleria e finiva per agire sullo strato
+// SOTTO: chi guardava un riferimento a schermo intero premeva Indietro e non
+// succedeva niente (di visibile: sotto, intanto, la scelta risaliva di un
+// livello).
 export function closeLightboxUI(){
   const ov = document.getElementById('refs-lightbox');
   if(ov) ov.classList.remove('open');
@@ -824,3 +832,6 @@ export function apriElenco(list, startIndex = 0){
   document.body.classList.add('refs-lightbox-open');
   renderLightboxAt(_lightboxIndex);
 }
+
+// Vedi la nota su closeLightboxUI: il tasto Indietro passa da qui.
+window.chiudiGalleriaUI = closeLightboxUI;

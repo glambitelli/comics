@@ -242,3 +242,9 @@ function aggancia(){
   document.getElementById('schizzo-chiudi').addEventListener('click', ()=> chiudiSchizzo());
   window.addEventListener('resize', ()=>{ if(schizzoAperto()) ridisegna(); });
 }
+
+// Stessa ragione della galleria (vedi lightbox.js): il foglio da disegno si
+// carica dalle Scene, non dal registro dei moduli di main.js, e il tasto
+// Indietro deve poterlo chiudere lo stesso. Chiudendolo SALVA, quindi qui si
+// lascia la funzione che aspetta.
+window.chiudiSchizzoUI = chiudiSchizzoUI;

@@ -39,14 +39,21 @@ scene.initScene();
 // telefono e quello a schermo fanno la stessa identica cosa. Riprodotto uguale
 // a com'e' li', board prima e scena dopo: la board sta sopra.
 addEventListener('popstate', async ()=>{
-  // ORDINATO PER STRATI, come in main.js: la galleria a schermo intero (9500)
-  // puo' aprirsi da dentro la scelta di un riferimento (225), e va chiusa per
-  // prima — se no un Indietro risale un livello nella scelta, sotto, lasciando
-  // la galleria a schermo.
+  // COPIA FEDELE DI main.js, condizioni comprese. Prima questo pezzo importava
+  // i moduli per conto suo — e cosi' facendo la prova diceva che il tasto
+  // Indietro funzionava mentre nell'app non funzionava: li' main.js cerca i
+  // moduli nel proprio registro, e la galleria aperta dalle Scene in quel
+  // registro non c'e' mai stata. Adesso si passa dalle stesse funzioni su
+  // window che usa l'app, e se un giorno spariscono la prova cade.
+  //
+  // Ordinato per strati, dal piu' alto al piu' basso: la galleria (9500) puo'
+  // aprirsi da dentro la scelta di un riferimento (225), e va chiusa per prima
+  // — se no un Indietro risale un livello nella scelta, sotto, lasciando la
+  // galleria a schermo.
   const lb = document.getElementById('refs-lightbox');
-  if(lb.classList.contains('open')){ (await import('/js/refs.js')).closeLightboxUI(); return; }
+  if(lb.classList.contains('open') && window.chiudiGalleriaUI){ window.chiudiGalleriaUI(); return; }
   const sz = document.getElementById('schizzo');
-  if(sz.classList.contains('open')){ (await import('/js/schizzo.js')).chiudiSchizzoUI(); return; }
+  if(sz.classList.contains('open') && window.chiudiSchizzoUI){ window.chiudiSchizzoUI(); return; }
   if(document.getElementById('sceltarif').classList.contains('open')){
     // Come in main.js: si risale un livello per volta, e quando non ce ne sono
     // piu' il passo chiude il foglio.

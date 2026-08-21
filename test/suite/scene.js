@@ -923,6 +923,69 @@ module.exports = () => suite("Scene — un riquadro per volta, cento caratteri",
   await page.goBack();
   await page.waitForTimeout(300);
 
+  sezione('e nessuna miniatura esce dalla sua tessera');
+  // La prova nasce da una schermata piena di immagini sovrapposte e traboccanti.
+  // La causa era il muretto: una griglia CSS piazza gli elementi per righe e il
+  // cursore non torna mai indietro, quindi le tessere alte scavalcavano tutto.
+  // Qui si misura la geometria vera — nessuna coppia che si sovrappone, nessuna
+  // immagine piu' grande della tessera che la contiene — con immagini di forme
+  // molto diverse, che e' il caso in cui il difetto si vedeva.
+  const geometria = await page.evaluate(async ()=>{
+    const foto = (w,h)=>{
+      const c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      const x = c.getContext('2d'); x.fillStyle = '#c05a3a'; x.fillRect(0,0,w,h);
+      return c.toDataURL('image/png');
+    };
+    const s = window.scene.scenaAperta();
+    const b = s.beat[s.beat.length-1];
+    // Una pagina verticale, una striscia orizzontale, un quadrato, una doppia.
+    b.rifs = [[70,100],[200,60],[80,80],[140,100],[60,190]]
+      .map(([w,h],i)=> ({ url: foto(w,h), refId: 'rif'+i }));
+    window.scene.renderBeat();
+    const bb = document.querySelectorAll('#scena-beat .beat[data-id]');
+    bb[bb.length-1].querySelector('[data-schizzo]').click();
+    await new Promise(r=> setTimeout(r, 800));
+    const t = Array.from(document.querySelectorAll('.pila-mini'));
+    const r = t.map(x=> x.getBoundingClientRect());
+    let sovrapposte = 0;
+    for(let i=0;i<r.length;i++) for(let j=i+1;j<r.length;j++){
+      const a = r[i], c = r[j];
+      if(a.left < c.right - 1 && c.left < a.right - 1 &&
+         a.top < c.bottom - 1 && c.top < a.bottom - 1) sovrapposte++;
+    }
+    return {
+      quante: t.length,
+      sovrapposte,
+      // Ogni immagine sta dentro la sua tessera, ritagliata dal riquadro.
+      traboccanti: t.filter(x=>{
+        const rt = x.getBoundingClientRect(), ri = x.querySelector('img').getBoundingClientRect();
+        return ri.width > rt.width + 1 || ri.height > rt.height + 1;
+      }).length,
+      // Tutte della stessa forma, quadrata: e' quello che tiene le righe
+      // allineate e non lascia buchi.
+      forme: [...new Set(r.map(x=> +(x.width / x.height).toFixed(2)))],
+      // E allineate in righe vere: le tessere di una riga cominciano tutte alla
+      // stessa altezza.
+      righe: [...new Set(r.map(x=> Math.round(x.top)))].length,
+    };
+  });
+  ok('ci sono tutte e cinque', geometria.quante === 5, geometria);
+  ok('nessuna coppia si sovrappone', geometria.sovrapposte === 0, geometria);
+  ok('nessuna immagine esce dalla sua tessera', geometria.traboccanti === 0, geometria);
+  ok('e sono tutte quadrate, per quanto diverse siano le immagini',
+     geometria.forme.length === 1 && Math.abs(geometria.forme[0] - 1) < 0.06, geometria);
+  ok('incolonnate in righe vere', geometria.righe <= 2, geometria);
+  // Rimesse com'erano, cosi' le prove che seguono ripartono da dove stavano.
+  await page.evaluate(()=>{
+    const s = window.scene.scenaAperta();
+    const b = s.beat[s.beat.length-1];
+    b.rifs = [{url:'data:image/gif;base64,R0lGODlhAQABAAAAACw=',refId:'rif0'},
+              {url:'data:image/gif;base64,R0lGODlhAQABAAAAACw=',refId:'rif1'}];
+    window.scene.renderBeat();
+  });
+  await page.waitForTimeout(200);
+
   sezione('e toccandone una si apre la galleria dei frammenti');
   // La stessa dell'archivio — provenienza, tag, frecce — solo che le frecce
   // scorrono fra i riferimenti DI QUESTO BEAT: sfogliare la cartella da cui
