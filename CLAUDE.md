@@ -34,3 +34,7 @@ Alla fine di **ogni** risposta, un resoconto brevissimo in due parti:
 2. **Come lo provi** — i passi concreti sul telefono o sul browser: dove
    andare, cosa toccare, cosa dovresti vedere. Se serve aspettare il deploy,
    dirlo.
+3. **Il link**, sempre, in fondo: <https://glambitelli.github.io/comics/>.
+   Anche quando sembra ovvio. Giovanni legge le risposte dal telefono e la
+   differenza fra "vai su Inkflow" e un link da toccare e' se la prova la fa
+   subito o la rimanda.
