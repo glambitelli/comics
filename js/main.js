@@ -527,13 +527,6 @@ window.addEventListener('popstate', e=>{
     if(m && m.risaliScelta()) return;
     if(m){ m.chiudiSceltaUI(); return; }
   }
-  // La board di una scena sta sopra la scena stessa: Indietro chiude prima
-  // quella. loadedMod e non loadMod — se e' aperta il modulo c'e' per forza.
-  const bd = document.getElementById('board');
-  if(bd && bd.classList.contains('open')){
-    const m = loadedMod('./scene.js');
-    if(m){ m.chiudiBoardUI(); return; }
-  }
   // E poi la scena aperta: Indietro la chiude salvando, e riporta all'elenco
   // invece di uscire dalla schermata.
   const sc = document.getElementById('scena');

@@ -198,24 +198,10 @@
     <!-- Il titolo si scrive qui dentro, o non si scrive affatto: e' un campo
          senza bordi in mezzo alla barra, non una domanda da sbrigare prima. -->
     <input id="scena-titolo" class="scena-titolo" type="text" placeholder="Scena senza titolo" aria-label="Titolo della scena">
-    <button class="scena-btn scena-btn-testo" id="scena-board" type="button" aria-label="Board">Board</button>
   </div>
   <div class="scena-scroll">
     <div id="scena-beat"></div>
   </div>
-</div>
-
-<!-- LA BOARD: tutti i beat affiancati, da tenere aperta mentre si disegna -->
-<div class="board" id="board">
-  <div class="board-barra">
-    <span class="board-titolo" id="board-titolo"></span>
-    <!-- Sul telefono la X non c'e': chiude il tasto Indietro, che sta sotto il
-         pollice. E' la stessa regola del lettore degli albi e dei frammenti. -->
-    <button class="board-chiudi" id="board-chiudi" type="button" aria-label="Chiudi">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
-    </button>
-  </div>
-  <div class="board-scroll"><div id="board-griglia" class="board-griglia"></div></div>
 </div>
 
 <!-- SCEGLIERE UN RIFERIMENTO PER UN BEAT (vedi scene.js) -->
@@ -1154,8 +1140,8 @@
          erano l'icona "griglia" che mettono tutti, e non dicevano niente: nella
          barra c'e' gia' un rettangolo con dentro un disegno (References), e due
          rettangoli generici accanto si scambiano. Questa invece e' una gabbia
-         da fumetto — una vignetta larga in cima, due sotto — cioe' esattamente
-         quello che la Board mostra, che e' l'identita' della sezione. -->
+         da fumetto — una vignetta larga in cima, due sotto — che e' la cosa che
+         si sta costruendo qui dentro. -->
     <button class="dune-btn dune-btn-light" onclick="openScene()" aria-label="Scene" title="Scene">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"><rect x="3.5" y="3.5" width="17" height="17" rx="2.2"/><path d="M3.5 11h17"/><path d="M12 11v9.5"/></svg>
     </button>

@@ -19,12 +19,11 @@
 // li', la prova lo segue. Una copia a mano direbbe che tutto funziona su una
 // schermata che non esiste piu'.
 const dom = new DOMParser().parseFromString(await (await fetch('/index.html')).text(), 'text/html');
-for(const sel of ['#screen-scene', '#scena', '#board', '#sceltarif', '#schizzo']){
-  // La schermata References non si monta qui, ma scene.js importa refs.js per
-  // leggere l'archivio: senza i suoi contenitori il modulo si lamenterebbe
-  // disegnandosi addosso al nulla. Si prendono anche quelli, nascosti.
-}
-for(const sel of ['#screen-scene', '#scena', '#board', '#sceltarif', '#schizzo', '#screen-refs', '#refs-lightbox', '#ref-panel', '#rifila']){
+// La schermata References non si monta come schermata, ma scene.js importa
+// refs.js per leggere l'archivio: senza i suoi contenitori il modulo si
+// lamenterebbe disegnandosi addosso al nulla. Si prendono anche quelli.
+for(const sel of ['#screen-scene', '#scena', '#sceltarif', '#schizzo',
+                  '#screen-refs', '#refs-lightbox', '#ref-panel', '#rifila']){
   document.body.appendChild(document.importNode(dom.querySelector(sel), true));
 }
 document.getElementById('screen-scene').classList.add('active');
@@ -34,10 +33,10 @@ window.scene = scene;
 scene.initScene();
 
 // IL TASTO INDIETRO. Nell'app lo tiene main.js, che qui non c'e': senza questo
-// pezzo il foglio della scena e la board non si chiuderebbero mai — le loro
-// funzioni di chiusura passano apposta dalla cronologia, cosi' il tasto del
-// telefono e quello a schermo fanno la stessa identica cosa. Riprodotto uguale
-// a com'e' li', board prima e scena dopo: la board sta sopra.
+// pezzo i fogli della scena non si chiuderebbero mai — le loro funzioni di
+// chiusura passano apposta dalla cronologia, cosi' il tasto del telefono e
+// quello a schermo fanno la stessa identica cosa. Riprodotto uguale
+// a com'e' li', dallo strato piu' alto al piu' basso.
 addEventListener('popstate', async ()=>{
   // COPIA FEDELE DI main.js, condizioni comprese. Prima questo pezzo importava
   // i moduli per conto suo — e cosi' facendo la prova diceva che il tasto
@@ -60,7 +59,6 @@ addEventListener('popstate', async ()=>{
     if(scene.risaliScelta()) return;
     scene.chiudiSceltaUI(); return;
   }
-  if(document.getElementById('board').classList.contains('open')){ scene.chiudiBoardUI(); return; }
   if(document.getElementById('scena').classList.contains('open')){ scene.chiudiScenaUI(); return; }
 });
 // L'ARCHIVIO FINTO da cui la scelta di un riferimento pesca. Nell'app arriva dal

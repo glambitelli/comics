@@ -33,6 +33,7 @@ const STRIDO_ECO = 500;
 // opzioni.spazio     — quanto spazio c'e' fra una scheda e l'altra (px)
 // opzioni.alPosa(da, a)  — chiamata a gesto finito, se la posizione e' cambiata
 // opzioni.alStriscia(el) — chiamata alla strisciata verso sinistra (facoltativa)
+// opzioni.escludi   — selettore da cui la presa NON deve partire
 //
 // Torna { strisciaRecente() }: serve a chi ascolta i click sulla lista per
 // scartare quello fantasma.
@@ -41,6 +42,14 @@ export function montaRiordino(lista, opzioni = {}){
   const SPAZIO = typeof opzioni.spazio === 'number' ? opzioni.spazio : 8;
   const alPosa = opzioni.alPosa || (()=>{});
   const alStriscia = opzioni.alStriscia || null;
+  // DA DOVE LA PRESA NON PARTE. Nasce da un difetto che nel banco non si vedeva
+  // e sul telefono sempre: dentro un campo di testo, tenere premuto non e' un
+  // gesto libero — e' il gesto con cui il sistema comincia a SELEZIONARE, con la
+  // lente e le maniglie. Il dito restava fermo sul testo di un beat mezzo
+  // secondo aspettando che la scheda si sollevasse, e intanto Android stava gia'
+  // facendo un'altra cosa. Fuori dal campo — sulla vignetta, che e' meta' della
+  // scheda — la presa non ha rivali.
+  const ESCLUDI = opzioni.escludi || null;
 
   let timerPressione = null;
   let trascinato = null, altri = [], altezza = 0, daIndice = 0, aIndice = 0, yPartenza = 0;
@@ -111,6 +120,7 @@ export function montaRiordino(lista, opzioni = {}){
     if(e.touches.length !== 1){ seguendo = false; return; }
     cardStrisciata = e.target.closest(SEL);
     if(!cardStrisciata){ seguendo = false; return; }
+    if(ESCLUDI && e.target.closest(ESCLUDI)){ seguendo = false; cardStrisciata = null; return; }
     sx = e.touches[0].clientX; sy = e.touches[0].clientY;
     seguendo = true;
     const card = cardStrisciata, y = sy;

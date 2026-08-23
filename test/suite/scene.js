@@ -134,101 +134,9 @@ module.exports = () => suite("Scene — un riquadro per volta, cento caratteri",
   ok('e restano i due beat scritti piu\' il vuoto in coda',
      r[0].nuovo === false && r[1].nuovo === false && r[2].nuovo === true, r);
 
-  sezione('la board affianca tutto, e non si scrive');
-  await page.evaluate(()=> document.getElementById('scena-board').click());
-  await page.waitForTimeout(250);
-  const board = await page.evaluate(()=>{
-    const b = document.getElementById('board');
-    return {
-      aperta: b.classList.contains('open'),
-      tessere: Array.from(b.querySelectorAll('.board-tessera')).map(t=>({
-        n: t.querySelector('.board-n').textContent,
-        testo: t.querySelector('p').textContent,
-      })),
-      campi: b.querySelectorAll('textarea, input').length,
-      // Affiancate per davvero: la seconda comincia dove la prima non e' finita.
-      dueSullaRiga: (()=>{
-        const t = b.querySelectorAll('.board-tessera');
-        if(t.length < 2) return false;
-        const a = t[0].getBoundingClientRect(), c = t[1].getBoundingClientRect();
-        return Math.abs(a.top - c.top) < 4 && c.left > a.left;
-      })(),
-    };
-  });
-  ok('la board si apre', board.aperta, board);
-  ok('con dentro tutti i beat, numerati', board.tessere.map(t=>t.n).join(',') === '1,2', board);
-  ok('e il testo e\' quello scritto', /ladro entra/.test(board.tessere[0].testo), board);
-  ok('sola lettura: nessun campo in cui il dito possa finire', board.campi === 0, board);
-  ok('e i beat stanno affiancati, non in colonna', board.dueSullaRiga, board);
-
-  sezione('e con dodici beat la board deve sembrare una tavola');
-  // Prima era auto-fill: le tessere si allargavano quanto potevano, l'ultima
-  // riga lasciava un buco a destra e le altezze cambiavano con la lunghezza del
-  // testo — si leggeva come un foglio di appunti. Questa e' la schermata da cui
-  // si vede che la scena esiste, quindi deve leggersi come una pagina.
-  const tavola = await page.evaluate(()=>{
-    const s = window.scene.scenaAperta();
-    // Dodici beat con testi di lunghezza molto diversa: e' proprio la
-    // differenza che faceva ballare le altezze.
-    s.beat = Array.from({length:12}, (_,i)=>({
-      id:'b'+i,
-      testo: i % 3 === 0 ? 'Corto' : 'Un testo molto piu\' lungo degli altri, che da solo occuperebbe tre righe abbondanti',
-    }));
-    window.scene.apriBoard();
-    const t = Array.from(document.querySelectorAll('.board-tessera'));
-    const r = t.map(x=> x.getBoundingClientRect());
-    const colonne = getComputedStyle(document.getElementById('board-griglia')).gridTemplateColumns.split(' ').length;
-    // Le righe: quante tessere condividono lo stesso bordo superiore.
-    const cime = {};
-    r.forEach(x=>{ const k = Math.round(x.top); cime[k] = (cime[k]||0) + 1; });
-    return {
-      quante: t.length,
-      colonne,
-      perRiga: Object.values(cime),
-      // Stessa forma per tutte: altezze uguali e larghezze uguali.
-      alteUguali: new Set(r.map(x=> Math.round(x.height))).size === 1,
-      largheUguali: new Set(r.map(x=> Math.round(x.width))).size === 1,
-      // La vignetta c'e' sempre, anche dove non si e' ancora disegnato: un
-      // riquadro vuoto fa parte della tavola, un buco no.
-      vignette: t.filter(x=> !!x.querySelector('.board-vignetta')).length,
-      formaVignetta: (()=>{
-        const v = t[0].querySelector('.board-vignetta').getBoundingClientRect();
-        return +(v.width / v.height).toFixed(2);
-      })(),
-      // Il testo lungo e' troncato, non srotolato.
-      troncato: (()=>{
-        const p = t[1].querySelector('p');
-        return getComputedStyle(p).webkitLineClamp === '2' && p.scrollHeight > p.clientHeight;
-      })(),
-      // Il numero in alto a sinistra, sopra la vignetta.
-      numeroInAlto: (()=>{
-        const n = t[0].querySelector('.board-n').getBoundingClientRect();
-        const v = t[0].querySelector('.board-vignetta').getBoundingClientRect();
-        return n.top - v.top < 12 && n.left - v.left < 12;
-      })(),
-    };
-  });
-  ok('ci sono tutte e dodici le tessere', tavola.quante === 12, tavola);
-  ok('su due colonne fisse', tavola.colonne === 2, tavola);
-  ok('senza buchi: ogni riga e\' piena', tavola.perRiga.every(n=> n === 2), tavola);
-  ok('tutte della stessa altezza, per lungo che sia il testo', tavola.alteUguali, tavola);
-  ok('e della stessa larghezza', tavola.largheUguali, tavola);
-  ok('ognuna con la sua vignetta, anche dove non c\'e\' ancora un disegno',
-     tavola.vignette === 12, tavola);
-  ok('in proporzione da vignetta', Math.abs(tavola.formaVignetta - 4/3) < 0.06, tavola);
-  ok('il testo lungo e\' troncato a due righe', tavola.troncato, tavola);
-  ok('e il numero sta in alto a sinistra', tavola.numeroInAlto, tavola);
-  // Rimessa com'era, cosi' le prove che seguono ripartono da dove stavano.
-  await page.evaluate(()=>{
-    const s = window.scene.scenaAperta();
-    s.beat = s.beat.slice(0,2).map((b,i)=>({ id:'r'+i,
-      testo: i === 0 ? 'Il ladro entra dalla finestra, di spalle' : 'Primo piano della mano sul davanzale' }));
-    window.scene.renderBeat();
-  });
-
   sezione('e col dito nessun foglio ha la sua freccia');
-  // Stessa regola del lettore degli albi, dei frammenti a schermo intero e
-  // della board: il tasto Indietro chiude, sta sotto il pollice ed e' li' da
+  // Stessa regola del lettore degli albi e dei frammenti a schermo intero:
+  // il tasto Indietro chiude, sta sotto il pollice ed e' li' da
   // sempre, mentre una freccia nell'angolo in alto a sinistra e' il punto piu'
   // lontano dalla mano che regge il telefono. Le due chiusure passano dalla
   // stessa strada — la cronologia — quindi nessuna fa qualcosa che l'altra non
@@ -244,22 +152,7 @@ module.exports = () => suite("Scene — un riquadro per volta, cento caratteri",
   ok('col dito spariscono tutte', frecce.conDito.every(d=> d === 'none'), frecce);
   ok('col mouse restano tutte', frecce.colMouse.every(d=> d !== 'none'), frecce);
 
-  sezione('sul telefono la X della board non c\'e\'');
-  // Stessa regola del lettore degli albi e dei frammenti: chiude il tasto
-  // Indietro, che sta sotto il pollice.
-  const x = await page.evaluate(()=>{
-    const b = document.getElementById('board-chiudi');
-    document.body.classList.add('is-touch');
-    const conDito = getComputedStyle(b).display;
-    document.body.classList.remove('is-touch');
-    return { conDito, colMouse: getComputedStyle(b).display };
-  });
-  ok('col dito sparisce', x.conDito === 'none', x);
-  ok('col mouse resta', x.colMouse !== 'none', x);
-
   sezione('il titolo si scrive quando viene, e finisce nell\'elenco');
-  await page.evaluate(()=> document.getElementById('board-chiudi').click());
-  await page.waitForTimeout(200);
   await page.evaluate(()=>{
     const t = document.getElementById('scena-titolo');
     t.value = 'La finestra sul cortile';
@@ -341,41 +234,78 @@ module.exports = () => suite("Scene — un riquadro per volta, cento caratteri",
   const riaperta = await riquadri();
   ok('e ritrova i suoi beat, piu\' il vuoto in coda',
      riaperta.length === 3 && /ladro entra/.test(riaperta[0].testo), riaperta);
-  await page.evaluate(()=> document.getElementById('scena-board').click());
-  await page.waitForTimeout(250);
   await page.goBack();
   await page.waitForTimeout(250);
-  const dopoUnPasso = await page.evaluate(()=>({
-    board: document.getElementById('board').classList.contains('open'),
-    scena: document.getElementById('scena').classList.contains('open'),
-  }));
-  ok('un passo indietro chiude la board', !dopoUnPasso.board, dopoUnPasso);
-  ok('ma lascia aperta la scena sotto', dopoUnPasso.scena, dopoUnPasso);
-  await page.goBack();
-  await page.waitForTimeout(250);
-  ok('un altro passo chiude la scena',
+  ok('un passo indietro chiude la scena',
      await page.evaluate(()=> !document.getElementById('scena').classList.contains('open')), null);
 
   sezione('i beat si riordinano tenendoli premuti');
-  // Stesso gesto delle Idee, e non per somiglianza: e' proprio lo stesso codice
-  // (vedi riordino.js). Qui si prova che il modello segua le schede.
+  // IL GESTO VERO, dito compreso. La prova di prima chiamava la funzione a mano
+  // e diceva che tutto andava bene mentre sul telefono non succedeva niente: la
+  // presa partiva dentro il campo di testo, e li' tenere premuto e' il gesto con
+  // cui Android comincia a SELEZIONARE — lente e maniglie comprese. Adesso la
+  // presa parte da tutto il resto della scheda, e questa prova ci si appoggia
+  // davvero.
   await apriPerTitolo('La finestra sul cortile');
-  const prima = (await riquadri()).map(x=>x.testo);
   await page.evaluate(()=>{
-    // Si chiama direttamente la posa: il gesto col dito e' gia' provato dalle
-    // Idee, quello che manca qui e' cosa ne fa la scena.
     const s = window.scene.scenaAperta();
-    const f = s.beat.slice();
-    const [p] = f.splice(0,1); f.splice(1,0,p);
-    s.beat = f;
+    s.beat = [{id:'a',testo:'uno'},{id:'b',testo:'due'},{id:'c',testo:'tre'}];
     window.scene.renderBeat();
   });
-  await page.waitForTimeout(120);
-  const dopo = (await riquadri()).map(x=>x.testo);
-  ok('i due beat si scambiano di posto', dopo[0] === prima[1] && dopo[1] === prima[0], {prima, dopo});
-  ok('e il riquadro vuoto resta in coda, dov\'e\' sempre',
-     (await riquadri()).filter(x=>x.nuovo).length === 1 &&
-     (await riquadri())[2].nuovo === true, dopo);
+  await page.waitForTimeout(250);
+  const trascinato = await page.evaluate(async ()=>{
+    // Si prende dalla VIGNETTA, che e' quasi meta' scheda: e' da li' che il
+    // dito afferra, non dal testo.
+    const card = document.querySelectorAll('#scena-beat .beat')[0];
+    const presa = card.querySelector('.beat-mini');
+    const r = presa.getBoundingClientRect();
+    const x = r.left + r.width/2, y0 = r.top + r.height/2;
+    const t = yy => [new Touch({identifier:1, target:presa, clientX:x, clientY:yy})];
+    presa.dispatchEvent(new TouchEvent('touchstart',{bubbles:true,cancelable:true,touches:t(y0),targetTouches:t(y0)}));
+    await new Promise(r=> setTimeout(r,600));
+    const sollevata = card.classList.contains('trascinata');
+    for(let i=1;i<=8;i++){
+      const yy = y0 + i*30;
+      presa.dispatchEvent(new TouchEvent('touchmove',{bubbles:true,cancelable:true,touches:t(yy),targetTouches:t(yy)}));
+      await new Promise(r=> setTimeout(r,20));
+    }
+    presa.dispatchEvent(new TouchEvent('touchend',{bubbles:true,cancelable:true,touches:[],targetTouches:[]}));
+    presa.dispatchEvent(new MouseEvent('click',{bubbles:true}));
+    await new Promise(r=> setTimeout(r,350));
+    return {
+      sollevata,
+      ordine: window.scene.scenaAperta().beat.map(b=> b.testo),
+      // Mollando il dito sulla vignetta non si deve aprire anche la scelta di
+      // un riferimento: il browser manda comunque un click.
+      scelta: document.getElementById('sceltarif').classList.contains('open'),
+      // E i numeri seguono le schede, se no dopo uno spostamento la scena si
+      // legge in un ordine e si numera in un altro.
+      numeri: Array.from(document.querySelectorAll('#scena-beat .beat-n')).map(x=> x.textContent),
+    };
+  });
+  ok('tenendo premuta la vignetta la scheda si solleva', trascinato.sollevata, trascinato);
+  ok('e spostandola cambia l\'ordine',
+     trascinato.ordine.join(',') === 'due,uno,tre', trascinato);
+  ok('senza aprire la scelta di un riferimento', !trascinato.scelta, trascinato);
+  ok('e i numeri seguono le schede',
+     trascinato.numeri.slice(0,3).join(',') === '1,2,3', trascinato);
+
+  sezione('ma dal testo la presa non parte');
+  // Dentro un campo di testo tenere premuto e' del sistema: e' il gesto con cui
+  // si seleziona. Provare a rubarglielo vuol dire perdere tutti e due.
+  const dalTesto = await page.evaluate(async ()=>{
+    const card = document.querySelectorAll('#scena-beat .beat')[0];
+    const ta = card.querySelector('textarea');
+    const r = ta.getBoundingClientRect();
+    const x = r.left + r.width/2, y = r.top + 8;
+    const t = ()=> [new Touch({identifier:1, target:ta, clientX:x, clientY:y})];
+    ta.dispatchEvent(new TouchEvent('touchstart',{bubbles:true,cancelable:true,touches:t(),targetTouches:t()}));
+    await new Promise(r=> setTimeout(r,700));
+    const sollevata = card.classList.contains('trascinata');
+    ta.dispatchEvent(new TouchEvent('touchend',{bubbles:true,cancelable:true,touches:[],targetTouches:[]}));
+    return sollevata;
+  });
+  ok('la scheda resta dov\'e\'', !dalTesto, dalTesto);
 
   sezione('la card fantasma e\' una CARD, non un pulsante "+"');
   // La differenza non e' estetica: un "+" chiede di decidere di aggiungere
@@ -633,7 +563,7 @@ module.exports = () => suite("Scene — un riquadro per volta, cento caratteri",
   const archivio = await page.evaluate(()=>({
     tessere: document.querySelectorAll('#sceltarif-griglia [data-rif]').length,
     dove: (document.getElementById('sceltarif-dove')||{}).textContent,
-    // In proporzione da vignetta, come nella card e nella board: si sceglie
+    // In proporzione da vignetta, come nella card: si sceglie
     // guardando la forma che avra' una volta collegata.
     forma: (()=>{
       const r = document.querySelector('#sceltarif-griglia [data-rif]').getBoundingClientRect();

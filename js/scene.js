@@ -293,7 +293,6 @@ export function apriScena(id){
 export function chiudiScenaUI(){
   const foglio = document.getElementById('scena');
   if(!foglio || !foglio.classList.contains('open')) return;
-  chiudiBoardUI();
   foglio.classList.remove('open');
   document.body.classList.remove('scena-open');
   const id = _apertaId;
@@ -1061,54 +1060,6 @@ export async function spazzaScarti(adesso = Date.now()){
   return scarti.length;
 }
 
-// ── LA BOARD ────────────────────────────────────────────────────────────────
-// Tutti i beat affiancati, in sola lettura, da tenere aperta accanto al tavolo
-// mentre si disegnano le tavole vere. Sola lettura per davvero: qui non si
-// scrive, e non c'e' nessun campo in cui il dito possa finire per sbaglio.
-export function apriBoard(){
-  const scena = scenaAperta();
-  const board = document.getElementById('board');
-  if(!scena || !board) return;
-  const griglia = document.getElementById('board-griglia');
-  const tit = document.getElementById('board-titolo');
-  if(tit) tit.textContent = titoloDi(scena);
-  if(griglia){
-    griglia.innerHTML = scena.beat.length
-      // TUTTE LE TESSERE UGUALI, e non "grandi quanto il loro contenuto": e' la
-      // differenza fra una pagina di storyboard e un foglio di appunti. Quindi
-      // la vignetta c'e' sempre — anche vuota, come un riquadro ancora da
-      // disegnare — e la riga sotto e' alta due righe fisse, troncata con i
-      // puntini. Cosi' la griglia non ha buchi e la scena, da qui, si guarda
-      // come si guarda una tavola.
-      ? scena.beat.map((b,i)=>{ const rr = rifiDi(b); return `<div class="board-tessera">
-          <div class="board-vignetta">
-            ${rr[0] ? `<img src="${esc(cldResize(rr[0].url, 400))}" alt=""/>` : ''}
-            <span class="board-n">${i+1}</span>
-            ${rr.length > 1 ? `<span class="board-piu">+${rr.length-1}</span>` : ''}
-          </div>
-          <p>${esc((b.testo||'').trim())}</p>
-        </div>`; }).join('')
-      : `<div class="scene-vuoto"><p>Questa scena non ha ancora beat.</p></div>`;
-  }
-  board.classList.add('open');
-  try{ if(!history.state || history.state.view !== 'board') history.pushState({view:'board'}, ''); }catch(e){}
-}
-export function chiudiBoardUI(){
-  const board = document.getElementById('board');
-  if(board) board.classList.remove('open');
-}
-export function chiudiBoard(){
-  const board = document.getElementById('board');
-  if(board && board.classList.contains('open') && history.state && history.state.view === 'board'){
-    history.back();
-    return;
-  }
-  chiudiBoardUI();
-}
-export function boardAperta(){
-  const b = document.getElementById('board');
-  return !!(b && b.classList.contains('open'));
-}
 export function scenaApertaUI(){
   const s = document.getElementById('scena');
   return !!(s && s.classList.contains('open'));
@@ -1156,6 +1107,10 @@ export function initScene(){
 
   const beat = document.getElementById('scena-beat');
   beat.addEventListener('click', e=>{
+    // Dopo aver spostato una scheda il browser manda comunque un click: senza
+    // questa riga, mollando il dito sulla vignetta si aprirebbe anche la scelta
+    // di un riferimento.
+    if(_gestoBeat && _gestoBeat.strisciaRecente()) return;
     const separa = e.target.closest('[data-separa]');
     if(separa){ separaBeat(separa.dataset.separa); return; }
     const zitto = e.target.closest('[data-zitto]');
@@ -1187,6 +1142,11 @@ export function initScene(){
   _gestoBeat = montaRiordino(beat, {
     selettore: '.beat',
     spazio: 10,
+    // La presa non parte dal testo: li' tenere premuto e' il gesto con cui il
+    // telefono comincia a selezionare (vedi la nota in riordino.js). Parte da
+    // tutto il resto della scheda — la vignetta, che e' quasi meta', il numero,
+    // i margini — che e' molto piu' di quanto serva a un dito.
+    escludi: 'textarea',
     alPosa: (da, a)=>{
       const scena = scenaAperta();
       if(!scena) return;
@@ -1242,8 +1202,6 @@ export function initScene(){
   // dall'elenco chiude. Passa dalla cronologia, come il tasto del telefono.
   document.getElementById('sceltarif-chiudi').addEventListener('click', ()=> chiudiScelta());
   document.getElementById('scena-chiudi').addEventListener('click', ()=> chiudiScena());
-  document.getElementById('scena-board').addEventListener('click', ()=> apriBoard());
-  document.getElementById('board-chiudi').addEventListener('click', ()=> chiudiBoard());
 
   renderScene();
 }

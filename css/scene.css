@@ -249,75 +249,9 @@ body.is-touch .scene-scroll{padding-bottom:calc(110px + var(--safe-bot))}
 }
 .beat-sagoma + .beat-sagoma{opacity:.15}
 
-/* ── LA BOARD ──
-   Sopra la scena (che sta a 210) perche' si apre da dentro. Fondo scuro: si
-   tiene aperta accanto al tavolo mentre si disegna, e uno schermo bianco acceso
-   di fianco al foglio da' fastidio dopo dieci minuti. */
-.board{
-  position:fixed;inset:0;z-index:220;display:flex;flex-direction:column;
-  background:#171310;
-  opacity:0;pointer-events:none;transition:opacity .2s ease;
-}
-.board.open{opacity:1;pointer-events:auto}
-.board-barra{
-  display:flex;align-items:center;gap:10px;flex-shrink:0;
-  padding:calc(12px + var(--safe-top)) 16px 12px;
-  border-bottom:1px solid rgba(232,200,120,.16);
-}
-.board-titolo{
-  flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-  font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;
-  letter-spacing:.1em;text-transform:uppercase;color:var(--oro);opacity:.8;
-}
-.board-chiudi{
-  flex-shrink:0;background:none;border:none;padding:7px;cursor:pointer;
-  color:var(--oro);display:flex;line-height:0;opacity:.8;
-}
-/* SUL TELEFONO LA X NON C'E'. Stessa ragione del lettore degli albi e dei
-   frammenti: il tasto Indietro chiude ed e' sotto il pollice, mentre la X sta
-   nell'angolo in alto — il punto piu' lontano dalla mano. Col mouse resta:
-   li' un Indietro sotto il dito non c'e'. */
-body.is-touch .board-chiudi{display:none}
-.board-scroll{flex:1;overflow-y:auto;padding:14px 14px calc(20px + var(--safe-bot))}
-
-/* GRIGLIA RIGIDA, e "rigida" e' la parola giusta. Prima era auto-fill: le
-   tessere si allargavano quanto potevano, l'ultima riga lasciava un buco a
-   destra e le altezze cambiavano con la lunghezza del testo — si leggeva come
-   un foglio di appunti. Due colonne fisse (tre dove c'e' spazio), tutte le
-   tessere della stessa forma, nessun buco: da qui una scena da dodici beat si
-   guarda come si guarda una tavola, ed e' li' che si vede che esiste. */
-.board-griglia{display:grid;gap:10px;grid-template-columns:repeat(2,1fr)}
-@media (min-width:760px){ .board-griglia{grid-template-columns:repeat(3,1fr)} }
-.board-tessera{
-  background:rgba(255,255,255,.045);border:1px solid rgba(232,200,120,.16);
-  border-radius:10px;padding:7px;
-  display:flex;flex-direction:column;gap:7px;
-}
-/* La vignetta c'e' SEMPRE, anche vuota: un riquadro ancora da disegnare fa
-   parte della tavola, un buco no. */
-.board-vignetta{
-  position:relative;width:100%;aspect-ratio:4/3;overflow:hidden;
-  border-radius:6px;background:rgba(255,253,247,.06);
-}
-.board-vignetta img{width:100%;height:100%;object-fit:cover;display:block}
-/* Piccolo, in alto a sinistra, appoggiato sull'angolo della vignetta: e' un
-   numero di riferimento mentre si disegna, non un'etichetta da leggere. */
-.board-n{
-  position:absolute;top:5px;left:6px;
-  font-family:'Nunito',sans-serif;font-size:10.5px;font-weight:800;
-  color:var(--oro);letter-spacing:.04em;
-  background:rgba(23,19,16,.62);border-radius:5px;padding:1px 5px;
-}
-/* DUE RIGHE ESATTE, sempre, anche quando il testo e' corto o non c'e': e' cosi'
-   che tutte le tessere restano alte uguali e la griglia non si scompone. */
-.board-tessera p{
-  margin:0;font-size:12px;line-height:1.4;color:#e6dbc9;
-  height:33.6px;
-  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
-}
-
 /* ── IL FOGLIO SU CUI DISEGNARE ──
-   Sopra la scena (210) e sopra la board (220): si apre da dentro tutte e due.
+   Sopra la scena (210) e sopra la scelta di un riferimento (225): si apre da
+   dentro tutte e due.
    La barra e' quella scura della scena, il foglio e' chiaro — si disegna nero
    su bianco, e un foglio scuro con un tratto chiaro non somiglia a niente di
    quello che si fa su carta. */
@@ -363,17 +297,11 @@ body.is-touch .board-chiudi{display:none}
   display:block;width:76px;height:57px;object-fit:cover;
   margin-top:5px;border-radius:7px;border:1px solid var(--sand2);background:#fffdf7;
 }
-/* Nella board il disegno sta sopra la sua riga, come una vignetta con la
-   didascalia sotto. */
-.board-img{
-  display:block;width:100%;aspect-ratio:4/3;object-fit:cover;
-  border-radius:8px;background:#fffdf7;
-}
 
 /* ── SCEGLIERE UN RIFERIMENTO PER UN BEAT ──
    Stesso foglio della scena, stessa barra scura, stesso gesto d'uscita: si apre
-   da dentro una scena e ci si torna. Sta a 225, cioe' sopra la board (220) e
-   sotto il foglio da disegno (230), perche' e' da qui che il disegno si apre. */
+   da dentro una scena e ci si torna. Sta a 225, sotto il foglio da disegno
+   (230), perche' e' da qui che il disegno si apre. */
 .sceltarif{
   position:fixed;left:0;right:0;top:var(--vv-top,0px);height:var(--vv-h,100%);
   z-index:225;display:flex;flex-direction:column;background:var(--sand);
@@ -385,7 +313,7 @@ body.is-touch .board-chiudi{display:none}
   flex:1;overflow-y:auto;background:var(--sand);
   padding:12px 12px calc(20px + var(--safe-bot));
 }
-/* Tessere in proporzione da vignetta, come quelle dei beat e della board: si
+/* Tessere in proporzione da vignetta, come quelle dei beat: si
    sceglie guardando la forma che avra' nella card, non un quadrato. */
 .sceltarif-griglia{display:grid;gap:9px;grid-template-columns:repeat(2,1fr)}
 @media (min-width:620px){ .sceltarif-griglia{grid-template-columns:repeat(3,1fr)} }
@@ -466,13 +394,6 @@ body.is-touch .board-chiudi{display:none}
   color:var(--oro);background:rgba(26,20,16,.86);
   border-radius:7px;padding:1px 5px;line-height:1.3;
 }
-/* Nella board basta dire che ce n'e' altre: li' si guarda la sequenza, non la
-   pila. */
-.board-piu{
-  position:absolute;right:5px;bottom:5px;
-  font-family:'Nunito',sans-serif;font-size:10px;font-weight:800;
-  color:var(--oro);background:rgba(23,19,16,.7);border-radius:5px;padding:1px 5px;
-}
 
 /* ── LE CARTELLE DELL'ARCHIVIO ──
    Si entra da qui e non da una parete di miniature in ordine di data: le
@@ -548,7 +469,7 @@ body.is-touch .board-chiudi{display:none}
 
 /* ── COL DITO LA FRECCIA NON C'E' ──
    Vale per i tre fogli delle Scene come vale gia' per il lettore degli albi,
-   per i frammenti a schermo intero e per la board: il tasto Indietro chiude,
+   e per i frammenti a schermo intero: il tasto Indietro chiude,
    sta sotto il pollice ed e' li' da sempre, mentre una freccia nell'angolo in
    alto a sinistra e' il punto piu' lontano dalla mano che regge il telefono.
    Col mouse resta: li' un Indietro sotto il dito non c'e'.
