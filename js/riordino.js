@@ -51,6 +51,22 @@ export function montaRiordino(lista, opzioni = {}){
   // scheda — la presa non ha rivali.
   const ESCLUDI = opzioni.escludi || null;
 
+  // IL MENU DEL BROWSER VA FERMATO, se no si prende lui il gesto. E' la stessa
+  // storia della selezione del testo, vista sull'altro lato della scheda: tenere
+  // premuto su un'IMMAGINE apre il menu di Chrome — "apri immagine", "scarica
+  // immagine", "cerca con Lens" — che compare mezzo secondo dopo l'inizio della
+  // pressione, cioe' un attimo dopo che la scheda si e' sollevata, e se la porta
+  // via. Da fuori: si tiene premuto per spostare una scheda e si apre un
+  // pannello di sistema che non c'entra niente.
+  // Vale solo dove la presa parte davvero: dentro il campo di testo il menu del
+  // browser e' quello del testo, ed e' roba sua.
+  lista.addEventListener('contextmenu', e=>{
+    const el = e.target.closest(SEL);
+    if(!el || !lista.contains(el)) return;
+    if(ESCLUDI && e.target.closest(ESCLUDI)) return;
+    e.preventDefault();
+  });
+
   let timerPressione = null;
   let trascinato = null, altri = [], altezza = 0, daIndice = 0, aIndice = 0, yPartenza = 0;
   let stridoA = 0;

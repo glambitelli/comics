@@ -290,6 +290,31 @@ module.exports = () => suite("Scene — un riquadro per volta, cento caratteri",
   ok('e i numeri seguono le schede',
      trascinato.numeri.slice(0,3).join(',') === '1,2,3', trascinato);
 
+  sezione('e il menu del browser non si intromette');
+  // Tenere premuto su un'IMMAGINE apre il menu di Chrome — "apri immagine",
+  // "scarica immagine", "cerca con Lens" — mezzo secondo dopo l'inizio della
+  // pressione, cioe' un attimo dopo che la scheda si e' sollevata: il gesto se
+  // lo prendeva lui, e al posto di spostare una scheda si apriva un pannello di
+  // sistema che non c'entra niente.
+  const menuBrowser = await page.evaluate(()=>{
+    const card = document.querySelector('#scena-beat .beat');
+    const vignetta = card.querySelector('.beat-mini');
+    const ta = card.querySelector('textarea');
+    const prova = el=>{
+      const ev = new MouseEvent('contextmenu', {bubbles:true, cancelable:true});
+      el.dispatchEvent(ev);
+      return ev.defaultPrevented;
+    };
+    return {
+      sullaVignetta: prova(vignetta),
+      // Dentro il campo di testo il menu del browser e' quello del testo, ed e'
+      // roba sua: non glielo si toglie.
+      sulTesto: prova(ta),
+    };
+  });
+  ok('sulla vignetta il menu del browser e\' fermato', menuBrowser.sullaVignetta, menuBrowser);
+  ok('ma sul testo resta il suo', !menuBrowser.sulTesto, menuBrowser);
+
   sezione('ma dal testo la presa non parte');
   // Dentro un campo di testo tenere premuto e' del sistema: e' il gesto con cui
   // si seleziona. Provare a rubarglielo vuol dire perdere tutti e due.

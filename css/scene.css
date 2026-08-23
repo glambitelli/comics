@@ -515,3 +515,18 @@ body.is-touch #schizzo-chiudi{display:none}
 }
 .pila-mini.scelta{outline:2.5px solid var(--oro);outline-offset:-2.5px}
 .pila-mini.scelta > img{opacity:.72}
+
+/* LA VIGNETTA E' UNA PRESA, non un'immagine da salvare. Tenendo premuto su
+   un'immagine il browser apre il suo menu — "apri immagine", "scarica
+   immagine", "cerca con Lens" — e se lo apre mezzo secondo dopo l'inizio della
+   pressione, cioe' un attimo dopo che la scheda si e' sollevata per essere
+   spostata: il gesto se lo prende lui. Il menu vero e proprio lo ferma
+   riordino.js (contextmenu); queste due righe tolgono di mezzo il resto — la
+   lente lunga di iOS e il trascinamento dell'immagine col mouse. */
+.beat-mini,
+.beat-mini img,
+.pila-foglio{
+  -webkit-touch-callout:none;
+  -webkit-user-select:none;user-select:none;
+  -webkit-user-drag:none;
+}

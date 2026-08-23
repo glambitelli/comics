@@ -119,7 +119,7 @@ function pilaHTML(rifi){
   // quello sopra: e' quello che si e' scelto per primo, ed e' quello che di
   // solito comanda l'inquadratura.
   const fogli = visti.map((r,i)=>
-    `<img class="pila-foglio" style="--g:${visti.length-1-i}" src="${esc(cldResize(r.url, 320))}" alt=""/>`
+    `<img class="pila-foglio" draggable="false" style="--g:${visti.length-1-i}" src="${esc(cldResize(r.url, 320))}" alt=""/>`
   ).reverse().join('');
   return `<span class="pila" style="--r:${riserva}px">${fogli}${
     rifi.length > 1 ? `<span class="pila-conta">${rifi.length}</span>` : ''}</span>`;
