@@ -30,11 +30,41 @@ function ricaricaAlRicambio(){
   });
 }
 
+// ── E SI RICONTROLLA TORNANDO A GUARDARE L'APP ──
+//
+// Il controllo degli aggiornamenti avviene quando la pagina PARTE. Ma questa
+// app, aperta dal telefono, spesso non riparte mai: si esce, si fa altro, si
+// rientra — e per il browser e' sempre la stessa pagina di ieri, con dentro i
+// file di ieri. Chiudere e riaprire non basta se a riaprirsi e' la stessa
+// pagina messa da parte.
+//
+// Da fuori si vede cosi': si chiede una modifica, la si pubblica, e sul telefono
+// non cambia niente per giorni — con l'unica conclusione ragionevole che la
+// modifica non sia mai arrivata. E' costato piu' di una segnalazione di difetti
+// gia' corretti.
+//
+// Quindi ad ogni ritorno si chiede al service worker di guardare se c'e' una
+// versione nuova. Se c'e', prende il posto del vecchio e la pagina si ricarica
+// da sola (vedi ricaricaAlRicambio qui sopra). Non piu' di una volta al minuto:
+// rientrare nell'app dieci volte in due minuti e' normale, e dieci controlli di
+// rete no.
+let _ultimoControllo = 0;
+function ricontrollaAlRitorno(){
+  document.addEventListener('visibilitychange', ()=>{
+    if(document.visibilityState !== 'visible' || !swReg) return;
+    const ora = Date.now();
+    if(ora - _ultimoControllo < 60000) return;
+    _ultimoControllo = ora;
+    swReg.update().catch(()=>{});
+  });
+}
+
 export async function initNotifications(){
   if(!('serviceWorker' in navigator) || !('Notification' in window)) return;
   try {
     ricaricaAlRicambio();
     swReg = await navigator.serviceWorker.register('./sw.js');
+    ricontrollaAlRitorno();
     await navigator.serviceWorker.ready;
     restoreReminderUI();
     scheduleNextReminder();
