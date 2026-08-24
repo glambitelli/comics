@@ -130,16 +130,6 @@ export function titoloDi(scena){
   return t || 'Scena senza titolo';
 }
 
-function quando(ms){
-  if(!ms) return '';
-  const d = new Date(ms);
-  const giorni = Math.floor((new Date().setHours(0,0,0,0) - new Date(ms).setHours(0,0,0,0)) / 86400000);
-  if(giorni === 0) return 'oggi';
-  if(giorni === 1) return 'ieri';
-  if(giorni < 7) return giorni + ' giorni fa';
-  return d.toLocaleDateString('it-IT', { day:'numeric', month:'short' });
-}
-
 // ── DATI ────────────────────────────────────────────────────────────────────
 // I beat stanno DENTRO il documento della scena, non in una sottocollezione.
 // Sono al massimo una quindicina, si leggono in un colpo solo, e riordinarli e'
@@ -245,17 +235,19 @@ export function renderScene(){
     const anteprima = primo
       ? `<span>${esc(primo)}</span>`
       : (foto0 ? `<img class="scene-card-img" src="${esc(cldResize(foto0.url, 160))}" alt=""/>` : '');
+    // NIENTE DATA. Diceva "oggi" su tutto quello che si stava lavorando e una
+    // data su quello che non si stava lavorando: nel primo caso non aggiunge
+    // niente, nel secondo e' un rimprovero. Quello che serve per riconoscere una
+    // scena e' il titolo e la sua prima immagine, che ci sono gia'.
+    // I tre puntini stanno IN VERTICALE sul bordo destro, alti quanto la scheda:
+    // orizzontali e appoggiati al titolo sembravano una parola in piu' della
+    // riga, e per prenderli bisognava mirare fra due parole.
     return `<article class="scene-card" data-id="${esc(scena.id)}">
-      <div class="scene-card-riga">
-        <div class="scene-card-testo">
-          <b>${esc(titoloDi(scena))}</b>
-          ${anteprima}
-        </div>
-        <button class="scene-menu" data-menu="${esc(scena.id)}" aria-label="Cosa fare con questa scena">⋯</button>
+      <div class="scene-card-testo">
+        <b>${esc(titoloDi(scena))}</b>
+        ${anteprima}
       </div>
-      <div class="scene-card-piede">
-        <span class="scene-data">${esc(quando(scena.updatedAt||scena.createdAt))}</span>
-      </div>
+      <button class="scene-menu" data-menu="${esc(scena.id)}" aria-label="Cosa fare con questa scena">⋮</button>
     </article>`;
   }).join('');
 }
@@ -765,7 +757,15 @@ async function disegnaScelta(){
     if(!perCartella.has(k)) perCartella.set(k, []);
     perCartella.get(k).push(x);
   }
-  const disegna = `<button class="sceltarif-tessera sceltarif-disegna" data-disegna type="button">
+  // TRE MODI DI METTERE UN'IMMAGINE IN UN BEAT, e stanno tutti e tre qui in
+  // fila: sceglierla dall'archivio (le cartelle qui sotto), prenderla dal
+  // telefono o dal computer, o disegnarla. Nessuno dei tre e' nascosto dietro
+  // un menu — sono tre porte affiancate, e si sceglie guardando.
+  const disegna = `<button class="sceltarif-tessera sceltarif-disegna" data-dispositivo type="button">
+      <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5.5" width="17" height="13" rx="2"/><circle cx="9" cy="10.5" r="1.4"/><path d="M4 16.5 9 12l3.5 3 3-2.5 4.5 4"/></svg>
+      <span>Dal dispositivo</span>
+    </button>
+    <button class="sceltarif-tessera sceltarif-disegna" data-disegna type="button">
       <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4l10-10a2.8 2.8 0 0 0-4-4L4 16Z"/><path d="M13.5 6.5 17.5 10.5"/></svg>
       <span>Disegnalo</span>
     </button>`;
@@ -1016,6 +1016,32 @@ export function chiudiScelta(){
 }
 export function vistaScelta(){ return _vista; }
 
+// ── UNA FOTO DAL TELEFONO O DAL COMPUTER ────────────────────────────────────
+// Passa dallo stesso identico archivio di tutto il resto (addRefImage in
+// refs.js), e non e' un dettaglio tecnico: cosi' la foto si ritrova fra i
+// Frammenti, si puo' ritagliare, taggare e riusare in un'altra scena. Tenerla
+// appesa a un solo beat vorrebbe dire averla e non trovarla mai piu'.
+// Se si sta guardando dentro una cartella la foto finisce li', se no resta
+// senza cartella: e' il posto in cui la si stava cercando un attimo prima.
+async function daDispositivo(files){
+  const scelti = Array.from(files || []).filter(f=> f.type && f.type.startsWith('image/'));
+  if(!scelti.length) return;
+  const dove = document.getElementById('sceltarif-dove');
+  const prima = dove ? dove.textContent : '';
+  if(dove) dove.textContent = scelti.length === 1 ? 'Carico…' : 'Carico ' + scelti.length + '…';
+  const r = await import('./refs.js');
+  const cartella = _cartellaRif && _cartellaRif !== '__sciolte' ? _cartellaRif : null;
+  let messe = 0;
+  for(const f of scelti){
+    try{
+      const esito = await r.addRefImage(f, 'file', cartella);
+      if(esito && esito.url){ tocca(esito.id, esito.url); messe++; }
+    }catch(e){ console.warn('caricamento dal dispositivo fallito:', e); }
+  }
+  if(dove) dove.textContent = messe ? prima : 'Non sono riuscito a caricarla';
+  disegnaScelta();
+}
+
 // ── DISEGNARE UN BEAT ───────────────────────────────────────────────────────
 // Il foglio vive in schizzo.js e si carica solo se lo si apre davvero: chi non
 // disegna mai non se lo porta dietro. Il PNG finisce su Cloudinary come tutte le
@@ -1165,6 +1191,12 @@ export function initScene(){
 
   const griglia = document.getElementById('sceltarif-griglia');
   griglia.addEventListener('click', e=>{
+    if(e.target.closest('[data-dispositivo]')){
+      // Il selettore di file si apre DENTRO il tocco: aperto un istante dopo,
+      // il telefono lo considera non richiesto e lo blocca.
+      document.getElementById('sceltarif-file').click();
+      return;
+    }
     if(e.target.closest('[data-disegna]')){
       // Il foglio da disegno si apre SOPRA questo, e chiudendosi torna qui:
       // per questo la scelta non si chiude adesso.
@@ -1190,6 +1222,11 @@ export function initScene(){
     _tabRif = t.dataset.tab;
     haptic('tap');
     disegnaScelta();
+  });
+  document.getElementById('sceltarif-file').addEventListener('change', e=>{
+    const files = e.target.files;
+    e.target.value = '';           // cosi' la stessa foto si puo' riprendere
+    daDispositivo(files);
   });
   document.getElementById('sceltarif-cerca').addEventListener('input', e=>{
     _cercaRif = e.target.value;

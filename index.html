@@ -174,7 +174,7 @@
 <div class="screen" id="screen-scene">
   <div class="scene-header">
     <div class="section-title" onclick="goHomeFromLogo()" style="cursor:pointer" role="button" tabindex="0" aria-label="Torna alla home">Inkflow <span style="font-size:.6em;color:#f0c020;vertical-align:.14em;font-weight:400">✦</span></div>
-    <div class="section-sub">scene</div>
+    <div class="section-sub">scenes</div>
   </div>
   <div class="scene-scroll">
     <!-- UN SOLO PULSANTE, e fa nascere la scena E la apre nello stesso tocco.
@@ -216,6 +216,11 @@
     <input id="sceltarif-cerca" class="scena-titolo" type="text" placeholder="Cerca" aria-label="Cerca un riferimento">
     <button class="scena-btn scena-btn-testo" id="sceltarif-togli" type="button" hidden>Togli tutto</button>
   </div>
+  <!-- Una foto dal telefono o dal computer. Passa dallo stesso identico
+       archivio di tutto il resto (addRefImage in refs.js): cosi' la si ritrova
+       fra i Frammenti, la si puo' ritagliare, taggare e riusare in un'altra
+       scena — invece di restare un'immagine appesa a un beat e basta. -->
+  <input type="file" id="sceltarif-file" accept="image/*" multiple style="display:none">
   <div class="sceltarif-scroll">
     <!-- Le due schede di una cartella, le stesse dell'archivio: dentro un
          autore ci sono i frammenti e ci sono le tavole, e sono due cose che si

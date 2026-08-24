@@ -184,7 +184,12 @@ export async function addRefImage(file, source='file', folderId=null, tavola=cur
       tags: Array.isArray(tags) ? tags.map(normTag).filter(Boolean) : [],
     };
     await setDoc(doc(db, REFS_COL, id), data);
-    return id;
+    // Si torna anche l'indirizzo, non solo l'id. Chi carica dall'archivio non
+    // ne ha bisogno — l'immagine gli torna dal listener realtime un istante
+    // dopo — ma le Scene si', perche' devono attaccarla SUBITO alla vignetta di
+    // un beat: aspettare il giro da Firestore vorrebbe dire vedere il riquadro
+    // restare vuoto per un secondo dopo aver scelto una foto.
+    return { id, url };
   }catch(e){
     console.error('addRefImage errore:', e);
     _lastUploadError = (e && e.message) ? e.message : String(e);
@@ -252,7 +257,12 @@ export async function addRefBlob(blob, opts={}){
     };
     if(provenance) data.provenance = provenance;
     await setDoc(doc(db, REFS_COL, id), data);
-    return id;
+    // Si torna anche l'indirizzo, non solo l'id. Chi carica dall'archivio non
+    // ne ha bisogno — l'immagine gli torna dal listener realtime un istante
+    // dopo — ma le Scene si', perche' devono attaccarla SUBITO alla vignetta di
+    // un beat: aspettare il giro da Firestore vorrebbe dire vedere il riquadro
+    // restare vuoto per un secondo dopo aver scelto una foto.
+    return { id, url };
   }catch(e){
     console.error('addRefBlob errore:', e);
     _lastUploadError = (e && e.message) ? e.message : String(e);
@@ -394,8 +404,8 @@ export async function addRefImages(fileList, source='file', folderId=currentUplo
   setUploadStatus('loading', files.length===1 ? 'Caricamento in corso…' : `Caricamento di ${files.length} immagini…`);
   let ok=0;
   for(const f of files){
-    const id = await addRefImage(f, source, folderId, tavola, tags);
-    if(id) ok++;
+    const esito = await addRefImage(f, source, folderId, tavola, tags);
+    if(esito) ok++;
   }
   if(ok===0){
     setUploadStatus('error', 'Caricamento fallito — '+(_lastUploadError || 'errore sconosciuto'));

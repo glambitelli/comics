@@ -180,6 +180,36 @@ module.exports = () => suite("Scene — un riquadro per volta, cento caratteri",
   ok('senza niente sotto, perche\' non c\'e\' ancora niente da vedere',
      s.sottotitoli.filter(x=>x===null).length === 1, s);
 
+  sezione('la scheda di una scena non porta la data');
+  // Diceva "oggi" su tutto quello che si stava lavorando e una data su quello
+  // che non si stava lavorando: nel primo caso non aggiunge niente, nel secondo
+  // e' un rimprovero. Per riconoscere una scena bastano il titolo e la sua
+  // prima immagine.
+  const scheda = await page.evaluate(()=>{
+    const c = document.querySelector('.scene-card');
+    const menu = c.querySelector('.scene-menu');
+    const testo = c.querySelector('.scene-card-testo');
+    const rc = c.getBoundingClientRect(), rm = menu.getBoundingClientRect();
+    return {
+      data: /oggi|ieri|giorni fa/i.test(c.textContent),
+      piede: !!c.querySelector('.scene-card-piede'),
+      glifo: menu.textContent.trim(),
+      // Sul bordo destro, e alto quanto la scheda: e' una colonna intera, non
+      // un bersaglio da mirare fra due parole.
+      aDestra: rm.right > rc.right - 8 && rm.left > testo.getBoundingClientRect().right - 1,
+      // Alto quanto il testo che gli sta accanto: una colonna, non un puntino.
+      // Alto quanto il testo accanto, e comunque quanto un dito: su una scena
+      // senza anteprima la scheda e' alta una riga sola.
+      altoQuanto: rm.height >= testo.getBoundingClientRect().height - 1 && rm.height >= 44,
+    };
+  });
+  ok('niente "oggi" sulla scheda', !scheda.data, scheda);
+  ok('e nemmeno la riga che lo conteneva', !scheda.piede, scheda);
+  ok('i tre puntini sono in verticale', scheda.glifo === '⋮', scheda);
+  ok('sul bordo destro', scheda.aDestra, scheda);
+  ok('e il bersaglio e\' una colonna alta quanto un dito, non un puntino',
+     scheda.altoQuanto, scheda);
+
   sezione('e da nessuna parte c\'e\' una parola da ufficio');
   // Niente progetti, obiettivi, task, progressi, percentuali. E' la regola di
   // tono della sezione, ed e' facile perderla aggiungendo una funzione alla
@@ -570,6 +600,19 @@ module.exports = () => suite("Scene — un riquadro per volta, cento caratteri",
     quanteDentro: Array.from(document.querySelectorAll('.sceltarif-quante')).map(x=> x.textContent),
   }));
   ok('si aprono le cartelle, non i frammenti', cartelle.quante === 2 && cartelle.immaginiSubito === 0, cartelle);
+  // TRE MODI DI METTERE UN'IMMAGINE IN UN BEAT, tutti e tre in fila e nessuno
+  // nascosto dietro un menu: dall'archivio, dal telefono, o disegnandola.
+  const modi = await page.evaluate(()=>({
+    dispositivo: !!document.querySelector('[data-dispositivo]'),
+    disegna: !!document.querySelector('[data-disegna]'),
+    // Il selettore di file accetta solo immagini e ne prende piu' d'una.
+    accetta: (document.getElementById('sceltarif-file')||{}).accept,
+    multiple: (document.getElementById('sceltarif-file')||{}).multiple,
+  }));
+  ok('c\'e\' anche "Dal dispositivo"', modi.dispositivo, modi);
+  ok('accanto a "Disegnalo"', modi.disegna, modi);
+  ok('e chiede solo immagini, anche piu\' d\'una',
+     /image/.test(modi.accetta||'') && modi.multiple === true, modi);
   ok('coi nomi veri dell\'archivio', cartelle.nomi.sort().join(',') === 'MANI,OTOMO', cartelle);
   ok('e nessuna che ripiega su "Senza cartella"', cartelle.senzaNome === 0, cartelle);
   // Raggruppate per categoria come nell'archivio: e' li' che si e' deciso come
