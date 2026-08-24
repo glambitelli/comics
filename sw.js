@@ -13,7 +13,7 @@
 // di servire quelli di ieri. Alzare questo e non quello e' normale; il
 // contrario no.
 const VERSIONE = '1.0.0';
-const CACHE = 'inkflow-static-v287';
+const CACHE = 'inkflow-static-v288';
 const SHARE_CACHE = 'inkflow-share-inbox';
 // Cache dei file .cbz/.cbr scaricati da Drive: gestita da js/drive.js, va
 // PRESERVATA tra i deploy (altrimenti a ogni aggiornamento riscaricheresti
@@ -33,6 +33,33 @@ const ALBUM_CACHE = 'inkflow-drive-albums';
 // dell'SDK, e tantomeno l'avvio dell'app.
 const VENDOR_CACHE = 'inkflow-vendor';
 
+// ── LE IMMAGINI DELL'ARCHIVIO ──
+// Frammenti, tavole, vignette delle scene: vivono su Cloudinary, che e' un
+// altro dominio. E fin qui le richieste ad altri domini passavano dritte alla
+// rete, senza mai finire in cache. Due conseguenze, tutte e due grosse:
+//
+//   · SENZA RETE non si vedeva NIENTE. L'app partiva, i dati c'erano tutti
+//     (Firestore li tiene in IndexedDB), ma ogni miniatura era un riquadro
+//     vuoto — cioe' l'archivio di un disegnatore, senza i disegni.
+//   · CON LA RETE si ripagava tutto ad ogni visita. Aprire una cartella da
+//     quaranta frammenti sono quaranta richieste, ogni volta, anche alle
+//     stesse identiche immagini di dieci secondi prima.
+//
+// Cache-first senza ricontrollo, ed e' sicuro: l'indirizzo di Cloudinary
+// contiene la trasformazione (c_limit,w_300,q_auto,f_auto/...), quindi a URL
+// uguale corrisponde per sempre lo stesso bitmap. Se un'immagine cambia,
+// cambia il suo indirizzo.
+//
+// Questa cache si PRESERVA fra i deploy, come quella degli albi: le immagini
+// non c'entrano niente con la versione dell'app, e buttarle via ad ogni
+// ritocco di CSS vorrebbe dire riscaricare l'archivio piu' volte al giorno.
+const IMG_CACHE = 'inkflow-immagini';
+// Quante tenerne. Una miniatura pesa qualche decina di kB, una tavola intera
+// qualche centinaio: cinquecento voci stanno largamente dentro quello che un
+// telefono concede a un sito, e sono molte piu' immagini di quante se ne
+// guardino in una settimana. Oltre, si buttano le piu' vecchie.
+const IMG_CACHE_MAX = 500;
+
 self.addEventListener('install', e => {
   self.skipWaiting();
 });
@@ -40,7 +67,8 @@ self.addEventListener('install', e => {
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys().then(keys => Promise.all(
-      keys.filter(k => k !== CACHE && k !== SHARE_CACHE && k !== ALBUM_CACHE && k !== VENDOR_CACHE)
+      keys.filter(k => k !== CACHE && k !== SHARE_CACHE && k !== ALBUM_CACHE
+                    && k !== VENDOR_CACHE && k !== IMG_CACHE)
           .map(k => caches.delete(k))
     )).then(() => self.clients.claim())
   );
@@ -59,6 +87,8 @@ self.addEventListener('fetch', e => {
   }
 
   const isSameOrigin = url.origin === self.location.origin;
+  // Le immagini dell'archivio: vedi IMG_CACHE piu' su.
+  const isImmagine = url.host === 'res.cloudinary.com';
   // L'SDK Firebase (gstatic.com/firebasejs) è versionato e immutabile:
   // CACHE-FIRST, altrimenti offline i moduli non si caricano e l'app non parte.
   const isFirebaseSDK = url.href.includes('gstatic.com/firebasejs')
@@ -66,6 +96,23 @@ self.addEventListener('fetch', e => {
                      || url.host === 'fonts.gstatic.com';
   // Le API Firestore/Google dinamiche invece mai in cache
   const isFirebaseAPI = !isFirebaseSDK && /firebase|firestore|googleapis|gstatic/.test(url.href);
+
+  if(isImmagine && e.request.method === 'GET'){
+    e.respondWith(
+      caches.open(IMG_CACHE).then(cache => cache.match(e.request).then(hit => {
+        if(hit) return hit;
+        return fetch(e.request).then(resp => {
+          // Solo le risposte intere e riuscite: una 206 o un errore in cache
+          // vorrebbe dire un'immagine rotta per sempre.
+          if(resp && resp.status === 200){
+            cache.put(e.request, resp.clone()).then(()=> sfoltisciImmagini()).catch(()=>{});
+          }
+          return resp;
+        });
+      }))
+    );
+    return;
+  }
 
   if(e.request.method !== 'GET' || (!isSameOrigin && !isFirebaseSDK) || isFirebaseAPI){
     e.respondWith(fetch(e.request));
@@ -116,6 +163,23 @@ self.addEventListener('fetch', e => {
     }))
   );
 });
+
+// Le piu' vecchie se ne vanno per prime: cache.keys() torna nell'ordine in cui
+// sono state scritte. Si controlla di rado — solo dopo aver aggiunto qualcosa —
+// e comunque non ad ogni immagine: scorrere una cartella lunga scriverebbe
+// quaranta volte di fila, e quaranta giri di potatura non servono a nessuno.
+let _ultimaPotatura = 0;
+async function sfoltisciImmagini(){
+  const ora = Date.now();
+  if(ora - _ultimaPotatura < 30000) return;
+  _ultimaPotatura = ora;
+  try{
+    const cache = await caches.open(IMG_CACHE);
+    const keys = await cache.keys();
+    if(keys.length <= IMG_CACHE_MAX) return;
+    for(const k of keys.slice(0, keys.length - IMG_CACHE_MAX)) await cache.delete(k);
+  }catch(e){}
+}
 
 async function handleShareTarget(request){
   try{

@@ -31,7 +31,7 @@ import {
   clipDestinations, clipCategories, getFolderName, rememberClipDest, tagSuggeriti,
 } from './refs.js';
 import { uploadToCloudinary } from './cloudinary.js';
-import { getDriveAlbumFile, ensureDriveConnected, isDownloadCancelled } from './drive.js';
+import { albumGiaScaricato, getDriveAlbumFile, ensureDriveConnected, isDownloadCancelled } from './drive.js';
 import { openRemoteZipSource, openBlobZipSource } from './zipremote.js';
 import { haptic } from './state.js';
 import { escAttr } from './testo.js';
@@ -619,21 +619,38 @@ export async function openAlbumFromDrive(albumId){
   openReaderShell(a.title || '');
   detachCurrentAlbum();   // via le tavole dell'albo precedente (vedi la funzione)
   toast('', false, true);
-  // `true`: qui l'utente ha toccato un albo che vive su Drive, quindi se serve
-  // ricollegarsi la finestra di Google e' la conseguenza di un suo gesto, non
-  // una sorpresa. In tutti gli altri punti si resta silenziosi.
-  if(!(await ensureDriveConnected(true))){ toast('Ricollega Google Drive per aprire questo albo.', true); return; }
+  // PRIMA SI GUARDA IN CASA. Un albo gia' scaricato e' un file che sta sul
+  // telefono: aprirlo non richiede ne' Google ne' la rete. Prima si chiedeva
+  // comunque il collegamento a Drive, e senza rete la risposta era no — cosi'
+  // l'albo restava chiuso con dentro tutto quello che serviva, a due centimetri.
+  // In aereo, in metropolitana o con la linea che fa i capricci, e' esattamente
+  // il momento in cui uno vuole leggere.
+  const giaQui = await albumGiaScaricato(a.driveFileId, a.sourceName || (a.title||'albo'));
   if(token !== _openToken) return;
+  if(!giaQui){
+    // `true`: qui l'utente ha toccato un albo che vive su Drive, quindi se
+    // serve ricollegarsi la finestra di Google e' la conseguenza di un suo
+    // gesto, non una sorpresa. In tutti gli altri punti si resta silenziosi.
+    if(!(await ensureDriveConnected(true))){ toast('Ricollega Google Drive per aprire questo albo.', true); return; }
+    if(token !== _openToken) return;
+  }
   // Per LEGGERE si prende il file intero: dalla cache locale se c'è (istantaneo,
   // zero rete), altrimenti un unico download che poi resta in cache. Leggere a
   // richieste di rete separate, una per tavola, sembrava furbo ma su 4G ogni
   // cambio pagina pagava la latenza: molto peggio di un'attesa sola all'inizio
   // e poi tutto immediato.
-  let file;
+  // Se il file era gia' in casa (vedi sopra) si usa QUELLO, e non si passa
+  // nemmeno dallo scaricamento: quella strada rileggerebbe dalla cache lo stesso
+  // file una seconda volta, e per un volume da mezzo giga non e' gratis.
+  // Niente pulsante "annulla" e niente banner dei megabyte: non c'e' niente da
+  // annullare e nessun megabyte in arrivo.
+  let file = giaQui;
+  let dlSignal = null;
+  if(!file){
   // Il segnale di annullamento vive per tutta la durata dello scaricamento e lo
   // rende fermabile dal bottone sotto il glifo (vedi cancelAlbumDownload).
   _dlAbort = new AbortController();
-  const dlSignal = _dlAbort.signal;
+  dlSignal = _dlAbort.signal;
   showCancelDownload(true);
   try{
     // Throttle del progresso: aggiornare il banner ad ogni blocco ricevuto
@@ -663,6 +680,7 @@ export async function openAlbumFromDrive(albumId){
   }
   showCancelDownload(false);
   if(_dlAbort && _dlAbort.signal === dlSignal) _dlAbort = null;
+  }
   if(token !== _openToken) return;
 
   toast('', false, true); // solo il glifo, come sopra

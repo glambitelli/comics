@@ -30,3 +30,7 @@ export function daRicollegare(){ return window.__driveGiaCollegato === true; }
 export function prepareDriveAuth(){ return Promise.resolve(false); }
 export function resumeDriveConnect(){ return Promise.resolve(false); }
 export function ascoltaRientroDrive(){}
+
+// C'e' gia' in casa? Nel banco no, se non lo dice la prova: window.__inCasa e'
+// il file gia' scaricato che si trova senza passare da Google.
+export function albumGiaScaricato(){ return Promise.resolve(window.__inCasa || null); }

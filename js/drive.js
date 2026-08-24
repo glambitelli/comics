@@ -585,6 +585,15 @@ const ALBUM_CACHE_MAX = 4; // quanti albi tenere (i più recenti); il resto si r
 
 function albumCacheKey(id){ return 'https://inkflow.local/album/' + id; }
 
+// C'E' GIA' IN CASA? Serve a chi apre un albo senza rete: il file scaricato
+// ieri e' li', ma per arrivarci si passava prima da "collegati a Google Drive"
+// — che senza rete non riesce — e l'albo restava chiuso con dentro tutto
+// quello che serviva. Questa domanda si fa PRIMA di chiedere qualcosa a
+// Google, e non chiede niente a nessuno.
+export async function albumGiaScaricato(driveFileId, name){
+  return readAlbumCache(driveFileId, name);
+}
+
 async function readAlbumCache(driveFileId, name){
   try{
     const cache = await caches.open(ALBUM_CACHE);
