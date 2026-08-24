@@ -124,16 +124,15 @@ body.is-touch .scene-scroll{padding-bottom:calc(110px + var(--safe-bot))}
   letter-spacing:.06em;text-transform:uppercase;line-height:1;padding:9px 11px;
   border:1px solid rgba(232,200,120,.28);border-radius:9px;
 }
-/* IL TITOLO E' UN CAMPO SENZA BORDI, in mezzo alla barra: si scrive se viene,
-   e se non viene resta il segnaposto. Un campo disegnato come tale — riquadro,
-   etichetta, sfondo chiaro — sarebbe una domanda a cui rispondere prima di
-   cominciare, che e' esattamente cio' che questa sezione evita. */
+/* IL TITOLO E' SCRITTO, non piu' un campo da riempire. Si cambia dall'elenco,
+   dai tre puntini, che e' dove si prendono le decisioni su una scena: qui
+   dentro si sta lavorando, e il titolo e' solo il posto in cui si e'. */
 .scena-titolo{
-  flex:1;min-width:0;background:none;border:none;outline:none;
-  font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;color:var(--oro);
-  padding:6px 2px;
+  flex:1;min-width:0;text-align:right;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;
+  letter-spacing:.02em;color:var(--oro);opacity:.72;padding:6px 2px;
 }
-.scena-titolo::placeholder{color:var(--oro);opacity:.42;font-weight:600}
 /* Stessa carta dell'elenco: si passa dall'una all'altra e il fondo e' lo stesso
    foglio. Vedi la nota sulla grana piu' su. */
 .scena-scroll{
@@ -537,3 +536,16 @@ body.is-touch #schizzo-chiudi{display:none}
   -webkit-user-select:none;user-select:none;
   -webkit-user-drag:none;
 }
+
+/* IL MARCHIO NELLA BARRA DI UNA SCENA. Piccolo, non il logo grande delle
+   schermate: qui e' una via d'uscita, non un'intestazione. Ma e' lo stesso
+   marchio e fa la stessa cosa che fa in tutte le altre — si tocca e si torna a
+   casa — e questo era l'unico posto dell'app da cui la home non si raggiungeva
+   in un tocco. */
+.scena-marchio{
+  flex-shrink:0;background:none;border:none;cursor:pointer;padding:6px 4px;
+  font-family:'Bitter',Georgia,serif;font-size:15px;font-weight:700;
+  color:var(--oro);line-height:1;letter-spacing:-.01em;
+}
+.scena-marchio span{color:var(--gold);font-size:.72em;vertical-align:.16em}
+.scena-marchio:active{opacity:.65}

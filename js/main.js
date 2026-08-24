@@ -617,6 +617,22 @@ const goHomeAlways = ()=>{
 window.goHome = goHomeAlways;
 window.goHomeFromLogo = goHomeAlways;
 
+// DAL FOGLIO DI UNA SCENA ALLA HOME, in un tocco. Il foglio non e' una
+// schermata: e' un velo sopra le Scene, e goHomeAlways da solo se ne andrebbe a
+// casa lasciandolo aperto a mezz'aria. Quindi prima lo si chiude passando dalla
+// cronologia — che e' la strada di tutte le chiusure dell'app, e salva — e solo
+// a foglio chiuso si parte. Si aspetta il popstate invece di contare i
+// millisecondi: e' l'unico momento in cui si sa che la chiusura e' avvenuta.
+window.dallaScenaAllaHome = ()=>{
+  const foglio = document.getElementById('scena');
+  if(foglio && foglio.classList.contains('open') && history.state && history.state.view === 'scena'){
+    addEventListener('popstate', ()=> goHomeAlways(), { once:true });
+    history.back();
+    return;
+  }
+  goHomeAlways();
+};
+
 (function(){
   let startX=0, startY=0;
   const proj = document.getElementById('screen-project');

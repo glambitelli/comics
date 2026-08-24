@@ -195,9 +195,14 @@
     <button class="scena-btn" id="scena-chiudi" type="button" aria-label="Chiudi">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
     </button>
-    <!-- Il titolo si scrive qui dentro, o non si scrive affatto: e' un campo
-         senza bordi in mezzo alla barra, non una domanda da sbrigare prima. -->
-    <input id="scena-titolo" class="scena-titolo" type="text" placeholder="Scena senza titolo" aria-label="Titolo della scena">
+    <!-- IL MARCHIO, e da qui si torna a casa. Prima al suo posto c'era il campo
+         del titolo: si rinominava una scena dalla schermata in cui la si sta
+         lavorando — cioe' nel momento in cui non interessa — e in cambio questo
+         era l'unico posto dell'app da cui la home non si raggiungeva. Il titolo
+         adesso si cambia dall'elenco, dai tre puntini, che e' dove si prendono
+         le decisioni su una scena. -->
+    <button class="scena-marchio" onclick="window.dallaScenaAllaHome()" type="button" aria-label="Torna alla home">Inkflow <span aria-hidden="true">✦</span></button>
+    <span id="scena-titolo" class="scena-titolo"></span>
   </div>
   <div class="scena-scroll">
     <div id="scena-beat"></div>

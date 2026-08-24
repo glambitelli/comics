@@ -61,12 +61,18 @@ module.exports = () => suite("Scene — un riquadro per volta, cento caratteri",
   await page.waitForTimeout(450);
   const aperta = await page.evaluate(()=>({
     foglio: document.getElementById('scena').classList.contains('open'),
-    titolo: document.getElementById('scena-titolo').value,
-    invito: document.getElementById('scena-titolo').placeholder,
+    titolo: document.getElementById('scena-titolo').textContent,
+    // Il titolo NON e' un campo: si cambia dall'elenco, dai tre puntini, che e'
+    // dove si prendono le decisioni su una scena. Qui dentro si sta lavorando.
+    campo: document.getElementById('scena-titolo').tagName,
+    // E al posto suo, nella barra, c'e' il marchio: era l'unico posto dell'app
+    // da cui la home non si raggiungeva in un tocco.
+    marchio: !!document.querySelector('.scena-marchio'),
   }));
   ok('il foglio della scena si apre nello stesso tocco', aperta.foglio, aperta);
-  ok('il titolo non e\' una domanda da sbrigare: e\' vuoto', aperta.titolo === '', aperta);
-  ok('e dice come si chiamera\' se non lo scrivi', /senza titolo/i.test(aperta.invito), aperta);
+  ok('il titolo non e\' un campo da riempire', aperta.campo !== 'INPUT', aperta);
+  ok('e senza titolo la scena si chiama da sola', /senza titolo/i.test(aperta.titolo), aperta);
+  ok('nella barra c\'e\' il marchio, per tornare a casa', aperta.marchio, aperta);
   // NIENTE TASTIERA ALL'APERTURA. Il cursore ci andava da solo, nel primo
   // riquadro vuoto: aprendo una scena che esiste gia' si vuole prima
   // GUARDARLA, e la tastiera che sale si mangia meta' schermo proprio mentre il
@@ -153,12 +159,21 @@ module.exports = () => suite("Scene — un riquadro per volta, cento caratteri",
   ok('col mouse restano tutte', frecce.colMouse.every(d=> d !== 'none'), frecce);
 
   sezione('il titolo si scrive quando viene, e finisce nell\'elenco');
-  await page.evaluate(()=>{
-    const t = document.getElementById('scena-titolo');
-    t.value = 'La finestra sul cortile';
-    t.dispatchEvent(new Event('input', {bubbles:true}));
-  });
+  // Si rinomina dall'elenco, dai tre puntini: e' li' che si prendono le
+  // decisioni su una scena.
   await page.evaluate(()=> document.getElementById('scena-chiudi').click());
+  await page.waitForTimeout(300);
+  await page.evaluate(async ()=>{
+    document.querySelector('.scene-menu').dispatchEvent(new MouseEvent('click',{bubbles:true}));
+    await new Promise(r=> setTimeout(r,250));
+    const voce = Array.from(document.querySelectorAll('.ink-action-menu button'))
+      .find(b=> /rinomina/i.test(b.textContent));
+    voce.dispatchEvent(new MouseEvent('click',{bubbles:true}));
+    await new Promise(r=> setTimeout(r,300));
+    document.getElementById('ink-prompt-input').value = 'La finestra sul cortile';
+    document.getElementById('ink-prompt-ok').click();
+  });
+  await page.waitForTimeout(400);
   await page.waitForTimeout(250);
   s = await stato();
   ok('chiusa la scena si torna all\'elenco', s.n === 1, s);
@@ -613,6 +628,7 @@ module.exports = () => suite("Scene — un riquadro per volta, cento caratteri",
   ok('accanto a "Disegnalo"', modi.disegna, modi);
   ok('e chiede solo immagini, anche piu\' d\'una',
      /image/.test(modi.accetta||'') && modi.multiple === true, modi);
+
   ok('coi nomi veri dell\'archivio', cartelle.nomi.sort().join(',') === 'MANI,OTOMO', cartelle);
   ok('e nessuna che ripiega su "Senza cartella"', cartelle.senzaNome === 0, cartelle);
   // Raggruppate per categoria come nell'archivio: e' li' che si e' deciso come
@@ -1212,6 +1228,50 @@ module.exports = () => suite("Scene — un riquadro per volta, cento caratteri",
   await page.evaluate(()=> window.scene.renderBeat());
   await page.waitForTimeout(150);
   ok('nemmeno ridisegnando la scena', (await avviso()) === null, null);
+
+  sezione('e una foto dal telefono arriva davvero in archivio');
+  // Non ci arrivava: il campo file veniva azzerato PRIMA di copiare i file, e
+  // `input.files` non e' un elenco a se' — e' la finestra sul contenuto del
+  // campo, e svuotare il campo la svuota. Si sceglieva una foto, si toccava ok,
+  // e non succedeva niente: nessun errore, nessun avviso, zero file da caricare.
+  // Si lavora su una scena tutta sua, cosi' non disturba le prove di sopra.
+  await page.evaluate(async ()=>{
+    await window.scene.nuovaScena();
+    await new Promise(r=> setTimeout(r, 400));
+    document.querySelector('#scena-beat .beat-nuovo [data-schizzo]').click();
+  });
+  await page.waitForTimeout(600);
+  const dalTelefono = await page.evaluate(async ()=>{
+    const c = document.createElement('canvas');
+    c.width = 60; c.height = 40;
+    const x = c.getContext('2d'); x.fillStyle = '#2a6aa0'; x.fillRect(0,0,60,40);
+    const blob = await new Promise(r=> c.toBlob(r, 'image/png'));
+    const dt = new DataTransfer();
+    dt.items.add(new File([blob], 'foto.png', { type:'image/png' }));
+    const input = document.getElementById('sceltarif-file');
+    input.files = dt.files;
+    window.__scritture = [];
+    input.dispatchEvent(new Event('change', { bubbles:true }));
+    await new Promise(r=> setTimeout(r, 900));
+    const s = window.scene.scenaAperta();
+    return {
+      inArchivio: (window.__scritture||[]).filter(w=> w.col === 'refs').length,
+      // E finisce anche nella vignetta del beat, senza aspettare il giro da
+      // Firestore: e' per questo che addRefImage torna anche l'indirizzo.
+      nelBeat: window.scene.rifiDi(s.beat[0]).length,
+      // Il campo si azzera lo stesso, se no riscegliendo la STESSA foto il
+      // browser non manda nessun evento.
+      campoVuoto: input.value === '',
+    };
+  });
+  ok('la foto scelta finisce in archivio', dalTelefono.inArchivio === 1, dalTelefono);
+  ok('e subito nella vignetta del beat', dalTelefono.nelBeat === 1, dalTelefono);
+  ok('col campo azzerato, cosi\' la stessa foto si puo\' riprendere',
+     dalTelefono.campoVuoto, dalTelefono);
+  await page.evaluate(()=> document.getElementById('sceltarif-chiudi').click());
+  await page.waitForTimeout(300);
+  await page.evaluate(()=> document.getElementById('scena-chiudi').click());
+  await page.waitForTimeout(300);
 
   sezione('le scene abbandonate se ne vanno da sole');
   // Zero o un beat, e ferme da piu' di un giorno: via in silenzio, senza

@@ -27,7 +27,7 @@
 // progressi. C'e' una scena e cosa si vede.
 import { db, collection, doc, onSnapshot, setDoc, deleteDoc } from './firebase.js';
 import { haptic, showUndoToast } from './state.js';
-import { actionMenu } from './dialogs.js';
+import { actionMenu, promptModal } from './dialogs.js';
 import { esc } from './testo.js';
 import { cldResize, uploadToCloudinary } from './cloudinary.js';
 import { montaRiordino } from './riordino.js';
@@ -252,11 +252,31 @@ export function renderScene(){
   }).join('');
 }
 
+// Il titolo si cambia da QUI, dall'elenco, e non dalla schermata in cui la
+// scena si sta lavorando: li' non interessa a nessuno, e quel posto serviva per
+// tornare a casa. Resta facoltativo — si puo' lasciare vuoto e la scena si
+// chiama da sola.
+async function rinominaScena(id){
+  const scena = _scene.find(s=>s.id===id);
+  if(!scena) return;
+  const nuovo = await promptModal('Titolo della scena', scena.titolo || '', 'Scena senza titolo');
+  if(nuovo === null) return;
+  scena.titolo = nuovo.trim();
+  scena.updatedAt = Date.now();
+  renderScene();
+  if(_apertaId === id){
+    const tit = document.getElementById('scena-titolo');
+    if(tit) tit.textContent = titoloDi(scena);
+  }
+  await scrivi(scena);
+}
+
 function menuScena(ancora, id){
   const scena = _scene.find(s=>s.id===id);
   if(!scena) return;
   actionMenu(ancora, [
-    { label: 'Apri', icon: 'rinomina', onSelect: ()=> apriScena(id) },
+    { label: 'Apri', onSelect: ()=> apriScena(id) },
+    { label: 'Rinomina', icon: 'rinomina', onSelect: ()=> rinominaScena(id) },
     { label: 'Elimina', icon: 'elimina', danger: true, onSelect: ()=> eliminaScena(id) },
   ]);
 }
@@ -268,7 +288,7 @@ export function apriScena(id){
   _apertaId = id;
   const foglio = document.getElementById('scena');
   const tit = document.getElementById('scena-titolo');
-  if(tit) tit.value = scena.titolo || '';
+  if(tit) tit.textContent = titoloDi(scena);
   renderBeat();
   foglio.classList.add('open');
   document.body.classList.add('scena-open');
@@ -1122,15 +1142,6 @@ export function initScene(){
     },
   });
 
-  const tit = document.getElementById('scena-titolo');
-  tit.addEventListener('input', ()=>{
-    const scena = scenaAperta();
-    if(!scena) return;
-    scena.titolo = tit.value;
-    scena.updatedAt = Date.now();
-    salvaFraPoco(scena.id);
-  });
-
   const beat = document.getElementById('scena-beat');
   beat.addEventListener('click', e=>{
     // Dopo aver spostato una scheda il browser manda comunque un click: senza
@@ -1224,8 +1235,15 @@ export function initScene(){
     disegnaScelta();
   });
   document.getElementById('sceltarif-file').addEventListener('change', e=>{
-    const files = e.target.files;
-    e.target.value = '';           // cosi' la stessa foto si puo' riprendere
+    // I FILE SI COPIANO PRIMA DI AZZERARE IL CAMPO. `e.target.files` non e' un
+    // elenco a se': e' la finestra sul contenuto del campo, e svuotare il campo
+    // la svuota. Scritto nell'altro ordine si sceglieva una foto, si toccava
+    // ok, e non succedeva niente — nessun errore, nessun avviso, semplicemente
+    // zero file da caricare.
+    // Il campo va azzerato lo stesso, se no riscegliendo la STESSA foto il
+    // browser non manda nessun evento: per lui non e' cambiato niente.
+    const files = Array.from(e.target.files || []);
+    e.target.value = '';
     daDispositivo(files);
   });
   document.getElementById('sceltarif-cerca').addEventListener('input', e=>{
