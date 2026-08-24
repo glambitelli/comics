@@ -575,8 +575,11 @@ function zittisciBeat(id){
 // vero e' una parete di miniature senza un ordine riconoscibile, e cercare la
 // posa che si ha in mente diventa scorrere. Le cartelle sono gia' il modo in cui
 // l'archivio e' organizzato — un artista, uno studio — quindi si entra da li'.
-// La ricerca invece taglia trasversale: quando si scrive, le cartelle spariscono
-// e si vede tutto quello che corrisponde, ovunque stia.
+// E non c'e' una ricerca: si arriva a un riferimento passando dalla cartella
+// dell'artista, che e' il modo in cui l'archivio e' organizzato e l'unico in cui
+// lo si ha in testa. Un campo da riempire in cima a una schermata da cui si
+// vuole solo scegliere un'immagine e' una domanda in piu' fra il dito e la
+// miniatura.
 //
 // E IL DISEGNO? E' rimasto, ma non e' piu' la porta: e' la prima tessera. Col
 // dito su un telefono, o col mouse, disegnare non serviva a niente — su un iPad
@@ -584,7 +587,6 @@ function zittisciBeat(id){
 // funziona bene; lasciarlo davanti a tutto costringeva a passare di li' anche
 // chi voleva solo collegare un ritaglio che ha gia'.
 let _boxScelta = null;      // il beat su cui si sta scegliendo
-let _cercaRif = '';
 let _cartellaRif = null;    // la cartella aperta, o null per l'elenco
 // TRE VISTE, UNA DENTRO L'ALTRA.
 //   'pila'     — i riferimenti di QUESTO beat, e nient'altro
@@ -601,13 +603,10 @@ async function apriScelta(box){
   const scena = scenaAperta();
   if(!scena) return;
   _boxScelta = box;
-  _cercaRif = '';
   _cartellaRif = null;
   const b0 = scena.beat.find(x=> x.id === box.dataset.id);
   _vista = rifiDi(b0).length ? 'pila' : 'cartelle';
   if(_sceltaPila) _sceltaPila.azzera();
-  const campo = document.getElementById('sceltarif-cerca');
-  if(campo) campo.value = '';
   const foglio = document.getElementById('sceltarif');
   foglio.classList.add('open');
   try{ if(!history.state || history.state.view !== 'sceltarif') history.pushState({view:'sceltarif'}, ''); }catch(e){}
@@ -674,9 +673,6 @@ async function disegnaScelta(){
 
   const r = await import('./refs.js');
   const tutte = r.refsCache().filter(x=> x && x.url);
-  const q = _cercaRif.trim().toLowerCase();
-  const cerca = document.getElementById('sceltarif-cerca');
-
   // ── LA PILA DI QUESTO BEAT, e nient'altro ──
   // Si arriva qui toccando una vignetta gia' piena, ed e' quasi sempre per
   // guardare cosa ci si era messo mentre si disegna: quindi le immagini sono
@@ -685,8 +681,6 @@ async function disegnaScelta(){
   if(_vista === 'pila'){
     mostraTab(false);
     if(dove) dove.textContent = 'Riferimenti';
-    // Niente ricerca: qui non c'e' niente da cercare, ci sono le tue.
-    if(cerca) cerca.hidden = true;
     // MINIATURE, non le immagini intere. A tutta larghezza si vedeva una
     // referenza per schermata e per averne il quadro bisognava scorrere: qui
     // servono tutte insieme, per capire in un colpo cosa si era messo da parte.
@@ -725,21 +719,6 @@ async function disegnaScelta(){
         </button>`;
     return;
   }
-  if(cerca) cerca.hidden = false;
-
-  // ── cercando: tutto l'archivio in fila, ovunque stia ──
-  if(q){
-    mostraTab(false);
-    if(dove) dove.textContent = '';
-    const trovate = tutte.filter(x=>
-      ((x.tags||[]).join(' ') + ' ' + (x.provenance && x.provenance.opera || '')).toLowerCase().includes(q));
-    griglia.className = 'sceltarif-tessere';
-    griglia.innerHTML = trovate.length
-      ? trovate.map(x=> tesseraHTML(x, presi.has(x.id), false)).join('')
-      : `<div class="sceltarif-vuoto"><p>Nessun riferimento con questo nome.</p></div>`;
-    return;
-  }
-
   // ── dentro una cartella: le sue due schede ──
   if(_cartellaRif){
     mostraTab(true);
@@ -1245,10 +1224,6 @@ export function initScene(){
     const files = Array.from(e.target.files || []);
     e.target.value = '';
     daDispositivo(files);
-  });
-  document.getElementById('sceltarif-cerca').addEventListener('input', e=>{
-    _cercaRif = e.target.value;
-    disegnaScelta();
   });
   document.getElementById('sceltarif-togli').addEventListener('click', ()=>{
     if(_sceltaPila) togliDallaPila(_sceltaPila.scelti());

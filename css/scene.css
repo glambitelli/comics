@@ -437,8 +437,10 @@ body.is-touch .scene-scroll{padding-bottom:calc(110px + var(--safe-bot))}
   background:rgba(200,152,48,.28);color:#fff;font-size:22px;font-weight:800;
   text-shadow:0 1px 4px rgba(0,0,0,.4);
 }
+/* Senza la barra di ricerca accanto, il nome della cartella prende tutta la
+   riga: e' l'unica cosa che quella barra ha da dire. */
 .sceltarif-dove{
-  flex-shrink:0;max-width:38%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
   font-family:'Nunito',sans-serif;font-size:11px;font-weight:700;
   letter-spacing:.09em;text-transform:uppercase;color:var(--oro);opacity:.75;
 }
@@ -469,9 +471,6 @@ body.is-touch .scene-scroll{padding-bottom:calc(110px + var(--safe-bot))}
    galleria vera dell'archivio. Prima toccando una vignetta piena si riapriva
    l'archivio intero, e per rivedere le proprie tre referenze bisognava
    ricercarle una per una. */
-/* La ricerca sparisce sulla pila: li' non c'e' niente da cercare, ci sono le
-   tue. */
-#sceltarif-cerca[hidden]{display:none}
 
 /* ── COL DITO LA FRECCIA NON C'E' ──
    Vale per i tre fogli delle Scene come vale gia' per il lettore degli albi,

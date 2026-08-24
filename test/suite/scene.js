@@ -715,29 +715,6 @@ module.exports = () => suite("Scene — un riquadro per volta, cento caratteri",
     await new Promise(r=> setTimeout(r, 250));
   });
 
-  sezione('la ricerca invece taglia trasversale');
-  // Quando si cerca le cartelle spariscono: si vede tutto quello che
-  // corrisponde, ovunque stia.
-
-  await page.evaluate(()=>{
-    const c = document.getElementById('sceltarif-cerca');
-    c.value = 'mani';
-    c.dispatchEvent(new Event('input', {bubbles:true}));
-  });
-  await page.waitForTimeout(250);
-  const cercate = await page.evaluate(()=>({
-    trovate: document.querySelectorAll('#sceltarif-griglia [data-rif]').length,
-    cartelle: document.querySelectorAll('#sceltarif-griglia [data-cartella]').length,
-  }));
-  ok('trova anche fuori dalla cartella in cui si era', cercate.trovate === 3, cercate);
-  ok('e mentre si cerca le cartelle si tolgono di mezzo', cercate.cartelle === 0, cercate);
-  await page.evaluate(()=>{
-    const c = document.getElementById('sceltarif-cerca');
-    c.value = '';
-    c.dispatchEvent(new Event('input', {bubbles:true}));
-  });
-  await page.waitForTimeout(250);
-
   sezione('e se ne collega piu\' di uno: una pila, non uno solo');
   // Un'inquadratura si costruisce guardando piu' cose insieme — la posa da una
   // parte, la luce da un'altra, l'ambiente da una terza — e tenerne una sola
@@ -876,8 +853,6 @@ module.exports = () => suite("Scene — un riquadro per volta, cento caratteri",
       quota: mini.length ? +(mini[0].getBoundingClientRect().width / foglio.width).toFixed(2) : 0,
       sullaStessaRiga: mini.length > 1 &&
         Math.abs(mini[0].getBoundingClientRect().top - mini[1].getBoundingClientRect().top) < 3,
-      // La ricerca sparisce: qui non c'e' niente da cercare, ci sono le tue.
-      cerca: !document.getElementById('sceltarif-cerca').hidden,
       dove: (document.getElementById('sceltarif-dove')||{}).textContent,
       aggiungi: !!g.querySelector('[data-archivio]'),
       // Nessuna ✕ appiccicata all'angolo di ognuna: si sceglie tenendo premuto,
@@ -890,7 +865,6 @@ module.exports = () => suite("Scene — un riquadro per volta, cento caratteri",
   ok('senza una riga di catalogo', laPila.cartelle === 0 && laPila.tessere === 0, laPila);
   ok('sono miniature, non immagini a tutta pagina', laPila.quota < 0.35, laPila);
   ok('e stanno affiancate, non una per schermata', laPila.sullaStessaRiga, laPila);
-  ok('la ricerca si toglie di mezzo', !laPila.cerca, laPila);
   ok('e la barra dice cosa sono', /riferimenti/i.test(laPila.dove||''), laPila);
   ok('con il modo di aggiungerne altre', laPila.aggiungi, laPila);
   ok('senza una ✕ appiccicata su ognuna', laPila.crocette === 0, laPila);
@@ -1089,10 +1063,11 @@ module.exports = () => suite("Scene — un riquadro per volta, cento caratteri",
   const sceso = await page.evaluate(()=>({
     vista: window.scene.vistaScelta(),
     cartelle: document.querySelectorAll('#sceltarif-griglia [data-cartella]').length,
-    cerca: !document.getElementById('sceltarif-cerca').hidden,
+    // Nessuna barra di ricerca: all'archivio si arriva dalle cartelle.
+    ricerca: !!document.getElementById('sceltarif-cerca'),
   }));
   ok('si arriva alle cartelle', sceso.vista === 'cartelle' && sceso.cartelle === 2, sceso);
-  ok('e la ricerca torna', sceso.cerca, sceso);
+  ok('e non c\'e\' nessuna barra di ricerca da riempire', !sceso.ricerca, sceso);
 
   sezione('e la freccia risale un passo per volta');
   // Dentro una cartella Indietro torna all'elenco, e solo dal secondo passo
