@@ -61,3 +61,7 @@ export function getCachedProjects(){ return []; }
 export function loadUserData(){}
 export function saveUserData(){ return Promise.resolve(); }
 export function bumpDataRev(){}
+
+// La somma lato server: nel banco si annota e basta, cosi' una prova puo'
+// verificare CHE COSA si e' chiesto di sommare (vedi il contatore delle ore).
+export function increment(n){ return { __somma: n }; }

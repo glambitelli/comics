@@ -1,0 +1,226 @@
+// Il tempo al tavolo — un numero che non deve perdersi per anni
+//
+// Questa suite difende una cosa sola, e vale piu' di tutte le altre di questo
+// file: le ore accumulate NON si perdono. Sono il genere di dato che non si
+// puo' ricostruire — se sparisce un mese di sessioni, quel mese e' andato — e
+// devono sopravvivere al cambio telefono, alla mancanza di rete e a due
+// dispositivi che scrivono lo stesso giorno.
+const { suite } = require('../motore.js');
+
+module.exports = () => suite("Il tempo al tavolo — le ore non si perdono",
+  { banco: '/test/banco/tempo.html' }, async ({ page, ok, sezione }) => {
+
+  const pulisci = ()=> page.evaluate(()=>{
+    localStorage.removeItem('inkflow_tempo_acceso');
+    window.__scritture = [];
+  });
+
+  sezione('il cronometro parte, conta, e si mette in pausa');
+  await pulisci();
+  const partito = await page.evaluate(async ()=>{
+    window.tempo.avvia();
+    await new Promise(r=> setTimeout(r, 1200));
+    return {
+      acceso: window.tempo.acceso(),
+      secondi: window.tempo.secondiCorrenti(),
+      // Il cronometro acceso si scrive in tasca, e si scrive QUANDO e' partito
+      // — non quanto e' passato: e' l'unico modo perche' il tempo continui a
+      // scorrere mentre l'app e' chiusa.
+      inTasca: JSON.parse(localStorage.getItem('inkflow_tempo_acceso') || 'null'),
+    };
+  });
+  ok('parte', partito.acceso, partito);
+  ok('e conta i secondi', partito.secondi >= 1, partito);
+  ok('scrivendo in tasca QUANDO e\' partito, non quanto e\' passato',
+     !!(partito.inTasca && typeof partito.inTasca.da === 'number'), partito);
+
+  const fermo = await page.evaluate(async ()=>{
+    window.tempo.pausa();
+    const subito = window.tempo.secondiCorrenti();
+    await new Promise(r=> setTimeout(r, 900));
+    return { subito, dopo: window.tempo.secondiCorrenti(), inPausa: window.tempo.inPausa() };
+  });
+  ok('in pausa il tempo si ferma davvero', fermo.inPausa && fermo.dopo === fermo.subito, fermo);
+
+  const ripreso = await page.evaluate(async ()=>{
+    window.tempo.riprendi();
+    const prima = window.tempo.secondiCorrenti();
+    await new Promise(r=> setTimeout(r, 1200));
+    return { prima, dopo: window.tempo.secondiCorrenti() };
+  });
+  ok('e riprendendo riparte da dov\'era, senza perdere niente',
+     ripreso.dopo > ripreso.prima && ripreso.prima >= 1, ripreso);
+
+  sezione('e chiudendo l\'app il tempo continua a scorrere');
+  // Il caso vero: si avvia il cronometro, si mette via il telefono e si disegna
+  // per un'ora. L'app non e' aperta, nessun intervallo sta girando — eppure
+  // quell'ora deve esserci.
+  const ripresa = await page.evaluate(async ()=>{
+    // Si finge una sessione partita quaranta minuti fa e mai chiusa.
+    const quaranta = Date.now() - 40*60*1000;
+    localStorage.setItem('inkflow_tempo_acceso', JSON.stringify({ da: quaranta, accumulato: 0, inPausa: false }));
+    window.tempo.riprendiSessione();
+    return { acceso: window.tempo.acceso(), minuti: Math.round(window.tempo.secondiCorrenti()/60) };
+  });
+  ok('riaprendo l\'app la sessione riparte da sola', ripresa.acceso, ripresa);
+  ok('coi minuti passati nel frattempo', ripresa.minuti === 40, ripresa);
+
+  sezione('la sessione dimenticata non regala una notte di disegno');
+  // Il cronometro acceso e lasciato li' fino al mattino: senza un tetto il
+  // totale diventerebbe una bugia che non si puo' piu' togliere, perche' nessuno
+  // sa quale pezzo buttare via.
+  const notte = await page.evaluate(async ()=>{
+    window.__scritture = [];
+    const ieri = Date.now() - 14*3600*1000;
+    localStorage.setItem('inkflow_tempo_acceso', JSON.stringify({ da: ieri, accumulato: 0, inPausa: false }));
+    window.tempo.riprendiSessione();
+    await new Promise(r=> setTimeout(r, 400));
+    const w = (window.__scritture||[]).filter(x=> x.col === 'sessioni').pop();
+    return {
+      acceso: window.tempo.acceso(),
+      segnati: w && w.data && w.data.secondi && w.data.secondi.__somma,
+      inTasca: localStorage.getItem('inkflow_tempo_acceso'),
+    };
+  });
+  ok('si chiude da sola', !notte.acceso, notte);
+  ok('e segna otto ore, non quattordici', notte.segnati === 8*3600, notte);
+  ok('senza lasciare il cronometro acceso in tasca', notte.inTasca === null, notte);
+
+  sezione('fermando, il tempo va in archivio — SOMMATO, non sovrascritto');
+  // E' il cuore di tutto. Ogni altra cosa nell'app scrive documenti interi e
+  // chi scrive per ultimo vince: per un titolo va bene, per un contatore no.
+  // Due telefoni che aggiungono mezz'ora ciascuno, scrivendo il totale, ne
+  // perderebbero una — e sarebbe tempo davvero passato a disegnare, sparito.
+  const messo = await page.evaluate(async ()=>{
+    window.__scritture = [];
+    localStorage.setItem('inkflow_tempo_acceso', JSON.stringify({
+      da: Date.now() - 25*60*1000, accumulato: 0, inPausa: false }));
+    window.tempo.riprendiSessione();
+    const secondi = await window.tempo.ferma();
+    const w = (window.__scritture||[]).filter(x=> x.col === 'sessioni').pop();
+    const oggi = window.tempo.giornoDi(Date.now());
+    return {
+      secondi,
+      collezione: w && w.col,
+      // Il documento e' IL GIORNO: una riga al giorno, non una per sessione.
+      // Trecentosessantacinque righe l'anno, e il totale e' la loro somma.
+      documento: w && w.id,
+      oggi,
+      // E il valore non e' un numero: e' una richiesta di somma.
+      somma: w && w.data && w.data.secondi && w.data.secondi.__somma,
+      sessioni: w && w.data && w.data.sessioni && w.data.sessioni.__somma,
+      numeroSecco: w && typeof (w.data||{}).secondi === 'number',
+    };
+  });
+  ok('la sessione dura quello che deve', messo.secondi === 1500, messo);
+  ok('si scrive nella collezione "sessioni"', messo.collezione === 'sessioni', messo);
+  ok('un documento per GIORNO', messo.documento === messo.oggi, messo);
+  ok('e il tempo si SOMMA a quello che c\'era', messo.somma === 1500, messo);
+  ok('non si scrive un totale che sovrascrive', !messo.numeroSecco, messo);
+  ok('e si conta anche quante sessioni', messo.sessioni === 1, messo);
+
+  sezione('un tocco per sbaglio non sporca lo storico');
+  const brevissima = await page.evaluate(async ()=>{
+    window.__scritture = [];
+    window.tempo.avvia();
+    await new Promise(r=> setTimeout(r, 300));
+    const secondi = await window.tempo.ferma();
+    return { secondi, scritte: (window.__scritture||[]).filter(x=> x.col === 'sessioni').length };
+  });
+  ok('sotto il minuto non si registra niente',
+     brevissima.secondi === 0 && brevissima.scritte === 0, brevissima);
+
+  sezione('i totali sanno leggersi: settimana, mese, sempre');
+  const conti = await page.evaluate(()=>{
+    const g = window.tempo.giornoDi;
+    const oggi = new Date();
+    const meno = n => { const d = new Date(oggi); d.setDate(d.getDate()-n); return d; };
+    // Si semina a mano la mappa dei giorni, com'e' quando arriva da Firestore.
+    const dentro = new Map();
+    dentro.set(g(oggi.getTime()), 3600);           // un'ora oggi
+    dentro.set(g(meno(400).getTime()), 7200);      // due ore l'anno scorso
+    window.tempo.__seminaGiorni(dentro);
+    return {
+      settimana: window.tempo.secondiSettimana(),
+      totale: window.tempo.secondiTotali(),
+      // Il lunedi' e' il primo giorno: la settimana di chi lavora comincia li'.
+      primoGiorno: window.tempo.inizioSettimana(new Date('2026-08-27T12:00:00')).getDay(),
+    };
+  });
+  ok('la settimana conta solo i suoi giorni', conti.settimana === 3600, conti);
+  ok('il totale li conta tutti', conti.totale === 10800, conti);
+  ok('e la settimana comincia di lunedi\'', conti.primoGiorno === 1, conti);
+
+  sezione('e i tempi si scrivono come si leggono');
+  const scritture = await page.evaluate(()=>({
+    breve45: window.tempo.scriviBreve(45*60),
+    breve90: window.tempo.scriviBreve(90*60),
+    breve120: window.tempo.scriviBreve(120*60),
+    grandeMin: window.tempo.scriviGrande(40*60),
+    grandePoche: window.tempo.scriviGrande(3.5*3600),
+    grandeTante: window.tempo.scriviGrande(312.4*3600),
+    corsaMin: window.tempo.scriviCorsa(65),
+    corsaOre: window.tempo.scriviCorsa(3725),
+  }));
+  ok('sotto l\'ora si dicono i minuti', scritture.breve45 === '45 min', scritture);
+  ok('sopra, le ore e i minuti', scritture.breve90 === '1h 30', scritture);
+  ok('e le ore tonde restano tonde', scritture.breve120 === '2h', scritture);
+  ok('il numero grande sotto l\'ora sono minuti',
+     scritture.grandeMin.n === 40 && scritture.grandeMin.u === 'min', scritture);
+  ok('poche ore hanno il decimale', scritture.grandePoche.n === '3,5', scritture);
+  // Trecentododici ore e ventiquattro minuti si dicono "312 ore": il decimale,
+  // a quel punto, e' una precisione che non interessa a nessuno.
+  ok('tante ore no', scritture.grandeTante.n === '312', scritture);
+  ok('il cronometro acceso si legge come un cronometro',
+     scritture.corsaMin === '01:05' && scritture.corsaOre === '1:02:05', scritture);
+
+  sezione('e la scheda in Statistiche mette la settimana davanti');
+  // Il totale dice chi sei diventato e lo dice una volta sola; la settimana
+  // dice come stai andando adesso, ed e' l'unica delle due che cambia tornando
+  // qui domani. Ma il totale resta in vista, perche' e' il numero che non
+  // scende mai e sta li' per le settimane storte.
+  const scheda = await page.evaluate(async ()=>{
+    const g = window.tempo.giornoDi;
+    const oggi = new Date();
+    const meno = n => { const d = new Date(oggi); d.setDate(d.getDate()-n); return d; };
+    const dentro = new Map();
+    dentro.set(g(oggi.getTime()), 2*3600);
+    dentro.set(g(meno(300).getTime()), 100*3600);
+    window.tempo.__seminaGiorni(dentro);
+    const st = await import('/js/stats.js');
+    st.renderStats();
+    await new Promise(r=> setTimeout(r, 400));
+    const box = document.getElementById('stats-tempo');
+    return {
+      grande: (box.querySelector('.tempo-grande b')||{}).textContent,
+      sotto: (box.querySelector('.tempo-sotto-grande')||{}).textContent,
+      righe: Array.from(box.querySelectorAll('.tempo-righe span')).map(x=> x.textContent),
+      totale: Array.from(box.querySelectorAll('.tempo-righe b')).map(x=> x.textContent),
+      // Nessun obiettivo, nessuna percentuale, nessuna barra verso le diecimila
+      // ore: dopo un mese saresti allo 0,3% e il grafico direbbe "non hai fatto
+      // niente", che e' falso.
+      barre: box.querySelectorAll('progress, .barra, [role="progressbar"]').length,
+      percentuali: /%/.test(box.textContent),
+      obiettivo: /obiettiv|mancano|traguard/i.test(box.textContent),
+    };
+  });
+  ok('il numero grande e\' la settimana', scheda.grande === '2', scheda);
+  ok('e lo dice', /settimana/i.test(scheda.sotto||''), scheda);
+  ok('il totale di sempre resta in vista, in piccolo',
+     scheda.righe.some(x=> /da sempre/i.test(x)) && scheda.totale.includes('102h'), scheda);
+  ok('nessuna barra di completamento', scheda.barre === 0, scheda);
+  ok('nessuna percentuale', !scheda.percentuali, scheda);
+  ok('e nessun obiettivo da mancare', !scheda.obiettivo, scheda);
+
+  sezione('e a zero non ti rimprovera');
+  const vuota = await page.evaluate(async ()=>{
+    window.tempo.__seminaGiorni(new Map());
+    const st = await import('/js/stats.js');
+    st.renderStats();
+    await new Promise(r=> setTimeout(r, 300));
+    const box = document.getElementById('stats-tempo');
+    return { zeri: /\b0\b/.test(box.textContent), testo: box.textContent.trim() };
+  });
+  ok('non scrive "0 ore" tre volte', !vuota.zeri, vuota);
+  ok('dice invece dove sta il cronometro', /home/i.test(vuota.testo), vuota);
+});

@@ -184,12 +184,57 @@ export function renderStats(){
       <div class="stat-cell"><div class="stat-big">${streak}</div><div class="stat-lbl">streak</div></div>`;
   }
 
+  renderTempo();
   renderHeatmap();
   renderMonthlyStars();
   renderStageDonut();
   renderWeekdayChart();
   renderTrophyCase();
   renderProjectBadges();
+}
+
+// ── IL TEMPO AL TAVOLO ──────────────────────────────────────────────────────
+// IL NUMERO GRANDE E' LA SETTIMANA, non il totale di sempre. Il totale dice chi
+// sei diventato e lo dice una volta sola; la settimana dice come stai andando
+// adesso, ed e' l'unica delle due che cambia tornando qui domani. Il totale
+// resta sotto, in piccolo: e' il numero che non scende mai, e sta li' per le
+// settimane storte.
+//
+// Non c'e' nessun obiettivo, nessuna percentuale e nessuna barra verso le
+// diecimila ore: dopo un mese saresti allo 0,3% e il grafico direbbe "non hai
+// fatto niente", che e' falso. Le soglie stanno fra i trofei, dove sono
+// celebrazioni e non scadenze.
+let _tempoMod = null;
+function renderTempo(){
+  const box = document.getElementById('stats-tempo');
+  if(!box) return;
+  import('./tempo.js').then(m=>{
+    _tempoMod = m;
+    m.ascoltaSessioni(()=> disegnaTempoScheda(m));
+    disegnaTempoScheda(m);
+  }).catch(()=>{});
+}
+function disegnaTempoScheda(m){
+  const box = document.getElementById('stats-tempo');
+  if(!box) return;
+  const sett = m.secondiSettimana();
+  const grande = m.scriviGrande(sett);
+  const totale = m.secondiTotali();
+  const mese = m.secondiMese();
+  // A zero non si scrive "0 ore": si dice cosa fare. Un contatore a zero con
+  // sotto due righe di numeri a zero e' una schermata che rimprovera.
+  if(!totale){
+    box.innerHTML = `<div class="stats-card-label">Tempo al tavolo</div>
+      <p class="tempo-vuoto">Il cronometro sta in cima alla home. Da quando lo avvii, le ore si accumulano qui — e non scendono piu'.</p>`;
+    return;
+  }
+  box.innerHTML = `<div class="stats-card-label">Tempo al tavolo</div>
+    <div class="tempo-grande"><b>${esc(grande.n)}</b><span>${esc(grande.u)}</span></div>
+    <div class="tempo-sotto-grande">questa settimana</div>
+    <div class="tempo-righe">
+      <div><b>${esc(m.scriviBreve(mese))}</b><span>questo mese</span></div>
+      <div><b>${esc(m.scriviBreve(totale))}</b><span>da sempre</span></div>
+    </div>`;
 }
 
 // ── DONUT: tavole per stadio (tutti i progetti) ──

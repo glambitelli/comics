@@ -27,6 +27,12 @@ const COLLEZIONI = [
   { nome:'refFolders', etichetta:'cartelle' },
   { nome:'refAlbums',  etichetta:'albi' },
   { nome:'ideas',      etichetta:'idee' },
+  // Le scene erano rimaste fuori: l'archivio esportato non le conteneva, e chi
+  // avesse ripreso da un backup se le sarebbe ritrovate sparite.
+  { nome:'scene',      etichetta:'scene' },
+  // Il tempo al tavolo. E' la collezione che deve durare piu' di tutte — un
+  // numero che si accumula per anni — quindi in un backup ci sta per forza.
+  { nome:'sessioni',   etichetta:'tempo al tavolo' },
   { nome:'userdata',   etichetta:'stelle e streak' },
 ];
 // Le impostazioni e i contatori che vivono solo su questo telefono.

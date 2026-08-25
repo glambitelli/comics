@@ -30,6 +30,7 @@
 <link rel="stylesheet" href="css/settings.css">
 <link rel="stylesheet" href="css/idee.css">
 <link rel="stylesheet" href="css/scene.css">
+<link rel="stylesheet" href="css/tempo.css">
 <link rel="stylesheet" href="css/modals.css">
 <link rel="stylesheet" href="css/stats.css" media="print" onload="this.media='all'">
 <link rel="stylesheet" href="css/scriptment.css" media="print" onload="this.media='all'">
@@ -122,6 +123,18 @@
   <div class="home-scroll" id="home-scroll">
     <!-- Citazione del giorno — in alto, centrata -->
     <div id="home-quote" style="text-align:center;padding:6px 8px 2px"></div>
+    <!-- IL CRONOMETRO SI AVVIA DA QUI, e non da una sezione tutta sua. La barra
+         in fondo ha cinque tondi con la casa al centro — dispari apposta — e
+         una sesta sezione sarebbe un posto in piu' da guardare per una cosa che
+         e' due tocchi in croce: parti, fermi. La home invece e' la prima cosa
+         che si vede sedendosi a disegnare.
+         Mentre gira, il tempo si vede anche da tutte le altre schermate, in una
+         capsula sopra la barra (vedi #tempo-capsula): cosi' si puo' stare in
+         References o nelle Scene mentre conta. -->
+    <button class="tempo-avvia" id="tempo-avvia" onclick="window.tempoTocca()" type="button">
+      <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><circle cx="12" cy="13" r="8" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 9v4.2l2.6 1.6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M9.5 2.6h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      <span id="tempo-avvia-testo">Comincio a disegnare</span>
+    </button>
     <div style="height:1px;background:var(--sand2);margin:14px 4px 18px"></div>
     <!-- Attaccata alla lista che filtra, sotto la citazione: compare da sola
          quando i progetti sono tanti (vedi SOGLIA_CERCA in home.js). -->
@@ -753,6 +766,12 @@
     <div class="section-sub">stats</div>
   </div>
   <div class="stats-scroll">
+    <!-- IL TEMPO STA IN CIMA, prima di tutto il resto. Le altre misure di
+         questa schermata dicono quanto lavoro e' USCITO — tavole finite,
+         progetti, serate; questa dice quanto ne hai messo dentro, ed e' l'unica
+         che non dipende da come e' andata. Una settimana senza una tavola
+         finita puo' essere stata una settimana piena. -->
+    <div class="stats-card tempo-scheda" id="stats-tempo"></div>
     <!-- Numeri -->
     <div id="stats-numbers" class="stats-numbers"></div>
     <!-- Heatmap -->
@@ -1110,6 +1129,19 @@
      Vive fuori dalle schermate perche' deve stare sopra a entrambe mentre si
      scambiano di posto. Vedi transizioneNotte in main.js. -->
 <div id="velo-notte" class="velo-notte" aria-hidden="true"></div>
+
+<!-- IL CRONOMETRO ACCESO, sopra la barra in fondo. Si vede da qualunque
+     schermata: si comincia a disegnare, si va in References a cercare una posa,
+     e il tempo continua a scorrere sotto gli occhi. Toccandola si mette in
+     pausa; tenendola premuta si ferma e si mette in archivio. -->
+<div class="tempo-capsula" id="tempo-capsula" hidden>
+  <span class="tempo-punto" id="tempo-punto" aria-hidden="true"></span>
+  <span class="tempo-corsa" id="tempo-corsa">00:00</span>
+  <button class="tempo-btn" id="tempo-pausa" onclick="window.tempoPausa()" type="button" aria-label="Pausa"></button>
+  <button class="tempo-btn tempo-stop" id="tempo-stop" onclick="window.tempoFerma()" type="button" aria-label="Fine">
+    <svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true"><rect x="7" y="7" width="10" height="10" rx="1.6" fill="currentColor"/></svg>
+  </button>
+</div>
 
 <!-- BARRA-DUNA MOBILE (solo touch) -->
 <nav class="dune-nav" id="dune-nav" aria-label="Navigazione">

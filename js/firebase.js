@@ -1,7 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { loadJSON } from './state.js';
 import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager,
-         collection, doc, onSnapshot, setDoc, deleteDoc, serverTimestamp, getDocs }
+         collection, doc, onSnapshot, setDoc, deleteDoc, serverTimestamp, getDocs, increment }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -37,7 +37,14 @@ const USER_DOC = 'inkflow_user_data';
 // di restare in ascolto come onSnapshot. Cosi' l'esportazione non dipende da
 // quali schermate sono state aperte in questa sessione — legge tutto comunque,
 // anche le parti dell'archivio che oggi non hai ancora guardato.
-export { collection, doc, onSnapshot, deleteDoc, setDoc, serverTimestamp, getDocs };
+// `increment` SOMMA LATO SERVER, e per il contatore delle ore e' l'unica cosa
+// che va bene. Tutto il resto dell'app scrive documenti interi: chi scrive per
+// ultimo vince, e va benissimo per un titolo o per una lista di beat. Per un
+// numero che si ACCUMULA no — due telefoni che aggiungono mezz'ora ciascuno,
+// scrivendo il totale, ne perderebbero una: e sarebbe tempo davvero passato a
+// disegnare, sparito. Con increment i due mezzi si sommano e basta, e il conto
+// non puo' sbagliare nemmeno offline (si sincronizza dopo, sommandosi).
+export { collection, doc, onSnapshot, deleteDoc, setDoc, serverTimestamp, getDocs, increment };
 
 // ── CACHE LOCALE PROGETTI — per avvio istantaneo ──
 export function cacheProjects(projs){

@@ -1,0 +1,225 @@
+// ── IL TEMPO CHE PASSI A DISEGNARE ──────────────────────────────────────────
+//
+// COSA MISURA, e cosa non misura. Misura il tempo in cui il cronometro e'
+// acceso, non il tempo in cui la matita si muove: ci sono dentro le pause per
+// il caffe', il telefono guardato, i dieci minuti a fissare il foglio. E va
+// bene cosi' — sono ore passate al tavolo, e su mesi la stima e' onesta.
+// Quello che conta e' che sia UN NUMERO CHE NON SCENDE MAI: non e' una
+// prestazione da difendere, e' un investimento che si accumula.
+//
+// COME SI CONSERVA PER SEMPRE, che e' la parte delicata.
+//
+// Non come un numero solo. Tutto il resto dell'app scrive documenti interi e
+// chi scrive per ultimo vince — perfetto per un titolo, sbagliato per un
+// contatore: due telefoni che aggiungono mezz'ora ciascuno, scrivendo il
+// totale, ne perderebbero una. E sarebbe tempo davvero passato a disegnare,
+// sparito senza che nessuno se ne accorga.
+//
+// Quindi: UNA RIGA AL GIORNO, e la si aggiorna sommando lato server
+// (increment). Nessuna sovrascrittura possibile, il totale e' la somma delle
+// righe. Sono trecentosessantacinque righe l'anno da poche decine di byte: in
+// dieci anni tremilaseicento documenti, cioe' niente. Sopravvivono al cambio
+// telefono, funzionano senza rete e si sincronizzano al ritorno.
+import { db, collection, doc, onSnapshot, setDoc, increment, serverTimestamp } from './firebase.js';
+import { haptic } from './state.js';
+
+const SESSIONI = 'sessioni';
+// Dove sta il cronometro acceso mentre l'app e' chiusa. Si salva QUANDO e'
+// partito, non quanto e' passato: cosi' il tempo continua a scorrere anche se
+// il telefono si spegne, e riaprendo l'app il conto e' giusto.
+const ACCESO = 'inkflow_tempo_acceso';
+
+// IL TETTO DELLA SESSIONE DIMENTICATA. Il cronometro lasciato acceso una notte
+// regalerebbe otto ore mai fatte, e da li' in poi il totale sarebbe una bugia
+// che non si puo' piu' togliere. Oltre questa soglia la sessione si chiude da
+// sola al valore del tetto: e' il massimo che si puo' credere.
+const TETTO = 8 * 3600;
+
+let _stato = null;      // { da, accumulato, inPausa } — da = istante di avvio
+let _tic = null;
+let _alTic = null;      // chi vuole essere avvisato ad ogni secondo
+let _giorni = new Map(); // 'AAAA-MM-GG' → secondi
+let _unsub = null;
+
+function leggi(){
+  try{ return JSON.parse(localStorage.getItem(ACCESO) || 'null'); }catch(e){ return null; }
+}
+function scrivi(s){
+  try{
+    if(s) localStorage.setItem(ACCESO, JSON.stringify(s));
+    else localStorage.removeItem(ACCESO);
+  }catch(e){}
+}
+
+export function giornoDi(ms){
+  const d = new Date(ms);
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+// Quanti secondi ha in pancia la sessione in corso, adesso.
+export function secondiCorrenti(){
+  if(!_stato) return 0;
+  const vivi = _stato.inPausa ? 0 : Math.floor((Date.now() - _stato.da) / 1000);
+  return Math.max(0, _stato.accumulato + vivi);
+}
+
+export function acceso(){ return !!_stato; }
+export function inPausa(){ return !!(_stato && _stato.inPausa); }
+
+// ── AVVIO, PAUSA, FINE ──────────────────────────────────────────────────────
+export function avvia(){
+  if(_stato) return;
+  _stato = { da: Date.now(), accumulato: 0, inPausa: false };
+  scrivi(_stato);
+  haptic('done');
+  batti();
+  return _stato;
+}
+
+export function pausa(){
+  if(!_stato || _stato.inPausa) return;
+  _stato.accumulato = secondiCorrenti();
+  _stato.inPausa = true;
+  _stato.da = Date.now();
+  scrivi(_stato);
+  haptic('tap');
+  avvisa();
+}
+
+export function riprendi(){
+  if(!_stato || !_stato.inPausa) return;
+  _stato.da = Date.now();
+  _stato.inPausa = false;
+  scrivi(_stato);
+  haptic('tap');
+  batti();
+}
+
+// Chiude la sessione e la mette in archivio. Torna i secondi registrati.
+export async function ferma(){
+  if(!_stato) return 0;
+  const secondi = Math.min(secondiCorrenti(), TETTO);
+  const giorno = giornoDi(_stato.da);
+  _stato = null;
+  scrivi(null);
+  clearInterval(_tic); _tic = null;
+  haptic('done');
+  avvisa();
+  // Meno di un minuto non e' una sessione: e' un tocco per sbaglio, e
+  // scriverlo vorrebbe dire sporcare lo storico con righe da tre secondi.
+  if(secondi < 60) return 0;
+  // Si conta subito anche in casa, senza aspettare il giro da Firestore: i
+  // numeri a schermo devono muoversi nel momento in cui si ferma il cronometro.
+  _giorni.set(giorno, (_giorni.get(giorno) || 0) + secondi);
+  try{
+    await setDoc(doc(db, SESSIONI, giorno), {
+      secondi: increment(secondi),
+      sessioni: increment(1),
+      ultimaIl: serverTimestamp(),
+    }, { merge: true });
+  }catch(e){ console.warn('salvataggio del tempo fallito:', e); }
+  return secondi;
+}
+
+// ── IL BATTITO ──────────────────────────────────────────────────────────────
+// Un colpo al secondo, e solo mentre il cronometro e' acceso e non in pausa:
+// un intervallo che gira a vuoto in sottofondo per ore e' batteria buttata.
+function batti(){
+  clearInterval(_tic);
+  avvisa();
+  _tic = setInterval(()=>{
+    // Il tetto scatta anche mentre si guarda: se l'app resta aperta tutta la
+    // notte, alle otto ore si chiude da sola invece di continuare a contare.
+    if(secondiCorrenti() >= TETTO){ ferma(); return; }
+    avvisa();
+  }, 1000);
+}
+function avvisa(){ if(_alTic) try{ _alTic(); }catch(e){} }
+export function alSecondo(fn){ _alTic = fn; avvisa(); }
+
+// Riprende il cronometro lasciato acceso alla chiusura dell'app. Se nel
+// frattempo ha superato il tetto, si chiude subito col tetto: e' quello che
+// sarebbe successo restando aperti.
+export function riprendiSessione(){
+  const s = leggi();
+  if(!s || typeof s.da !== 'number') return;
+  _stato = s;
+  if(secondiCorrenti() >= TETTO){ ferma(); return; }
+  if(!s.inPausa) batti(); else avvisa();
+}
+
+// ── I NUMERI ────────────────────────────────────────────────────────────────
+// L'ascolto si accende quando servono davvero i numeri (le Statistiche, o la
+// capsula che li mostra): non c'e' motivo di tenere aperta una connessione per
+// dei totali che nessuno sta guardando.
+export function ascoltaSessioni(alCambio){
+  if(_unsub){ if(alCambio) alCambio(); return; }
+  _unsub = onSnapshot(collection(db, SESSIONI), snap=>{
+    _giorni = new Map();
+    snap.docs.forEach(d=>{
+      const n = (d.data() || {}).secondi;
+      if(typeof n === 'number' && n > 0) _giorni.set(d.id, n);
+    });
+    if(alCambio) alCambio();
+  }, err=> console.warn('listener sessioni:', err));
+}
+
+export function secondiPerGiorno(){ return _giorni; }
+// Solo per le prove: mette in mano al modulo la mappa dei giorni che
+// normalmente arriva da Firestore, senza dover fingere un listener.
+export function __seminaGiorni(m){ _giorni = m; }
+
+export function secondiTotali(){
+  let t = 0;
+  for(const n of _giorni.values()) t += n;
+  return t;
+}
+
+// Il lunedi' e' il primo giorno: la settimana di chi lavora comincia li', non
+// di domenica.
+export function inizioSettimana(ora = new Date()){
+  const d = new Date(ora);
+  d.setHours(0,0,0,0);
+  const giorno = (d.getDay() + 6) % 7;
+  d.setDate(d.getDate() - giorno);
+  return d;
+}
+
+export function secondiSettimana(){
+  const da = inizioSettimana().getTime();
+  let t = 0;
+  for(const [g, n] of _giorni) if(new Date(g + 'T00:00:00').getTime() >= da) t += n;
+  return t;
+}
+
+export function secondiMese(){
+  const ora = new Date();
+  const pre = ora.getFullYear() + '-' + String(ora.getMonth()+1).padStart(2,'0');
+  let t = 0;
+  for(const [g, n] of _giorni) if(g.startsWith(pre)) t += n;
+  return t;
+}
+
+// ── COME SI SCRIVE UN TEMPO ─────────────────────────────────────────────────
+// Sotto l'ora si dicono i minuti, sopra si dicono le ore con un decimale: "47
+// min", "1h 20", "312 ore". Dire "312h 47min" di totale e' una precisione che
+// non interessa a nessuno e che rende il numero piu' difficile da leggere.
+export function scriviBreve(secondi){
+  const min = Math.floor(secondi / 60);
+  if(min < 60) return min + ' min';
+  const ore = Math.floor(min / 60), resto = min % 60;
+  return resto ? ore + 'h ' + String(resto).padStart(2,'0') : ore + 'h';
+}
+export function scriviGrande(secondi){
+  const ore = secondi / 3600;
+  if(ore < 1) return { n: Math.floor(secondi/60), u: 'min' };
+  if(ore < 10) return { n: (Math.round(ore*10)/10).toString().replace('.', ','), u: 'ore' };
+  return { n: Math.round(ore).toString(), u: 'ore' };
+}
+// Il cronometro acceso si legge come un cronometro: mm:ss finche' ci sta,
+// h:mm:ss quando passa l'ora.
+export function scriviCorsa(secondi){
+  const h = Math.floor(secondi/3600), m = Math.floor((secondi%3600)/60), s = secondi%60;
+  const due = n => String(n).padStart(2,'0');
+  return h ? h + ':' + due(m) + ':' + due(s) : due(m) + ':' + due(s);
+}

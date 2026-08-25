@@ -623,6 +623,68 @@ window.goHomeFromLogo = goHomeAlways;
 // cronologia — che e' la strada di tutte le chiusure dell'app, e salva — e solo
 // a foglio chiuso si parte. Si aspetta il popstate invece di contare i
 // millisecondi: e' l'unico momento in cui si sa che la chiusura e' avvenuta.
+// ── IL CRONOMETRO ──
+// Il modulo si carica al primo tocco, come tutto il resto — ma se una sessione
+// era rimasta accesa alla chiusura dell'app va ripresa SUBITO, se no il tempo
+// continua a scorrere e nessuno lo vede. Si guarda in tasca senza caricare
+// niente: basta sapere se c'e' qualcosa da riprendere.
+function tempoDaRiprendere(){
+  try{ return !!localStorage.getItem('inkflow_tempo_acceso'); }catch(e){ return false; }
+}
+let _tempoMod = null;
+async function tempo(){
+  if(!_tempoMod) _tempoMod = await import('./tempo.js');
+  return _tempoMod;
+}
+// Ridisegna il comando sulla home e la capsula. Un posto solo: sono la stessa
+// informazione detta in due punti, e due funzioni che la scrivono si
+// disallineano al primo cambiamento.
+function disegnaTempo(){
+  const m = _tempoMod;
+  const avvia = document.getElementById('tempo-avvia');
+  const testo = document.getElementById('tempo-avvia-testo');
+  const caps = document.getElementById('tempo-capsula');
+  if(!avvia || !caps) return;
+  const corre = !!(m && m.acceso());
+  avvia.classList.toggle('corre', corre);
+  if(testo) testo.textContent = corre
+    ? (m.inPausa() ? 'In pausa — riprendi' : 'Sto disegnando')
+    : 'Comincio a disegnare';
+  caps.hidden = !corre;
+  caps.classList.toggle('ferma', !!(m && m.inPausa()));
+  const corsa = document.getElementById('tempo-corsa');
+  if(corsa && m) corsa.textContent = m.scriviCorsa(m.secondiCorrenti());
+}
+window.tempoTocca = async ()=>{
+  const m = await tempo();
+  m.alSecondo(disegnaTempo);
+  if(!m.acceso()) m.avvia();
+  else if(m.inPausa()) m.riprendi();
+  else m.pausa();
+  disegnaTempo();
+};
+window.tempoPausa = async ()=>{
+  const m = await tempo();
+  if(m.inPausa()) m.riprendi(); else m.pausa();
+  disegnaTempo();
+};
+window.tempoFerma = async ()=>{
+  const m = await tempo();
+  const secondi = await m.ferma();
+  disegnaTempo();
+  if(secondi >= 60){
+    const s = document.getElementById('tempo-avvia-testo');
+    if(s){
+      s.textContent = m.scriviBreve(secondi) + ' — segnati';
+      setTimeout(disegnaTempo, 3000);
+    }
+  }
+};
+// Una sessione lasciata accesa riprende da sola all'avvio dell'app.
+if(tempoDaRiprendere()){
+  tempo().then(m=>{ m.alSecondo(disegnaTempo); m.riprendiSessione(); disegnaTempo(); });
+}
+
 window.dallaScenaAllaHome = ()=>{
   const foglio = document.getElementById('scena');
   if(foglio && foglio.classList.contains('open') && history.state && history.state.view === 'scena'){

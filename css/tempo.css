@@ -1,0 +1,121 @@
+/* ── IL TEMPO CHE PASSI A DISEGNARE ─────────────────────────────────────────
+   Due pezzi: il comando che avvia, in cima alla home, e la capsula che resta
+   visibile mentre il cronometro gira. */
+
+/* IL COMANDO. Largo quanto la schermata e sotto la citazione del giorno: e' la
+   prima cosa che si tocca sedendosi al tavolo, e un bersaglio grande vale piu'
+   di un bottone elegante in un angolo. Tratteggiato da spento — come "Nuova
+   scena" e come la card fantasma: e' un invito a cominciare qualcosa. */
+.tempo-avvia{
+  width:100%;display:flex;align-items:center;justify-content:center;gap:9px;
+  background:rgba(255,255,255,.7);border:1.5px dashed var(--sand3);border-radius:14px;
+  padding:13px;margin:14px 0 4px;cursor:pointer;color:var(--ink2);
+  font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;
+  transition:border-color .18s,color .18s,transform .1s,background .18s;
+}
+.tempo-avvia:active{transform:scale(.985)}
+/* Acceso: pieno, non piu' un invito ma una cosa in corso. */
+.tempo-avvia.corre{
+  background:linear-gradient(135deg,#2a2018,#1a1410);border-style:solid;
+  border-color:transparent;color:var(--oro);
+  box-shadow:0 3px 12px rgba(26,20,16,.25);
+}
+
+/* LA CAPSULA. Sopra la barra-duna, centrata, degli stessi materiali: vetro
+   ambrato e filo d'oro. Sta a 9000 — sotto i fogli e i modali, sopra le
+   schermate: mentre si sceglie un riferimento o si legge un albo il cronometro
+   non deve mettersi in mezzo, ma navigando fra le schermate si', perche' e'
+   l'unico posto da cui si ferma. */
+.tempo-capsula{
+  position:fixed;left:50%;transform:translateX(-50%);
+  bottom:calc(96px + var(--safe-bottom,0px));z-index:9000;
+  display:flex;align-items:center;gap:9px;
+  padding:7px 8px 7px 13px;border-radius:999px;
+  background:rgba(30,22,10,.72);border:1px solid rgba(232,200,120,.24);
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  box-shadow:0 6px 22px rgba(0,0,0,.3);
+}
+.tempo-capsula[hidden]{display:none}
+/* Col mouse la barra-duna non c'e': la capsula scende dove ci sarebbe. */
+body:not(.is-touch) .tempo-capsula{bottom:calc(20px + var(--safe-bottom,0px))}
+/* Dentro un foglio a tutto schermo — una scena, un albo, un riferimento — la
+   capsula si toglie: li' si sta guardando una cosa sola, e il cronometro
+   continua a contare anche senza farsi vedere. */
+body.scena-open .tempo-capsula{display:none}
+
+/* Il punto che pulsa: dice che sta contando senza scrivere "in corso". Da
+   fermo — in pausa — smette di pulsare e si spegne, che e' la stessa
+   informazione detta togliendo invece che aggiungendo. */
+.tempo-punto{
+  width:8px;height:8px;border-radius:50%;background:var(--gold);
+  box-shadow:0 0 0 0 rgba(240,192,32,.55);
+  animation:tempo-battito 2s ease-out infinite;
+}
+@keyframes tempo-battito{
+  0%{box-shadow:0 0 0 0 rgba(240,192,32,.5)}
+  70%{box-shadow:0 0 0 7px rgba(240,192,32,0)}
+  100%{box-shadow:0 0 0 0 rgba(240,192,32,0)}
+}
+.tempo-capsula.ferma .tempo-punto{background:var(--ink3);animation:none;box-shadow:none}
+
+/* Il tempo che scorre, a cifre di larghezza fissa: senza, i numeri ballano ad
+   ogni secondo e la capsula si allarga e si stringe sotto gli occhi. */
+.tempo-corsa{
+  font-family:'Nunito',sans-serif;font-size:14.5px;font-weight:800;
+  color:var(--oro);letter-spacing:.02em;font-variant-numeric:tabular-nums;
+  min-width:52px;text-align:center;
+}
+.tempo-btn{
+  width:30px;height:30px;border-radius:50%;cursor:pointer;flex-shrink:0;
+  border:1px solid rgba(232,200,120,.28);background:rgba(255,248,232,.10);
+  color:var(--oro);display:flex;align-items:center;justify-content:center;
+  transition:background .15s,transform .1s;
+}
+.tempo-btn:active{transform:scale(.9);background:rgba(255,248,232,.2)}
+/* I due glifi della pausa sono disegnati qui e non in HTML: cambiano ad ogni
+   tocco, e ricostruire il pulsante ogni volta per due rettangoli non ha senso. */
+.tempo-btn#tempo-pausa::before{
+  content:'';width:11px;height:12px;
+  border-left:3.5px solid currentColor;border-right:3.5px solid currentColor;
+}
+.tempo-capsula.ferma .tempo-btn#tempo-pausa::before{
+  width:0;height:0;border:none;
+  border-left:11px solid currentColor;
+  border-top:7px solid transparent;border-bottom:7px solid transparent;
+  margin-left:3px;
+}
+.tempo-stop{color:var(--rame);border-color:rgba(200,88,56,.4)}
+
+/* ── LA SCHEDA IN STATISTICHE ──
+   Il numero grande e' la settimana; il totale di sempre sta sotto, in piccolo.
+   Il totale dice chi sei diventato e lo dice una volta sola, la settimana dice
+   come stai andando adesso ed e' l'unica delle due che cambia tornando qui
+   domani. Ma il totale deve restare in vista: e' il numero che non scende mai,
+   e sta li' per le settimane storte. */
+.tempo-scheda{margin:0 0 16px;text-align:center}
+.tempo-grande{
+  display:flex;align-items:baseline;justify-content:center;gap:7px;margin-top:6px;
+}
+.tempo-grande b{
+  font-family:'Bitter',Georgia,serif;font-size:44px;font-weight:700;
+  color:var(--ink);line-height:1;letter-spacing:-.02em;
+}
+.tempo-grande span{
+  font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;color:var(--ink3);
+}
+.tempo-sotto-grande{
+  font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--ink3);opacity:.8;margin-top:5px;
+}
+/* Le due misure di contorno, affiancate e con una riga sottile in mezzo: sono
+   dello stesso peso l'una dell'altra, e insieme pesano meno del numero sopra. */
+.tempo-righe{
+  display:flex;margin-top:14px;padding-top:12px;border-top:1px solid var(--sand2);
+}
+.tempo-righe > div{flex:1;display:flex;flex-direction:column;gap:2px}
+.tempo-righe > div + div{border-left:1px solid var(--sand2)}
+.tempo-righe b{font-family:'Nunito',sans-serif;font-size:16px;font-weight:800;color:var(--ink2)}
+.tempo-righe span{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3);opacity:.8}
+/* A zero non si scrive "0 ore": si dice cosa fare. Un contatore a zero con sotto
+   due righe di zeri e' una schermata che rimprovera. */
+.tempo-vuoto{font-size:13px;line-height:1.6;color:var(--ink3);margin:8px auto 0;max-width:34ch}

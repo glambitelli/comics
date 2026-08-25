@@ -1,0 +1,28 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8">
+<title>banco di prova — il tempo al tavolo</title>
+<link rel="stylesheet" href="/css/variables.css">
+<link rel="stylesheet" href="/css/tempo.css">
+<link rel="stylesheet" href="/css/stats.css">
+<link rel="stylesheet" href="/css/layout.css">
+<script type="importmap">
+{ "imports": {
+  "/js/firebase.js": "/test/finti/firebase.js",
+  "/js/state.js":    "/test/finti/state.js"
+} }
+</script>
+</head><body>
+<script type="module">
+// Il markup si PRENDE da index.html: la capsula e il comando sulla home sono
+// quelli veri, e se domani cambiano li' la prova li segue.
+const dom = new DOMParser().parseFromString(await (await fetch('/index.html')).text(), 'text/html');
+for(const sel of ['#tempo-capsula', '#screen-stats']){
+  document.body.appendChild(document.importNode(dom.querySelector(sel), true));
+}
+document.body.appendChild(document.importNode(dom.querySelector('#tempo-avvia'), true));
+document.getElementById('screen-stats').classList.add('active');
+
+const tempo = await import('/js/tempo.js');
+window.tempo = tempo;
+window.__ready = true;
+</script>
+</body></html>
