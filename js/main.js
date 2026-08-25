@@ -686,7 +686,7 @@ window.tempoFerma = async ()=>{
   if(!s) return;
   s.textContent = secondi
     ? m.scriviBreve(secondi) + ' — segnati'
-    : 'Troppo breve — non l\'ho contata';
+    : 'Neanche un secondo — niente da segnare';
   setTimeout(disegnaTempo, 3000);
 };
 // Una sessione lasciata accesa riprende da sola all'avvio dell'app.

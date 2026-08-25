@@ -119,6 +119,32 @@ module.exports = () => suite("Il tempo al tavolo — le ore non si perdono",
   ok('non si scrive un totale che sovrascrive', !messo.numeroSecco, messo);
   ok('e si conta anche quante sessioni', messo.sessioni === 1, messo);
 
+  // ── IL NUMERO NON SCENDE MAI, NEMMENO PER UN ISTANTE ──
+  // E' successo davvero: cronometro a 4 secondi, la settimana diceva 17, stop e
+  // tornava 13. I totali contavano gia' la sessione in corso, ma allo stop una
+  // soglia minima la buttava via. Un contatore che scende davanti agli occhi
+  // non e' piu' un contatore.
+  sezione('premendo stop il totale non torna mai indietro');
+  const salto = await page.evaluate(async ()=>{
+    localStorage.removeItem('inkflow_tempo_acceso');
+    localStorage.removeItem('inkflow_tempo_coda');
+    window.tempo.riprendiSessione();
+    window.tempo.__seminaGiorni(new Map([[window.tempo.giornoDi(Date.now()), 13]]));
+    window.tempo.avvia();
+    // Quattro secondi: il caso esatto della segnalazione.
+    const st = JSON.parse(localStorage.getItem('inkflow_tempo_acceso'));
+    st.da = Date.now() - 4*1000;
+    localStorage.setItem('inkflow_tempo_acceso', JSON.stringify(st));
+    window.tempo.riprendiSessione();
+    const prima = window.tempo.secondiSettimana();
+    await window.tempo.ferma();
+    const dopo = window.tempo.secondiSettimana();
+    localStorage.removeItem('inkflow_tempo_coda');
+    return { prima, dopo };
+  });
+  ok('coi quattro secondi in corso la settimana dice 17', salto.prima === 17, salto);
+  ok('e dopo lo stop dice ancora 17, non 13', salto.dopo === 17, salto);
+
   sezione('un tocco per sbaglio non sporca lo storico, una prova vera si');
   const brevissima = await page.evaluate(async ()=>{
     window.__scritture = [];
@@ -127,6 +153,8 @@ module.exports = () => suite("Il tempo al tavolo — le ore non si perdono",
     const secondi = await window.tempo.ferma();
     return { secondi, scritte: (window.__scritture||[]).filter(x=> x.col === 'sessioni').length };
   });
+  // Non per una soglia, ma perche' trecento millisecondi arrotondati ai
+  // secondi fanno zero: non c'e' niente da segnare.
   ok('start e stop di fila non si registrano',
      brevissima.secondi === 0 && brevissima.scritte === 0, brevissima);
 

@@ -35,12 +35,17 @@ const ACCESO = 'inkflow_tempo_acceso';
 // sola al valore del tetto: e' il massimo che si puo' credere.
 const TETTO = 8 * 3600;
 
-// LA SESSIONE TROPPO CORTA. Serve solo a buttare via il tocco per sbaglio —
-// start e stop premuti di fila — non a decidere quanto vale una seduta. Stava a
-// un minuto, ed era troppo: si provava il cronometro per venti secondi, si
-// premeva stop e non succedeva niente, con l'unica conclusione ragionevole che
-// fosse rotto. Dieci secondi coprono lo sbaglio e lasciano contare la prova.
-const MINIMO = 10;
+// NESSUNA SOGLIA MINIMA, e non e' una svista. C'e' stata: prima un minuto, poi
+// dieci secondi, per non segnare il tocco premuto per sbaglio. Ma i totali a
+// schermo contano gia' la sessione in corso — devono, se no una mezz'ora di
+// lavoro sembra non esistere finche' non premi stop — e allora una soglia fa
+// una cosa sola: il cronometro arriva a 4 secondi, la settimana dice 17, premi
+// stop e torna 13. Il numero SCENDE, davanti agli occhi, ed e' l'unica cosa che
+// questo numero non puo' fare, mai, per nessun motivo.
+//
+// E il danno che la soglia evitava non esisteva: non si scrive una riga per
+// sessione, si somma sulla riga del giorno. Un tocco per sbaglio aggiunge due
+// secondi a oggi. Nessuno se ne accorgera' mai.
 
 // LE SESSIONI CHE IL SERVER NON HA PRESO. Prima, se la scrittura su Firestore
 // falliva, si scriveva una riga nella console e basta: il tempo appena fatto
@@ -168,9 +173,11 @@ export async function ferma(){
   // secondo, esattamente il contrario di quello che deve fare un numero che
   // non scende mai. Il giro da Firestore poi lo rimetteva a posto, ma il salto
   // si vedeva.
-  if(secondi >= MINIMO) _giorni.set(giorno, (_giorni.get(giorno) || 0) + secondi);
+  if(secondi > 0) _giorni.set(giorno, (_giorni.get(giorno) || 0) + secondi);
   avvisa();
-  if(secondi < MINIMO) return 0;
+  // Sotto il secondo non c'e' niente da segnare: e' il cronometro premuto e
+  // rilasciato, e vale zero perche' e' zero, non perche' l'abbiamo scartato.
+  if(secondi <= 0) return 0;
   try{
     await manda(giorno, secondi);
     svuotaCoda();
