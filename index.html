@@ -967,6 +967,23 @@
       </div>
     </div>
 
+    <!-- AZZERARE IL TEMPO STA QUI E NON NELLA CAPSULA. Il totale delle ore e'
+         fatto per non scendere mai: il comando che lo riporta a zero non puo'
+         stare a portata di pollice accanto a quello che ferma una sessione.
+         Qui invece ci si arriva apposta, e con una conferma davanti. -->
+    <div>
+      <div class="settings-section-label">Tempo al tavolo</div>
+      <div class="settings-card">
+        <div class="settings-figures">
+          <div class="settings-figure copper"><b id="settings-tempo-totale">—</b><span>&#9201; Da sempre</span></div>
+        </div>
+        <div class="settings-divider"></div>
+        <div class="settings-action-row">
+          <button class="settings-action risky" onclick="window.azzeraTempoConferma()">Azzera le ore</button>
+        </div>
+      </div>
+    </div>
+
     <!-- L'ACCOUNT STA IN CIMA AL BACKUP, e non e' un caso: sono la stessa
          domanda — "questo archivio di chi e'?" — vista da due lati.
          .
@@ -1138,6 +1155,12 @@
   <span class="tempo-punto" id="tempo-punto" aria-hidden="true"></span>
   <span class="tempo-corsa" id="tempo-corsa">00:00</span>
   <button class="tempo-btn" id="tempo-pausa" onclick="window.tempoPausa()" type="button" aria-label="Pausa"></button>
+  <!-- BUTTARE VIA non e' fermare: fermare mette in archivio, questo no. Serve
+       per il cronometro dimenticato acceso a cena o partito in tasca. Sta in
+       mezzo, scarico di colore, perche' e' il meno frequente dei tre. -->
+  <button class="tempo-btn tempo-scarta" id="tempo-scarta" onclick="window.tempoScarta()" type="button" aria-label="Butta via">
+    <svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true"><path d="M6.5 6.5 17.5 17.5M17.5 6.5 6.5 17.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+  </button>
   <button class="tempo-btn tempo-stop" id="tempo-stop" onclick="window.tempoFerma()" type="button" aria-label="Fine">
     <svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true"><rect x="7" y="7" width="10" height="10" rx="1.6" fill="currentColor"/></svg>
   </button>

@@ -184,6 +184,7 @@ export function openSettings(){
   if(el) el.textContent = stars;
   const streakEl = document.getElementById('settings-streak-count');
   if(streakEl) streakEl.textContent = getStreak();
+  mostraTempo();
   restoreReminderUI();
   const st = document.getElementById('sound-toggle');
   if(st) st.checked = isSoundEnabled();
@@ -668,6 +669,39 @@ export function closeSettings(){
   const st = history.state;
   if(st && st.view === 'settings'){ history.back(); return; }
   closeSettingsUI();
+}
+
+// ── LE ORE, NELLE IMPOSTAZIONI ──
+// Solo il totale di sempre, e il comando per riportarlo a zero. I numeri veri
+// stanno in Statistiche: qui c'e' quel tanto che serve a sapere cosa si sta
+// per cancellare, che e' l'unica ragione per cui uno arriva fin qui.
+async function mostraTempo(){
+  const el = document.getElementById('settings-tempo-totale');
+  if(!el) return;
+  try{
+    const m = await import('./tempo.js');
+    const disegna = ()=>{ el.textContent = m.secondiTotali() ? m.scriviBreve(m.secondiTotali()) : '—'; };
+    m.ascoltaSessioni(disegna);
+    disegna();
+  }catch(e){}
+}
+
+// AZZERARE LE ORE E' L'UNICA COSA CHE FA SCENDERE QUEL NUMERO, e per questo
+// chiede due volte: la conferma dice quanto si sta per buttare, con le parole
+// giuste. "Sei sicuro?" non aiuta nessuno a decidere; "cancello 312 ore" si'.
+export async function azzeraTempoConferma(){
+  const { confirmModal, infoModal } = await import('./dialogs.js');
+  const m = await import('./tempo.js');
+  const quanto = m.secondiTotali();
+  if(!quanto){ infoModal('Non c\'e\' ancora niente da azzerare.', { title:'Tempo al tavolo' }); return; }
+  const si = await confirmModal(
+    'Cancello ' + m.scriviBreve(quanto) + ' di lavoro, giorno per giorno. Non si torna indietro.',
+    { title:'Azzerare le ore', confirmLabel:'Azzera' });
+  if(!si) return;
+  await m.azzeraTutto();
+  const el = document.getElementById('settings-tempo-totale');
+  if(el) el.textContent = '—';
+  infoModal('Il tempo al tavolo riparte da zero.', { title:'Fatto' });
 }
 
 export function resetStarsConfirm(){

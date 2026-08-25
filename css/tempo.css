@@ -100,6 +100,17 @@ body.scena-open .tempo-capsula{display:none}
 }
 .tempo-stop:active{background:#d9663f;transform:scale(.9)}
 
+/* BUTTARE VIA E' PIU' PICCOLO E PIU' SCARICO degli altri due. Fa la cosa piu'
+   grave dei tre — quei minuti non tornano — e proprio per questo non deve
+   attirare il pollice: si trova quando lo si cerca, non si preme passando. Una
+   conferma lo protegge comunque (vedi tempoScarta in main.js), ma la prima
+   difesa e' che non sembri il pulsante da premere. */
+.tempo-scarta{
+  width:25px;height:25px;border-color:transparent;background:none;
+  color:rgba(232,200,120,.45);
+}
+.tempo-scarta:active{background:rgba(255,248,232,.14);color:var(--oro)}
+
 /* ── LA SCHEDA IN STATISTICHE ──
    Il numero grande e' la settimana; il totale di sempre sta sotto, in piccolo.
    Il totale dice chi sei diventato e lo dice una volta sola, la settimana dice

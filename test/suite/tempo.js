@@ -409,6 +409,71 @@ module.exports = () => suite("Il tempo al tavolo — le ore non si perdono",
   ok('riavviando, la scheda si accorge che sta contando', riacceso.dice, riacceso);
   ok('e il numero riparte a salire da solo', riacceso.nDopo > riacceso.nPrima, riacceso);
 
+  sezione('buttare via non e\' fermare, e azzerare tutto e\' un\'altra cosa ancora');
+  // BUTTARE VIA non mette in archivio: e' il cronometro dimenticato acceso a
+  // cena, tempo che non e' stato passato a disegnare. Fermare, invece, salva
+  // sempre — sono due gesti diversi e non devono somigliarsi.
+  const buttata = await page.evaluate(async ()=>{
+    localStorage.removeItem('inkflow_tempo_acceso');
+    localStorage.removeItem('inkflow_tempo_coda');
+    window.tempo.riprendiSessione();
+    window.tempo.__seminaGiorni(new Map([[window.tempo.giornoDi(Date.now()), 600]]));
+    window.__scritture = [];
+    window.tempo.avvia();
+    const st = JSON.parse(localStorage.getItem('inkflow_tempo_acceso'));
+    st.da = Date.now() - 90*1000;
+    localStorage.setItem('inkflow_tempo_acceso', JSON.stringify(st));
+    window.tempo.riprendiSessione();
+    const conLaSessione = window.tempo.secondiTotali();
+    const persi = window.tempo.scarta();
+    return {
+      persi, conLaSessione,
+      dopo: window.tempo.secondiTotali(),
+      acceso: window.tempo.acceso(),
+      inTasca: !!localStorage.getItem('inkflow_tempo_acceso'),
+      scritte: (window.__scritture||[]).filter(x=> x.col === 'sessioni').length,
+      inCoda: window.tempo.daSincronizzare(),
+    };
+  });
+  ok('butta via i minuti che stavano correndo', buttata.persi >= 89, buttata);
+  ok('il cronometro si spegne', !buttata.acceso && !buttata.inTasca, buttata);
+  ok('e non finiscono in archivio', buttata.scritte === 0 && buttata.inCoda === 0, buttata);
+  // Quello che era gia' archiviato non lo tocca: butta via SOLO la corsa.
+  ok('ma quello che era gia\' archiviato resta', buttata.dopo === 600, buttata);
+  ok('ed era davvero contato un attimo prima', buttata.conLaSessione >= 689, buttata);
+
+  // AZZERARE TUTTO cancella l'archivio, riga per riga. E' l'unica cosa in tutta
+  // l'app che fa scendere quel numero, e sta dietro una conferma.
+  const azzerato = await page.evaluate(async ()=>{
+    const g = window.tempo.giornoDi;
+    const oggi = new Date();
+    const meno = n => { const d = new Date(oggi); d.setDate(d.getDate()-n); return d; };
+    window.__archivio = { sessioni: {} };
+    window.__archivio.sessioni[g(oggi.getTime())] = { secondi: 600 };
+    window.__archivio.sessioni[g(meno(9).getTime())] = { secondi: 3600 };
+    window.__cancellati = [];
+    window.tempo.__seminaGiorni(new Map([
+      [g(oggi.getTime()), 600], [g(meno(9).getTime()), 3600],
+    ]));
+    // E anche una sessione in corso e una in coda: devono sparire tutte e due.
+    window.tempo.avvia();
+    localStorage.setItem('inkflow_tempo_coda', JSON.stringify([{ giorno: g(oggi.getTime()), secondi: 45 }]));
+    const prima = window.tempo.secondiTotali();
+    const quante = await window.tempo.azzeraTutto();
+    return {
+      prima, quante,
+      dopo: window.tempo.secondiTotali(),
+      acceso: window.tempo.acceso(),
+      inCoda: window.tempo.daSincronizzare(),
+      cancellati: (window.__cancellati||[]).filter(x=> x.col === 'sessioni').length,
+    };
+  });
+  ok('prima c\'era un archivio pieno', azzerato.prima >= 4200, azzerato);
+  ok('le righe dei giorni si cancellano davvero', azzerato.cancellati === 2, azzerato);
+  ok('il totale torna a zero', azzerato.dopo === 0, azzerato);
+  ok('il cronometro in corso si spegne', !azzerato.acceso, azzerato);
+  ok('e la coda si svuota', azzerato.inCoda === 0, azzerato);
+
   sezione('e la scheda non racconta un cronometro che non c\'e\'');
   const stati = await page.evaluate(async ()=>{
     const box = ()=> document.getElementById('stats-tempo');

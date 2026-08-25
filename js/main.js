@@ -10,7 +10,7 @@ import { closeActionMenu } from './dialogs.js';
 // l'app si monta e' proprio quello che nessuno riesce mai a raccontare.
 import { ascoltaErrori } from './registro.js';
 ascoltaErrori();
-import { openSettings, closeSettings, closeSettingsUI, resetStarsConfirm, closeStarsConfirm, doResetStars, exportBackup, importBackup, resetStreakConfirm, closeStreakConfirm, doResetStreak, onSoundToggle, onSoundPackChange, accountTocca, driveTocca, copiaUid, copiaRegistro, svuotaRegistroUI } from './settings.js';
+import { openSettings, closeSettings, closeSettingsUI, azzeraTempoConferma, resetStarsConfirm, closeStarsConfirm, doResetStars, exportBackup, importBackup, resetStreakConfirm, closeStreakConfirm, doResetStreak, onSoundToggle, onSoundPackChange, accountTocca, driveTocca, copiaUid, copiaRegistro, svuotaRegistroUI } from './settings.js';
 window.onSoundToggle=onSoundToggle; window.onSoundPackChange=onSoundPackChange;
 import { renderHome, openNewModal, closeModal, createProject, openCardMenu, exportProjectJSON, confirmDeleteProject, openColorPicker, closeColorPicker, selectProjectColor, filterProjects, attachCardDrag, applyProjectOrder, startSandstorm, getScriptment } from './home.js';
 import { openProject, restoreProject, goHome, confirmDeleteCurrent, closeConfirm, confirmMicrotask } from './project.js';
@@ -421,6 +421,7 @@ window.closePlannerModal=closePlannerModal; window.toggleSubsection=toggleSubsec
 window.addCharacter=addCharacter; window.deleteCharacter=deleteCharacter;
 window.toggleCharCard=toggleCharCard; window.toggleScreenplay=toggleScreenplay; window.addSceneText=addSceneText; window.deleteSceneText=deleteSceneText; window.confirmMicrotask=confirmMicrotask;
 window.openSettings=openSettings; window.closeSettings=closeSettings;
+window.azzeraTempoConferma=azzeraTempoConferma;
 window.resetStarsConfirm=resetStarsConfirm; window.closeStarsConfirm=closeStarsConfirm;
 window.doResetStars=doResetStars; window.exportBackup=exportBackup; window.importBackup=importBackup;
 window.accountTocca=accountTocca; window.driveTocca=driveTocca; window.copiaUid=copiaUid;
@@ -678,6 +679,22 @@ window.tempoPausa = async ()=>{
 // sotto, il cronometro spariva e sulla home non cambiava niente — e la lettura
 // giusta, dal divano, era che il timer non funzionasse. Adesso una sessione
 // registrata dice quanto vale, e una scartata dice che e' stata scartata.
+// BUTTARE VIA CHIEDE PRIMA. Fermare per sbaglio non costa niente — il tempo
+// finisce comunque in archivio — ma buttare via si': quei minuti non tornano.
+window.tempoScarta = async ()=>{
+  const m = await tempo();
+  if(!m.acceso()) return;
+  const quanto = m.scriviBreve(m.secondiCorrenti());
+  const { confirmModal } = await import('./dialogs.js');
+  const si = await confirmModal(
+    'Butto via ' + quanto + '? Non finiscono in archivio e non si recuperano.',
+    { title: 'Buttare via la sessione', confirmLabel: 'Butta via' });
+  if(!si) return;
+  m.scarta();
+  disegnaTempo();
+  const s = document.getElementById('tempo-avvia-testo');
+  if(s){ s.textContent = 'Buttata via'; setTimeout(disegnaTempo, 2500); }
+};
 window.tempoFerma = async ()=>{
   const m = await tempo();
   const secondi = await m.ferma();

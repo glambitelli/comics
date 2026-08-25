@@ -20,7 +20,7 @@
 // righe. Sono trecentosessantacinque righe l'anno da poche decine di byte: in
 // dieci anni tremilaseicento documenti, cioe' niente. Sopravvivono al cambio
 // telefono, funzionano senza rete e si sincronizzano al ritorno.
-import { db, collection, doc, onSnapshot, setDoc, increment, serverTimestamp } from './firebase.js';
+import { db, collection, doc, onSnapshot, setDoc, deleteDoc, getDocs, increment, serverTimestamp } from './firebase.js';
 import { haptic } from './state.js';
 
 const SESSIONI = 'sessioni';
@@ -213,6 +213,41 @@ export async function svuotaCoda(){
   scriviCoda();
   avvisa();
   return andate;
+}
+
+// ── BUTTARE VIA, che e' una cosa diversa dal fermare ────────────────────────
+// Fermare mette in archivio; questo no. Serve per il cronometro dimenticato
+// acceso durante la cena, o partito per sbaglio in tasca: tempo che non e'
+// stato passato a disegnare e che, entrando nel totale, lo renderebbe una
+// bugia. E' l'unico modo di togliere qualcosa, ed e' apposta l'unico: agisce
+// solo su quello che sta correndo adesso, mai su quello che e' gia' in
+// archivio.
+export function scarta(){
+  if(!statoVivo()) return 0;
+  const persi = secondiCorrenti();
+  _stato = null;
+  scrivi(null);
+  clearInterval(_tic); _tic = null;
+  haptic('tap');
+  avvisa();
+  return persi;
+}
+
+// ── AZZERARE TUTTO ──────────────────────────────────────────────────────────
+// Cancella l'archivio intero: le righe di tutti i giorni, la coda e la sessione
+// in corso. Non e' un comando da tenere vicino agli altri e non lo si trova per
+// caso — sta in fondo alle Impostazioni, dietro una conferma — ma deve
+// esistere: dopo giorni di prove il contatore si porta dietro secondi finti, e
+// un totale che comincia con la spazzatura delle prove non e' piu' il tuo.
+export async function azzeraTutto(){
+  scarta();
+  _coda = [];
+  scriviCoda();
+  const snap = await getDocs(collection(db, SESSIONI));
+  await Promise.all(snap.docs.map(d=> deleteDoc(doc(db, SESSIONI, d.id))));
+  _giorni = new Map();
+  avvisa();
+  return snap.docs.length;
 }
 
 // ── IL BATTITO ──────────────────────────────────────────────────────────────
