@@ -331,4 +331,29 @@ module.exports = () => suite("Il tempo al tavolo — le ore non si perdono",
   });
   ok('i giorni con ore risultano attivi', mappa.attivi >= 3, mappa);
   ok('e la didascalia lo dice', /ore al tavolo/i.test(mappa.didascalia), mappa);
+
+  // MEZZ'ORA NON E' ZERO. Arrotondando alle ore, venti minuti diventavano
+  // niente e il quadrato restava bianco: la mappa perdeva tutte le sedute
+  // corte, che sono la maggior parte.
+  const corta = await page.evaluate(async ()=>{
+    const g = window.tempo.giornoDi;
+    const oggi = new Date();
+    const meno = n => { const d = new Date(oggi); d.setDate(d.getDate()-n); return d; };
+    const dentro = new Map();
+    dentro.set(g(meno(2).getTime()), 20*60);   // venti minuti
+    dentro.set(g(meno(3).getTime()), 90);      // un minuto e mezzo
+    window.tempo.__seminaGiorni(dentro);
+    const st = await import('/js/stats.js');
+    st.renderStats();
+    await new Promise(r=> setTimeout(r, 300));
+    const piede = document.getElementById('stats-heatmap-legend');
+    const attivi = (piede.textContent.match(/(\d+) giorni attivi/)||[])[1];
+    // I quadrati non devono essere quelli scuri delle giornate piene: un
+    // minuto e mezzo accende il giorno, non lo colora come otto ore.
+    const scuri = document.querySelectorAll('#stats-heatmap rect[fill="#c8930f"]').length;
+    return { attivi: parseInt(attivi||'0',10), scuri };
+  });
+  ok('venti minuti accendono comunque il giorno', corta.attivi >= 2, corta);
+  ok('e un minuto e mezzo pure', corta.attivi >= 2, corta);
+  ok('ma senza colorarli come una giornata piena', corta.scuri === 0, corta);
 });

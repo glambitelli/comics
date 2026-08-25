@@ -79,13 +79,19 @@ function getActivityData(){
       data[key]=(data[key]||0)+1;
     });
   });
-  // E LE ORE AL TAVOLO, un'ora un punto. Senza, un giorno passato a disegnare
+  // E IL TEMPO AL TAVOLO, un'ora un punto. Senza, un giorno passato a disegnare
   // senza finire niente restava bianco sulla mappa dell'anno — cioe' la mappa
   // diceva "non hai fatto niente" proprio nei giorni di lavoro vero. Che e'
   // l'opposto di quello che questa mappa dovrebbe mostrare.
+  //
+  // MA MEZZ'ORA NON E' ZERO. Arrotondando alle ore, venti minuti diventavano
+  // niente e il quadrato restava bianco lo stesso: la mappa perdeva tutte le
+  // sedute corte, che sono la maggior parte. Adesso qualunque tempo registrato
+  // vale almeno un punto — il giorno si e' acceso — e da li' in su si conta a
+  // ore. I secondi non si buttano mai: si buttava solo il modo di guardarli.
   if(_tempoMod){
     for(const [g, secondi] of _tempoMod.secondiPerGiorno()){
-      data[g] = (data[g]||0) + Math.round(secondi/3600);
+      if(secondi > 0) data[g] = (data[g]||0) + Math.max(1, Math.round(secondi/3600));
     }
   }
   return data;
