@@ -35,6 +35,13 @@ const ACCESO = 'inkflow_tempo_acceso';
 // sola al valore del tetto: e' il massimo che si puo' credere.
 const TETTO = 8 * 3600;
 
+// LA SESSIONE TROPPO CORTA. Serve solo a buttare via il tocco per sbaglio —
+// start e stop premuti di fila — non a decidere quanto vale una seduta. Stava a
+// un minuto, ed era troppo: si provava il cronometro per venti secondi, si
+// premeva stop e non succedeva niente, con l'unica conclusione ragionevole che
+// fosse rotto. Dieci secondi coprono lo sbaglio e lasciano contare la prova.
+const MINIMO = 10;
+
 let _stato = null;      // { da, accumulato, inPausa } — da = istante di avvio
 let _tic = null;
 // Chi vuole essere avvisato ad ogni secondo. Sono piu' di uno: la capsula in
@@ -107,13 +114,15 @@ export async function ferma(){
   scrivi(null);
   clearInterval(_tic); _tic = null;
   haptic('done');
+  // PRIMA SI METTE VIA, POI SI AVVISA. Avvisando per primi, la scheda delle
+  // Statistiche si ridisegnava in un istante in cui la sessione non era piu'
+  // in corso e non era ancora in archivio: il totale scendeva per mezzo
+  // secondo, esattamente il contrario di quello che deve fare un numero che
+  // non scende mai. Il giro da Firestore poi lo rimetteva a posto, ma il salto
+  // si vedeva.
+  if(secondi >= MINIMO) _giorni.set(giorno, (_giorni.get(giorno) || 0) + secondi);
   avvisa();
-  // Meno di un minuto non e' una sessione: e' un tocco per sbaglio, e
-  // scriverlo vorrebbe dire sporcare lo storico con righe da tre secondi.
-  if(secondi < 60) return 0;
-  // Si conta subito anche in casa, senza aspettare il giro da Firestore: i
-  // numeri a schermo devono muoversi nel momento in cui si ferma il cronometro.
-  _giorni.set(giorno, (_giorni.get(giorno) || 0) + secondi);
+  if(secondi < MINIMO) return 0;
   try{
     await setDoc(doc(db, SESSIONI, giorno), {
       secondi: increment(secondi),
@@ -245,7 +254,13 @@ export function ultimeSettimane(quante = 8){
 // Sotto l'ora si dicono i minuti, sopra si dicono le ore con un decimale: "47
 // min", "1h 20", "312 ore". Dire "312h 47min" di totale e' una precisione che
 // non interessa a nessuno e che rende il numero piu' difficile da leggere.
+//
+// SOTTO IL MINUTO SI DICONO I SECONDI. Prima si arrotondava ai minuti e basta,
+// e mezzo minuto appena registrato compariva come "0 min": il numero piu'
+// scoraggiante possibile, perche' dice che quello che hai appena fatto non
+// esiste. Meglio "35 sec": e' poco, ma e' vero e si vede muovere.
 export function scriviBreve(secondi){
+  if(secondi < 60) return Math.max(0, Math.round(secondi)) + ' sec';
   const min = Math.floor(secondi / 60);
   if(min < 60) return min + ' min';
   const ore = Math.floor(min / 60), resto = min % 60;
@@ -253,6 +268,7 @@ export function scriviBreve(secondi){
 }
 export function scriviGrande(secondi){
   const ore = secondi / 3600;
+  if(secondi < 60) return { n: Math.max(0, Math.round(secondi)).toString(), u: 'sec' };
   if(ore < 1) return { n: Math.floor(secondi/60), u: 'min' };
   if(ore < 10) return { n: (Math.round(ore*10)/10).toString().replace('.', ','), u: 'ore' };
   return { n: Math.round(ore).toString(), u: 'ore' };

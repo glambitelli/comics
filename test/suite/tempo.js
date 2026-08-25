@@ -119,7 +119,7 @@ module.exports = () => suite("Il tempo al tavolo — le ore non si perdono",
   ok('non si scrive un totale che sovrascrive', !messo.numeroSecco, messo);
   ok('e si conta anche quante sessioni', messo.sessioni === 1, messo);
 
-  sezione('un tocco per sbaglio non sporca lo storico');
+  sezione('un tocco per sbaglio non sporca lo storico, una prova vera si');
   const brevissima = await page.evaluate(async ()=>{
     window.__scritture = [];
     window.tempo.avvia();
@@ -127,8 +127,35 @@ module.exports = () => suite("Il tempo al tavolo — le ore non si perdono",
     const secondi = await window.tempo.ferma();
     return { secondi, scritte: (window.__scritture||[]).filter(x=> x.col === 'sessioni').length };
   });
-  ok('sotto il minuto non si registra niente',
+  ok('start e stop di fila non si registrano',
      brevissima.secondi === 0 && brevissima.scritte === 0, brevissima);
+
+  // VENTI SECONDI DEVONO CONTARE. E' la prova che si fa tutti la prima volta:
+  // si avvia, si aspetta un attimo, si preme stop e si va a vedere. Se quella
+  // sessione sparisce, l'unica conclusione e' che il cronometro sia rotto.
+  const venti = await page.evaluate(async ()=>{
+    window.__scritture = [];
+    window.tempo.__seminaGiorni(new Map());
+    window.tempo.avvia();
+    // Si sposta indietro l'istante di avvio invece di aspettare davvero venti
+    // secondi: la prova deve durare un attimo, non mezzo minuto.
+    const s = JSON.parse(localStorage.getItem('inkflow_tempo_acceso'));
+    s.da = Date.now() - 20*1000;
+    localStorage.setItem('inkflow_tempo_acceso', JSON.stringify(s));
+    window.tempo.riprendiSessione();
+    const secondi = await window.tempo.ferma();
+    return {
+      secondi,
+      scritte: (window.__scritture||[]).filter(x=> x.col === 'sessioni').length,
+      totale: window.tempo.secondiTotali(),
+      scritto: window.tempo.scriviBreve(secondi),
+    };
+  });
+  ok('venti secondi si registrano', venti.secondi >= 19 && venti.scritte === 1, venti);
+  ok('e finiscono subito nel totale, senza aspettare Firestore',
+     venti.totale >= 19, venti);
+  ok('e si leggono in secondi, non come "0 min"',
+     /^\d+ sec$/.test(venti.scritto), venti);
 
   sezione('i totali sanno leggersi: settimana, mese, sempre');
   const conti = await page.evaluate(()=>{
@@ -153,6 +180,8 @@ module.exports = () => suite("Il tempo al tavolo — le ore non si perdono",
 
   sezione('e i tempi si scrivono come si leggono');
   const scritture = await page.evaluate(()=>({
+    breve20: window.tempo.scriviBreve(20),
+    grandeSec: window.tempo.scriviGrande(35),
     breve45: window.tempo.scriviBreve(45*60),
     breve90: window.tempo.scriviBreve(90*60),
     breve120: window.tempo.scriviBreve(120*60),
@@ -162,6 +191,8 @@ module.exports = () => suite("Il tempo al tavolo — le ore non si perdono",
     corsaMin: window.tempo.scriviCorsa(65),
     corsaOre: window.tempo.scriviCorsa(3725),
   }));
+  ok('sotto il minuto si dicono i secondi', scritture.breve20 === '20 sec', scritture);
+  ok('e anche il numero grande', scritture.grandeSec.n === '35' && scritture.grandeSec.u === 'sec', scritture);
   ok('sotto l\'ora si dicono i minuti', scritture.breve45 === '45 min', scritture);
   ok('sopra, le ore e i minuti', scritture.breve90 === '1h 30', scritture);
   ok('e le ore tonde restano tonde', scritture.breve120 === '2h', scritture);

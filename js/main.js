@@ -668,17 +668,20 @@ window.tempoPausa = async ()=>{
   if(m.inPausa()) m.riprendi(); else m.pausa();
   disegnaTempo();
 };
+// PREMERE STOP DEVE SEMPRE DIRE QUALCOSA. Prima parlava solo sopra il minuto:
+// sotto, il cronometro spariva e sulla home non cambiava niente — e la lettura
+// giusta, dal divano, era che il timer non funzionasse. Adesso una sessione
+// registrata dice quanto vale, e una scartata dice che e' stata scartata.
 window.tempoFerma = async ()=>{
   const m = await tempo();
   const secondi = await m.ferma();
   disegnaTempo();
-  if(secondi >= 60){
-    const s = document.getElementById('tempo-avvia-testo');
-    if(s){
-      s.textContent = m.scriviBreve(secondi) + ' — segnati';
-      setTimeout(disegnaTempo, 3000);
-    }
-  }
+  const s = document.getElementById('tempo-avvia-testo');
+  if(!s) return;
+  s.textContent = secondi
+    ? m.scriviBreve(secondi) + ' — segnati'
+    : 'Troppo breve — non l\'ho contata';
+  setTimeout(disegnaTempo, 3000);
 };
 // Una sessione lasciata accesa riprende da sola all'avvio dell'app.
 if(tempoDaRiprendere()){
