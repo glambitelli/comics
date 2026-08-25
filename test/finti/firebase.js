@@ -19,8 +19,17 @@ export function onSnapshot(ref){
 // aggiorna la cache locale e ridisegna. Qui il listener non c'è: le scritture
 // si accumulano in window.__scritture, e chi vuole l'eco se la applica a mano
 // (vedi la suite tavole.js).
+// Con window.__rifiuta impostato al nome di una collezione, la scrittura viene
+// RIFIUTATA come farebbe una regola di sicurezza di Firestore. Serve a provare
+// che il tempo gia' contato non sparisca quando il server dice di no: e' il
+// caso in cui il difetto non si vede — nessun errore a schermo, solo un numero
+// che torna indietro da solo.
 export function setDoc(ref, data){
-  (window.__scritture || (window.__scritture = [])).push({ col: ref && ref.col, id: ref && ref.id, data });
+  const col = ref && ref.col;
+  if(window.__rifiuta && window.__rifiuta === col){
+    return Promise.reject(new Error('permission-denied'));
+  }
+  (window.__scritture || (window.__scritture = [])).push({ col, id: ref && ref.id, data });
   return Promise.resolve();
 }
 // Le cancellazioni si annotano come le scritture: senza, una prova poteva solo

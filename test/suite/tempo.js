@@ -157,6 +157,75 @@ module.exports = () => suite("Il tempo al tavolo — le ore non si perdono",
   ok('e si leggono in secondi, non come "0 min"',
      /^\d+ sec$/.test(venti.scritto), venti);
 
+  sezione('e se il server dice di no, il tempo non sparisce lo stesso');
+  // E' IL DIFETTO CHE NON SI VEDE. La scrittura viene rifiutata — una regola di
+  // sicurezza, una collezione nuova che nessuno ha aperto — e prima finiva in
+  // una riga di console: il tempo appena fatto restava a schermo un istante e
+  // poi tornava indietro al primo aggiornamento da fuori, senza una parola.
+  const rifiutata = await page.evaluate(async ()=>{
+    localStorage.removeItem('inkflow_tempo_acceso');
+    localStorage.removeItem('inkflow_tempo_coda');
+    window.tempo.riprendiSessione();
+    window.tempo.__seminaGiorni(new Map());
+    window.__scritture = [];
+    window.__rifiuta = 'sessioni';          // il server rifiuta tutto
+    window.tempo.avvia();
+    const s = JSON.parse(localStorage.getItem('inkflow_tempo_acceso'));
+    s.da = Date.now() - 30*1000;
+    localStorage.setItem('inkflow_tempo_acceso', JSON.stringify(s));
+    window.tempo.riprendiSessione();
+    await window.tempo.ferma();
+    const dopoRifiuto = {
+      totale: window.tempo.secondiTotali(),
+      inCoda: window.tempo.daSincronizzare(),
+      scritte: (window.__scritture||[]).length,
+      // E deve sopravvivere all'app chiusa e riaperta: la coda sta in tasca.
+      inTasca: !!localStorage.getItem('inkflow_tempo_coda'),
+    };
+    // Anche se adesso arriva un aggiornamento da Firestore che non sa niente
+    // di quella sessione, il totale non deve scendere.
+    window.tempo.__seminaGiorni(new Map());
+    dopoRifiuto.dopoAggiornamento = window.tempo.secondiTotali();
+    // E quando il server torna a dire di si', la coda si svuota.
+    window.__rifiuta = null;
+    const andate = await window.tempo.svuotaCoda();
+    dopoRifiuto.andate = andate;
+    dopoRifiuto.codaDopo = window.tempo.daSincronizzare();
+    dopoRifiuto.scritteDopo = (window.__scritture||[]).filter(x=> x.col === 'sessioni').length;
+    return dopoRifiuto;
+  });
+  ok('la scrittura rifiutata non finisce nel nulla', rifiutata.inCoda === 1, rifiutata);
+  ok('il tempo resta contato nei totali', rifiutata.totale >= 29, rifiutata);
+  ok('e non scende quando arriva un aggiornamento da fuori',
+     rifiutata.dopoAggiornamento >= 29, rifiutata);
+  ok('la coda sopravvive alla chiusura dell\'app', rifiutata.inTasca, rifiutata);
+  ok('e appena il server accetta, parte davvero',
+     rifiutata.andate === 1 && rifiutata.scritteDopo === 1, rifiutata);
+  ok('e la coda si svuota', rifiutata.codaDopo === 0, rifiutata);
+
+  sezione('il cronometro non puo\' essere spento in una schermata e acceso in un\'altra');
+  // localStorage e' la verita': se in tasca c'e' una sessione, tutte le
+  // schermate devono vederla, anche quelle che non l'hanno fatta partire.
+  const verita = await page.evaluate(async ()=>{
+    localStorage.removeItem('inkflow_tempo_coda');
+    await window.tempo.ferma();
+    // Nessuno chiama riprendiSessione: la si mette in tasca e basta, com'e'
+    // dopo un ricaricamento della pagina a cronometro acceso.
+    localStorage.setItem('inkflow_tempo_acceso', JSON.stringify({
+      da: Date.now() - 45*1000, accumulato: 0, inPausa: false }));
+    const acceso = window.tempo.acceso();
+    const secondi = window.tempo.secondiCorrenti();
+    // E "avvia" su una sessione gia' aperta non deve azzerarla.
+    window.tempo.avvia();
+    const dopoAvvia = window.tempo.secondiCorrenti();
+    await window.tempo.ferma();
+    localStorage.removeItem('inkflow_tempo_coda');
+    return { acceso, secondi, dopoAvvia };
+  });
+  ok('una sessione in tasca la vedono tutti', verita.acceso, verita);
+  ok('coi secondi giusti', verita.secondi >= 44, verita);
+  ok('e riavviare non la azzera', verita.dopoAvvia >= 44, verita);
+
   sezione('i totali sanno leggersi: settimana, mese, sempre');
   const conti = await page.evaluate(()=>{
     const g = window.tempo.giornoDi;
@@ -282,9 +351,84 @@ module.exports = () => suite("Il tempo al tavolo — le ore non si perdono",
   ok('la scheda dice che sta contando', inCorso.dice, inCorso);
   ok('e non e\' piu\' quella vuota', !inCorso.vuota, inCorso);
 
+  // RIAVVIARE IL CRONOMETRO MENTRE LE STATISTICHE SONO A SCHERMO. E' il caso
+  // che si prova per primo: si guardano i secondi fermi, si riparte, e da li'
+  // in poi il numero deve muoversi da solo. Se resta fermo, la conclusione e'
+  // che il cronometro non riparta affatto.
+  const riacceso = await page.evaluate(async ()=>{
+    localStorage.removeItem('inkflow_tempo_acceso');
+    localStorage.removeItem('inkflow_tempo_coda');
+    window.tempo.riprendiSessione();   // e cosi' si spegne davvero
+    const g = window.tempo.giornoDi;
+    const dentro = new Map();
+    dentro.set(g(Date.now()), 13);            // i tredici secondi gia' segnati
+    window.tempo.__seminaGiorni(dentro);
+    const st = await import('/js/stats.js');
+    st.renderStats();
+    await new Promise(r=> setTimeout(r, 300));
+    const box = document.getElementById('stats-tempo');
+    const prima = box.textContent;
+    // E adesso si riparte, con la scheda gia' a schermo.
+    window.tempo.avvia();
+    await new Promise(r=> setTimeout(r, 1400));
+    const dopo = box.textContent;
+    const n = s => parseInt((s.match(/(\d+)\s*sec/)||[])[1] || '0', 10);
+    window.tempo.__seminaGiorni(new Map());
+    localStorage.removeItem('inkflow_tempo_acceso');
+    return { prima, dopo, nPrima: n(prima), nDopo: n(dopo),
+             dice: /sta contando/i.test(dopo) };
+  });
+  ok('riavviando, la scheda si accorge che sta contando', riacceso.dice, riacceso);
+  ok('e il numero riparte a salire da solo', riacceso.nDopo > riacceso.nPrima, riacceso);
+
+  sezione('e la scheda non racconta un cronometro che non c\'e\'');
+  const stati = await page.evaluate(async ()=>{
+    const box = ()=> document.getElementById('stats-tempo');
+    const st = await import('/js/stats.js');
+    localStorage.removeItem('inkflow_tempo_acceso');
+    localStorage.removeItem('inkflow_tempo_coda');
+    window.tempo.riprendiSessione();
+    window.tempo.__seminaGiorni(new Map([[window.tempo.giornoDi(Date.now()), 600]]));
+
+    window.tempo.avvia();
+    st.renderStats();
+    await new Promise(r=> setTimeout(r, 250));
+    const acceso = box().textContent;
+
+    window.tempo.pausa();
+    st.renderStats();
+    await new Promise(r=> setTimeout(r, 250));
+    const fermo = box().textContent;
+
+    // E con qualcosa che il server non ha preso, lo dice.
+    window.__rifiuta = 'sessioni';
+    const s = JSON.parse(localStorage.getItem('inkflow_tempo_acceso'));
+    s.inPausa = false; s.da = Date.now() - 30*1000; s.accumulato = 0;
+    localStorage.setItem('inkflow_tempo_acceso', JSON.stringify(s));
+    window.tempo.riprendiSessione();
+    await window.tempo.ferma();
+    // Il server continua a dire di no anche mentre si guarda la scheda: se lo
+    // lasciassimo accettare, la coda si svuoterebbe da sola prima del disegno
+    // — che e' quello che deve succedere, ma non e' quello che si prova qui.
+    st.renderStats();
+    await new Promise(r=> setTimeout(r, 250));
+    const daSalvare = box().textContent;
+    window.__rifiuta = null;
+
+    localStorage.removeItem('inkflow_tempo_coda');
+    window.tempo.riprendiSessione();
+    return { acceso, fermo, daSalvare };
+  });
+  ok('acceso dice che sta contando', /sta contando/i.test(stati.acceso), stati);
+  ok('in pausa non lo dice piu\'', !/sta contando/i.test(stati.fermo), stati);
+  ok('e dice invece che e\' in pausa', /in pausa/i.test(stati.fermo), stati);
+  ok('e quello che il server non ha preso si vede',
+     /da salvare/i.test(stati.daSalvare), stati);
+
   sezione('le otto settimane si leggono come un ritmo');
   const barre = await page.evaluate(async ()=>{
     localStorage.removeItem('inkflow_tempo_acceso');
+    localStorage.removeItem('inkflow_tempo_coda');
     window.tempo.riprendiSessione();
     const g = window.tempo.giornoDi;
     const oggi = new Date();

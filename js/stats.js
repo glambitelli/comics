@@ -252,7 +252,15 @@ function disegnaTempoScheda(m){
   box.innerHTML = `<div class="stats-card-label">Tempo al tavolo</div>
     <div class="tempo-grande"><b>${esc(grande.n)}</b><span>${esc(grande.u)}</span></div>
     <div class="tempo-sotto-grande">questa settimana${
-      m.acceso() ? ' · <em>sta contando</em>' : ''}</div>
+      // In pausa non "sta contando": dirlo lo stesso vorrebbe dire mentire su
+      // un numero fermo, e la prima volta che uno se ne accorge non si fida
+      // piu' di nessuno degli altri.
+      m.acceso() ? (m.inPausa() ? ' · <em>in pausa</em>' : ' · <em>sta contando</em>') : ''
+    }${
+      // E se qualcosa non e' ancora arrivato al server, si dice. Il tempo e'
+      // gia' contato qui dentro: e' l'archivio che deve ancora prenderlo.
+      m.daSincronizzare && m.daSincronizzare() ? ' · da salvare' : ''
+    }</div>
     ${barreSettimane(m)}
     <div class="tempo-righe">
       <div><b>${esc(m.scriviBreve(mese))}</b><span>questo mese</span></div>

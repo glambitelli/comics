@@ -42,6 +42,18 @@ const TETTO = 8 * 3600;
 // fosse rotto. Dieci secondi coprono lo sbaglio e lasciano contare la prova.
 const MINIMO = 10;
 
+// LE SESSIONI CHE IL SERVER NON HA PRESO. Prima, se la scrittura su Firestore
+// falliva, si scriveva una riga nella console e basta: il tempo appena fatto
+// spariva dai totali al primo aggiornamento che arrivava da fuori, senza che
+// niente lo dicesse. Per un contatore che deve durare anni e' il difetto
+// peggiore possibile. Adesso una sessione rifiutata resta qui, in tasca al
+// telefono: continua a essere contata nei totali e si riprova a mandarla ad
+// ogni avvio e ad ogni fine. Non e' un ripiego per stare offline — a quello ci
+// pensa gia' la cache di Firestore, che tiene la scrittura in sospeso e la
+// consegna al ritorno della rete — e' la rete di sicurezza per quando la
+// scrittura viene proprio RIFIUTATA.
+const CODA = 'inkflow_tempo_coda';
+
 let _stato = null;      // { da, accumulato, inPausa } — da = istante di avvio
 let _tic = null;
 // Chi vuole essere avvisato ad ogni secondo. Sono piu' di uno: la capsula in
@@ -61,28 +73,64 @@ function scrivi(s){
   }catch(e){}
 }
 
+let _coda = leggiCoda();
+function leggiCoda(){
+  try{
+    const v = JSON.parse(localStorage.getItem(CODA) || '[]');
+    return Array.isArray(v) ? v.filter(x=> x && x.giorno && x.secondi > 0) : [];
+  }catch(e){ return []; }
+}
+function scriviCoda(){
+  try{ localStorage.setItem(CODA, JSON.stringify(_coda)); }catch(e){}
+}
+// Quante sessioni aspettano ancora di arrivare al server. Serve alla scheda
+// delle Statistiche, che lo dice invece di far finta di niente.
+export function daSincronizzare(){ return _coda.length; }
+
 export function giornoDi(ms){
   const d = new Date(ms);
   return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
 }
 
-// Quanti secondi ha in pancia la sessione in corso, adesso.
-export function secondiCorrenti(){
-  if(!_stato) return 0;
-  const vivi = _stato.inPausa ? 0 : Math.floor((Date.now() - _stato.da) / 1000);
-  return Math.max(0, _stato.accumulato + vivi);
+// LA VERITA' STA IN TASCA, NON IN MEMORIA. La copia in memoria vale finche' la
+// pagina resta in piedi; localStorage sopravvive a un ricaricamento, a un
+// aggiornamento del service worker, alla scheda buttata via da Android. Se in
+// memoria non c'e' niente ma in tasca si', la sessione c'e' e va ripresa: cosi'
+// nessuna schermata puo' raccontare che il cronometro e' fermo mentre gira.
+function statoVivo(){
+  if(_stato) return _stato;
+  const s = leggi();
+  if(!s || typeof s.da !== 'number') return null;
+  _stato = s;
+  if(!s.inPausa && !_tic) batti();
+  return _stato;
 }
 
-export function acceso(){ return !!_stato; }
-export function inPausa(){ return !!(_stato && _stato.inPausa); }
+// Quanti secondi ha in pancia la sessione in corso, adesso.
+export function secondiCorrenti(){
+  const s = statoVivo();
+  if(!s) return 0;
+  const vivi = s.inPausa ? 0 : Math.floor((Date.now() - s.da) / 1000);
+  return Math.max(0, s.accumulato + vivi);
+}
+
+export function acceso(){ return !!statoVivo(); }
+export function inPausa(){ const s = statoVivo(); return !!(s && s.inPausa); }
 
 // ── AVVIO, PAUSA, FINE ──────────────────────────────────────────────────────
 export function avvia(){
-  if(_stato) return;
+  // Con una sessione gia' aperta, "avvia" non puo' essere un colpo a vuoto: se
+  // era in pausa si riprende, se stava gia' andando si lascia andare. Un
+  // pulsante che non fa niente e non lo dice e' indistinguibile da uno rotto.
+  const gia = statoVivo();
+  if(gia){ if(gia.inPausa) riprendi(); return gia; }
   _stato = { da: Date.now(), accumulato: 0, inPausa: false };
   scrivi(_stato);
   haptic('done');
   batti();
+  // Il momento buono per riprovare quello che era rimasto indietro: l'app e'
+  // aperta, in mano, e quasi sempre in rete.
+  svuotaCoda();
   return _stato;
 }
 
@@ -124,13 +172,40 @@ export async function ferma(){
   avvisa();
   if(secondi < MINIMO) return 0;
   try{
-    await setDoc(doc(db, SESSIONI, giorno), {
-      secondi: increment(secondi),
-      sessioni: increment(1),
-      ultimaIl: serverTimestamp(),
-    }, { merge: true });
-  }catch(e){ console.warn('salvataggio del tempo fallito:', e); }
+    await manda(giorno, secondi);
+    svuotaCoda();
+  }catch(e){
+    // Rifiutata. Resta in tasca, continua a contare nei totali, e si riprova.
+    console.warn('salvataggio del tempo fallito, resta in coda:', e);
+    _coda.push({ giorno, secondi });
+    scriviCoda();
+    avvisa();
+  }
   return secondi;
+}
+
+function manda(giorno, secondi){
+  return setDoc(doc(db, SESSIONI, giorno), {
+    secondi: increment(secondi),
+    sessioni: increment(1),
+    ultimaIl: serverTimestamp(),
+  }, { merge: true });
+}
+
+// Riprova a mandare quello che era rimasto indietro. Quello che il server
+// prende esce dalla coda; il resto ci resta e si riprovera' la volta dopo.
+export async function svuotaCoda(){
+  if(!_coda.length) return 0;
+  const restano = [];
+  let andate = 0;
+  for(const v of _coda){
+    try{ await manda(v.giorno, v.secondi); andate++; }
+    catch(e){ restano.push(v); }
+  }
+  _coda = restano;
+  scriviCoda();
+  avvisa();
+  return andate;
 }
 
 // ── IL BATTITO ──────────────────────────────────────────────────────────────
@@ -157,10 +232,17 @@ export function alSecondo(fn){
 // sarebbe successo restando aperti.
 export function riprendiSessione(){
   const s = leggi();
-  if(!s || typeof s.da !== 'number') return;
+  // Niente in tasca vuol dire niente in corso, anche se in memoria era rimasto
+  // qualcosa: e' localStorage a dire come stanno le cose, non il contrario.
+  if(!s || typeof s.da !== 'number'){
+    if(_stato){ _stato = null; clearInterval(_tic); _tic = null; avvisa(); }
+    svuotaCoda();
+    return;
+  }
   _stato = s;
   if(secondiCorrenti() >= TETTO){ ferma(); return; }
   if(!s.inPausa) batti(); else avvisa();
+  svuotaCoda();
 }
 
 // ── I NUMERI ────────────────────────────────────────────────────────────────
@@ -168,6 +250,10 @@ export function riprendiSessione(){
 // capsula che li mostra): non c'e' motivo di tenere aperta una connessione per
 // dei totali che nessuno sta guardando.
 export function ascoltaSessioni(alCambio){
+  // Chi guarda i numeri e' anche il momento buono per riprovare a mandare
+  // quello che era rimasto indietro: la scheda si aggiorna da sola quando
+  // passa, senza che nessuno debba fare niente.
+  svuotaCoda();
   if(_unsub){ if(alCambio) alCambio(); return; }
   _unsub = onSnapshot(collection(db, SESSIONI), snap=>{
     _giorni = new Map();
@@ -185,10 +271,14 @@ export function ascoltaSessioni(alCambio){
 // con l'unica conclusione ragionevole che il cronometro non stesse funzionando.
 // Adesso il tempo che sta scorrendo e' gia' dentro, e il numero si muove.
 function conCorrente(mappa){
-  if(!_stato) return mappa;
-  const g = giornoDi(_stato.da);
+  const s = statoVivo();
+  if(!s && !_coda.length) return mappa;
   const m = new Map(mappa);
-  m.set(g, (m.get(g) || 0) + secondiCorrenti());
+  // Prima le sessioni che il server ha rifiutato: sono tempo davvero fatto, e
+  // finche' non sono passate devono restare nei conti. Se sparissero, il
+  // totale scenderebbe — che e' l'unica cosa che questo numero non puo' fare.
+  for(const v of _coda) m.set(v.giorno, (m.get(v.giorno) || 0) + v.secondi);
+  if(s) m.set(giornoDi(s.da), (m.get(giornoDi(s.da)) || 0) + secondiCorrenti());
   return m;
 }
 

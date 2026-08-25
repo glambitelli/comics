@@ -629,7 +629,13 @@ window.goHomeFromLogo = goHomeAlways;
 // continua a scorrere e nessuno lo vede. Si guarda in tasca senza caricare
 // niente: basta sapere se c'e' qualcosa da riprendere.
 function tempoDaRiprendere(){
-  try{ return !!localStorage.getItem('inkflow_tempo_acceso'); }catch(e){ return false; }
+  try{
+    // Anche una sessione rimasta in coda basta a caricare il modulo: e' tempo
+    // gia' fatto che il server non ha ancora preso, e va riprovato prima
+    // possibile — non alla prossima volta che si apre il cronometro.
+    return !!localStorage.getItem('inkflow_tempo_acceso')
+        || !!localStorage.getItem('inkflow_tempo_coda');
+  }catch(e){ return false; }
 }
 let _tempoMod = null;
 async function tempo(){
