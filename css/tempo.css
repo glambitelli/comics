@@ -73,18 +73,32 @@ body.scena-open .tempo-capsula{display:none}
 }
 .tempo-btn:active{transform:scale(.9);background:rgba(255,248,232,.2)}
 /* I due glifi della pausa sono disegnati qui e non in HTML: cambiano ad ogni
-   tocco, e ricostruire il pulsante ogni volta per due rettangoli non ha senso. */
+   tocco, e ricostruire il pulsante ogni volta per due rettangoli non ha senso.
+   Le due stecche sono ATTACCATE — 3px di larghezza e 3 di distanza. Prima erano
+   sottili e larghe undici pixel in tutto: da lontano non si leggeva una pausa,
+   si leggevano due trattini messi li'. Il segno della pausa e' compatto. */
 .tempo-btn#tempo-pausa::before{
   content:'';width:11px;height:12px;
-  border-left:3.5px solid currentColor;border-right:3.5px solid currentColor;
+  background:currentColor;
+  -webkit-mask:linear-gradient(#000 0 0) 0 0 / 4px 100% no-repeat,
+               linear-gradient(#000 0 0) 100% 0 / 4px 100% no-repeat;
+          mask:linear-gradient(#000 0 0) 0 0 / 4px 100% no-repeat,
+               linear-gradient(#000 0 0) 100% 0 / 4px 100% no-repeat;
 }
 .tempo-capsula.ferma .tempo-btn#tempo-pausa::before{
-  width:0;height:0;border:none;
+  width:0;height:0;background:none;-webkit-mask:none;mask:none;
   border-left:11px solid currentColor;
   border-top:7px solid transparent;border-bottom:7px solid transparent;
   margin-left:3px;
 }
-.tempo-stop{color:var(--rame);border-color:rgba(200,88,56,.4)}
+/* LO STOP E' PIENO, non un contorno. Sul vetro scuro della capsula un rame
+   scuro su fondo scuro non si vedeva: era il pulsante piu' importante dei due —
+   quello che chiude la sessione e la mette in archivio — ed era l'unico che
+   spariva. Adesso e' un disco pieno col quadratino ritagliato dentro. */
+.tempo-stop{
+  background:var(--rame);border-color:transparent;color:#2a1a12;
+}
+.tempo-stop:active{background:#d9663f;transform:scale(.9)}
 
 /* ── LA SCHEDA IN STATISTICHE ──
    Il numero grande e' la settimana; il totale di sempre sta sotto, in piccolo.
@@ -119,3 +133,32 @@ body.scena-open .tempo-capsula{display:none}
 /* A zero non si scrive "0 ore": si dice cosa fare. Un contatore a zero con sotto
    due righe di zeri e' una schermata che rimprovera. */
 .tempo-vuoto{font-size:13px;line-height:1.6;color:var(--ink3);margin:8px auto 0;max-width:34ch}
+
+/* ── LE ULTIME OTTO SETTIMANE ──
+   Una barra per settimana, due mesi in tutto. Le altezze sono in proporzione
+   alla settimana piu' alta delle otto e NON a un obiettivo: qui non c'e' niente
+   da raggiungere, si guarda solo la forma — se il passo c'e' o si e' perso. */
+.tempo-barre{
+  display:flex;align-items:flex-end;gap:6px;height:56px;margin:16px 2px 0;
+}
+.tempo-barra{
+  flex:1;height:100%;display:flex;align-items:flex-end;border-radius:4px;
+  background:var(--sand);overflow:hidden;
+}
+.tempo-barra span{
+  display:block;width:100%;border-radius:4px;
+  background:linear-gradient(180deg,#e0a810,#c89830);
+  transition:height .3s ease;
+}
+/* La settimana in corso e' scura: e' quella che si sta ancora scrivendo, e
+   confrontarla con le altre a parita' di colore sarebbe ingiusto — e' l'unica
+   che non e' finita. */
+.tempo-barra.ora span{background:linear-gradient(180deg,#3a2c1e,#1a1410)}
+.tempo-barre-piede{
+  display:flex;justify-content:space-between;gap:8px;margin-top:7px;
+  font-size:10px;font-weight:700;letter-spacing:.04em;color:var(--ink3);opacity:.75;
+}
+.tempo-barre-piede span:nth-child(2){opacity:.85;text-transform:none;letter-spacing:0}
+/* "Sta contando": la sessione in corso e' gia' dentro il numero grande, e
+   questa parola lo dice senza aggiungere una riga. */
+.tempo-sotto-grande em{font-style:normal;color:var(--ottone);opacity:.95}

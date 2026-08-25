@@ -79,6 +79,15 @@ function getActivityData(){
       data[key]=(data[key]||0)+1;
     });
   });
+  // E LE ORE AL TAVOLO, un'ora un punto. Senza, un giorno passato a disegnare
+  // senza finire niente restava bianco sulla mappa dell'anno — cioe' la mappa
+  // diceva "non hai fatto niente" proprio nei giorni di lavoro vero. Che e'
+  // l'opposto di quello che questa mappa dovrebbe mostrare.
+  if(_tempoMod){
+    for(const [g, secondi] of _tempoMod.secondiPerGiorno()){
+      data[g] = (data[g]||0) + Math.round(secondi/3600);
+    }
+  }
   return data;
 }
 
@@ -211,9 +220,15 @@ function renderTempo(){
   import('./tempo.js').then(m=>{
     _tempoMod = m;
     m.ascoltaSessioni(()=> disegnaTempoScheda(m));
+    // E il secondo che scorre: con una sessione in corso la scheda si muove,
+    // se no le ore appena fatte sembrano non esistere finche' non si preme
+    // stop. E' la stessa funzione ogni volta, quindi non si accumula.
+    m.alSecondo(_ticTempo);
     disegnaTempoScheda(m);
   }).catch(()=>{});
 }
+function _ticTempo(){ if(_tempoMod) disegnaTempoScheda(_tempoMod); }
+
 function disegnaTempoScheda(m){
   const box = document.getElementById('stats-tempo');
   if(!box) return;
@@ -230,10 +245,40 @@ function disegnaTempoScheda(m){
   }
   box.innerHTML = `<div class="stats-card-label">Tempo al tavolo</div>
     <div class="tempo-grande"><b>${esc(grande.n)}</b><span>${esc(grande.u)}</span></div>
-    <div class="tempo-sotto-grande">questa settimana</div>
+    <div class="tempo-sotto-grande">questa settimana${
+      m.acceso() ? ' · <em>sta contando</em>' : ''}</div>
+    ${barreSettimane(m)}
     <div class="tempo-righe">
       <div><b>${esc(m.scriviBreve(mese))}</b><span>questo mese</span></div>
       <div><b>${esc(m.scriviBreve(totale))}</b><span>da sempre</span></div>
+    </div>`;
+}
+
+// ── LE ULTIME OTTO SETTIMANE ──
+// Una barra per settimana. Due mesi e' la finestra giusta: un anno intero
+// appiattisce tutto e non dice niente sul mese scorso, una settimana sola non
+// e' un ritmo. Le barre sono alte in proporzione alla piu' alta delle otto e
+// non a un obiettivo: qui non c'e' niente da raggiungere, si guarda solo la
+// forma — se il passo c'e' o si e' perso.
+function barreSettimane(m){
+  const sett = m.ultimeSettimane(8);
+  const max = Math.max(...sett.map(s=> s.secondi), 1);
+  const nomi = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
+  const barre = sett.map((s,i)=>{
+    const alt = Math.round((s.secondi / max) * 100);
+    const ultima = i === sett.length - 1;
+    // Una settimana a zero resta un filo visibile: una colonna che non c'e'
+    // sembra un buco nel grafico, non una settimana senza disegno.
+    return `<div class="tempo-barra${ultima ? ' ora' : ''}" title="${escAttr(m.scriviBreve(s.secondi))}">
+      <span style="height:${Math.max(alt, s.secondi ? 4 : 2)}%"></span>
+    </div>`;
+  }).join('');
+  const primo = sett[0].da, ultimo = sett[sett.length-1].da;
+  return `<div class="tempo-barre">${barre}</div>
+    <div class="tempo-barre-piede">
+      <span>${primo.getDate()} ${nomi[primo.getMonth()]}</span>
+      <span>${m.scriviBreve(max)} nella migliore</span>
+      <span>${ultimo.getDate()} ${nomi[ultimo.getMonth()]}</span>
     </div>`;
 }
 
@@ -510,7 +555,7 @@ function renderHeatmap(){
   const legend=document.getElementById('stats-heatmap-legend');
   if(legend){
     legend.innerHTML=`
-      <div style="margin-bottom:8px">Ogni quadrato è un giorno. Più è dorato, più hai lavorato (task serali completate + tavole finite).</div>
+      <div style="margin-bottom:8px">Ogni quadrato è un giorno. Più è dorato, più hai lavorato: ore al tavolo, tavole finite, task serali.</div>
       <div style="display:flex;align-items:center;justify-content:center;gap:6px;font-size:10px;color:var(--ink3)">
         <span>meno</span>
         <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#ece2cd"></span>

@@ -223,4 +223,81 @@ module.exports = () => suite("Il tempo al tavolo — le ore non si perdono",
   });
   ok('non scrive "0 ore" tre volte', !vuota.zeri, vuota);
   ok('dice invece dove sta il cronometro', /home/i.test(vuota.testo), vuota);
+
+  sezione('e la sessione in corso conta GIA\', senza aspettare lo stop');
+  // Il difetto: si disegnava mezz'ora, si andava a vedere le Statistiche e non
+  // c'era niente — le ore entravano nei conti soltanto premendo stop. L'unica
+  // conclusione ragionevole era che il cronometro non stesse funzionando.
+  const inCorso = await page.evaluate(async ()=>{
+    window.tempo.__seminaGiorni(new Map());
+    localStorage.setItem('inkflow_tempo_acceso', JSON.stringify({
+      da: Date.now() - 30*60*1000, accumulato: 0, inPausa: false }));
+    window.tempo.riprendiSessione();
+    const st = await import('/js/stats.js');
+    st.renderStats();
+    await new Promise(r=> setTimeout(r, 400));
+    const box = document.getElementById('stats-tempo');
+    return {
+      settimana: Math.round(window.tempo.secondiSettimana()/60),
+      totale: Math.round(window.tempo.secondiTotali()/60),
+      // E la scheda lo dice, invece di far sembrare che il numero sia fermo.
+      dice: /sta contando/i.test(box.textContent),
+      // Non e' piu' la scheda vuota: mezz'ora e' gia' qualcosa.
+      vuota: /cronometro sta in cima/i.test(box.textContent),
+    };
+  });
+  ok('la mezz\'ora in corso e\' gia\' nella settimana', inCorso.settimana === 30, inCorso);
+  ok('e nel totale di sempre', inCorso.totale === 30, inCorso);
+  ok('la scheda dice che sta contando', inCorso.dice, inCorso);
+  ok('e non e\' piu\' quella vuota', !inCorso.vuota, inCorso);
+
+  sezione('le otto settimane si leggono come un ritmo');
+  const barre = await page.evaluate(async ()=>{
+    localStorage.removeItem('inkflow_tempo_acceso');
+    window.tempo.riprendiSessione();
+    const g = window.tempo.giornoDi;
+    const oggi = new Date();
+    const meno = n => { const d = new Date(oggi); d.setDate(d.getDate()-n); return d; };
+    const dentro = new Map();
+    dentro.set(g(oggi.getTime()), 3600);          // questa settimana: un'ora
+    dentro.set(g(meno(10).getTime()), 4*3600);    // due settimane fa: quattro
+    dentro.set(g(meno(45).getTime()), 2*3600);    // sette settimane fa: due
+    window.tempo.__seminaGiorni(dentro);
+    const st = await import('/js/stats.js');
+    st.renderStats();
+    await new Promise(r=> setTimeout(r, 300));
+    const box = document.getElementById('stats-tempo');
+    const b = Array.from(box.querySelectorAll('.tempo-barra span'));
+    return {
+      quante: b.length,
+      // Le altezze sono in proporzione alla settimana piu' alta, non a un
+      // obiettivo: la piu' alta e' piena, le altre in scala.
+      altezze: b.map(x=> x.style.height),
+      // Nemmeno una settimana a zero sparisce del tutto: una colonna che non
+      // c'e' sembra un buco nel grafico, non una settimana senza disegno.
+      nessunaVuota: b.every(x=> parseFloat(x.style.height) > 0),
+      // L'ultima e' quella in corso, ed e' segnata come tale.
+      ultimaInCorso: box.querySelectorAll('.tempo-barra.ora').length === 1,
+      migliore: /nella migliore/.test(box.textContent),
+    };
+  });
+  ok('ci sono otto settimane', barre.quante === 8, barre);
+  ok('la migliore riempie la colonna', barre.altezze.includes('100%'), barre);
+  ok('nessuna settimana sparisce del tutto', barre.nessunaVuota, barre);
+  ok('e l\'ultima e\' segnata come quella in corso', barre.ultimaInCorso, barre);
+  ok('col riferimento della settimana migliore', barre.migliore, barre);
+
+  sezione('e le ore colorano la mappa dell\'anno');
+  // Senza, un giorno passato a disegnare senza finire niente restava bianco:
+  // la mappa diceva "non hai fatto niente" proprio nei giorni di lavoro vero.
+  const mappa = await page.evaluate(async ()=>{
+    const st = await import('/js/stats.js');
+    st.renderStats();
+    await new Promise(r=> setTimeout(r, 300));
+    const piede = document.getElementById('stats-heatmap-legend');
+    const attivi = (piede.textContent.match(/(\d+) giorni attivi/)||[])[1];
+    return { attivi: parseInt(attivi||'0',10), didascalia: piede.textContent };
+  });
+  ok('i giorni con ore risultano attivi', mappa.attivi >= 3, mappa);
+  ok('e la didascalia lo dice', /ore al tavolo/i.test(mappa.didascalia), mappa);
 });

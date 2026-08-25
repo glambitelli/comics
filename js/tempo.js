@@ -37,7 +37,10 @@ const TETTO = 8 * 3600;
 
 let _stato = null;      // { da, accumulato, inPausa } — da = istante di avvio
 let _tic = null;
-let _alTic = null;      // chi vuole essere avvisato ad ogni secondo
+// Chi vuole essere avvisato ad ogni secondo. Sono piu' di uno: la capsula in
+// fondo e, quando e' a schermo, la scheda delle Statistiche — che deve muoversi
+// mentre il cronometro gira, se no una sessione in corso sembra non esistere.
+let _ascoltatori = [];
 let _giorni = new Map(); // 'AAAA-MM-GG' → secondi
 let _unsub = null;
 
@@ -134,8 +137,11 @@ function batti(){
     avvisa();
   }, 1000);
 }
-function avvisa(){ if(_alTic) try{ _alTic(); }catch(e){} }
-export function alSecondo(fn){ _alTic = fn; avvisa(); }
+function avvisa(){ _ascoltatori.forEach(fn=>{ try{ fn(); }catch(e){} }); }
+export function alSecondo(fn){
+  if(!_ascoltatori.includes(fn)) _ascoltatori.push(fn);
+  avvisa();
+}
 
 // Riprende il cronometro lasciato acceso alla chiusura dell'app. Se nel
 // frattempo ha superato il tetto, si chiude subito col tetto: e' quello che
@@ -164,14 +170,27 @@ export function ascoltaSessioni(alCambio){
   }, err=> console.warn('listener sessioni:', err));
 }
 
-export function secondiPerGiorno(){ return _giorni; }
+// LA SESSIONE IN CORSO CONTA GIA'. Prima i totali guardavano solo quello che
+// era finito in archivio, e le ore entravano nei conti soltanto premendo stop:
+// si disegnava mezz'ora, si andava a vedere le Statistiche e non c'era niente —
+// con l'unica conclusione ragionevole che il cronometro non stesse funzionando.
+// Adesso il tempo che sta scorrendo e' gia' dentro, e il numero si muove.
+function conCorrente(mappa){
+  if(!_stato) return mappa;
+  const g = giornoDi(_stato.da);
+  const m = new Map(mappa);
+  m.set(g, (m.get(g) || 0) + secondiCorrenti());
+  return m;
+}
+
+export function secondiPerGiorno(){ return conCorrente(_giorni); }
 // Solo per le prove: mette in mano al modulo la mappa dei giorni che
 // normalmente arriva da Firestore, senza dover fingere un listener.
 export function __seminaGiorni(m){ _giorni = m; }
 
 export function secondiTotali(){
   let t = 0;
-  for(const n of _giorni.values()) t += n;
+  for(const n of conCorrente(_giorni).values()) t += n;
   return t;
 }
 
@@ -188,7 +207,7 @@ export function inizioSettimana(ora = new Date()){
 export function secondiSettimana(){
   const da = inizioSettimana().getTime();
   let t = 0;
-  for(const [g, n] of _giorni) if(new Date(g + 'T00:00:00').getTime() >= da) t += n;
+  for(const [g, n] of conCorrente(_giorni)) if(new Date(g + 'T00:00:00').getTime() >= da) t += n;
   return t;
 }
 
@@ -196,8 +215,30 @@ export function secondiMese(){
   const ora = new Date();
   const pre = ora.getFullYear() + '-' + String(ora.getMonth()+1).padStart(2,'0');
   let t = 0;
-  for(const [g, n] of _giorni) if(g.startsWith(pre)) t += n;
+  for(const [g, n] of conCorrente(_giorni)) if(g.startsWith(pre)) t += n;
   return t;
+}
+
+// ── LE ULTIME OTTO SETTIMANE ────────────────────────────────────────────────
+// Una barra per settimana, due mesi in tutto. E' la finestra giusta: un anno
+// intero appiattisce tutto e non dice niente sul mese scorso, e una sola
+// settimana non e' un ritmo. Otto barre si leggono in un colpo e mostrano se il
+// passo c'e' o si e' perso.
+export function ultimeSettimane(quante = 8){
+  const giorni = conCorrente(_giorni);
+  const dentro = [];
+  const cima = inizioSettimana();
+  for(let i = quante - 1; i >= 0; i--){
+    const da = new Date(cima); da.setDate(da.getDate() - i*7);
+    const a = new Date(da); a.setDate(a.getDate() + 7);
+    let t = 0;
+    for(const [g, n] of giorni){
+      const q = new Date(g + 'T00:00:00').getTime();
+      if(q >= da.getTime() && q < a.getTime()) t += n;
+    }
+    dentro.push({ da, secondi: t });
+  }
+  return dentro;
 }
 
 // ── COME SI SCRIVE UN TEMPO ─────────────────────────────────────────────────
