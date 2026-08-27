@@ -268,4 +268,50 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
   ok('e ci portano davvero', await page.evaluate(()=>
      document.getElementById('screen-idee').classList.contains('active')), null);
 
+
+  console.log('\n── e la capsula del cronometro non si siede sopra i comandi ──');
+  // COL MOUSE LA CAPSULA SCENDEVA AL CENTRO IN FONDO, dove la barra-duna non
+  // c'e'. Ma li' c'e' la fila di tondi della home — sera, References, Scene,
+  // Impostazioni — che a finestra bassa arriva proprio in fondo: misurato a
+  // 1100x760, capsula 448-652 orizzontale e 694-740 verticale, tondi 430-670 e
+  // 688-736. Sovrapposti in pieno, coi pulsanti sotto irraggiungibili.
+  // Si torna alla home: i tondi sono suoi, e le prove qui sopra hanno lasciato
+  // aperta un'altra schermata.
+  await page.evaluate(()=> window.goHome());
+  await page.waitForTimeout(500);
+  const sovrapposizioni = [];
+  for(const vp of [{width:1100,height:760},{width:900,height:640},{width:1400,height:900}]){
+    await page.setViewportSize(vp);
+    await page.waitForTimeout(350);         // il rilevamento del tocco si ricalcola
+    const r = await page.evaluate((misura)=>{
+      const caps = document.getElementById('tempo-capsula');
+      caps.hidden = false;
+      const c = caps.getBoundingClientRect();
+      const coperti = Array.from(document.querySelectorAll('.home-fab, .home-new-add, button, a'))
+        .filter(x=> !caps.contains(x))
+        .filter(x=>{
+          const q = x.getBoundingClientRect();
+          return q.width > 0 && q.height > 0 &&
+            !(q.right < c.left || q.left > c.right || q.bottom < c.top || q.top > c.bottom);
+        })
+        .map(x=> x.id || String(x.className).slice(0, 30));
+      caps.hidden = true;
+      return {
+        misura,
+        coperti,
+        isTouch: document.body.classList.contains('is-touch'),
+        capsula: [Math.round(c.left), Math.round(c.right), Math.round(c.top), Math.round(c.bottom)],
+        fabVisibili: Array.from(document.querySelectorAll('.home-fab')).filter(x=> x.getBoundingClientRect().width > 0).length,
+        // E deve restare dentro la finestra: spingerla a destra senza guardare
+        // la porterebbe fuori dal bordo sugli schermi stretti.
+        dentro: c.right <= window.innerWidth + 1 && c.left >= -1 && c.bottom <= window.innerHeight + 1,
+      };
+    }, vp.width + 'x' + vp.height);
+    sovrapposizioni.push(r);
+  }
+  ok('col mouse la capsula non copre nessun comando',
+     sovrapposizioni.every(r=> r.coperti.length === 0), sovrapposizioni);
+  ok('e resta dentro la finestra a ogni misura',
+     sovrapposizioni.every(r=> r.dentro), sovrapposizioni);
+
 });

@@ -28,7 +28,12 @@
    l'unico posto da cui si ferma. */
 .tempo-capsula{
   position:fixed;left:50%;transform:translateX(-50%);
-  bottom:calc(96px + var(--safe-bottom,0px));z-index:9000;
+  /* --safe-bot, non --safe-bottom: quest'ultima non esiste (vedi
+     variables.css) e il calcolo cadeva sempre sullo zero di riserva. Sui
+     telefoni con la barretta in fondo la barra-duna si alzava e la capsula no,
+     e le due si avvicinavano di quei pochi millimetri che bastano a sbagliare
+     pulsante. */
+  bottom:calc(96px + var(--safe-bot,0px));z-index:9000;
   display:flex;align-items:center;gap:9px;
   padding:7px 8px 7px 13px;border-radius:999px;
   background:rgba(30,22,10,.72);border:1px solid rgba(232,200,120,.24);
@@ -36,8 +41,20 @@
   box-shadow:0 6px 22px rgba(0,0,0,.3);
 }
 .tempo-capsula[hidden]{display:none}
-/* Col mouse la barra-duna non c'e': la capsula scende dove ci sarebbe. */
-body:not(.is-touch) .tempo-capsula{bottom:calc(20px + var(--safe-bottom,0px))}
+/* COL MOUSE LA CAPSULA VA NELL'ANGOLO, e non al centro in fondo.
+   La barra-duna col mouse non c'e', e la capsula scendeva a prendere il suo
+   posto: centrata, in fondo — cioe' esattamente sopra la fila di tondi della
+   home (sera, References, Scene, Impostazioni), che a finestra bassa arriva
+   proprio li'. Misurato a 1100x760: la capsula occupava 448-652 in orizzontale
+   e 694-740 in verticale, i quattro tondi 430-670 e 688-736. Sovrapposti in
+   pieno, coi pulsanti sotto irraggiungibili.
+   La colonna dei contenuti e' centrata e stretta: il margine destro e' vuoto
+   per definizione, ed e' il posto dove un oggetto che galleggia non copre mai
+   niente. */
+body:not(.is-touch) .tempo-capsula{
+  bottom:calc(20px + var(--safe-bot,0px));
+  left:auto;right:20px;transform:none;
+}
 /* Dentro un foglio a tutto schermo — una scena, un albo, un riferimento — la
    capsula si toglie: li' si sta guardando una cosa sola, e il cronometro
    continua a contare anche senza farsi vedere. */
