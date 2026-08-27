@@ -188,6 +188,54 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
   ok('e il marchio comincia sempre alla stessa distanza dal bordo',
      new Set(testate.marchi.filter(x=> x !== null)).size === 1, testate.marchi);
 
+  console.log('\n── e da dentro un progetto la via di casa non sparisce ──');
+  // ERA L'UNICA SCHERMATA SENZA MARCHIO: si apriva un progetto e "Inkflow" non
+  // c'era piu', quando dappertutto altrove basta toccarlo per tornare a casa.
+  const dentroUnProgetto = await page.evaluate(()=>{
+    const t = document.querySelector('#screen-project .section-title');
+    const sub = document.querySelector('#screen-project .section-sub');
+    return {
+      c: !!t,
+      dice: t ? t.textContent.trim().startsWith('Inkflow') : false,
+      sotto: sub ? sub.textContent.trim() : null,
+      tocca: t ? (t.getAttribute('onclick') || '') : '',
+      // Il titolo grande resta quello del progetto: due scritte da 46 e 38
+      // pixel una sopra l'altra si contenderebbero la pagina.
+      misuraMarchio: t ? parseFloat(getComputedStyle(t).fontSize) : 0,
+      misuraProgetto: parseFloat(getComputedStyle(document.getElementById('proj-title')).fontSize),
+    };
+  });
+  ok('il marchio c\'e\' anche nel progetto', dentroUnProgetto.c && dentroUnProgetto.dice, dentroUnProgetto);
+  ok('e sotto dice "projects"', dentroUnProgetto.sotto === 'projects', dentroUnProgetto);
+  ok('toccandolo si torna a casa',
+     /goHomeFromLogo/.test(dentroUnProgetto.tocca), dentroUnProgetto);
+  ok('ma il titolo grande resta il nome del progetto',
+     dentroUnProgetto.misuraProgetto > dentroUnProgetto.misuraMarchio, dentroUnProgetto);
+
+  console.log('\n── e sotto gli angoli dell\'intestazione il fondo e\' lo stesso ──');
+  // Le intestazioni sono arrotondate in basso, e dietro i due angoli si vedeva
+  // il fondo del body — sabbia chiara — invece di quello della schermata: due
+  // tacche piu' chiare ai lati, che si notano proprio perche' stanno ai bordi.
+  const fondi = await page.evaluate(()=>{
+    const quali = ['screen-scene','screen-idee','screen-refs','screen-stats'];
+    const scroll = { 'screen-scene':'.scene-scroll', 'screen-idee':'.idee-scroll',
+                     'screen-refs':'.refs-scroll', 'screen-stats':'.stats-scroll' };
+    return quali.map(id=>{
+      const sc = document.getElementById(id);
+      const dentro = sc && sc.querySelector(scroll[id]);
+      return {
+        id,
+        schermata: sc ? getComputedStyle(sc).backgroundColor : null,
+        // Il fondo dello scroll puo' avere anche la grana: qui interessa il colore.
+        contenuto: dentro ? getComputedStyle(dentro).backgroundColor : null,
+      };
+    });
+  });
+  ok('la schermata ha lo stesso fondo del suo contenuto',
+     fondi.every(f=> f.schermata && f.contenuto && f.schermata === f.contenuto), fondi);
+  ok('e nessuna resta trasparente sul body',
+     fondi.every(f=> f.schermata && !/rgba\(0, 0, 0, 0\)/.test(f.schermata)), fondi);
+
   console.log('\n── il quarto tondo porta alle Scene, e il taccuino e\' sceso in Impostazioni ──');
   // I cinque tondi sono per quello che si tocca ogni volta che si apre l'app.
   // Il taccuino si apre quando passa un pensiero — di rado, e da fermi — e per

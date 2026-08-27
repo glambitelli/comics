@@ -507,6 +507,15 @@
 
 <div class="screen" id="screen-project">
   <div class="proj-header">
+    <!-- IL MARCHIO STA IN CIMA ANCHE QUI. Era l'unica schermata senza: si
+         entrava in un progetto e la via di casa spariva, quando in tutte le
+         altre basta toccare "Inkflow". Sta sopra il nome del progetto e in
+         piccolo (vedi .proj-marchio): il titolo grande resta quello del
+         progetto, perche' e' di lui che parla la schermata. -->
+    <div class="proj-marchio">
+      <div class="section-title" onclick="goHomeFromLogo()" style="cursor:pointer" role="button" tabindex="0" aria-label="Torna alla home">Inkflow <span style="font-size:.6em;color:#f0c020;vertical-align:.14em;font-weight:400">✦</span></div>
+      <div class="section-sub">projects</div>
+    </div>
     <div class="proj-title-row">
       <div class="proj-title-edit" id="proj-title"></div><span class="proj-dot">.</span>
     </div>
