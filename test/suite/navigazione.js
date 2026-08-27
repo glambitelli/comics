@@ -223,6 +223,29 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
   ok('e Idee non c\'e\' piu\'', !quarto.idee, quarto);
   ok('i tondi restano cinque', quarto.quanti === 5, quarto);
 
+  // LA FILA DEL MOUSE DEVE DIRE LE STESSE COSE. La barra-duna e' solo touch:
+  // col mouse la navigazione sono i tondi in cima alla home, ed erano rimasti
+  // indietro — tenevano ancora le Statistiche e non avevano le Scene. Dal
+  // browser la sezione nuova semplicemente non esisteva.
+  const colMouse = await page.evaluate(()=>{
+    const b = Array.from(document.querySelectorAll('.home-fab-row .home-fab'));
+    return {
+      etichette: b.map(x=> x.getAttribute('aria-label')),
+      scene: b.some(x=> x.getAttribute('aria-label') === 'Scene'),
+      stats: b.some(x=> x.getAttribute('aria-label') === 'Statistiche'),
+    };
+  });
+  ok('col mouse le Scene ci sono', colMouse.scene, colMouse);
+  // Le Statistiche si guardano ogni tanto, non ogni giorno: stanno in cima
+  // alle Impostazioni, sul telefono come col mouse.
+  ok('e le Statistiche sono uscite anche da li\'', !colMouse.stats, colMouse);
+  // Le stesse quattro destinazioni, nello stesso ordine. La barra-duna ha in
+  // piu' la casa al centro, che col mouse e' il marchio in cima.
+  ok('e le due navigazioni portano nelle stesse stanze',
+     colMouse.etichette.join(' | ')
+       === quarto.etichette.filter(x=> x !== 'Home').join(' | '),
+     { colMouse: colMouse.etichette, barra: quarto.etichette });
+
   await page.evaluate(()=> document.querySelector('.dune-btn[aria-label="Scene"]').click());
   await page.waitForTimeout(600);
   const suScene = await page.evaluate(()=>({

@@ -39,7 +39,11 @@ module.exports = () => suite("Accesso — l'archivio si apre solo a chi e' entra
     bottone: (document.getElementById('accesso-btn')||{}).textContent.trim(),
   }));
   ok('la porta e\' a schermo', chiusa.porta, chiusa.porta);
-  ok('dice di chi e\' l\'archivio', /tuo, e solo tuo/i.test(chiusa.testo), chiusa.testo);
+  // UNA RIGA SOLA, e dice come si entra. "Questo archivio e' tuo, e solo tuo"
+  // era una rassicurazione che nessuno aveva chiesto: davanti a una porta
+  // chiusa si vuole sapere come si apre, non a chi appartiene la casa.
+  ok('dice come si entra, e basta', /accedi con il tuo account google/i.test(chiusa.testo), chiusa.testo);
+  ok('senza spiegazioni di troppo', !/solo tuo/i.test(chiusa.testo), chiusa.testo);
   ok('e come si entra', /Entra con Google/i.test(chiusa.bottone||''), chiusa.bottone);
   ok('e NESSUN dato viene chiesto prima di entrare',
      chiusa.ascolti.length === 0, chiusa.ascolti);

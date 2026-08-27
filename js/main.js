@@ -741,16 +741,26 @@ window.dallaScenaAllaHome = ()=>{
 
 initNotifications();
 
-// LA VERSIONE CHE STA GIRANDO DAVVERO, scritta in fondo alla home e alla sera
-// al posto del "v1.0.0" fisso che non ha mai voluto dire niente.
+// LA VERSIONE CHE STA GIRANDO DAVVERO, e dove si vede.
 //
 // A chiederla e' la pagina, ma a rispondere e' il SERVICE WORKER: e' lui che
 // serve i file, quindi e' l'unico che sa quale copia si sta guardando. Serve a
 // una cosa sola, e concreta: quando qualcosa "non e' cambiato" si guarda li' e
 // si sa subito se e' arrivato l'aggiornamento o se il telefono sta ancora
 // servendo la copia vecchia — invece di ricaricare a caso.
+//
+// STAVA IN FONDO ALLA HOME, accanto al marchio, e li' era solo un codice
+// buttato addosso a chi voleva disegnare: "inkflow-static-v295" non e' una cosa
+// da leggere tutti i giorni. Adesso il marchio tiene il suo v1.0.0 e la
+// versione vera sta in Impostazioni, sotto Diagnostica — dove ci si va apposta,
+// perche' e' una domanda che ci si fa apposta. Resta anche su body.dataset,
+// cosi' il backup continua a portarsela dietro senza doverla leggere a schermo.
 function mostraVersione(){
-  const scrivi = v=> document.querySelectorAll('.app-vers').forEach(e=> e.textContent = v);
+  const scrivi = v=>{
+    document.body.dataset.vers = v;
+    const el = document.getElementById('versione-viva');
+    if(el) el.textContent = v;
+  };
   if(!('serviceWorker' in navigator)) return;
   // reg.active e non navigator.serviceWorker.controller: al primissimo avvio
   // (o subito dopo un aggiornamento) il service worker e' gia' attivo ma non

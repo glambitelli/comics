@@ -1,10 +1,12 @@
-// La versione scritta in fondo alla home e' quella che sta girando davvero
+// La versione che sta girando davvero — a disposizione, ma non addosso
 //
 // Serve a una domanda che si e' ripetuta troppe volte: "ho pubblicato" / "io
 // vedo ancora quella vecchia". Un telefono puo' servire una copia in cache per
 // un bel po', e senza un numero a schermo si ricarica a caso e si discute al
 // buio. Il numero lo dice il SERVICE WORKER — non la pagina, che potrebbe
-// essere lei la copia vecchia — perche' e' lui che i file li serve.
+// essere lei la copia vecchia — perche' e' lui che i file li serve. A schermo
+// non ci finisce: accanto al marchio resta il v1.0.0, e il numero di serie si
+// legge in Impostazioni sotto Diagnostica, dove ci si va apposta.
 const fs = require('fs');
 const path = require('path');
 const { suite } = require('../motore.js');
@@ -13,7 +15,7 @@ const SDK_FINTO = fs.readFileSync(path.join(__dirname, '..', 'finti', 'firebase-
 const SW = fs.readFileSync(path.join(__dirname, '..', '..', 'sw.js'), 'utf8');
 // Due numeri e due mestieri (vedi sw.js): la versione dell'app, che cambia
 // quando cambia cosa l'app sa fare, e il numero di serie della pubblicazione,
-// che cambia ad ogni ritocco. A schermo si vedono tutti e due.
+// che cambia ad ogni ritocco. In Diagnostica si leggono tutti e due.
 const SERIE = (SW.match(/inkflow-static-(v\d+)/) || [])[1];
 const NUMERO = (SW.match(/const VERSIONE = '([^']+)'/) || [])[1];
 const ATTESA = NUMERO + ' \u00b7 ' + SERIE;
@@ -47,17 +49,22 @@ module.exports = () => suite("Versione — quella scritta e' quella che gira", {
   ok('con il numero dell\'app davanti al numero di serie',
      risposta.startsWith(NUMERO + ' ') && risposta.endsWith(SERIE), { risposta, NUMERO, SERIE });
 
-  sezione('e la home la scrive dove prima c\'era un "v1.0.0" finto');
-  await page.waitForFunction(()=>
-    document.querySelector('.app-vers') &&
-    document.querySelector('.app-vers').textContent !== 'v1.0.0', { timeout: 10000 });
-  const aSchermo = await page.evaluate(()=> Array.from(document.querySelectorAll('.app-vers'))
-    .map(e=> e.textContent.trim()));
-  ok('la scritta in fondo alla home e\' la versione vera',
-     aSchermo[0] === ATTESA, { aSchermo, ATTESA });
-  // Anche nella schermata sera: e' la stessa riga, e una delle due ferma a
-  // "v1.0.0" sarebbe peggio di niente.
-  ok('e vale anche per la riga della sera',
-     aSchermo.length > 1 && aSchermo.every(v=> v === ATTESA), aSchermo);
+  sezione('ma non la scrive addosso a chi sta disegnando');
+  await page.waitForFunction(()=> !!document.body.dataset.vers, { timeout: 10000 });
+  const dove = await page.evaluate(()=> ({
+    // Il numero di serie sta a disposizione, ma non a schermo.
+    inTasca: document.body.dataset.vers,
+    // Accanto al marchio, in fondo alla home e alla sera, resta il v1.0.0:
+    // "inkflow-static-v295" li' era solo un codice buttato addosso a chi
+    // voleva disegnare.
+    aSchermo: Array.from(document.querySelectorAll('.app-vers')).map(e=> e.textContent.trim()),
+    // E si trova dove ci si va apposta: Impostazioni, sotto Diagnostica.
+    inDiagnostica: (document.getElementById('versione-viva')||{}).textContent || '',
+  }));
+  ok('il numero di serie e\' comunque a disposizione', dove.inTasca === ATTESA, dove);
+  ok('accanto al marchio resta il v1.0.0',
+     dove.aSchermo.length > 1 && dove.aSchermo.every(v=> v === 'v1.0.0'), dove);
+  ok('e la versione vera si legge in Diagnostica',
+     dove.inDiagnostica === ATTESA, dove);
 
 });

@@ -59,7 +59,10 @@ export async function exportBackup(){
     const dati = {
       app: 'inkflow',
       formato: 2,               // 1 era il backup dei soli progetti
-      versione: (document.querySelector('.app-vers')||{}).textContent || '',
+      // La versione vera la scrive il service worker su body.dataset (vedi
+      // mostraVersione in main.js): a schermo, accanto al marchio, resta il
+      // v1.0.0 fisso, che in un backup non direbbe niente a nessuno.
+      versione: document.body.dataset.vers || '',
       esportatoIl: new Date().toISOString(),
       collezioni, locale,
     };
