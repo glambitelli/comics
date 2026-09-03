@@ -342,6 +342,23 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
   });
   ok('la schermata ha lo stesso fondo del suo contenuto',
      fondi.every(f=> f.schermata && f.contenuto && f.schermata === f.contenuto), fondi);
+  // E DENTRO REFERENCES, LE STRISCE FISSE. Fra l'intestazione e la griglia ce ne
+  // sono quattro — briciole, Artists/References, ricerca cartelle, barra della
+  // scelta multipla — tutte fuori dallo scroll. Erano sabbia chiaro su fondo
+  // carta: una fascia piu' chiara dietro l'interruttore, con lo stacco netto
+  // sopra e sotto, e agli angoli tondi dell'intestazione un triangolino piu'
+  // scuro. L'unico punto della schermata dove il fondo cambiava senza motivo.
+  const strisce = await page.evaluate(()=>{
+    const sotto = getComputedStyle(document.querySelector('.refs-scroll')).backgroundColor;
+    const quali = ['.refs-breadcrumb','.refs-axis','.refs-tabs','#refs-folder-toolbar','.refs-scelta'];
+    return quali.map(sel=>{
+      const el = document.querySelector(sel);
+      return { sel, fondo: el ? getComputedStyle(el).backgroundColor : null, sotto };
+    });
+  });
+  ok('in References le strisce fisse hanno il fondo della pagina',
+     strisce.every(x=> x.fondo === x.sotto), strisce);
+
   ok('e nessuna resta trasparente sul body',
      fondi.every(f=> f.schermata && !/rgba\(0, 0, 0, 0\)/.test(f.schermata)), fondi);
 

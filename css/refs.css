@@ -130,7 +130,12 @@
    usano anche i tre scaffali dentro una cartella (Albi/Ritagli/Tavole). Quante
    voci ci sono lo dice --n, quale e' scelta lo dice --i: due numeri, e vale
    per qualsiasi numero di voci. */
-.refs-axis{display:none;background:var(--sand);flex-shrink:0;padding:2px 16px 14px}
+/* Anche questo interruttore sta fuori dallo scroll, sotto l'intestazione, e
+   prende il fondo della pagina come le altre strisce fisse: era rimasto
+   sabbia chiaro, e faceva una fascia piu' chiara dietro Artists/References con
+   uno stacco netto sopra e sotto — l'unico punto della schermata dove il fondo
+   cambiava senza motivo. */
+.refs-axis{display:none;background:var(--fondo-carta);flex-shrink:0;padding:2px 16px 14px}
 .refs-axis.show{display:block}
 .seg-vasca{
   position:relative;display:flex;padding:2px;border-radius:9px;
