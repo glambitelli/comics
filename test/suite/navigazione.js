@@ -224,6 +224,39 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
   ok('e il nome del lavoro sta sotto al marchio, non alla pari',
      dentroUnProgetto.misuraProgetto < dentroUnProgetto.misuraMarchio, dentroUnProgetto);
 
+  console.log('\n── dentro un progetto scorre via il marchio, non la targa ──');
+  // Sono cento pixel buoni di intestazione: quello che serve sotto gli occhi
+  // mentre si lavora e' il nome del lavoro, non il nome dell'app.
+  const scorrendo = await page.evaluate(async ()=>{
+    document.querySelectorAll('.screen').forEach(s=> s.classList.remove('active'));
+    document.getElementById('screen-project').classList.add('active');
+    const sc = document.querySelector('.proj-scroll');
+    const dove = ()=>({
+      marchio: Math.round(document.querySelector('.proj-header').getBoundingClientRect().top),
+      targa: Math.round(document.querySelector('.proj-targa').getBoundingClientRect().top),
+    });
+    sc.scrollTop = 0;
+    await new Promise(r=> setTimeout(r, 120));
+    const fermo = dove();
+    sc.scrollTop = 400;
+    await new Promise(r=> setTimeout(r, 200));
+    const scorso = dove();
+    // La targa e' opaca: il contenuto le passa dietro, e una scheda anche solo
+    // un po' trasparente li' diventerebbe illeggibile.
+    const sfondo = getComputedStyle(document.querySelector('.proj-targa')).backgroundColor;
+    sc.scrollTop = 0;
+    return { fermo, scorso, sfondo, quantoHaScorso: 400 };
+  });
+  ok('fermi, il marchio e\' in cima', scorrendo.fermo.marchio === 0, scorrendo);
+  ok('scorrendo, il marchio se ne va davvero',
+     scorrendo.scorso.marchio <= -300, scorrendo);
+  ok('ma la targa resta a schermo', scorrendo.scorso.targa >= 0, scorrendo);
+  // A filo del bordo: con una fessura sopra si vedeva scorrere il contenuto
+  // dietro, una striscia in movimento incollata alla scheda ferma.
+  ok('agganciata a filo, senza fessure sopra', scorrendo.scorso.targa === 0, scorrendo);
+  ok('ed e\' opaca, perche\' il contenuto le passa dietro',
+     !/rgba\([^)]*,\s*0(\.\d+)?\)/.test(scorrendo.sfondo), scorrendo);
+
   console.log('\n── e col mouse i pulsanti si vedono da ogni schermata ──');
   // Stavano dentro #screen-home: da References o dalle Scene, col mouse, non
   // c'era piu' un modo di spostarsi che non fosse il tasto Indietro.
