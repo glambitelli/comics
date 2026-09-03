@@ -24,6 +24,23 @@
 }
 .album-card:active .album-cover{transform:scale(.96)}
 .album-cover img{width:100%;height:100%;object-fit:cover;display:block}
+/* L'ALBO SENZA COPERTINA. I .cbr sono RAR e non ZIP: l'indice non si puo'
+   sbirciare da remoto, quindi la miniatura non c'e' finche' non lo si apre —
+   e generarla vorrebbe dire scaricare mezzo giga in sottofondo (vedi
+   createAlbumFromDriveFile in albums.js). La scheda pero' c'e' e si apre: qui
+   dentro si dice cos'e', invece di lasciare il riquadro rotto di un <img>
+   senza indirizzo. Tratteggiato come tutto quello che nell'app e' "ancora da
+   fare": e' esattamente il suo stato. */
+.album-nocover{
+  width:100%;height:100%;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:7px;
+  color:var(--sand3);background:rgba(255,255,255,.45);
+  border:1.5px dashed var(--sand3);border-radius:6px;
+}
+.album-nocover span{
+  font-size:9.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--ink3);
+}
 .album-menu-btn{
   position:absolute;top:5px;right:5px;width:24px;height:24px;border-radius:50%;
   background:rgba(20,18,16,.55);border:none;color:var(--white);font-size:13px;

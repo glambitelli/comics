@@ -750,6 +750,7 @@ export async function syncDriveAlbumsForFolder(folderId){
     // Se su Drive non esiste una cartella con questo nome, lo scaffale deve
     // DIRLO: e' il caso piu' frequente in assoluto e finora era muto.
     _cartellaDriveMancante = esito.stato === 'senzaCartella' ? f.name : null;
+    _scartatiDrive = esito.scartati || [];
     renderScaffaleDrive();
     for(const file of esito.files){
       if(findAlbumByDriveId(folderId, file.id)) continue;
@@ -765,6 +766,10 @@ export async function syncDriveAlbumsForFolder(folderId){
 // Il nome della cartella Inkflow che su Drive non ha trovato la sua gemella.
 // null quando va tutto bene o quando non si e' ancora guardato.
 let _cartellaDriveMancante = null;
+// I file trovati nella cartella Drive che NON sono albi: quasi sempre e' uno
+// che ha rinominato un file e gli ha mangiato l'estensione. Fuori dall'elenco
+// e senza una parola, sembra che Inkflow non li veda proprio.
+let _scartatiDrive = [];
 
 let _driveAuthHooked = false;
 // L'esito del collegamento si scrive nella riga stessa, sotto il titolo. Il
@@ -1489,6 +1494,20 @@ function renderScaffaleDrive(){
     if(btn) btn.hidden = true;
     return;
   }
+  // La cartella c'e', ma dentro c'e' roba che non e' un albo. Nominarli e'
+  // l'unico modo perche' uno se ne accorga: nell'elenco non compaiono, e un
+  // file senza estensione a occhio sembra uguale agli altri.
+  if(collegato && _scartatiDrive.length){
+    riga.hidden = false;
+    const quanti = _scartatiDrive.length;
+    if(titolo) titolo.textContent = quanti === 1
+      ? 'Saltato «' + _scartatiDrive[0] + '»'
+      : 'Saltati ' + quanti + ' file su Drive';
+    esitoDrive('Un albo deve finire per .cbz o .cbr' +
+      (quanti > 1 ? ': ' + _scartatiDrive.join(', ') : '.'));
+    if(btn) btn.hidden = true;
+    return;
+  }
   if(btn) btn.hidden = false;
   if(titolo) titolo.textContent = 'Google Drive non collegato';
   // Collegato e tutto a posto: gli albi arrivano, e una riga che dice "tutto
@@ -1548,7 +1567,14 @@ function renderAlbumsShelf(){
     return `
     <div class="album-card ${isDrive ? 'is-drive' : 'is-local'}" data-id="${a.id}">
       <div class="album-cover">
-        <img src="${cldResize(a.cover||'', COVER_W)}" loading="lazy" alt=""/>
+        ${a.cover
+          ? `<img src="${cldResize(a.cover, COVER_W)}" loading="lazy" alt=""/>`
+          // SENZA COPERTINA NON SI METTE UN'IMMAGINE VUOTA. Gli albi che non si
+          // possono sbirciare da remoto (i .cbr, che sono RAR e non ZIP)
+          // nascono senza miniatura: un <img src=""> li' e' un riquadro rotto
+          // col glifo del browser dentro. Meglio dire cosa sono — un albo che
+          // c'e', e la cui copertina arriva quando lo apri.
+          : `<div class="album-nocover">${LIBRO_ICO}<span>da aprire</span></div>`}
         ${badge}
         <button class="album-menu-btn" onclick="event.stopPropagation();window.albumShelfMenu('${a.id}',this)" aria-label="Altro">⋯</button>
       </div>
@@ -1571,6 +1597,10 @@ function renderAlbumsShelf(){
 // raggruppamento quando volevi un artista. Ora il primo e' una CARTELLA col
 // piu' ("aggiungi qui dentro"), il secondo delle RIGHE IMPILATE col piu'
 // ("aggiungi un raggruppamento"), e il secondo sta anche staccato dall'elenco.
+// Il glifo dell'albo senza copertina: due pagine aperte, come quello della
+// schermata vuota dello scaffale.
+const LIBRO_ICO = `<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M4 5.5h6.5v14H4z"/><path d="M13.5 5.5H20v14h-6.5z"/></svg>`;
+
 const PIU_ICON = `<svg viewBox="0 0 24 24" width="17" height="17"><path d="M12 5.5v13M5.5 12h13" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"/></svg>`;
 
 // Le due lettere del disco d'oro. Si prendono dal cognome quando c'e' — e'

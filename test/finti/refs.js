@@ -23,7 +23,12 @@ export function addRefBlob(blob, opts = {}){
 }
 export function getActiveFolderId(){ return window.__folderId || null; }
 export function findExactAlbumMatch(){ return null; }
-export function createAlbumDoc(){ return Promise.resolve(null); }
+// Annota le schede create, cosi' una prova puo' verificare COSA e' finito
+// nello scaffale — e non solo che la funzione non sia esplosa.
+export function createAlbumDoc(dati){
+  (window.__schede || (window.__schede = [])).push(dati);
+  return Promise.resolve(null);
+}
 export function updateAlbumLastPage(){}
 export function updateAlbumSourceName(){}
 export function getAlbumById(){ return window.__album || null; }

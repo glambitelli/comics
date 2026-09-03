@@ -440,10 +440,19 @@ export async function listDriveAlbumsForFolder(folderName){
     if(!subId) return { stato:'senzaCartella', files:[] };
     const q = `'${subId}' in parents and trashed=false`;
     const url = 'https://www.googleapis.com/drive/v3/files?' + new URLSearchParams({
-      q, fields: 'files(id,name,size,modifiedTime)', spaces: 'drive', pageSize: '200', orderBy: 'name',
+      q, fields: 'files(id,name,size,modifiedTime,mimeType)', spaces: 'drive', pageSize: '200', orderBy: 'name',
     });
     const data = await driveFetch(url);
-    return { stato:'ok', files: (data.files || []).filter(f => ALBUM_EXT_RE.test(f.name)) };
+    const tutti = data.files || [];
+    const files = tutti.filter(f => ALBUM_EXT_RE.test(f.name));
+    // Chi resta fuori si porta dietro il nome: quasi sempre e' un file a cui
+    // rinominandolo e' stata mangiata l'estensione, e senza dirlo non c'e'
+    // modo di accorgersene — nell'elenco non compare e basta.
+    // Le cartelle non contano: non sono albi mancati, sono un'altra cosa.
+    const scartati = tutti
+      .filter(f => !ALBUM_EXT_RE.test(f.name) && f.mimeType !== 'application/vnd.google-apps.folder')
+      .map(f => f.name);
+    return { stato:'ok', files, scartati };
   }catch(e){
     console.warn('listDriveAlbumsForFolder:', e.message);
     return { stato:'errore', files:[] };

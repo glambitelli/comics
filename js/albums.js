@@ -546,18 +546,31 @@ async function createAlbumFromCurrent(folderId, file, token){
 // lettura avviata ogni cambio pagina dev'essere immediato, e una richiesta di
 // rete per tavola su 4G è molto peggio di un unico download iniziale seguito
 // da tutto istantaneo dalla cache locale.
-async function openDriveCoverSource(driveFile){
+// LA SINCRONIZZAZIONE NON SCARICA MAI NIENTE, e prima invece poteva scaricare
+// mezzo gigabyte in silenzio.
+//
+// Per un .cbz si legge da remoto solo l'indice dello ZIP e una pagina sola: e'
+// il motivo per cui questa strada esiste, e costa qualche decina di kB. Ma per
+// un .cbr — che e' un RAR, non uno ZIP, e l'indice remoto non lo sa leggere —
+// si cadeva su getDriveAlbumFile, cioe' sullo scaricamento del file INTERO.
+// In sottofondo, senza banner, senza avanzamento, senza poterlo fermare, solo
+// per generare una miniatura: su un volume da 504 MB vuol dire minuti di rete
+// e mezzo giga di cache bruciati per un'immagine da 40 kB, e a schermo intanto
+// non succede niente e lo scaffale resta vuoto.
+//
+// Adesso: se l'albo non si puo' sbirciare da remoto, la scheda si crea LO
+// STESSO ma senza copertina. Il file si scarica quando lo tocchi per leggerlo
+// — e li' c'e' gia' tutto: il banner dei megabyte, l'avanzamento e il tasto
+// per annullare (vedi openAlbumFromDrive).
+async function sbircia(driveFile){
   const name = driveFile.name || '';
   const size = Number(driveFile.size) || 0;
-  if(/\.cbz$/i.test(name) && size > 0){
-    try{
-      const src = await openRemoteZipSource(driveFile.id, size, isImageEntry, naturalCompare);
-      if(src.pages.length) return { file: { name, size }, src };
-    }catch(e){ console.warn('lettura remota ZIP fallita, scarico il file intero:', e.message); }
-  }
-  const { file } = await getDriveAlbumFile(driveFile);
-  const src = await extractPagesForFile(file);
-  return { file, src };
+  if(!/\.cbz$/i.test(name) || !(size > 0)) return null;
+  try{
+    const src = await openRemoteZipSource(driveFile.id, size, isImageEntry, naturalCompare);
+    if(src.pages.length) return src;
+  }catch(e){ console.warn('lettura remota ZIP fallita per', name, e.message); }
+  return null;
 }
 
 // Per ogni file trovato nella sottocartella Drive di una cartella-autore che
@@ -569,33 +582,34 @@ async function openDriveCoverSource(driveFile){
 // background, non deve accorgersene.
 export async function createAlbumFromDriveFile(folderId, driveFile){
   if(findAlbumByDriveId(folderId, driveFile.id)) return;
-  let file, src;
-  try{ ({ file, src } = await openDriveCoverSource(driveFile)); }
-  catch(e){ console.warn('drive sync: apertura fallita per', driveFile.name, e.message); return; }
-  const pages = src.pages;
-  if(!pages.length) return;
+  const name = driveFile.name || '';
+  const size = Number(driveFile.size) || 0;
 
-  // Con la sorgente remota/pigra qui si legge UNA sola tavola (la copertina)
-  // invece dell'albo intero: la sync di una cartella con molti volumi non
-  // scarica più decine o centinaia di MB solo per generare le miniature.
-  const coverPage = pickCoverPage(pages);
-  let coverBlob = null;
-  if(coverPage){
-    try{ coverBlob = await makeCoverBlob(await pageBlob(src, coverPage)); }
-    catch(e){ console.warn('drive sync: copertina fallita per', driveFile.name, e.message); }
+  // LA SCHEDA SI CREA COMUNQUE, anche senza copertina. Prima, se qualcosa
+  // andava storto nella miniatura, la funzione usciva senza scrivere niente:
+  // l'albo su Drive c'era, la scheda no, e lo scaffale restava vuoto senza
+  // spiegazioni. Un albo che si vede e si apre, ma con un riquadro al posto
+  // della copertina, e' incomparabilmente meglio di un albo che non esiste.
+  let cover = null, pageCount = 0;
+  const src = await sbircia(driveFile);
+  if(src){
+    pageCount = src.pages.length;
+    const coverPage = pickCoverPage(src.pages);
+    if(coverPage){
+      try{
+        const coverBlob = await makeCoverBlob(await pageBlob(src, coverPage));
+        if(coverBlob){
+          const tag = Date.now().toString(36) + Math.random().toString(36).slice(2,8);
+          ({ url: cover } = await uploadToCloudinary(coverBlob, 'cover-'+tag+'.jpg'));
+        }
+      }catch(e){ console.warn('drive sync: copertina fallita per', name, e.message); }
+    }
+    src.pages.forEach(p=>{ try{ if(p.url) URL.revokeObjectURL(p.url); }catch(e){} });
   }
-  pages.forEach(p=>{ try{ if(p.url) URL.revokeObjectURL(p.url); }catch(e){} });
-  if(!coverBlob) return;
-
-  let url;
-  try{
-    const tag = Date.now().toString(36) + Math.random().toString(36).slice(2,8);
-    ({ url } = await uploadToCloudinary(coverBlob, 'cover-'+tag+'.jpg'));
-  }catch(e){ console.warn('drive sync: upload copertina fallito per', driveFile.name, e.message); return; }
 
   await createAlbumDoc({
-    folderId, title: file.name.replace(/\.(cbz|cbr)$/i,''), cover: url, pageCount: pages.length,
-    sourceName: file.name, sourceSize: file.size, lastPage: 0,
+    folderId, title: name.replace(/\.(cbz|cbr)$/i,''), cover, pageCount,
+    sourceName: name, sourceSize: size, lastPage: 0,
     driveFileId: driveFile.id,
   });
 }
