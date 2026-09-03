@@ -25,6 +25,7 @@ for(const id of ['screen-project','modal','confirm-modal']){
 
 const pdf   = await import('/js/pdf.js');
 const state = await import('/js/state.js');
+window.state = state;
 window.pdf = pdf;
 
 // La finestra finta: registra tutto quello che l'esportazione ci scrive dentro

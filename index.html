@@ -613,7 +613,7 @@
         <!-- CONTENUTO STORIA (type=story) -->
         <div id="ph1-story">
         <!-- SCRIPTMENT — editor di scrittura libera a tutto schermo -->
-        <div class="moodboard-zero step-item" onclick="toggleStep(this)"><div class="step-chk">✓</div><div class="step-cnt"><div class="step-nm">Moodboard <span class="tag ws">sera</span></div><div class="step-ds">Immagini che catturano l'atmosfera. Il "colore emotivo" della storia prima di scrivere.</div></div></div>
+        <div class="moodboard-zero step-item" data-step="moodboard" onclick="toggleStep(this)"><div class="step-chk">✓</div><div class="step-cnt"><div class="step-nm">Moodboard <span class="tag ws">sera</span></div><div class="step-ds">Immagini che catturano l'atmosfera. Il "colore emotivo" della storia prima di scrivere.</div></div></div>
 
         <div class="script-block">
           <button class="scriptment-open-btn" onclick="openScriptment()">
@@ -631,7 +631,7 @@
         <div class="support-body" id="support-body" style="display:none">
 
         <!-- SOGGETTO -->
-        <div class="step-collapse" id="step-soggetto">
+        <div class="step-collapse" data-step="soggetto" id="step-soggetto">
           <div class="step-chk" onclick="toggleStepCheck(this)">✓</div>
           <div class="step-cnt" onclick="toggleStepBody(this)">
             <div class="step-nm">Soggetto <span class="tag wm">mattina</span></div>
@@ -642,7 +642,7 @@
         <div class="step-body" style="padding:10px 16px 12px;display:none" id="soggetto-wrap"></div>
 
         <!-- PERSONAGGI -->
-        <div class="step-collapse">
+        <div class="step-collapse" data-step="personaggi">
           <div class="step-chk" onclick="toggleStepCheck(this)">✓</div>
           <div class="step-cnt" onclick="toggleStepBody(this)">
             <div class="step-nm">Personaggi <span class="tag wm">mattina</span></div>
@@ -656,7 +656,7 @@
         </div>
 
         <!-- AMBIENTAZIONE -->
-        <div class="step-collapse">
+        <div class="step-collapse" data-step="ambiente">
           <div class="step-chk" onclick="toggleStepCheck(this)">✓</div>
           <div class="step-cnt" onclick="toggleStepBody(this)">
             <div class="step-nm">Ambientazione <span class="tag wm">mattina</span></div>
@@ -667,7 +667,7 @@
         <div class="step-body" style="padding:10px 16px 12px;display:none" id="world-wrap"></div>
 
         <!-- STRUTTURA 3 ATTI -->
-        <div class="step-collapse" id="step-struttura">
+        <div class="step-collapse" data-step="struttura" id="step-struttura">
           <div class="step-chk" onclick="toggleStepCheck(this)">✓</div>
           <div class="step-cnt" onclick="toggleStepBody(this)">
             <div class="step-nm">Struttura a 3 atti <span class="tag wm">mattina</span></div>
@@ -693,8 +693,8 @@
         <div class="phase-chev" id="ph2-chev">▾</div>
       </div>
       <div class="phase-body" id="ph2-body">
-        <div class="step-item" onclick="toggleStep(this)"><div class="step-chk">✓</div><div class="step-cnt"><div class="step-nm">Layouts <span class="tag ws">sera</span></div><div class="step-ds">Composizione vignette e ritmo visivo. Tutte le tavole in sequenza, prima di iniziare la realizzazione.</div></div></div>
-        <div class="step-item" onclick="toggleStep(this)"><div class="step-chk">✓</div><div class="step-cnt"><div class="step-nm">Reference <span class="tag wm">mattina</span></div><div class="step-ds">Ricerca online o street photography. Raccogli il materiale visivo di riferimento per il progetto.</div></div></div>
+        <div class="step-item" data-step="layouts" onclick="toggleStep(this)"><div class="step-chk">✓</div><div class="step-cnt"><div class="step-nm">Layouts <span class="tag ws">sera</span></div><div class="step-ds">Composizione vignette e ritmo visivo. Tutte le tavole in sequenza, prima di iniziare la realizzazione.</div></div></div>
+        <div class="step-item" data-step="reference" onclick="toggleStep(this)"><div class="step-chk">✓</div><div class="step-cnt"><div class="step-nm">Reference <span class="tag wm">mattina</span></div><div class="step-ds">Ricerca online o street photography. Raccogli il materiale visivo di riferimento per il progetto.</div></div></div>
       </div>
     </div>
 

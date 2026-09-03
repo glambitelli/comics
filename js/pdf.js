@@ -1,4 +1,4 @@
-import { getProject, currentId, PHASE_NAMES } from './state.js';
+import { getProject, currentId, PHASE_NAMES, stepDiFase } from './state.js';
 import { calcPct, getPhaseIndex } from './progress.js';
 import { calcVelocity, calcDaysLeft } from './velocity.js';
 import { renderScreenplayHTML } from './scriptment.js';
@@ -114,13 +114,21 @@ export function exportPDF(){
 
   // Pipeline
   body += '<div style="margin-bottom:20px;margin-top:8px"><div style="font-size:12px;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:6px;padding-bottom:4px;border-bottom:2px solid '+color+'">Pipeline</div>';
-  [['Sviluppo',['Moodboard visiva','Soggetto','Struttura a 3 atti']],['Pre-produzione',['Layouts','Reference']]].forEach(function(fase){
-    body += '<div style="margin-bottom:8px"><div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#aaa;margin-bottom:3px">'+fase[0]+'</div>';
-    fase[1].forEach(function(item){
-      const done=!!(p.steps&&p.steps[item.slice(0,30)]);
+  // QUESTA SEZIONE USCIVA SEMPRE TUTTA DA FARE, e nessuno se ne accorgeva
+  // perche' un report non lo si rilegge riga per riga. Le voci erano scritte a
+  // mano qui — 'Moodboard visiva', 'Soggetto', 'Layouts' — mentre le chiavi
+  // vere erano il testo della casella col tag attaccato ('Soggetto mattina').
+  // Nessuna delle cinque cercate e' mai esistita. Adesso si cicla sull'elenco
+  // di state.js, lo stesso che usano le spunte e la percentuale: se domani si
+  // aggiunge uno step, compare qui da solo — e mancavano anche Personaggi e
+  // Ambientazione, che nell'elenco scritto a mano non c'erano proprio.
+  [[1,'Sviluppo'],[2,'Pre-produzione']].forEach(function(fase){
+    body += '<div style="margin-bottom:8px"><div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#aaa;margin-bottom:3px">'+fase[1]+'</div>';
+    stepDiFase(fase[0]).forEach(function(step){
+      const done=!!(p.steps&&p.steps[step.id]);
       body += '<div style="display:flex;align-items:center;gap:8px;padding:3px 0;border-bottom:1px solid #f0f0f0">';
       body += '<div style="width:14px;height:14px;border-radius:50%;background:'+(done?color:'#e8e8e8')+';flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:9px;color:#fff">'+(done?'✓':'')+'</div>';
-      body += '<span style="font-size:13px;color:'+(done?'#aaa':'#333')+';'+(done?'text-decoration:line-through':'')+'">'+esc(item)+'</span></div>';
+      body += '<span style="font-size:13px;color:'+(done?'#aaa':'#333')+';'+(done?'text-decoration:line-through':'')+'">'+esc(step.nome)+'</span></div>';
     });
     body += '</div>';
   });
@@ -145,11 +153,14 @@ export function exportPDF(){
   // Sfide
   if((p.sfide||[]).length>0){
     body += '<div style="margin-bottom:20px"><div style="font-size:12px;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:6px;padding-bottom:4px;border-bottom:2px solid '+color+'">Sfide visive</div>';
+    // Una sfida e' solo {text}: nessuno scrive mai `done` ne' `ref` (cerca
+    // "sfide" in pipeline.js). Leggerli voleva dire stampare un pallino vuoto e
+    // un "ref?" accanto a ogni riga, per sempre — due colonne che dicevano il
+    // falso con l'aria di dire qualcosa. Restano il pallino e il testo.
     p.sfide.forEach(function(s){
       body += '<div style="display:flex;gap:8px;padding:4px 0;border-bottom:1px solid #f0f0f0;align-items:center">';
-      body += '<div style="width:14px;height:14px;border-radius:50%;background:'+(s.done?color:'#e8e8e8')+';flex-shrink:0;font-size:9px;color:#fff;display:flex;align-items:center;justify-content:center">'+(s.done?'✓':'')+'</div>';
-      body += '<span style="font-size:13px;color:'+(s.done?'#aaa':'#333')+';'+(s.done?'text-decoration:line-through':'')+'">'+esc(s.text)+'</span>';
-      body += '<span style="margin-left:auto;font-size:10px;color:'+(s.ref?color:'#aaa')+'">'+(s.ref?'ref ✓':'ref?')+'</span></div>';
+      body += '<div style="width:7px;height:7px;border-radius:50%;background:'+color+';flex-shrink:0;margin-left:4px"></div>';
+      body += '<span style="font-size:13px;color:#333">'+esc(s.text)+'</span></div>';
     });
     body += '</div>';
   }

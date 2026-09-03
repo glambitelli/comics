@@ -20,24 +20,42 @@ module.exports = () => suite("Progetti — i numeri su cui prendi le decisioni",
   }, dati);
 
   sezione('la percentuale conta i passi E le tavole finite');
-  // Il totale è 5 passi + una voce per tavola: un progetto da 10 tavole ha 15
-  // caselle da riempire. È la formula con cui si decide "a che punto sono".
+  // IL TOTALE È SETTE PASSI più una voce per tavola: un progetto da 10 tavole
+  // ha diciassette caselle da riempire. Il denominatore era scritto a mano
+  // come 5 mentre le caselle erano sette, quindi la percentuale usciva
+  // gonfiata di un buon dieci per cento — ed è la formula con cui si decide
+  // "a che punto sono".
+  const sette = await page.evaluate(()=> window.state.STEPS.map(s=> s.id));
+  ok('gli step del progetto sono sette', sette.length === 7, sette);
+
   const vuoto = await conta({});
   ok('un progetto appena nato è a zero', vuoto.pct === 0, vuoto);
-  const treStep = await conta({ steps:{a:true,b:true,c:true} });
-  ok('tre passi su quindici fanno il 20%', treStep.pct === 20, treStep);
+  const treStep = await conta({ steps:{ moodboard:true, soggetto:true, personaggi:true } });
+  ok('tre passi su diciassette fanno il 18%', treStep.pct === 18, treStep);
+
+  // UNA CHIAVE CHE NON È UNO STEP NON CONTA. In archivio restano le chiavi
+  // vecchie (il testo della casella), e contandole con Object.values la stessa
+  // spunta poteva valere due volte.
+  const finte = await conta({ steps:{ 'Soggetto mattina':true, 'roba a caso':true } });
+  ok('una chiave che non è uno step non gonfia la percentuale', finte.pct === 0, finte);
+
   const conTavole = await page.evaluate(()=>{
-    window.seminaProgetto({ steps:{a:true,b:true,c:true,d:true,e:true} });
+    window.seminaProgetto({ steps:{ moodboard:true, soggetto:true, personaggi:true, ambiente:true, struttura:true } });
     const p = window.finisciTavole(5);
     return { pct: window.progress.calcPct(p) };
   });
-  ok('cinque passi e cinque tavole fanno il 67%', conTavole.pct === 67, conTavole);
+  ok('cinque passi e cinque tavole fanno il 59%', conTavole.pct === 59, conTavole);
   const finito = await page.evaluate(()=>{
-    window.seminaProgetto({ steps:{a:true,b:true,c:true,d:true,e:true} });
+    const tutti = {};
+    window.state.STEPS.forEach(s=> tutti[s.id] = true);
+    window.seminaProgetto({ steps: tutti });
     const p = window.finisciTavole(10);
     return { pct: window.progress.calcPct(p) };
   });
   ok('tutto fatto fa 100, non 99', finito.pct === 100, finito);
+  // E NON PUÒ SUPERARE IL 100: col denominatore a cinque, spuntando tutte e
+  // sette le caselle "done" superava "total".
+  ok('e non si sfora mai il 100', finito.pct <= 100, finito);
   // Una tavola a metà lavorazione NON conta: conta solo quando è finita
   // (stato 4). Se contasse prima, la percentuale correrebbe avanti al lavoro.
   const meta = await page.evaluate(()=>{
@@ -47,12 +65,36 @@ module.exports = () => suite("Progetti — i numeri su cui prendi le decisioni",
   });
   ok('e una tavola cominciata ma non finita non conta', meta.pct === 0, meta);
 
-  sezione('la fase si deduce dai passi fatti');
-  ok('con meno di tre passi si è in Sviluppo', (await conta({steps:{a:true}})).fase === 0);
-  ok('a tre passi si passa in Pre-produzione',
-     (await conta({steps:{a:true,b:true,c:true}})).fase === 1);
-  ok('a cinque si è in Realizzazione',
-     (await conta({steps:{a:true,b:true,c:true,d:true,e:true}})).fase === 2);
+  sezione('la fase si legge dai passi DELLA fase, non dal mucchio');
+  // Sviluppo ha cinque caselle, Pre-produzione due. Contando "quante ne ho
+  // spuntate in tutto" risultava in Pre-produzione chi aveva finito mezzo
+  // Sviluppo.
+  const F1 = { moodboard:true, soggetto:true, personaggi:true, ambiente:true, struttura:true };
+  ok('con lo Sviluppo a metà si è ancora in Sviluppo',
+     (await conta({steps:{ moodboard:true, soggetto:true, personaggi:true }})).fase === 0);
+  ok('finito lo Sviluppo si passa in Pre-produzione',
+     (await conta({steps: F1})).fase === 1);
+  ok('e non basta spuntare i Layout se lo Sviluppo non è finito',
+     (await conta({steps:{ moodboard:true, layouts:true, reference:true }})).fase === 0);
+  ok('finita anche la Pre-produzione si è in Realizzazione',
+     (await conta({steps: Object.assign({}, F1, { layouts:true, reference:true })})).fase === 2);
+
+  sezione('le spunte già in archivio non si perdono');
+  // Chi usa Inkflow da mesi ha le chiavi vecchie: il testo della casella, tag
+  // compreso. Alla prima apertura si ricopiano sugli id.
+  const migrata = await page.evaluate(()=>{
+    const p = window.seminaProgetto({ steps:{ 'Soggetto mattina':true, 'Layouts sera':true } });
+    const cambiato = window.state.migraSteps(p);
+    return { cambiato, soggetto: p.steps.soggetto, layouts: p.steps.layouts,
+             vecchiaRimasta: p.steps['Soggetto mattina'],
+             pct: window.progress.calcPct(p) };
+  });
+  ok('le chiavi vecchie diventano id', migrata.soggetto === true && migrata.layouts === true, migrata);
+  ok('e chi migra lo dice, così chi chiama sa che deve salvare', migrata.cambiato === true, migrata);
+  // Le vecchie si lasciano: toglierle vorrebbe dire che un ripristino da un
+  // backup di ieri le farebbe sparire davvero.
+  ok('la chiave vecchia resta dov\'è', migrata.vecchiaRimasta === true, migrata);
+  ok('e adesso contano una volta sola, non due', migrata.pct === 12, migrata);
 
   sezione('i giorni che restano, contati sui giorni e non sulle ore');
   // Il calcolo azzera l'ora di oggi e della scadenza: senza, una deadline
@@ -133,7 +175,8 @@ module.exports = () => suite("Progetti — i numeri su cui prendi le decisioni",
   // Fin qui si è provata la matematica: qui si controlla che quello che
   // calcola sia anche quello che leggi nella scheda del progetto.
   const schermo = await page.evaluate(()=>{
-    window.seminaProgetto({ steps:{a:true,b:true,c:true}, dateEnd: window.dataFraGiorni(12) });
+    window.seminaProgetto({ steps:{ moodboard:true, soggetto:true, personaggi:true },
+                            dateEnd: window.dataFraGiorni(12) });
     window.finisciTavole(2);
     window.progress.updateProgress(window.__p);
     window.velocity.renderDeadline(window.__p);
@@ -146,10 +189,14 @@ module.exports = () => suite("Progetti — i numeri su cui prendi le decisioni",
       countdown: document.getElementById('countdown-box').textContent.replace(/\s+/g,' '),
     };
   });
-  ok('la percentuale scritta è quella calcolata', schermo.pct === '33', schermo);
-  ok('e la barra è lunga altrettanto', schermo.barra === '33%', schermo);
-  ok('sotto c\'è il conto dei passi', /5 \/ 15/.test(schermo.passi), schermo);
-  ok('la fase è scritta a parole', schermo.fase === 'Pre-produzione', schermo);
+  // Tre passi su sette più due tavole su dieci: 5 su 17, cioè il 29%. Prima
+  // il denominatore diceva 15 e la stessa scheda leggeva 33%.
+  ok('la percentuale scritta è quella calcolata', schermo.pct === '29', schermo);
+  ok('e la barra è lunga altrettanto', schermo.barra === '29%', schermo);
+  ok('sotto c\'è il conto dei passi', /5 \/ 17/.test(schermo.passi), schermo);
+  // Tre caselle su cinque in Sviluppo: si è ancora in Sviluppo. Prima a tre
+  // passi la scheda annunciava già la Pre-produzione.
+  ok('la fase è scritta a parole', schermo.fase === 'Sviluppo', schermo);
   ok('i giorni alla scadenza ci sono', /12gg/.test(schermo.giorni), schermo);
   // 12 giorni = una settimana e cinque giorni: il countdown lo scompone,
   // perche' "una settimana e cinque giorni" si capisce meglio di "12".

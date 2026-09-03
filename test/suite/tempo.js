@@ -185,6 +185,72 @@ module.exports = () => suite("Il tempo al tavolo — le ore non si perdono",
   ok('e si leggono in secondi, non come "0 min"',
      /^\d+ sec$/.test(venti.scritto), venti);
 
+  sezione('di ogni seduta si tiene l\'ora e la durata');
+  // Per un anno si e' salvato solo il totale del giorno, e ogni sera si
+  // buttavano via due cose che non si recuperano: a che ora hai disegnato e
+  // quanto e' durata la singola seduta. Sono la materia prima di qualunque
+  // domanda seria che ci si possa fare dopo, e la risposta esiste solo se si
+  // comincia a registrarla PRIMA di volerla sapere.
+  const seduta = await page.evaluate(async ()=>{
+    localStorage.removeItem('inkflow_tempo_acceso');
+    localStorage.removeItem('inkflow_tempo_coda');
+    window.tempo.riprendiSessione();
+    window.__scritture = [];
+    // Una seduta di mezz'ora cominciata alle 21 di ieri sera.
+    const avvio = new Date(); avvio.setDate(avvio.getDate()-1); avvio.setHours(21, 0, 0, 0);
+    localStorage.setItem('inkflow_tempo_acceso', JSON.stringify({
+      da: avvio.getTime(), accumulato: 30*60, inPausa: true }));
+    window.tempo.riprendiSessione();
+    await window.tempo.ferma();
+    const w = (window.__scritture||[]).filter(x=> x.col === 'sessioni').pop();
+    return {
+      giorno: w && w.id,
+      giornoAtteso: window.tempo.giornoDi(avvio.getTime()),
+      dati: w && w.data,
+      avvio: avvio.getTime(),
+    };
+  });
+  ok('la seduta finisce nella riga del suo giorno',
+     seduta.giorno === seduta.giornoAtteso, seduta);
+  // La fascia oraria e' quella in cui la sessione e' PARTITA, anche se
+  // sconfina nell'ora dopo: stessa scelta gia' fatta per la mezzanotte.
+  ok('l\'ora del giorno si registra, nella fascia in cui e\' partita',
+     seduta.dati && seduta.dati.ore && seduta.dati.ore['21'] &&
+     seduta.dati.ore['21'].__somma === 1800, seduta);
+  ok('e la durata della singola seduta pure',
+     seduta.dati && seduta.dati.elenco && seduta.dati.elenco.__aggiungi &&
+     seduta.dati.elenco.__aggiungi[0].sec === 1800 &&
+     seduta.dati.elenco.__aggiungi[0].da === seduta.avvio, seduta);
+  // Il totale del giorno continua a sommarsi come prima: quello che c'era non
+  // si tocca, si aggiunge accanto.
+  ok('e il totale del giorno resta quello di prima',
+     seduta.dati && seduta.dati.secondi.__somma === 1800 &&
+     seduta.dati.sessioni.__somma === 1, seduta);
+
+  // ANCHE QUELLO CHE PASSA DALLA CODA tiene la sua ora: una seduta rifiutata e
+  // rimandata ore dopo non deve finire nella fascia sbagliata.
+  const dallaCoda = await page.evaluate(async ()=>{
+    localStorage.removeItem('inkflow_tempo_acceso');
+    localStorage.removeItem('inkflow_tempo_coda');
+    window.tempo.riprendiSessione();
+    window.__scritture = [];
+    window.__rifiuta = 'sessioni';
+    const avvio = new Date(); avvio.setHours(7, 30, 0, 0);
+    localStorage.setItem('inkflow_tempo_acceso', JSON.stringify({
+      da: avvio.getTime(), accumulato: 20*60, inPausa: true }));
+    window.tempo.riprendiSessione();
+    await window.tempo.ferma();          // rifiutata: finisce in coda
+    window.__rifiuta = null;
+    await window.tempo.svuotaCoda();     // e adesso passa
+    const w = (window.__scritture||[]).filter(x=> x.col === 'sessioni').pop();
+    localStorage.removeItem('inkflow_tempo_coda');
+    return { ore: w && w.data && w.data.ore, avvio: avvio.getTime(),
+             da: w && w.data && w.data.elenco && w.data.elenco.__aggiungi[0].da };
+  });
+  ok('e una seduta passata dalla coda tiene la sua ora',
+     dallaCoda.ore && dallaCoda.ore['7'] && dallaCoda.ore['7'].__somma === 1200, dallaCoda);
+  ok('e il suo istante d\'avvio', dallaCoda.da === dallaCoda.avvio, dallaCoda);
+
   sezione('e se il server dice di no, il tempo non sparisce lo stesso');
   // E' IL DIFETTO CHE NON SI VEDE. La scrittura viene rifiutata — una regola di
   // sicurezza, una collezione nuova che nessuno ha aperto — e prima finiva in

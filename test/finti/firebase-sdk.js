@@ -33,6 +33,9 @@ export function serverTimestamp(){ return 0; }
 // La somma lato server: qui si annota e basta, cosi' una prova puo' verificare
 // CHE COSA si e' chiesto di sommare (vedi il contatore delle ore in tempo.js).
 export function increment(n){ return { __somma: n }; }
+// Come increment, ma per un elenco: AGGIUNGE una voce invece di riscrivere
+// l'array. Serve alle sedute del cronometro dentro la riga del giorno.
+export function arrayUnion(...v){ return { __aggiungi: v }; }
 export function getDoc(){ return Promise.resolve({exists:()=>false}); }
 
 // ── ACCESSO (js/auth.js) ──

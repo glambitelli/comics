@@ -74,3 +74,6 @@ export function bumpDataRev(){}
 // La somma lato server: nel banco si annota e basta, cosi' una prova puo'
 // verificare CHE COSA si e' chiesto di sommare (vedi il contatore delle ore).
 export function increment(n){ return { __somma: n }; }
+// Come increment, ma per un elenco: AGGIUNGE una voce invece di riscrivere
+// l'array. Serve alle sedute del cronometro dentro la riga del giorno.
+export function arrayUnion(...v){ return { __aggiungi: v }; }

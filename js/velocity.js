@@ -121,8 +121,14 @@ export function renderPhaseCalendar(p){
   const end=new Date(p.dateEnd);
   const totalDays=Math.max(1,Math.round((end-start)/(1000*60*60*24)));
 
-  const weeksS=parseFloat(document.getElementById('plan-sviluppo')?.value||'2');
-  const weeksP=parseFloat(document.getElementById('plan-preprod')?.value||'2');
+  // Le settimane per fase si prendono dal PROGETTO, non dai campi a schermo:
+  // quelli esistono solo mentre il foglio del pianificatore e' aperto, e a
+  // pannello chiuso il calendario ripiegava su 2 e 2 disegnando tre fasce che
+  // non c'entravano con la deadline vera. Adesso il pianificatore le salva
+  // (vedi applyPlanner) e qui si leggono da li'.
+  const pian = p.plannerSettings || {};
+  const weeksS=parseFloat(pian.sviluppo ?? document.getElementById('plan-sviluppo')?.value ?? 2);
+  const weeksP=parseFloat(pian.preprod ?? document.getElementById('plan-preprod')?.value ?? 2);
   const daySvil=Math.round(weeksS*7);
   const dayPrep=Math.round(weeksP*7);
   const dayReal=Math.max(1,totalDays-daySvil-dayPrep);

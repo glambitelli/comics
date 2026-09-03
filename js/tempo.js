@@ -20,7 +20,7 @@
 // righe. Sono trecentosessantacinque righe l'anno da poche decine di byte: in
 // dieci anni tremilaseicento documenti, cioe' niente. Sopravvivono al cambio
 // telefono, funzionano senza rete e si sincronizzano al ritorno.
-import { db, collection, doc, onSnapshot, setDoc, deleteDoc, getDocs, increment, serverTimestamp } from './firebase.js';
+import { db, collection, doc, onSnapshot, setDoc, deleteDoc, getDocs, increment, arrayUnion, serverTimestamp } from './firebase.js';
 import { haptic } from './state.js';
 
 const SESSIONI = 'sessioni';
@@ -91,6 +91,11 @@ function scriviCoda(){
 // Quante sessioni aspettano ancora di arrivare al server. Serve alla scheda
 // delle Statistiche, che lo dice invece di far finta di niente.
 export function daSincronizzare(){ return _coda.length; }
+
+function mezzogiornoDi(giorno){
+  const [a,m,g] = giorno.split('-').map(Number);
+  return new Date(a, m-1, g, 12, 0, 0).getTime();
+}
 
 export function giornoDi(ms){
   const d = new Date(ms);
@@ -163,6 +168,11 @@ export async function ferma(){
   if(!_stato) return 0;
   const secondi = Math.min(secondiCorrenti(), TETTO);
   const giorno = giornoDi(_stato.da);
+  // L'istante d'avvio serve dopo, per la fascia oraria e per l'elenco delle
+  // sedute: _stato viene azzerato qui sotto (si spegne prima di scrivere, per
+  // non far vedere un cronometro acceso mentre salva) e non si potrebbe piu'
+  // leggere.
+  const da = _stato.da;
   _stato = null;
   scrivi(null);
   clearInterval(_tic); _tic = null;
@@ -179,23 +189,51 @@ export async function ferma(){
   // rilasciato, e vale zero perche' e' zero, non perche' l'abbiamo scartato.
   if(secondi <= 0) return 0;
   try{
-    await manda(giorno, secondi);
+    await manda(giorno, secondi, da);
     svuotaCoda();
   }catch(e){
     // Rifiutata. Resta in tasca, continua a contare nei totali, e si riprova.
     console.warn('salvataggio del tempo fallito, resta in coda:', e);
-    _coda.push({ giorno, secondi });
+    _coda.push({ giorno, secondi, da });
     scriviCoda();
     avvisa();
   }
   return secondi;
 }
 
-function manda(giorno, secondi){
+// ── COSA SI TIENE DI UNA SESSIONE ───────────────────────────────────────────
+// Per un anno si e' tenuto solo il totale del giorno, e ogni sera si buttavano
+// via due cose che non si recuperano piu': A CHE ORA hai disegnato, e QUANTO E'
+// DURATA la singola seduta. Sono la materia prima di qualunque domanda seria
+// che ci si possa fare dopo — "rendo meglio la mattina o la sera?", "faccio
+// immersioni o ritagli?" — e la risposta esiste solo se si comincia a
+// registrarla PRIMA di volerla sapere: il passato non si ricostruisce.
+//
+//   ore     una casella per fascia oraria ("0".."23"), sommata lato server.
+//           La sessione va alla fascia in cui e' PARTITA, anche se sconfina
+//           nell'ora dopo: e' la stessa scelta gia' fatta per la mezzanotte
+//           (tutti i secondi al giorno di avvio), e complicarla vorrebbe dire
+//           spezzare una seduta in due per una precisione che non serve.
+//   elenco  una voce per seduta, { da: istante d'avvio, sec: durata }.
+//           arrayUnion AGGIUNGE lato server invece di riscrivere l'array:
+//           due telefoni non si cancellano le sedute a vicenda, come per
+//           increment sul totale.
+//
+// Niente di tutto questo si vede ancora da nessuna parte, ed e' apposta: i
+// grafici hanno senso con qualche decina di sedute vere in archivio, la
+// registrazione ha senso da stasera.
+//
+// IL PROGETTO NO, non ancora: il cronometro non sa cosa sia un progetto perche'
+// oggi una tavola e' solo un numero, e attaccarci le ore vorrebbe dire inventare
+// un legame che l'app non ha. Quando la tavola diventera' una cosa, il campo si
+// aggiunge qui e le sedute vecchie resteranno semplicemente senza.
+function manda(giorno, secondi, da){
   return setDoc(doc(db, SESSIONI, giorno), {
     secondi: increment(secondi),
     sessioni: increment(1),
     ultimaIl: serverTimestamp(),
+    ore: { [String(new Date(da).getHours())]: increment(secondi) },
+    elenco: arrayUnion({ da, sec: secondi }),
   }, { merge: true });
 }
 
@@ -206,7 +244,10 @@ export async function svuotaCoda(){
   const restano = [];
   let andate = 0;
   for(const v of _coda){
-    try{ await manda(v.giorno, v.secondi); andate++; }
+    // `da` manca nelle voci messe in coda prima che si registrasse l'ora: si
+    // ripiega su mezzogiorno del giorno stesso, che e' un'ora inventata ma
+    // onesta — meglio di buttare via la seduta, e sono pochissime.
+    try{ await manda(v.giorno, v.secondi, v.da || mezzogiornoDi(v.giorno)); andate++; }
     catch(e){ restano.push(v); }
   }
   _coda = restano;

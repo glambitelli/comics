@@ -5,6 +5,60 @@ export let currentId = null;
 export let deleteId = null;
 
 export const PHASE_NAMES = ['Sviluppo','Pre-produzione','Realizzazione'];
+
+// ── GLI STEP DI UN PROGETTO, IN UN POSTO SOLO ────────────────────────────────
+// Prima non esisteva questo elenco, e tre file lo indovinavano ciascuno a modo
+// suo. La chiave con cui una spunta finiva nel progetto era IL TESTO VISIBILE
+// troncato a trenta caratteri — tag compreso, quindi "Soggetto mattina" e non
+// "Soggetto". Da li' tre difetti veri:
+//
+//   · il report PDF cercava p.steps['Soggetto'], ['Moodboard visiva'],
+//     ['Layouts']… chiavi che non esistono mai. La sezione Pipeline del
+//     documento che mandi fuori risultava SEMPRE tutta da fare.
+//   · la percentuale del progetto divideva per 5 step quando erano sette,
+//     quindi era gonfiata.
+//   · il badge "Fase 1 completata" scattava a tre caselle su cinque, e alla
+//     quarta tornava indietro a "in corso".
+//
+// Adesso l'elenco e' questo, l'id e' stabile e non dipende da cosa c'e'
+// scritto a schermo: cambiare una parola nell'interfaccia non perde piu' le
+// spunte di nessuno. `vecchiaChiave` serve solo a ritrovare le spunte gia'
+// salvate col testo (vedi migraSteps) e non va usata per altro.
+export const STEPS = [
+  { id:'moodboard',  fase:1, nome:'Moodboard',          vecchiaChiave:'Moodboard sera' },
+  { id:'soggetto',   fase:1, nome:'Soggetto',           vecchiaChiave:'Soggetto mattina' },
+  { id:'personaggi', fase:1, nome:'Personaggi',         vecchiaChiave:'Personaggi mattina' },
+  { id:'ambiente',   fase:1, nome:'Ambientazione',      vecchiaChiave:'Ambientazione mattina' },
+  { id:'struttura',  fase:1, nome:'Struttura a 3 atti', vecchiaChiave:'Struttura a 3 atti mattina' },
+  { id:'layouts',    fase:2, nome:'Layouts',            vecchiaChiave:'Layouts sera' },
+  { id:'reference',  fase:2, nome:'Reference',          vecchiaChiave:'Reference mattina' },
+];
+
+export function stepDiFase(fase){ return STEPS.filter(s => s.fase === fase); }
+// Quante spunte ha questo progetto, contate SULL'ELENCO e non su quello che
+// c'e' a schermo: i conti devono venire uguali anche se la schermata del
+// progetto non e' aperta (il report, per esempio, si genera dalla home).
+export function stepFatti(p, fase){
+  const quali = fase ? stepDiFase(fase) : STEPS;
+  return quali.filter(s => !!(p.steps && p.steps[s.id])).length;
+}
+
+// LE SPUNTE GIA' SALVATE NON SI PERDONO. Chi usa Inkflow da mesi ha in archivio
+// le chiavi vecchie: alla prima apertura del progetto si ricopiano sugli id.
+// Le vecchie si lasciano dove sono — non danno fastidio, e toglierle vorrebbe
+// dire che un ripristino da un backup di ieri le farebbe sparire davvero.
+// Torna true se ha spostato qualcosa, cosi' chi chiama sa che deve salvare.
+export function migraSteps(p){
+  if(!p || !p.steps) return false;
+  let cambiato = false;
+  for(const s of STEPS){
+    if(p.steps[s.id] === undefined && p.steps[s.vecchiaChiave] === true){
+      p.steps[s.id] = true;
+      cambiato = true;
+    }
+  }
+  return cambiato;
+}
 export const PROJECT_PALETTE = [
   {emoji:'🌊',bg:'#4ab8d8',light:'#d0eefc'},
   {emoji:'🔥',bg:'#e84848',light:'#fde0dc'},

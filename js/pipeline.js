@@ -11,6 +11,12 @@ export function togglePhase(id){
   body.classList.toggle('open',!open); chev.classList.toggle('open',!open);
 }
 
+// LA CHIAVE E' L'ID, non piu' il testo a schermo. Prima si salvava
+// nm.textContent troncato a trenta caratteri — cioe' "Soggetto mattina", tag
+// compreso — e bastava ritoccare una parola nell'interfaccia per perdere le
+// spunte di tutti. Gli id stanno in state.js (vedi STEPS), sull'HTML come
+// data-step. Il ripiego sul testo resta per non rompere niente se un giorno
+// una casella nasce senza id.
 export function toggleStep(el){
   const p=getProject(currentId); if(!p) return;
   const chk=el.querySelector('.step-chk');
@@ -18,7 +24,7 @@ export function toggleStep(el){
   const isDone=chk.classList.contains('done');
   chk.classList.toggle('done',!isDone); nm.classList.toggle('done',!isDone);
   haptic(!isDone?'done':'tap');
-  const key=nm.textContent.trim().slice(0,30);
+  const key = el.dataset.step || nm.textContent.trim().slice(0,30);
   if(!p.steps) p.steps={};
   p.steps[key]=!isDone;
   scheduleSave(p); updateProgress(p);

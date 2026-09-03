@@ -1,7 +1,8 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { loadJSON } from './state.js';
 import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager,
-         collection, doc, onSnapshot, setDoc, deleteDoc, serverTimestamp, getDocs, increment }
+         collection, doc, onSnapshot, setDoc, deleteDoc, serverTimestamp, getDocs, increment,
+         arrayUnion }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -44,7 +45,11 @@ const USER_DOC = 'inkflow_user_data';
 // scrivendo il totale, ne perderebbero una: e sarebbe tempo davvero passato a
 // disegnare, sparito. Con increment i due mezzi si sommano e basta, e il conto
 // non puo' sbagliare nemmeno offline (si sincronizza dopo, sommandosi).
-export { collection, doc, onSnapshot, deleteDoc, setDoc, serverTimestamp, getDocs, increment };
+// `arrayUnion` e' la stessa idea per un elenco: AGGIUNGE una voce lato server
+// invece di riscrivere l'array intero. Serve a tenere le singole sessioni del
+// cronometro dentro la riga del giorno senza che due telefoni si cancellino a
+// vicenda le sedute.
+export { collection, doc, onSnapshot, deleteDoc, setDoc, serverTimestamp, getDocs, increment, arrayUnion };
 
 // ── CACHE LOCALE PROGETTI — per avvio istantaneo ──
 export function cacheProjects(projs){

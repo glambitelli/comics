@@ -1,4 +1,4 @@
-import { getProject, currentId, setCurrentId, setDeleteId, deleteId , haptic } from './state.js';
+import { getProject, currentId, setCurrentId, setDeleteId, deleteId , haptic, migraSteps } from './state.js';
 import { db, COL, scheduleSave, deleteDoc, doc } from './firebase.js';
 import { hexToRgb } from './canvas.js';
 import { updateProgress } from './progress.js';
@@ -51,11 +51,14 @@ export function restoreProject(p){
   document.getElementById('notes').value = p.notes||'';
   document.getElementById('date-start').value = p.dateStart||'';
   document.getElementById('date-end').value = p.dateEnd||'';
+  // Le spunte gia' in archivio hanno le chiavi vecchie (il testo della
+  // casella): si ricopiano sugli id una volta sola, alla prima apertura.
+  if(migraSteps(p)) scheduleSave(p);
   document.querySelectorAll('.step-item, .step-collapse').forEach(el => {
     const chk = el.querySelector('.step-chk');
     const nm = el.querySelector('.step-nm');
     if(!chk || !nm) return; // salta i blocchi di supporto (Taccuino, Scene) che non hanno spunta
-    const key = nm.textContent.trim().slice(0,30);
+    const key = el.dataset.step || nm.textContent.trim().slice(0,30);
     const done = !!(p.steps && p.steps[key]);
     chk.classList.toggle('done', done);
     nm.classList.toggle('done', done);

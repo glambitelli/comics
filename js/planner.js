@@ -125,6 +125,13 @@ export function applyPlanner(){
   p.dateEnd = toISO(end);
   document.getElementById('date-end').value = p.dateEnd;
 
+  // I TRE CURSORI SI SALVANO. restorePlanner li rimetteva a posto leggendo
+  // p.plannerSettings, ma nessuno lo scriveva: riaprendo il progetto tornavano
+  // sempre a 2/2/2, e il calendario di fase — che li legge dai campi a schermo
+  // (vedi renderPhaseCalendar in velocity.js) — ridisegnava tre fasce che non
+  // c'entravano niente con la deadline appena calcolata.
+  p.plannerSettings = { sviluppo: weeksS, preprod: weeksP, velocity };
+
   const fmt = d => `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`;
   const btn = document.getElementById('date-end-btn');
   const lbl = document.getElementById('date-end-label');

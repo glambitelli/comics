@@ -64,6 +64,42 @@ module.exports = () => suite("Esportazione — il report e il copione che mandi 
   const righe = await page.evaluate(()=> (window.__finestra.html.match(/<tr /g)||[]).length);
   ok('e una riga per ogni tavola, anche per quelle non cominciate', righe >= 4, righe);
 
+  sezione('e la Pipeline dice quello che hai davvero spuntato');
+  // È IL DIFETTO PEGGIORE CHE ABBIA AVUTO QUESTO FILE, ed era invisibile: le
+  // voci erano scritte a mano nel report ('Soggetto', 'Layouts', 'Moodboard
+  // visiva') mentre le chiavi vere erano il testo della casella col tag
+  // attaccato ('Soggetto mattina'). Nessuna delle cinque cercate esisteva:
+  // la sezione Pipeline usciva SEMPRE tutta da fare, anche a progetto finito.
+  // Un report non lo si rilegge riga per riga, quindi nessuno se ne accorgeva.
+  const pipeline = await page.evaluate(async (p)=>{
+    window.seminaProgetto(Object.assign({}, p, {
+      steps: { soggetto:true, layouts:true },   // due spuntati, cinque no
+    }));
+    const html = (await window.esporta('report')).html;
+    // La sezione Pipeline sta fra il suo titolo e quello dopo.
+    const da = html.indexOf('>Pipeline<');
+    const pezzo = html.slice(da, html.indexOf('Tavole', da));
+    const spunta = nome =>{
+      const i = pezzo.indexOf('>' + nome + '<');
+      if(i < 0) return null;
+      // il pallino della voce sta subito prima del suo nome
+      return pezzo.lastIndexOf('✓', i) > pezzo.lastIndexOf('#e8e8e8', i);
+    };
+    return {
+      nomi: window.state.STEPS.map(x=> x.nome).filter(n=> pezzo.includes('>' + n + '<')),
+      soggetto: spunta('Soggetto'),
+      layouts: spunta('Layouts'),
+      personaggi: spunta('Personaggi'),
+      reference: spunta('Reference'),
+    };
+  }, PROGETTO);
+  // Nell'elenco scritto a mano mancavano proprio Personaggi e Ambientazione.
+  ok('ci sono tutte e sette le voci', pipeline.nomi.length === 7, pipeline);
+  ok('quelle spuntate risultano spuntate',
+     pipeline.soggetto === true && pipeline.layouts === true, pipeline);
+  ok('e quelle no, no',
+     pipeline.personaggi === false && pipeline.reference === false, pipeline);
+
   sezione('un progetto appena nato si esporta lo stesso, senza rompersi');
   // Il caso in cui e' facile andare in errore: niente storia, niente date,
   // niente di niente. Deve uscire un documento, non una pagina bianca.
