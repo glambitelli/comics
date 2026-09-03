@@ -1,21 +1,47 @@
-/* PROJECT HEADER — M2 sabbia chiara, punto oro */
-.proj-header{background:var(--sand);padding:calc(22px + var(--safe-top)) 18px 16px;flex-shrink:0;position:relative;overflow:hidden;border-radius:0 0 24px 24px;border-bottom:2px solid #e8dcc0}
-.proj-header::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--gold);z-index:1}
-/* IL MARCHIO SOPRA IL NOME DEL PROGETTO. Nelle altre schermate "Inkflow" e' il
-   titolo grande, perche' li' non c'e' nient'altro da nominare; qui il titolo e'
-   il progetto, e due scritte da 46 e 38 pixel una sopra l'altra si
-   contenderebbero la pagina. Quindi il marchio scende di misura e fa da
-   soprattitolo: si legge, si tocca, e non ruba la scena al nome del lavoro. */
-.proj-marchio{margin-bottom:12px}
-.proj-marchio .section-title{font-size:26px;margin-bottom:0}
-.proj-marchio .section-sub{min-height:0;margin-top:1px}
+/* ── L'INTESTAZIONE E' QUELLA DELLE ALTRE SEZIONI ──
+   Era l'unica schermata con un'intestazione tutta sua — sabbia, filo d'oro,
+   angoli piu' stretti — e passando da References a un progetto il marchio
+   cambiava misura e colore di fondo sotto gli occhi. Adesso e' identica a
+   .refs-header, .scene-header, .idee-header e .stats-header: se un giorno
+   cambiano la', va cambiata anche qui. */
+.proj-header{background:var(--white);padding:calc(24px + var(--safe-top)) 24px 10px;flex-shrink:0;position:relative;overflow:hidden;border-radius:0 0 28px 28px;border-bottom:3px solid var(--sky);z-index:1}
+.proj-header::before{content:'';position:absolute;top:0;left:0;right:0;height:5px;background:linear-gradient(90deg,var(--coral),var(--gold),var(--green),var(--sky))}
+
+/* ── LA TARGA ──
+   Il progetto e' una scheda staccata col filo d'oro sul fianco, come le altre
+   schede della schermata: sopra c'e' l'app, qui comincia il lavoro. E' l'unica
+   delle tre forme provate che dica a colpo d'occhio che il progetto e' una cosa
+   DENTRO Inkflow e non un'altra app — e non aggiunge una lingua nuova, perche'
+   la scheda bianca col filo sabbia questa schermata la parla gia' (.todo-box,
+   .deadline-block, .ref-panel). */
+.proj-targa{
+  margin:14px 14px 0;padding:15px 17px;background:var(--white);
+  border:1.5px solid var(--sand2);border-radius:var(--r);
+  box-shadow:0 2px 10px rgba(74,184,216,.08);
+  position:relative;overflow:hidden;flex-shrink:0;
+}
+.proj-targa::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--gold)}
 .proj-title-row{display:flex;align-items:baseline;justify-content:flex-start;gap:1px;position:relative}
-.proj-title-edit{font-size:38px;font-weight:700;color:var(--ink);width:auto;max-width:calc(100% - 22px);font-family:'Castoro',serif;letter-spacing:-.01em;text-align:left;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.proj-dot{font-family:'Castoro',serif;font-weight:700;font-size:38px;line-height:1;color:#e0a810;flex-shrink:0;user-select:none}
-.proj-meta{font-size:12px;font-weight:600;color:#6a6050;display:flex;flex-wrap:wrap;row-gap:4px;margin-top:10px;position:relative}
-.proj-meta>div{padding:0 13px;border-right:1.5px solid #d8cba8}
-.proj-meta>div:first-child{padding-left:0}
-.proj-meta>div:last-child{border-right:none}
+/* Trentadue e non trentotto: il marchio sopra e' tornato a 46, e due titoli
+   quasi uguali uno sull'altro si contenderebbero la pagina. Cosi' invece si
+   legge una gerarchia — l'app, poi il lavoro. */
+.proj-title-edit{font-size:32px;font-weight:700;color:var(--ink);width:auto;max-width:calc(100% - 22px);font-family:'Castoro',serif;letter-spacing:-.01em;text-align:left;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.proj-dot{font-family:'Castoro',serif;font-weight:700;font-size:32px;line-height:1;color:#e0a810;flex-shrink:0;user-select:none}
+/* La riga dei dati sta dentro la targa, che e' piu' stretta dell'intestazione
+   a tutta pagina di prima: 13px per lato non ci stavano piu' e "34gg scaduto"
+   scendeva da solo su una seconda riga, rientrato di 13px rispetto a
+   "Pre-produzione" — un a capo che sembrava un errore di allineamento. A 10px
+   i cinque dati stanno in riga su un telefono normale, e quando proprio devono
+   andare a capo lo fanno allineati a sinistra. */
+.proj-meta{font-size:12px;font-weight:600;color:#6a6050;display:flex;flex-wrap:wrap;row-gap:5px;margin-top:10px;position:relative}
+/* LO SPAZIO STA TUTTO A DESTRA, mai a sinistra. Con un'imbottitura per lato
+   solo il primo dato partiva dal bordo: andando a capo — e nella targa, piu'
+   stretta dell'intestazione a tutta pagina di prima, i cinque dati a capo ci
+   vanno su qualunque telefono — la seconda riga cominciava rientrata di dieci
+   pixel rispetto alla prima, e sembrava un errore di allineamento invece di un
+   a capo. Cosi' invece ogni riga comincia dal bordo. */
+.proj-meta>div{padding-right:10px;margin-right:10px;border-right:1.5px solid #d8cba8}
+.proj-meta>div:last-child{padding-right:0;margin-right:0;border-right:none}
 .proj-meta span{color:var(--ink);font-weight:700}
 /* "tav N" è l'unico dato dell'intestazione che si può cambiare: la matitina
    lo dice senza aggiungere un pulsante a una riga già densa. */
@@ -26,7 +52,10 @@
    senza spostare di un pixel il testo né i separatori accanto. */
 .meta-editable::after{content:'';position:absolute;left:0;right:0;top:-10px;bottom:-10px}
 .meta-edit-ico{font-size:9px;color:#a89870 !important;font-weight:400 !important;margin-left:4px;vertical-align:1px}
-.prog-bar-wrap{background:var(--white);padding:12px 20px;border-bottom:1px solid var(--sand2);display:flex;align-items:center;gap:12px;flex-shrink:0}
+/* L'avanzamento sta DENTRO la targa e non fa piu' fascia a se': era una
+   striscia bianca fra due fondi, e con la targa diventava la terza riga
+   orizzontale di fila sotto l'intestazione. */
+.prog-bar-wrap{background:none;padding:13px 0 2px;border:0;display:flex;align-items:center;gap:12px;flex-shrink:0}
 .prog-bar{flex:1;height:6px;background:#e0d4b4;border-radius:3px;overflow:hidden}
 .prog-fill{height:100%;background:linear-gradient(90deg,#e0a810,var(--gold));border-radius:3px;transition:width .4s}
 .prog-lbl{font-size:11px;color:var(--ink2);white-space:nowrap;font-weight:600}

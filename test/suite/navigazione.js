@@ -157,7 +157,8 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
   // schermata: il titolo scattava di lato. Qui si misurano tutte insieme.
   const testate = await page.evaluate(()=>{
     const quali = { home:'.home-header', refs:'.refs-header', idee:'.idee-header',
-                    stats:'.stats-header', scene:'.scene-header' };
+                    stats:'.stats-header', scene:'.scene-header',
+                    progetto:'.proj-header' };
     const esito = {};
     for(const [nome, sel] of Object.entries(quali)){
       const el = document.querySelector(sel);
@@ -180,7 +181,7 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
     });
     return esito;
   });
-  const chiavi = ['home','refs','idee','stats','scene'].filter(k=> testate[k]);
+  const chiavi = ['home','refs','idee','stats','scene','progetto'].filter(k=> testate[k]);
   const uguali = campo => new Set(chiavi.map(k=> testate[k][campo])).size === 1;
   ok('stessa imbottitura su tutte', uguali('imbottitura'), testate);
   ok('stessi angoli in basso', uguali('angoli'), testate);
@@ -199,27 +200,39 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
       dice: t ? t.textContent.trim().startsWith('Inkflow') : false,
       sotto: sub ? sub.textContent.trim() : null,
       tocca: t ? (t.getAttribute('onclick') || '') : '',
-      // Il titolo grande resta quello del progetto: due scritte da 46 e 38
-      // pixel una sopra l'altra si contenderebbero la pagina.
       misuraMarchio: t ? parseFloat(getComputedStyle(t).fontSize) : 0,
       misuraProgetto: parseFloat(getComputedStyle(document.getElementById('proj-title')).fontSize),
+      // Il marchio e' grande come nelle altre sezioni: passando da References a
+      // un progetto non deve cambiare misura sotto gli occhi.
+      misuraAltrove: parseFloat(getComputedStyle(document.querySelector('.refs-header .section-title')).fontSize),
+      // E il progetto e' una targa staccata sotto, col filo d'oro sul fianco.
+      targa: !!document.querySelector('.proj-targa'),
+      // L'avanzamento sta dentro la targa, non piu' in una fascia sua.
+      avanzDentro: !!document.querySelector('.proj-targa .prog-bar-wrap'),
     };
   });
   ok('il marchio c\'e\' anche nel progetto', dentroUnProgetto.c && dentroUnProgetto.dice, dentroUnProgetto);
   ok('e sotto dice "projects"', dentroUnProgetto.sotto === 'projects', dentroUnProgetto);
   ok('toccandolo si torna a casa',
      /goHomeFromLogo/.test(dentroUnProgetto.tocca), dentroUnProgetto);
-  ok('ma il titolo grande resta il nome del progetto',
-     dentroUnProgetto.misuraProgetto > dentroUnProgetto.misuraMarchio, dentroUnProgetto);
+  ok('ed e\' grande come nelle altre sezioni',
+     dentroUnProgetto.misuraMarchio === dentroUnProgetto.misuraAltrove, dentroUnProgetto);
+  ok('il progetto e\' una targa staccata sotto', dentroUnProgetto.targa, dentroUnProgetto);
+  ok('con dentro l\'avanzamento', dentroUnProgetto.avanzDentro, dentroUnProgetto);
+  // Trentadue contro quarantasei: due titoli quasi uguali uno sull'altro si
+  // contenderebbero la pagina, e non si leggerebbe piu' chi contiene chi.
+  ok('e il nome del lavoro sta sotto al marchio, non alla pari',
+     dentroUnProgetto.misuraProgetto < dentroUnProgetto.misuraMarchio, dentroUnProgetto);
 
   console.log('\n── e sotto gli angoli dell\'intestazione il fondo e\' lo stesso ──');
   // Le intestazioni sono arrotondate in basso, e dietro i due angoli si vedeva
   // il fondo del body — sabbia chiara — invece di quello della schermata: due
   // tacche piu' chiare ai lati, che si notano proprio perche' stanno ai bordi.
   const fondi = await page.evaluate(()=>{
-    const quali = ['screen-scene','screen-idee','screen-refs','screen-stats'];
+    const quali = ['screen-scene','screen-idee','screen-refs','screen-stats','screen-project'];
     const scroll = { 'screen-scene':'.scene-scroll', 'screen-idee':'.idee-scroll',
-                     'screen-refs':'.refs-scroll', 'screen-stats':'.stats-scroll' };
+                     'screen-refs':'.refs-scroll', 'screen-stats':'.stats-scroll',
+                     'screen-project':'.proj-scroll' };
     return quali.map(id=>{
       const sc = document.getElementById(id);
       const dentro = sc && sc.querySelector(scroll[id]);

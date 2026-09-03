@@ -506,16 +506,19 @@
 </div>
 
 <div class="screen" id="screen-project">
+  <!-- L'INTESTAZIONE E' QUELLA DI TUTTE LE ALTRE SEZIONI: bianca, striscia
+       arcobaleno sopra, marchio grande e filo azzurro sotto. Il progetto era
+       l'unica schermata con un'intestazione tutta sua, e passando da
+       References a un progetto "Inkflow" cambiava misura sotto gli occhi. -->
   <div class="proj-header">
-    <!-- IL MARCHIO STA IN CIMA ANCHE QUI. Era l'unica schermata senza: si
-         entrava in un progetto e la via di casa spariva, quando in tutte le
-         altre basta toccare "Inkflow". Sta sopra il nome del progetto e in
-         piccolo (vedi .proj-marchio): il titolo grande resta quello del
-         progetto, perche' e' di lui che parla la schermata. -->
-    <div class="proj-marchio">
-      <div class="section-title" onclick="goHomeFromLogo()" style="cursor:pointer" role="button" tabindex="0" aria-label="Torna alla home">Inkflow <span style="font-size:.6em;color:#f0c020;vertical-align:.14em;font-weight:400">✦</span></div>
-      <div class="section-sub">projects</div>
-    </div>
+    <div class="section-title" onclick="goHomeFromLogo()" style="cursor:pointer" role="button" tabindex="0" aria-label="Torna alla home">Inkflow <span style="font-size:.6em;color:#f0c020;vertical-align:.14em;font-weight:400">✦</span></div>
+    <div class="section-sub">projects</div>
+  </div>
+  <!-- LA TARGA. Il progetto e' una scheda staccata col filo d'oro sul fianco,
+       come le altre schede della schermata: sopra c'e' l'app, qui comincia il
+       lavoro, e il confine si vede senza doverlo spiegare. Dentro ci sta anche
+       l'avanzamento, che prima faceva fascia a se'. -->
+  <div class="proj-targa">
     <div class="proj-title-row">
       <div class="proj-title-edit" id="proj-title"></div><span class="proj-dot">.</span>
     </div>
@@ -526,10 +529,10 @@
       <div><span id="meta-pct">0</span>%</div>
       <div id="meta-days-wrap" style="display:none"><span id="meta-days"></span></div>
     </div>
-  </div>
-  <div class="prog-bar-wrap">
-    <div class="prog-bar"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
-    <div class="prog-lbl" id="prog-lbl">0 / 0</div>
+    <div class="prog-bar-wrap">
+      <div class="prog-bar"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
+      <div class="prog-lbl" id="prog-lbl">0 / 0</div>
+    </div>
   </div>
   <div class="proj-scroll">
 
