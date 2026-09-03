@@ -106,10 +106,17 @@ body.album-reading{overflow:hidden}
    vetro scuro della capsula sotto li tiene attaccati alla barra invece che
    alla tavola. Larghezza sua e non a tutta riga: e' un gruppetto di comandi,
    non una seconda barra. */
+/* NIENTE FILO D'ORO INTORNO A QUESTA. Le altre capsule del lettore stanno
+   staccate dalla tavola e il bordo le disegna; questa invece galleggia a
+   ridosso del bordo inferiore del fumetto, e la riga dorata ci finiva sopra —
+   sembrava una cornice storta appoggiata alla pagina, non un comando. Il
+   vetro scuro sfocato basta da solo a staccarla: e' lo stesso motivo per cui
+   i bottoni qui dentro non hanno un contorno loro (raddoppierebbe un bordo
+   che c'e' gia'), portato fino in fondo. */
 .ar-top-actions{
   display:flex;gap:4px;align-self:center;flex-shrink:0;padding:4px;
   border-radius:22px;
-  background:rgba(30,22,10,.55);border:1px solid rgba(232,200,120,.2);
+  background:rgba(30,22,10,.55);border:none;
   backdrop-filter:blur(8px) saturate(1.15);-webkit-backdrop-filter:blur(8px) saturate(1.15);
 }
 .ar-top-actions .ar-btn{width:38px;height:38px;background:none}
