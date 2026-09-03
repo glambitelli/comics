@@ -1,7 +1,10 @@
 // Drive finto "inerte": non collegato, nessuna rete. Le suite che provano
 // davvero lo scaricamento usano finti/drive-lento.js.
 export function getDriveAlbumFile(){ return Promise.resolve(null); }
-export function ensureDriveConnected(){ return Promise.resolve(false); }
+// Come quella vera: torna se alla fine si e' collegati. Rispondeva sempre "no"
+// a prescindere, e la sincronizzazione dello scaffale usciva subito — quindi
+// nessuna prova poteva arrivare a vedere cosa succede QUANDO Drive c'e'.
+export function ensureDriveConnected(){ return Promise.resolve(window.__driveCollegato === true); }
 export function driveRangeFetch(){ return Promise.reject(new Error('niente Drive nel banco')); }
 export function isDownloadCancelled(e){ return !!(e && e.cancelled); }
 // Di norma "non configurato": la maggior parte delle prove non vuole vedere
@@ -20,7 +23,16 @@ export function connectDrive(){
 export function disconnectDrive(){}
 export function driveAccountEmail(){ return null; }
 export function onDriveAuthChange(){}
-export function listDriveAlbumsForFolder(){ return Promise.resolve([]); }
+// Torna { stato, files } come quella vera: 'ok' con l'elenco, 'senzaCartella'
+// quando su Drive non esiste una cartella con quel nome. Le prove lo pilotano
+// con window.__driveCartelle = { 'KON Satoshi': [ ...file ] }.
+export function listDriveAlbumsForFolder(nome){
+  const mappa = (typeof window !== 'undefined' && window.__driveCartelle) || null;
+  if(!mappa) return Promise.resolve({ stato:'ok', files:[] });
+  const chiave = Object.keys(mappa).find(k => k.trim().toLowerCase() === String(nome||'').trim().toLowerCase());
+  if(!chiave) return Promise.resolve({ stato:'senzaCartella', files:[] });
+  return Promise.resolve({ stato:'ok', files: mappa[chiave] || [] });
+}
 export function initDriveAuth(){}
 // "Ricollega" invece di "Collega" a chi l'aveva gia' fatto una volta.
 export function daRicollegare(){ return window.__driveGiaCollegato === true; }

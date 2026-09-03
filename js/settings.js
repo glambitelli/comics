@@ -707,6 +707,26 @@ export async function azzeraTempoConferma(){
   infoModal('Il tempo al tavolo riparte da zero.', { title:'Fatto' });
 }
 
+// ── COME SI FA ──
+// Si apre e si chiude qui dentro, senza aprire una schermata: per cinque
+// paragrafi una schermata a parte e' un posto in cui non entra nessuno. Il
+// chevron gira, cosi' si vede che e' una cosa che si apre e non una che porta
+// altrove come le due righe sopra.
+export function apriAiuto(){
+  const corpo = document.getElementById('aiuto-corpo');
+  const riga = document.getElementById('aiuto-riga');
+  const chev = document.getElementById('aiuto-chev');
+  if(!corpo) return;
+  const aperto = !corpo.hidden;
+  corpo.hidden = aperto;
+  if(riga) riga.setAttribute('aria-expanded', String(!aperto));
+  if(chev) chev.classList.toggle('giu', !aperto);
+  // Niente scrollIntoView: il testo nasce subito sotto la riga che si e'
+  // toccata, quindi e' gia' li'. Spostare lo scorrimento del pannello, invece,
+  // gli toglieva il trascinamento per chiudere — che funziona solo da fermi in
+  // cima — e restava un pannello che non si chiudeva piu' tirandolo giu'.
+}
+
 export function resetStarsConfirm(){
   document.getElementById('stars-confirm-modal').classList.add('open');
 }

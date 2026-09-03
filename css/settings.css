@@ -246,3 +246,24 @@ select.settings-time:disabled{opacity:1;color:var(--ink);background-image:none;p
 .spazio-riempimento{height:100%;background:linear-gradient(90deg,#e0a810,#f0c020);border-radius:3px;transition:width .3s}
 /* Sopra l'80% il colore cambia da solo: un numero non allarma, un rosso si'. */
 .spazio-riempimento.avviso{background:linear-gradient(90deg,#c85838,#e07838)}
+
+/* ── COME SI FA ──
+   Testo da leggere, non righe da toccare: interlinea larga e paragrafi
+   staccati, dentro la stessa scheda bianca del resto del pannello. I titoletti
+   sono in ottone come le etichette di sezione, cosi' si scorre a occhio
+   cercando il pezzo che serve senza leggere tutto. */
+.aiuto-corpo{margin-top:8px;padding:4px 16px 14px}
+.aiuto-corpo h4{
+  font-size:10.5px;font-weight:800;letter-spacing:.11em;text-transform:uppercase;
+  color:var(--ottone);margin:16px 0 6px;
+}
+.aiuto-corpo h4:first-child{margin-top:8px}
+.aiuto-corpo p{
+  font-size:13px;line-height:1.62;color:var(--ink2);margin:0 0 9px;
+}
+.aiuto-corpo b{color:var(--ink);font-weight:700}
+.aiuto-corpo em{font-style:normal;color:var(--ottone);font-weight:700}
+/* Il chevron delle due righe sopra porta altrove; questo apre qui: girandolo
+   in giu' la differenza si vede prima di toccare. */
+.settings-chev.giu{transform:rotate(90deg)}
+.settings-chev{transition:transform .18s}

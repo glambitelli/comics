@@ -92,6 +92,39 @@ module.exports = () => suite("Impostazioni — il pannello dice solo quello che 
   ok('e non lo dice come se fosse un guasto',
      !/rame/.test(acceso.colore) && acceso.colore !== '', acceso);
 
+  sezione('"Come si fa": le cose che, sbagliate, fanno sembrare l\'app rotta');
+  const aiuto = await page.evaluate(async ()=>{
+    const st = await import('/js/settings.js');
+    const corpo = document.getElementById('aiuto-corpo');
+    const prima = corpo.hidden;
+    st.apriAiuto();
+    const testo = corpo.textContent.replace(/\s+/g,' ');
+    const titoli = Array.from(corpo.querySelectorAll('h4')).map(h=> h.textContent.trim());
+    const dopoApertura = corpo.hidden;
+    st.apriAiuto();
+    return { prima, dopoApertura, richiuso: corpo.hidden, testo, titoli,
+             espanso: document.getElementById('aiuto-riga').getAttribute('aria-expanded') };
+  });
+  ok('nasce chiuso: chi non lo cerca non lo trova in mezzo', aiuto.prima === true, aiuto);
+  ok('si apre qui dentro, senza portare in un\'altra schermata',
+     aiuto.dopoApertura === false, aiuto);
+  ok('e si richiude', aiuto.richiuso === true && aiuto.espanso === 'false', aiuto);
+  ok('ha piu\' di un argomento', aiuto.titoli.length >= 4, aiuto.titoli);
+  // LA REGOLA DEI NOMI SU DRIVE STA PER PRIMA, ed e' il motivo per cui questa
+  // sezione esiste: e' la cosa che si scopre per tentativi, ricollegando Drive
+  // piu' volte, senza che niente da nessuna parte la dica.
+  ok('la prima cosa che spiega e\' Drive', /drive/i.test(aiuto.titoli[0]), aiuto.titoli);
+  ok('e dice che i nomi delle cartelle devono combaciare',
+     /esattamente/i.test(aiuto.testo) && /cartella/i.test(aiuto.testo), aiuto.testo.slice(0,200));
+  ok('dice anche che gli albi arrivano aprendo lo scaffale, non ricaricando',
+     /ricaricare l'app/i.test(aiuto.testo), aiuto.testo.slice(0,400));
+  // E le altre due trappole vere: il backup che non contiene le immagini, e la
+  // versione vecchia servita dalla cache.
+  ok('avverte che il backup non contiene le immagini',
+     /non contiene le immagini/i.test(aiuto.testo), aiuto.testo.slice(0,120));
+  ok('e dice come uscire da una versione vecchia',
+     /riaprila due volte/i.test(aiuto.testo), aiuto.testo);
+
   sezione('il quadernetto dei guasti');
   // Nel codice ci sono quaranta punti in cui un errore viene ingoiato in
   // silenzio: giusto uno per uno, disastroso tutti insieme — sul telefono non

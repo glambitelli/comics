@@ -89,11 +89,58 @@ module.exports = () => suite("Drive — lo scaffale dice quando gli albi non arr
   const collegato = await page.evaluate(()=> document.getElementById('refs-albums-drive').hidden);
   ok('sparisce invece di dire "tutto a posto"', collegato, collegato);
 
+  sezione('collegato ma senza la cartella gemella, lo dice');
+  // È IL CASO CHE FACEVA PERDERE PIÙ TEMPO DI TUTTI, ed era muto. Inkflow cerca
+  // su Drive una cartella che si chiami ESATTAMENTE come quella qui dentro:
+  // basta crearla col nome corto ("Kon" invece di "KON Satoshi") o rinominarla,
+  // e lo scaffale resta vuoto identico a come sarebbe con Drive scollegato.
+  // Nessun messaggio, nessuna differenza a schermo: si finisce a ricollegare
+  // Drive più volte pensando che il collegamento non tenga.
+  await page.evaluate(()=>{
+    window.__driveConfigurato = true;
+    window.__driveCollegato = true;
+    // Su Drive c'è "Kon", ma la cartella qui dentro si chiama altrimenti.
+    window.__driveCartelle = { 'Kon': [] };
+  });
+  await apriScaffale();
+  await page.waitForTimeout(400);
+  const senzaGemella = await page.evaluate(()=>{
+    const r = document.getElementById('refs-albums-drive');
+    return {
+      visibile: !r.hidden && getComputedStyle(r).display !== 'none',
+      titolo: (document.getElementById('albums-drive-titolo')||{}).textContent || '',
+      nota: (document.getElementById('albums-drive-nota')||{}).textContent || '',
+      // Non c'è niente da collegare: Drive è già collegato. Un pulsante
+      // "Collega" qui manderebbe a rifare la cosa che è già fatta — ed è
+      // esattamente quello che uno prova, invano, quando non capisce.
+      pulsante: !document.getElementById('albums-drive-btn').hidden,
+    };
+  });
+  ok('la riga ricompare', senzaGemella.visibile, senzaGemella);
+  ok('e nomina la cartella che su Drive non c\'è',
+     /manca/i.test(senzaGemella.titolo) && /«.+»/.test(senzaGemella.titolo), senzaGemella);
+  ok('spiegando la regola: i nomi devono combaciare',
+     /esattamente come questa/i.test(senzaGemella.nota), senzaGemella);
+  ok('e non ripropone "Collega", che è già fatto', !senzaGemella.pulsante, senzaGemella);
+
+  sezione('ma se la cartella su Drive c\'è, la riga tace');
+  await page.evaluate(()=>{
+    // Stesso nome della cartella seminata: adesso combaciano.
+    const f = window.refs.__cartelle ? window.refs.__cartelle()[0] : null;
+    const nome = document.getElementById('refs-breadcrumb-name')?.textContent?.trim() || 'F1';
+    window.__driveCartelle = { [nome]: [] };
+  });
+  await apriScaffale();
+  await page.waitForTimeout(400);
+  const conGemella = await page.evaluate(()=> document.getElementById('refs-albums-drive').hidden);
+  ok('sparisce di nuovo', conGemella, conGemella);
+
   sezione('e senza Drive configurato non compare mai');
   // Niente chiavi, niente da collegare: proporlo sarebbe offrire una porta che
   // non porta da nessuna parte.
   await page.evaluate(()=>{
     window.__driveConfigurato = false; window.__driveCollegato = false;
+    window.__driveCartelle = null;
     window.refs.renderRefsScreen();
   });
   await page.waitForTimeout(200);

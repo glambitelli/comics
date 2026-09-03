@@ -10,7 +10,7 @@ import { closeActionMenu } from './dialogs.js';
 // l'app si monta e' proprio quello che nessuno riesce mai a raccontare.
 import { ascoltaErrori } from './registro.js';
 ascoltaErrori();
-import { openSettings, closeSettings, closeSettingsUI, azzeraTempoConferma, resetStarsConfirm, closeStarsConfirm, doResetStars, exportBackup, importBackup, resetStreakConfirm, closeStreakConfirm, doResetStreak, onSoundToggle, onSoundPackChange, accountTocca, driveTocca, copiaUid, copiaRegistro, svuotaRegistroUI } from './settings.js';
+import { openSettings, closeSettings, closeSettingsUI, azzeraTempoConferma, apriAiuto, resetStarsConfirm, closeStarsConfirm, doResetStars, exportBackup, importBackup, resetStreakConfirm, closeStreakConfirm, doResetStreak, onSoundToggle, onSoundPackChange, accountTocca, driveTocca, copiaUid, copiaRegistro, svuotaRegistroUI } from './settings.js';
 window.onSoundToggle=onSoundToggle; window.onSoundPackChange=onSoundPackChange;
 import { renderHome, openNewModal, closeModal, createProject, openCardMenu, exportProjectJSON, confirmDeleteProject, openColorPicker, closeColorPicker, selectProjectColor, filterProjects, attachCardDrag, applyProjectOrder, startSandstorm, getScriptment } from './home.js';
 import { openProject, restoreProject, goHome, confirmDeleteCurrent, closeConfirm, confirmMicrotask } from './project.js';
@@ -422,6 +422,7 @@ window.addCharacter=addCharacter; window.deleteCharacter=deleteCharacter;
 window.toggleCharCard=toggleCharCard; window.toggleScreenplay=toggleScreenplay; window.addSceneText=addSceneText; window.deleteSceneText=deleteSceneText; window.confirmMicrotask=confirmMicrotask;
 window.openSettings=openSettings; window.closeSettings=closeSettings;
 window.azzeraTempoConferma=azzeraTempoConferma;
+window.apriAiuto=apriAiuto;
 window.resetStarsConfirm=resetStarsConfirm; window.closeStarsConfirm=closeStarsConfirm;
 window.doResetStars=doResetStars; window.exportBackup=exportBackup; window.importBackup=importBackup;
 window.accountTocca=accountTocca; window.driveTocca=driveTocca; window.copiaUid=copiaUid;

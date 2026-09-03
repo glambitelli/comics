@@ -746,8 +746,12 @@ export async function syncDriveAlbumsForFolder(folderId){
     // Se il token è scaduto ma la sessione Google è viva, si ricollega da
     // solo in silenzio; altrimenti niente sync finché non si tocca "Connetti".
     if(!(await ensureDriveConnected())) return;
-    const files = await listDriveAlbumsForFolder(f.name);
-    for(const file of files){
+    const esito = await listDriveAlbumsForFolder(f.name);
+    // Se su Drive non esiste una cartella con questo nome, lo scaffale deve
+    // DIRLO: e' il caso piu' frequente in assoluto e finora era muto.
+    _cartellaDriveMancante = esito.stato === 'senzaCartella' ? f.name : null;
+    renderScaffaleDrive();
+    for(const file of esito.files){
       if(findAlbumByDriveId(folderId, file.id)) continue;
       if(window.createAlbumFromDriveFile) await window.createAlbumFromDriveFile(folderId, file);
     }
@@ -757,6 +761,10 @@ export async function syncDriveAlbumsForFolder(folderId){
     _syncingFolders.delete(folderId);
   }
 }
+
+// Il nome della cartella Inkflow che su Drive non ha trovato la sua gemella.
+// null quando va tutto bene o quando non si e' ancora guardato.
+let _cartellaDriveMancante = null;
 
 let _driveAuthHooked = false;
 // L'esito del collegamento si scrive nella riga stessa, sotto il titolo. Il
@@ -1464,11 +1472,30 @@ function renderScaffaleDrive(){
   const riga = document.getElementById('refs-albums-drive');
   if(!riga) return;
   const collegato = isDriveConfigured() && isDriveConnected();
-  // Non configurato: non c'e' niente da collegare, la riga non serve. Collegato:
-  // gli albi arrivano, e una riga che dice "tutto a posto" e' solo rumore.
-  riga.hidden = !isDriveConfigured() || collegato;
-  if(riga.hidden){ esitoDrive(''); return; }
+  const titolo = document.getElementById('albums-drive-titolo');
   const btn = document.getElementById('albums-drive-btn');
+  if(!isDriveConfigured()){ riga.hidden = true; esitoDrive(''); return; }
+
+  // COLLEGATO MA SENZA LA CARTELLA GEMELLA. E' il caso che faceva perdere piu'
+  // tempo di tutti, e non diceva niente: Inkflow cerca su Drive una cartella
+  // che si chiami ESATTAMENTE come quella qui dentro, e se non la trova lo
+  // scaffale resta vuoto identico a come sarebbe se Drive fosse scollegato.
+  // Rinominare una cartella su Drive, o crearla col nome corto, bastava a far
+  // sparire tutto senza una parola.
+  if(collegato && _cartellaDriveMancante){
+    riga.hidden = false;
+    if(titolo) titolo.textContent = 'Su Drive manca «' + _cartellaDriveMancante + '»';
+    esitoDrive('La cartella su Drive deve chiamarsi esattamente come questa.');
+    if(btn) btn.hidden = true;
+    return;
+  }
+  if(btn) btn.hidden = false;
+  if(titolo) titolo.textContent = 'Google Drive non collegato';
+  // Collegato e tutto a posto: gli albi arrivano, e una riga che dice "tutto
+  // bene" e' solo rumore.
+  riga.hidden = collegato;
+  if(riga.hidden){ esitoDrive(''); return; }
+  esitoDrive('Qui restano solo gli albi gia\' scaricati.');
   // "Ricollega" a chi l'aveva gia' collegato: sentirsi proporre la prima
   // connessione quando l'hai gia' fatta sembra che l'app abbia perso i pezzi.
   if(btn) btn.textContent = daRicollegare() ? 'Ricollega' : 'Collega';

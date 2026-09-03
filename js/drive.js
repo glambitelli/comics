@@ -422,22 +422,31 @@ async function findAuthorSubfolderId(folderName){
 }
 
 // Elenca i .cbz/.cbr dentro la sottocartella Drive di questa cartella-autore.
-// Torna [] (silenziosamente) se Drive non è configurato, non è collegato, o
-// la sottocartella non esiste ancora: mai un errore per un caso "normale".
+//
+// TORNA ANCHE SE LA CARTELLA C'ERA, e non e' un dettaglio: prima tornava un
+// elenco vuoto sia quando la sottocartella su Drive non esisteva, sia quando
+// esisteva ed era vuota. Sono due cose diversissime — la prima quasi sempre
+// vuol dire che i nomi non combaciano — e chi guardava lo scaffale vedeva lo
+// stesso identico niente in tutti e due i casi, senza una parola. Adesso lo
+// scaffale lo puo' dire (vedi renderScaffaleDrive in refs.js).
+//
+// `stato` vale: 'spento' (Drive non configurato o non collegato), 'senzaCartella'
+// (su Drive non c'e' nessuna cartella con questo nome), 'errore' (la chiamata
+// e' fallita), 'ok'.
 export async function listDriveAlbumsForFolder(folderName){
-  if(!isDriveConfigured() || !isDriveConnected()) return [];
+  if(!isDriveConfigured() || !isDriveConnected()) return { stato:'spento', files:[] };
   try{
     const subId = await findAuthorSubfolderId(folderName);
-    if(!subId) return [];
+    if(!subId) return { stato:'senzaCartella', files:[] };
     const q = `'${subId}' in parents and trashed=false`;
     const url = 'https://www.googleapis.com/drive/v3/files?' + new URLSearchParams({
       q, fields: 'files(id,name,size,modifiedTime)', spaces: 'drive', pageSize: '200', orderBy: 'name',
     });
     const data = await driveFetch(url);
-    return (data.files || []).filter(f => ALBUM_EXT_RE.test(f.name));
+    return { stato:'ok', files: (data.files || []).filter(f => ALBUM_EXT_RE.test(f.name)) };
   }catch(e){
     console.warn('listDriveAlbumsForFolder:', e.message);
-    return [];
+    return { stato:'errore', files:[] };
   }
 }
 
