@@ -186,7 +186,10 @@ body.is-touch #btn-evening,
 body.is-touch #btn-refs,
 body.is-touch #btn-stats,
 body.is-touch #btn-settings{display:none !important}
-/* Nascondi anche il pulsante "esci dalla sera" flottante su touch (luce-fantasma) */
+/* IL SOLE DELLA SERA STA IN BASSO AL CENTRO, dov'e' la barra del mouse quando
+   c'e': di sera i comandi si riducono a uno solo — si torna al giorno — e
+   lasciarlo in un angolo voleva dire cercarlo. Col tocco non serve: il sole sta
+   nel tondo nero della barra-duna, al posto della luna. */
 body.is-touch #evening-exit,
 body.is-touch .evening-exit-btn,
 body.is-touch #btn-evening-exit{display:none !important}
@@ -201,6 +204,18 @@ body.is-touch .proj-scroll,
 body.is-touch .evening-scroll,
 body.is-touch .refs-scroll,
 body.is-touch .stats-scroll{padding-bottom:calc(110px + var(--safe-bot)) !important}
+
+/* E LO STESSO SPAZIO SERVE COL MOUSE. La fila di tondi prima viveva dentro la
+   home, quindi solo li' poteva finire sopra qualcosa; adesso che si vede da
+   ogni schermata, senza questo l'ultima riga di miniature o l'ultima scheda
+   resterebbero sotto i pulsanti, cliccabili solo indovinando. Ottantacinque
+   pixel: i 48 dei tondi, i 24 da terra, e un po' d'aria. */
+body:not(.is-touch):not(.evening-mode) .home-scroll,
+body:not(.is-touch):not(.evening-mode) .proj-scroll,
+body:not(.is-touch):not(.evening-mode) .refs-scroll,
+body:not(.is-touch):not(.evening-mode) .stats-scroll,
+body:not(.is-touch):not(.evening-mode) .scene-scroll,
+body:not(.is-touch):not(.evening-mode) .idee-scroll{padding-bottom:calc(85px + var(--safe-bot))}
 
 /* ── UNDO TOAST ── */
 #undo-toast{position:fixed;left:50%;transform:translateX(-50%) translateY(20px);bottom:calc(84px + var(--safe-bottom,0px));background:var(--ink);color:#f5f0e8;border-radius:12px;padding:10px 10px 10px 16px;display:flex;align-items:center;gap:14px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:600;box-shadow:0 6px 24px rgba(0,0,0,.28);opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;z-index:9000;max-width:90vw}

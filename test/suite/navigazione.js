@@ -224,6 +224,69 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
   ok('e il nome del lavoro sta sotto al marchio, non alla pari',
      dentroUnProgetto.misuraProgetto < dentroUnProgetto.misuraMarchio, dentroUnProgetto);
 
+  console.log('\n── e col mouse i pulsanti si vedono da ogni schermata ──');
+  // Stavano dentro #screen-home: da References o dalle Scene, col mouse, non
+  // c'era piu' un modo di spostarsi che non fosse il tasto Indietro.
+  // Il resto della suite gira a misura di telefono, dove comanda la barra-duna:
+  // qui serve una finestra da mouse, e il rilevamento del tocco si ricalcola
+  // con 200ms di ritardo (vedi main.js).
+  await page.setViewportSize({ width: 1100, height: 760 });
+  await page.waitForTimeout(400);
+  const dovunque = [];
+  for(const [nome, id] of [['home','screen-home'], ['references','screen-refs'],
+                           ['scene','screen-scene'], ['progetto','screen-project']]){
+    dovunque.push(await page.evaluate((arg)=>{
+      document.querySelectorAll('.screen').forEach(s=> s.classList.remove('active'));
+      document.getElementById(arg.id).classList.add('active');
+      const row = document.querySelector('.home-fab-row');
+      const r = row.getBoundingClientRect();
+      return { nome: arg.nome,
+        visibile: getComputedStyle(row).display !== 'none' && r.width > 0,
+        tondi: Array.from(row.querySelectorAll('.home-fab')).filter(x=> x.getBoundingClientRect().width > 0).length,
+        // Centrata in fondo, come la barra-duna sul telefono.
+        centrata: Math.abs((r.left + r.width/2) - window.innerWidth/2) < 2 };
+    }, { nome, id }));
+  }
+  ok('la fila si vede su tutte le schermate', dovunque.every(d=> d.visibile), dovunque);
+  ok('con tutti e quattro i tondi', dovunque.every(d=> d.tondi === 4), dovunque);
+  ok('e sempre centrata in fondo', dovunque.every(d=> d.centrata), dovunque);
+
+  // Di sera resta il solo sole, e in mezzo: i comandi si riducono a uno — si
+  // torna al giorno — e in un angolo lo si cercava.
+  const diSera = await page.evaluate(()=>{
+    document.querySelectorAll('.screen').forEach(s=> s.classList.remove('active'));
+    document.getElementById('screen-evening').classList.add('active');
+    document.body.classList.add('evening-mode');
+    const row = document.querySelector('.home-fab-row');
+    const sole = document.getElementById('evening-exit');
+    const sr = sole.getBoundingClientRect();
+    const out = {
+      filaVia: getComputedStyle(row).display === 'none',
+      sole: getComputedStyle(sole).display !== 'none' && sr.width > 0,
+      centroSole: Math.round(sr.left + sr.width/2),
+      meta: Math.round(window.innerWidth/2),
+    };
+    document.body.classList.remove('evening-mode');
+    return out;
+  });
+  ok('di sera la fila si toglie', diSera.filaVia, diSera);
+  ok('e resta il solo sole', diSera.sole, diSera);
+  ok('in basso al centro, non in un angolo',
+     Math.abs(diSera.centroSole - diSera.meta) < 2, diSera);
+
+  // Col pannello Impostazioni aperto la fila sparisce: e' un foglio che sale
+  // dal fondo, e i tondi gli finirebbero sopra gli ultimi comandi.
+  const conImpostazioni = await page.evaluate(()=>{
+    document.body.classList.add('settings-open');
+    const via = getComputedStyle(document.querySelector('.home-fab-row')).display === 'none';
+    document.body.classList.remove('settings-open');
+    return via;
+  });
+  ok('e con le Impostazioni aperte pure', conImpostazioni, conImpostazioni);
+
+  await page.evaluate(()=> window.goHome());
+  await page.waitForTimeout(400);
+
   console.log('\n── e sotto gli angoli dell\'intestazione il fondo e\' lo stesso ──');
   // Le intestazioni sono arrotondate in basso, e dietro i due angoli si vedeva
   // il fondo del body — sabbia chiara — invece di quello della schermata: due
@@ -290,13 +353,18 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
   // browser la sezione nuova semplicemente non esisteva.
   const colMouse = await page.evaluate(()=>{
     const b = Array.from(document.querySelectorAll('.home-fab-row .home-fab'));
+    // Sta FUORI dalle schermate, come la barra-duna: dentro #screen-home
+    // spariva appena si andava da un'altra parte.
+    const fuori = !document.getElementById('screen-home').contains(document.querySelector('.home-fab-row'));
     return {
       etichette: b.map(x=> x.getAttribute('aria-label')),
       scene: b.some(x=> x.getAttribute('aria-label') === 'Scene'),
       stats: b.some(x=> x.getAttribute('aria-label') === 'Statistiche'),
+      fuori,
     };
   });
   ok('col mouse le Scene ci sono', colMouse.scene, colMouse);
+  ok('e la fila vive fuori dalla home, come la barra-duna', colMouse.fuori, colMouse);
   // Le Statistiche si guardano ogni tanto, non ogni giorno: stanno in cima
   // alle Impostazioni, sul telefono come col mouse.
   ok('e le Statistiche sono uscite anche da li\'', !colMouse.stats, colMouse);

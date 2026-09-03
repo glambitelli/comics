@@ -52,7 +52,12 @@
    per definizione, ed e' il posto dove un oggetto che galleggia non copre mai
    niente. */
 body:not(.is-touch) .tempo-capsula{
-  bottom:calc(20px + var(--safe-bot,0px));
+  /* Sopra la fila di tondi, non accanto: quella e' centrata in fondo e la
+     capsula sta a destra, ma su una finestra stretta i due si toccano — a
+     600px di larghezza si sovrapponevano per una quarantina di pixel. Alzarla
+     sopra la fila risolve a qualunque larghezza, invece di sperare che ci
+     stiano entrambe in orizzontale. */
+  bottom:calc(85px + var(--safe-bot,0px));
   left:auto;right:20px;transform:none;
 }
 /* Dentro un foglio a tutto schermo — una scena, un albo, un riferimento — la
