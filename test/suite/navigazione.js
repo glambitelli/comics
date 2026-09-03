@@ -284,6 +284,40 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
   ok('con tutti e quattro i tondi', dovunque.every(d=> d.tondi === 4), dovunque);
   ok('e sempre centrata in fondo', dovunque.every(d=> d.centrata), dovunque);
 
+  // E I TONDI STANNO SU UN PIANO D'APPOGGIO. Col mouse galleggiavano nel vuoto
+  // in fondo alla pagina — quattro cose sparse invece di una barra sola —
+  // mentre sul telefono hanno la barra-duna sotto. La pastiglia e' sabbia piu'
+  // scura del fondo pagina e un filo trasparente, cosi' il contenuto che le
+  // passa sotto si intravede senza disturbare.
+  const pastiglia = await page.evaluate(()=>{
+    const row = document.querySelector('.home-fab-row');
+    const st = getComputedStyle(row);
+    const r = row.getBoundingClientRect();
+    const primo = row.querySelector('.home-fab').getBoundingClientRect();
+    const ultimo = Array.from(row.querySelectorAll('.home-fab')).pop().getBoundingClientRect();
+    return {
+      fondo: st.backgroundColor,
+      raggio: parseFloat(st.borderTopLeftRadius),
+      // Larga quanto i tondi piu' un po' d'aria, non quanto lo schermo: una
+      // pastiglia da bordo a bordo sarebbe una fascia, non una barra.
+      larga: Math.round(r.width),
+      schermo: window.innerWidth,
+      // I tondi devono starci DENTRO, con del margine da tutti i lati.
+      ariaSinistra: Math.round(primo.left - r.left),
+      ariaDestra: Math.round(r.right - ultimo.right),
+      ariaSopra: Math.round(primo.top - r.top),
+    };
+  });
+  // Trasparente: si legge dall'alfa, che dev'esserci e non essere 1.
+  const alfa = (pastiglia.fondo.match(/rgba?\([^)]*,\s*([\d.]+)\)/)||[])[1];
+  ok('la fila ha un fondo suo', pastiglia.fondo !== 'rgba(0, 0, 0, 0)', pastiglia);
+  ok('ed e\' leggermente trasparente', alfa && parseFloat(alfa) > 0 && parseFloat(alfa) < 1, { alfa, ...pastiglia });
+  ok('e' + '\' una pastiglia, non un rettangolo', pastiglia.raggio >= 30, pastiglia);
+  ok('larga quanto i tondi, non quanto lo schermo',
+     pastiglia.larga < pastiglia.schermo * 0.75, pastiglia);
+  ok('coi tondi dentro e un po\' d\'aria attorno',
+     pastiglia.ariaSinistra > 4 && pastiglia.ariaDestra > 4 && pastiglia.ariaSopra > 4, pastiglia);
+
   // Di sera resta il solo sole, e in mezzo: i comandi si riducono a uno — si
   // torna al giorno — e in un angolo lo si cercava.
   const diSera = await page.evaluate(()=>{

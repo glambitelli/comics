@@ -124,13 +124,37 @@ body.is-touch .new-fab{bottom:calc(104px + var(--safe-bot))}
    Sparisce in tre casi: col tocco (c'e' la duna), col pannello Impostazioni
    aperto (e' un foglio che sale dal fondo e la barra gli finirebbe sopra gli
    ultimi comandi) e di sera, dove resta il solo sole per tornare al giorno. */
-.home-fab-row{position:fixed;bottom:calc(24px + var(--safe-bot));left:0;right:0;display:flex;align-items:center;justify-content:center;gap:16px;z-index:50;pointer-events:none}
+/* LA PILLOLA. Col mouse i quattro tondi galleggiavano nel vuoto in fondo alla
+   pagina, mentre sul telefono hanno la loro barra: sembravano quattro cose
+   sparse invece di una barra sola. Adesso stanno dentro una pastiglia larga
+   quanto loro — sabbia piu' scura del fondo pagina, un filo trasparente e col
+   vetro smerigliato dietro, cosi' il contenuto che le passa sotto si intravede
+   senza disturbare.
+   Il colore e' sabbia e non l'oro della duna: quello e' il materiale della
+   barra del telefono, che ha la sua texture e il suo cielo notturno. Qui basta
+   che i tondi abbiano un piano d'appoggio. */
+.home-fab-row{
+  position:fixed;bottom:calc(24px + var(--safe-bot));
+  left:50%;transform:translateX(-50%);
+  display:flex;align-items:center;gap:16px;
+  padding:10px 14px;border-radius:999px;
+  background:rgba(200,184,152,.42);
+  border:1px solid rgba(160,140,100,.28);
+  backdrop-filter:blur(10px) saturate(1.1);-webkit-backdrop-filter:blur(10px) saturate(1.1);
+  box-shadow:0 6px 22px rgba(90,70,40,.16);
+  z-index:50;
+}
 body.is-touch .home-fab-row,
 body.settings-open .home-fab-row,
 body.evening-mode .home-fab-row{display:none}
-.home-fab{pointer-events:auto;width:48px;height:48px;border-radius:50%;background:var(--white);border:1.5px solid var(--sand3);box-shadow:0 4px 16px rgba(0,0,0,.12);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--ink2);font-size:22px;padding:0}
-.home-fab-dark{background:linear-gradient(135deg,#1a1410,#2a2018);border:none;box-shadow:0 4px 16px rgba(0,0,0,.22);color:#fff}
+/* Le ombre sono piu' leggere di quando i tondi stavano da soli sulla pagina:
+   dentro la pastiglia servivano a staccarli dal fondo, e adesso il fondo ce
+   l'hanno. Sono le stesse misure dei tondi della barra-duna, cosi' le due
+   barre si somigliano davvero invece di somigliarsi solo nell'elenco. */
+.home-fab{width:48px;height:48px;border-radius:50%;background:#fffbf2;border:1px solid rgba(160,120,50,.22);box-shadow:0 2px 6px rgba(90,60,20,.18);cursor:pointer;display:flex;align-items:center;justify-content:center;color:#4a2e08;font-size:22px;padding:0;transition:transform .12s}
+.home-fab:active{transform:scale(.92)}
+.home-fab-dark{background:linear-gradient(135deg,#241c14,#120d08);border:1.5px solid rgba(220,170,70,.4);box-shadow:0 2px 10px rgba(0,0,0,.28);color:#fff}
 @media (max-width:380px){
-  .home-fab-row{gap:10px}
+  .home-fab-row{gap:10px;padding:8px 11px}
   .home-fab{width:44px;height:44px}
 }
