@@ -47,9 +47,9 @@
    rgb(245,240,232), due pixel piu' sotto rgb(238,229,212) — due tacche
    chiare ai lati dell'intestazione, che si notano proprio perche' sono ai
    bordi.
-   Il colore e' lo stesso dei quattro *-scroll (#efe6d4): se un giorno cambia
-   la', va cambiato anche qui. */
-#screen-scene,#screen-idee,#screen-refs,#screen-stats{background:#efe6d4}
+   Il colore e' --fondo-carta, lo stesso dei quattro *-scroll: un nome solo,
+   cosi' non puo' piu' restare indietro in un file e non nell'altro. */
+#screen-scene,#screen-idee,#screen-refs,#screen-stats{background:var(--fondo-carta)}
 
 /* ── BARRA-DUNA MOBILE (solo dispositivi touch) ── */
 .dune-nav{display:none}

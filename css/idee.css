@@ -28,7 +28,7 @@
 }
 
 .idee-scroll{
-  flex:1;overflow-y:auto;background:#efe6d4;
+  flex:1;overflow-y:auto;background:var(--fondo-carta);
   padding:14px 14px calc(20px + var(--safe-bot));
 }
 body.is-touch .idee-scroll{padding-bottom:calc(110px + var(--safe-bot))}

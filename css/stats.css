@@ -2,11 +2,11 @@
 /* Fondo sabbia CALDA come la schermata progetto e le References (#efe6d4):
    prima era var(--sand), mezzo tono più freddo e chiaro, e passando da un
    progetto a stats l'app sembrava cambiare carta sotto i piedi. */
-#screen-stats{background:#efe6d4}
+#screen-stats{background:var(--fondo-carta)}
 .stats-header{background:var(--white);padding:calc(24px + var(--safe-top)) 24px 10px;position:relative;overflow:hidden;flex-shrink:0;border-radius:0 0 28px 28px;border-bottom:3px solid var(--sky);z-index:1}
 .stats-header::before{content:'';position:absolute;top:0;left:0;right:0;height:5px;background:linear-gradient(90deg,var(--coral),var(--gold),var(--green),var(--sky))}
 .stats-sub{font-size:11px;color:var(--ink3);letter-spacing:.1em;text-transform:lowercase}
-.stats-scroll{flex:1;overflow-y:auto;background:#efe6d4;padding:16px 18px calc(20px + var(--safe-bot))}
+.stats-scroll{flex:1;overflow-y:auto;background:var(--fondo-carta);padding:16px 18px calc(20px + var(--safe-bot))}
 .stats-card{background:var(--white);border-radius:var(--r);padding:16px;box-shadow:var(--shadow);border:1.5px solid var(--sand2)}
 /* Etichette con il punto oro delle .sec-label della schermata progetto: è la
    firma visiva con cui Inkflow apre una sezione, e stats era l'unica a non

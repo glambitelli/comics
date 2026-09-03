@@ -16,6 +16,12 @@
      ricopiarla a mano e a dare al resto dell'app un posto da cui pescare. I
      nomi sono quelli dei materiali, non dei ruoli: l'oro è l'accento vivo,
      l'ottone il tono di servizio, il rame l'avviso. */
+  /* IL FONDO DELLE SCHERMATE. Era scritto a mano come #efe6d4 in cinque punti
+     diversi (scene, idee, references, statistiche, e il fondo di schermata),
+     e bastava che uno restasse indietro perche' comparisse un gradino di
+     colore dove due superfici si toccano — che e' esattamente quello che
+     succedeva agli angoli arrotondati delle intestazioni. Un nome solo. */
+  --fondo-carta:#efe6d4;
   --oro:#d9a417;        /* oro pieno — l'accento acceso (stelle, interruttori) */
   --oro-sabbia:#c2a869; /* sabbia dorata — bordi e toni tenui */
   --ottone:#a8763c;     /* ottone — testo secondario caldo, stati attivi */

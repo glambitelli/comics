@@ -9,7 +9,7 @@
 .refs-inline-add-circle{width:48px;height:48px;border-radius:50%;background:#fffdf8;color:#d4a818;border:1.5px solid #ecd97a;font-size:26px;font-weight:300;line-height:0;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(208,168,48,.18);transition:transform .12s,background .15s}
 .refs-inline-add:active .refs-inline-add-circle{transform:scale(.9);background:#fdf3da}
 
-.refs-breadcrumb{display:none;align-items:center;gap:8px;padding:8px 16px;background:var(--sand);border-bottom:1px solid #e8dcc0;flex-shrink:0;cursor:pointer}
+.refs-breadcrumb{display:none;align-items:center;gap:8px;padding:8px 16px;background:var(--fondo-carta);border-bottom:1px solid #e8dcc0;flex-shrink:0;cursor:pointer}
 /* Il nome si prende tutta la riga e spinge "Ordina" all'estremita' destra. */
 .refs-breadcrumb #refs-breadcrumb-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .refs-crumb-sort{margin:-4px 0}
@@ -22,7 +22,7 @@
    il linguaggio dei titoli, mentre qui si sceglie uno scaffale fra tre. Ora la
    scelta e' un cursore che scorre, in tutte e due le schermate allo stesso
    modo, e in tutte e due si cambia anche con uno swipe. */
-.refs-tabs{display:none;padding:2px 16px 12px;background:var(--sand);flex-shrink:0}
+.refs-tabs{display:none;padding:2px 16px 12px;background:var(--fondo-carta);flex-shrink:0}
 .refs-tabs.show{display:block}
 .refs-tabs .seg-vasca{--n:3}
 /* Il numero accanto al nome non e' un dato, e' un contorno: serve a sapere se
@@ -64,12 +64,17 @@
 }
 .refs-sort-btn:active{transform:scale(.92);background:var(--sand)}
 /* Quella sopra l'elenco cartelle sta FUORI dallo scroll, come tab e
-   breadcrumb: stesso fondo sabbia e stesso filo, resta ferma mentre il
-   contenuto sotto scorre — le altre due vivono dentro lo scroll e bastano
-   le regole sopra. */
-#refs-folder-toolbar{margin-bottom:0;padding:10px 16px 12px;background:var(--sand);border-bottom:1px solid #e8dcc0}
+   breadcrumb: resta ferma mentre il contenuto sotto scorre — le altre due
+   vivono dentro lo scroll e bastano le regole sopra.
+   IL FONDO E' QUELLO DELLA PAGINA, non piu' la sabbia chiara. Queste strisce
+   stanno subito sotto l'intestazione, che e' arrotondata in basso: agli angoli
+   si vede il fondo della schermata, e con la striscia piu' chiara sotto
+   quell'angolo diventava un triangolino piu' scuro appiccicato al bordo. Fra
+   le strisce e la griglia resta il filo da un pixel, che era il vero
+   separatore: il salto di colore non serviva. */
+#refs-folder-toolbar{margin-bottom:0;padding:10px 16px 12px;background:var(--fondo-carta);border-bottom:1px solid #e8dcc0}
 
-.refs-scroll{flex:1;overflow-y:auto;background:#efe6d4;padding:14px 14px calc(20px + var(--safe-bot))}
+.refs-scroll{flex:1;overflow-y:auto;background:var(--fondo-carta);padding:14px 14px calc(20px + var(--safe-bot))}
 
 /* ── SFOGLIA CARTELLE — "la rubrica" ──
    Era una pila di riquadri bianchi tutti dello stesso peso: funzionava e non
@@ -166,7 +171,7 @@
    non hanno un nome solo, e un pulsante che si puo' premere ma non fa niente e'
    peggio di uno spento. */
 .refs-scelta{display:none;align-items:center;gap:8px;flex-shrink:0;
-  background:var(--sand);padding:2px 16px 14px}
+  background:var(--fondo-carta);padding:2px 16px 14px}
 .refs-scelta.show{display:flex}
 .refs-scelta-conto{flex:1;min-width:0;font-size:13.5px;font-weight:700;color:var(--ink);
   letter-spacing:-.01em}

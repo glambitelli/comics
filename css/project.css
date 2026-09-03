@@ -32,7 +32,7 @@
 .prog-lbl{font-size:11px;color:var(--ink2);white-space:nowrap;font-weight:600}
 
 /* PROGRESS */
-.proj-scroll{flex:1;overflow-y:auto;padding:16px 18px calc(20px + var(--safe-bot));background:#efe6d4}
+.proj-scroll{flex:1;overflow-y:auto;padding:16px 18px calc(20px + var(--safe-bot));background:var(--fondo-carta)}
 
 /* SECTION LABEL */
 .sec-label{display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#8a7248;margin:0 0 10px;background:#f5ecd8;border:1px solid #e0d4b4;border-radius:20px;padding:4px 12px}
