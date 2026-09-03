@@ -929,10 +929,11 @@
         </div>
         <div class="settings-row">
           <span class="settings-ico"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></span>
-          <!-- La didascalia sotto "Promemoria" compare SOLO quando c'è
-               qualcosa che non va (vedi updateReminderStatus): acceso o spento
-               lo dice già l'interruttore accanto, e ripeterlo a parole era una
-               riga di testo che non decideva niente. -->
+          <!-- La didascalia sotto "Promemoria" dice quello che l'interruttore
+               non puo' dire: acceso o spento lo si vede, il LIMITE no. Oggi il
+               promemoria vive dentro la pagina, quindi ad app chiusa non
+               arriva — e prometterlo senza mantenerlo e' peggio che non
+               averlo. Vedi updateReminderStatus in js/notifications.js. -->
           <label class="settings-item" for="reminder-toggle"><b>Promemoria</b><span id="reminder-status" hidden></span></label>
           <input class="settings-toggle" type="checkbox" id="reminder-toggle" onchange="saveReminderSettings()"/>
         </div>

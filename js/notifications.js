@@ -165,12 +165,23 @@ export function updateReminderStatus(){
   const perm = ('Notification' in window) ? Notification.permission : 'unsupported';
 
   let avviso = '';
+  let colore = 'var(--rame)';
   if(enabled && perm === 'unsupported') avviso = 'Questo browser non sa mandare notifiche';
   else if(enabled && perm === 'denied')  avviso = 'Permesso negato: abilitalo dalle impostazioni del telefono';
+  // E QUANDO E' TUTTO A POSTO, SI DICE COS'E' CHE NON FA. Il promemoria e' un
+  // setTimeout dentro la pagina: finche' Inkflow e' aperta o in secondo piano
+  // scatta, ma se Android butta via la scheda il timer sparisce con lei e la
+  // notifica non parte. Si riarma solo riaprendo l'app.
+  // Farla arrivare davvero ad app chiusa vuol dire Web Push, cioe' un mittente
+  // che sta fuori dal telefono: una decisione che sta fuori da questo file.
+  // Finche' non c'e', un interruttore acceso che promette "ogni giorno alle
+  // 8:20" e non mantiene e' peggio di un interruttore spento — uno smette di
+  // fidarsi anche di quelli che funzionano.
+  else if(enabled) { avviso = 'Arriva solo con Inkflow aperta o in secondo piano'; colore = 'var(--ink3)'; }
 
   el.textContent = avviso;
   el.hidden = !avviso;
-  el.style.color = 'var(--rame)';
+  el.style.color = colore;
 }
 
 export async function testNotification(){

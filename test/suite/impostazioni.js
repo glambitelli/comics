@@ -56,7 +56,7 @@ module.exports = () => suite("Impostazioni — il pannello dice solo quello che 
   ok('e dentro c\'è il set attuale', /Final Fantasy VII/.test((suoni.opzioni||[]).join('|')), suoni);
   ok('con un set solo non si apre a vuoto', suoni.spento === true, suoni);
 
-  sezione('sotto "Promemoria" non si scrive quello che l\'interruttore già dice');
+  sezione('sotto "Promemoria" si scrive quello che l\'interruttore NON dice');
   const spento = await page.evaluate(async ()=>{
     localStorage.setItem('inkflow_reminder_enabled', 'false');
     const m = await import('/js/notifications.js');
@@ -82,8 +82,15 @@ module.exports = () => suite("Impostazioni — il pannello dice solo quello che 
     const el = document.getElementById('reminder-status');
     return { testo: el.textContent, altezza: Math.round(el.getBoundingClientRect().height) };
   });
-  ok('e nemmeno a promemoria acceso, se va tutto bene',
-     acceso.testo === '' && acceso.altezza === 0, acceso);
+  // ACCESO, LA RIGA DICE IL LIMITE. Il promemoria e' un setTimeout dentro la
+  // pagina: se Android butta via la scheda il timer sparisce con lei e la
+  // notifica non parte. L'interruttore dice "acceso" e mantiene solo a meta',
+  // e un interruttore che promette senza mantenere fa smettere di fidarsi
+  // anche di quelli che funzionano. Non e' un errore, quindi non e' in rame.
+  ok('acceso, dice che arriva solo ad app viva',
+     /solo con Inkflow aperta o in secondo piano/i.test(acceso.testo), acceso);
+  ok('e non lo dice come se fosse un guasto',
+     !/rame/.test(acceso.colore) && acceso.colore !== '', acceso);
 
   sezione('il quadernetto dei guasti');
   // Nel codice ci sono quaranta punti in cui un errore viene ingoiato in
