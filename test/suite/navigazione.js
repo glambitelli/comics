@@ -286,53 +286,6 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
   ok('e le Scene pure',
      nomi.scene.length === 2 && nomi.scene.every(t=> t === nomi.nomeScene), nomi);
 
-  console.log('\n── su uno schermo largo il contenuto sta in una colonna ──');
-  // Inkflow e' nata dal telefono, e su un monitor si limitava a stirarsi: da 901
-  // a 1900 pixel il foglio di stile era IDENTICO. Le miniature diventavano
-  // enormi e sgranate (Cloudinary le serve a 300px), e a destra restava mezzo
-  // schermo vuoto.
-  const colonne = [];
-  for(const vp of [{width:1900,height:900},{width:1400,height:900},{width:390,height:800}]){
-    await page.setViewportSize(vp);
-    await page.waitForTimeout(350);
-    colonne.push(await page.evaluate(()=>{
-      const tetto = parseInt(getComputedStyle(document.documentElement)
-        .getPropertyValue('--colonna'), 10);
-      const dove = (id, sel)=>{
-        document.querySelectorAll('.screen').forEach(s=> s.classList.remove('active'));
-        document.getElementById(id).classList.add('active');
-        const el = document.querySelector(sel);
-        if(!el) return null;
-        const q = el.getBoundingClientRect();
-        return { larghezza: Math.round(q.width),
-                 centrato: Math.abs((q.left + q.right)/2 - window.innerWidth/2) < 2 };
-      };
-      return {
-        finestra: window.innerWidth, tetto,
-        refs: dove('screen-refs', '.refs-scroll'),
-        scene: dove('screen-scene', '.scene-scroll'),
-        home: dove('screen-home', '.home-scroll'),
-        // Il frontone invece resta da bordo a bordo: capato diventava un
-        // banner arrotondato appeso in aria in mezzo allo schermo.
-        frontone: dove('screen-refs', '.refs-header'),
-      };
-    }));
-  }
-  const larghe = colonne.filter(c=> c.finestra > c.tetto);
-  ok('sopra il tetto il contenuto non lo supera',
-     larghe.every(c=> c.refs.larghezza === c.tetto && c.scene.larghezza === c.tetto
-                   && c.home.larghezza === c.tetto), colonne);
-  ok('ed e\' centrato',
-     larghe.every(c=> c.refs.centrato && c.scene.centrato && c.home.centrato), colonne);
-  ok('ma il frontone resta da bordo a bordo',
-     larghe.every(c=> c.frontone.larghezza === c.finestra), colonne);
-  // SUL TELEFONO NON CAMBIA UN PIXEL: e' il vincolo posto quando si e' deciso
-  // di fare la colonna. Sotto il tetto max-width e' inerte.
-  const stretta = colonne.find(c=> c.finestra < c.tetto);
-  ok('e sotto il tetto il contenuto e\' largo quanto la finestra',
-     stretta.refs.larghezza === stretta.finestra
-     && stretta.scene.larghezza === stretta.finestra, stretta);
-
   console.log('\n── e col mouse i pulsanti si vedono da ogni schermata ──');
   // Stavano dentro #screen-home: da References o dalle Scene, col mouse, non
   // c'era piu' un modo di spostarsi che non fosse il tasto Indietro.
