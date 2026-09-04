@@ -1338,7 +1338,17 @@ export async function spazioImmagini(){
 }
 
 // ── RENDER: DISPATCHER ──
+let _pinAgganciato = false;
+function agganciaPerProgetto(){
+  if(_pinAgganciato) return;
+  _pinAgganciato = true;
+  const fine = document.getElementById('refs-pp-fine');
+  if(fine) fine.addEventListener('click', finePerProgetto);
+}
+
 export function renderRefsScreen(){
+  agganciaPerProgetto();
+  renderPerProgetto();
   // La riga "Drive non collegato" sopra gli albi: vale per tutte le viste
   // dell'archivio, quindi si aggiorna qui e non dentro il solo scaffale.
   renderScaffaleDrive();
@@ -1992,7 +2002,13 @@ export function renderRefsGrid(){
   // della sorgente, quindi due elenchi identici vanno comunque ridisegnati.
   // Chi e' scelto fa parte della firma: senza, spuntare una miniatura non
   // ridisegnerebbe niente e la spunta non comparirebbe.
-  const sig = (mostraTavole ? 'T|' : 'R|') + 'S' + Array.from(_scelti).sort().join('+') + '|'
+  // Stesso motivo per il progetto in corso, ed e' il caso che ci e' scappato:
+  // entrando in "aggiungi a un progetto" l'elenco delle immagini e' identico a
+  // un attimo prima, quindi la firma non cambiava e si usciva di qui PRIMA di
+  // accendere .scegliendo e di ricalcolare le spunte. Risultato: la striscia
+  // in cima diceva "Aggiungi a Il Sentiero" e sotto non si vedeva una spunta.
+  const sig = (mostraTavole ? 'T|' : 'R|') + 'S' + Array.from(_scelti).sort().join('+')
+    + '|P' + (_perProgetto || '') + '|'
     + list.map(r=>r.id+':'+r.url+':'+projectIdsOf(r).join(',')+':'+tagsOf(r).join(',')).join('|');
   if(grid.dataset.sig === sig) return;
   grid.dataset.sig = sig;
@@ -2018,7 +2034,10 @@ export function renderRefsGrid(){
     // si vede finche' non si comincia a scegliere, col mouse c'e' sempre —
     // li' il tocco prolungato non esiste, e il tasto destro funziona ma non lo
     // prova nessuno (vedi .refs-spunta in refs.css).
-    const preso = _scelti.has(r.id);
+    // In modalita' "aggiungi a un progetto" la spunta dice se l'immagine e'
+    // gia' collegata a QUEL progetto: e' l'informazione che serve mentre si
+    // sceglie, e si vede senza aprire niente.
+    const preso = _perProgetto ? projectIdsOf(r).includes(_perProgetto) : _scelti.has(r.id);
     return `
     <div class="refs-thumb${preso ? ' scelta' : ''}"${forma(r)} data-id="${r.id}">
       <img src="${cldResize(r.url, mostraTavole ? TAVOLA_W : THUMB_W)}" loading="lazy" decoding="async" alt=""/>
@@ -2043,7 +2062,7 @@ export function renderRefsGrid(){
 
   // Una classe sola dice al CSS "si sta scegliendo": da li' dipende se le
   // spunte si vedono anche col dito.
-  grid.classList.toggle('scegliendo', _scelti.size > 0);
+  grid.classList.toggle('scegliendo', _scelti.size > 0 || !!_perProgetto);
   montaSceltaGriglia(grid);
 }
 
@@ -2061,7 +2080,19 @@ function montaSceltaGriglia(grid){
   _sceltaGriglia = montaScelta(grid, {
     selettore: '.refs-thumb',
     spunta: '.refs-spunta',
-    apri: id=> openRefLightbox(id),
+    apri: id=>{
+      // Scegliendo per un progetto il tocco COLLEGA: e' il motivo per cui si
+      // e' arrivati qui. Aprire l'immagine a schermo intero resta a portata,
+      // ma da dentro la scheda del progetto.
+      if(_perProgetto){
+        toggleRefProject(id, _perProgetto);
+        haptic('tap');
+        renderPerProgetto();
+        renderRefsGrid();
+        return;
+      }
+      openRefLightbox(id);
+    },
     cambiato: ()=>{
       _scelti.clear();
       for(const id of _sceltaGriglia.scelti()) _scelti.add(id);
@@ -2131,7 +2162,10 @@ export function renderProjectRefPanel(projectId){
     const addBtn = grid.querySelector('#ref-panel-add');
     if(addBtn) addBtn.addEventListener('click', ()=>{
       haptic('tap');
-      if(window.openRefsScreen) window.openRefsScreen();
+      // Il progetto viaggia con te: senza, si arrivava in archivio e da li'
+      // non c'era piu' modo di dire a chi serviva quello che si stava
+      // guardando.
+      if(window.openRefsScreen) window.openRefsScreen(projectId);
     });
   }
 }
@@ -2294,6 +2328,51 @@ export function toggleRefProject(id, projectId){
 
 export function linkRefToProject(id, projectId){
   writeProjectLinks(id, projectId ? [projectId] : []);
+}
+
+// ── SCEGLIERE PER UN PROGETTO ───────────────────────────────────────────────
+// "Riferimenti visivi → Aggiungi" portava nell'archivio e si dimenticava da
+// dove si veniva. Arrivati qui non c'era nessun modo di dire "questo va su
+// Kara": bisognava sapere che si apre il menu dei tre puntini di una singola
+// miniatura e che dentro c'e' "Collega a progetto" — due livelli, uno per
+// immagine, e nessuno lo dice. Il viaggio cominciava e si interrompeva a
+// meta'.
+// Adesso il progetto viaggia con te: una striscia in cima dice per chi stai
+// scegliendo, le miniature gia' collegate hanno la spunta, e un tocco collega
+// o scollega invece di aprire.
+let _perProgetto = null;
+
+export function scegliPerProgetto(projectId){
+  _perProgetto = projectId || null;
+  renderPerProgetto();
+  renderRefsGrid();
+}
+export function progettoInCorso(){ return _perProgetto; }
+
+function renderPerProgetto(){
+  const riga = document.getElementById('refs-per-progetto');
+  if(!riga) return;
+  riga.hidden = !_perProgetto;
+  if(!_perProgetto) return;
+  const p = projects.find(x=> x.id === _perProgetto);
+  const nome = document.getElementById('refs-pp-nome');
+  if(nome) nome.textContent = p ? (p.title || 'Senza titolo') : 'questo progetto';
+  const conto = document.getElementById('refs-pp-conto');
+  if(conto){
+    const n = _refs.filter(r=> projectIdsOf(r).includes(_perProgetto)).length;
+    conto.textContent = n ? (n === 1 ? '1 collegato' : n + ' collegati') : '';
+  }
+}
+
+// "Fine" riporta al progetto da cui si era partiti: chiudere la modalita' e
+// lasciare l'utente in archivio vorrebbe dire fargli rifare la strada a mano.
+function finePerProgetto(){
+  const id = _perProgetto;
+  _perProgetto = null;
+  renderPerProgetto();
+  renderRefsGrid();
+  haptic('tap');
+  if(id && window.openProject) window.openProject(id);
 }
 
 function promptLinkProject(id, anchorEl){

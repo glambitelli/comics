@@ -172,8 +172,15 @@ async function prepRefsScreen(){
   refs.startRefsListener();
   return refs;
 }
-async function openRefsScreen(){
+// Con un id di progetto si entra in archivio "per quel progetto": una striscia
+// in cima dice per chi stai scegliendo e un tocco su una miniatura la collega
+// (vedi scegliPerProgetto in refs.js). Senza id — cioe' dalla barra, che e' il
+// modo normale di entrare — la modalita' si spegne: altrimenti resterebbe
+// accesa da un viaggio di mezz'ora prima e i tocchi collegherebbero immagini a
+// un progetto a cui non stavi piu' pensando.
+async function openRefsScreen(perProgetto){
   const refs = await prepRefsScreen();
+  refs.scegliPerProgetto(perProgetto || null);
   if(window.__navSync) window.__navSync('refs');
   refs.openFolderBrowser();
 }

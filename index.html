@@ -335,6 +335,18 @@
   <!-- LA BARRA DELLA SCELTA prende il posto dell'interruttore qui sopra: si
        sceglie tenendo premuto un artista, e mentre si sceglie cambiare asse non
        serve (vedi renderBarraScelta in refs.js). -->
+  <!-- ARRIVANDO DA UN PROGETTO. Il pulsante "Aggiungi" dei Riferimenti visivi
+       portava qui e si dimenticava da dove si veniva: ci si ritrovava
+       nell'archivio senza un modo di dire "questo va su Kara", e l'unica
+       strada era il menu dei tre puntini di una singola immagine — due
+       livelli, e bisognava saperlo. Questa striscia tiene il filo: dice per
+       chi stai scegliendo, e finche' c'e' un tocco su una miniatura la collega
+       invece di aprirla. -->
+  <div id="refs-per-progetto" class="refs-per-progetto" hidden>
+    <span class="refs-pp-testo">Aggiungi a <b id="refs-pp-nome"></b></span>
+    <span class="refs-pp-conto" id="refs-pp-conto"></span>
+    <button class="refs-pp-fine" id="refs-pp-fine" type="button">Fine</button>
+  </div>
   <div id="refs-scelta" class="refs-scelta">
     <span class="refs-scelta-conto" id="refs-scelta-conto">1 scelto</span>
     <button class="refs-scelta-btn" id="refs-scelta-rinomina" onclick="window.rinominaScelto()" type="button" aria-label="Rinomina" title="Rinomina">

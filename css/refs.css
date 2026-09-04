@@ -175,6 +175,36 @@
    Rinomina resta SPENTO finche' i scelti non sono esattamente uno: due cartelle
    non hanno un nome solo, e un pulsante che si puo' premere ma non fa niente e'
    peggio di uno spento. */
+/* ── STO SCEGLIENDO PER UN PROGETTO ──
+   Stessa famiglia delle altre strisce fisse sotto l'intestazione: stesso fondo
+   della pagina, stesso filo sotto. Quello che cambia e' il tono — un filo
+   d'oro a sinistra — perche' questa non e' una barra di comandi, e' un
+   promemoria di dove sei diretto: finche' c'e', un tocco su una miniatura la
+   collega invece di aprirla, e chi arriva qui deve capirlo prima di toccare. */
+.refs-per-progetto{
+  display:flex;align-items:center;gap:10px;flex-shrink:0;
+  padding:10px 16px 11px;background:var(--fondo-carta);
+  border-bottom:1px solid #e8dcc0;border-left:3px solid var(--gold);
+}
+.refs-per-progetto[hidden]{display:none}
+.refs-pp-testo{
+  font-size:13px;font-weight:600;color:var(--ink2);min-width:0;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.refs-pp-testo b{color:var(--ink);font-weight:800}
+.refs-pp-conto{
+  font-size:10.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--ottone);flex-shrink:0;
+}
+.refs-pp-fine{
+  margin-left:auto;flex-shrink:0;cursor:pointer;
+  font-family:'Nunito',sans-serif;font-size:12.5px;font-weight:800;
+  letter-spacing:.04em;color:var(--ink);
+  background:var(--white);border:1px solid var(--sand3);border-radius:9px;
+  padding:7px 15px;transition:background .15s,transform .1s;
+}
+.refs-pp-fine:active{transform:scale(.95);background:var(--sand)}
+
 .refs-scelta{display:none;align-items:center;gap:8px;flex-shrink:0;
   background:var(--fondo-carta);padding:2px 16px 14px}
 .refs-scelta.show{display:flex}
