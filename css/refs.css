@@ -493,7 +493,34 @@ body.is-touch .refs-drop-hint{display:none}
      2) la barra-duna restava accesa dietro (invisibile all'occhio per pochi
         punti percentuale, ma visibile): ora esplicitamente nascosta mentre
         la galleria è aperta (vedi body.refs-lightbox-open in layout.css). */
-.refs-lightbox{position:fixed;inset:0;background:#0a0806;z-index:9500;display:none;flex-direction:column;opacity:0;transition:opacity .18s}
+
+/* ── IL FONDO: SABBIA SCURA, NON NERO ──
+   Il nero pieno #0a0806 non era brutto, era muto: poteva essere la galleria di
+   qualunque app, e non c'era piu' un filo che la legasse alla sabbia di tutto
+   il resto. Adesso e' la ricetta della pastiglia dei comandi da browser
+   (.home-fab-row) portata allo scuro — colore trasparente davanti, vetro
+   smerigliato dietro — con in piu' una vignettatura: sabbia chiara al centro,
+   dietro la tavola, e terra bruciata verso i bordi. L'occhio va al centro da
+   solo, senza doverlo decidere.
+   ATTENZIONE, QUI C'ERA GIA' UN DIFETTO (il numero 1 qui sopra): un fondo
+   trasparente SENZA sfocatura lasciava leggere la griglia dell'archivio dietro
+   l'immagine, ed era peggio del nero. Quello che rende accettabile la
+   trasparenza adesso e' blur(24px): la griglia diventa un colore, non un
+   contenuto. Se un giorno si tocca questa riga, i due pezzi vanno insieme —
+   togliere la sfocatura e tenere la trasparenza rimette il difetto del 2024. */
+.refs-lightbox{
+  position:fixed;inset:0;z-index:9500;
+  background:radial-gradient(120% 80% at 50% 46%, rgba(96,76,48,.72) 0%, rgba(40,29,17,.94) 100%);
+  backdrop-filter:blur(24px) saturate(1.2);-webkit-backdrop-filter:blur(24px) saturate(1.2);
+  display:none;flex-direction:column;opacity:0;transition:opacity .18s
+}
+/* E dove il vetro smerigliato non c'e' (browser vecchi, o risparmio energetico
+   su alcuni Android) la trasparenza va tolta, se no si torna esattamente al
+   difetto raccontato sopra: griglia leggibile dietro la tavola. Meglio il nero
+   muto di una galleria che non isola l'immagine. */
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+  .refs-lightbox{background:radial-gradient(120% 80% at 50% 46%, #4a3a24 0%, #1a120a 100%)}
+}
 .refs-lightbox.open{display:flex;opacity:1}
 .refs-lightbox-body{flex:1;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;touch-action:none}
 .refs-lightbox-body img{max-width:100%;max-height:100%;object-fit:contain;transform-origin:center center;user-select:none;-webkit-user-drag:none}

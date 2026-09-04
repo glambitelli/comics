@@ -160,4 +160,32 @@ module.exports = () => suite("Galleria References — nastro e gesti", {"banco":
   console.log('\n── riciclo delle celle ──');
   s = await st();
   ok('sono sempre le stesse tre celle', s.tids.slice().sort().join() === tids0, s.tids);
+
+  console.log('\n── il fondo e\' sabbia scura dietro un vetro, non nero ──');
+  // Il nero pieno di prima non era brutto, era muto. E la trasparenza da sola
+  // era gia' stata un difetto — si leggeva la griglia dell'archivio dietro
+  // l'immagine — quindi le due cose vanno provate INSIEME: colore trasparente
+  // E sfocatura. Chi un giorno togliesse la seconda tenendo la prima
+  // rimetterebbe il difetto, e questa prova glielo dice.
+  const fondo = await page.evaluate(()=>{
+    const st = getComputedStyle(document.getElementById('refs-lightbox'));
+    return {
+      sfondo: st.backgroundImage,
+      tinta: st.backgroundColor,
+      vetro: st.backdropFilter || st.webkitBackdropFilter,
+    };
+  });
+  ok('non e\' piu\' una tinta piatta', /gradient/.test(fondo.sfondo), fondo);
+  // Sabbia vuol dire rosso > verde > blu: se un giorno diventasse un grigio o
+  // un blu, i tre canali si pareggerebbero e questa prova cadrebbe.
+  const tinte = (fondo.sfondo.match(/rgba?\([^)]*\)/g) || []).map(t=>
+    t.match(/[\d.]+/g).slice(0,3).map(Number));
+  ok('e le tinte del gradiente sono sabbia, non grigio',
+     tinte.length >= 2 && tinte.every(([r,g,b])=> r > g && g > b), tinte);
+  // Il centro e' piu' chiaro dei bordi: e' la vignettatura, ed e' il motivo
+  // per cui l'occhio va sulla tavola senza doverlo decidere.
+  const luce = t => t ? t.reduce((a,b)=>a+b, 0) : 0;
+  ok('il centro e\' piu\' chiaro dei bordi',
+     tinte.length >= 2 && luce(tinte[0]) > luce(tinte[tinte.length-1]), tinte);
+  ok('e c\'e\' il vetro smerigliato dietro', /blur\(\s*[1-9]/.test(fondo.vetro || ''), fondo);
 });
