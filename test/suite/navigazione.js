@@ -257,6 +257,82 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
   ok('ed e\' opaca, perche\' il contenuto le passa dietro',
      !/rgba\([^)]*,\s*0(\.\d+)?\)/.test(scorrendo.sfondo), scorrendo);
 
+  console.log('\n── i pulsanti si chiamano come le sezioni che aprono ──');
+  // Passando il mouse sopra i tondi si leggeva "References" e "Scene", ma le
+  // sezioni si chiamano "visual archive" e "scenes" — il nome scritto in cima
+  // alla schermata che si apre. Due nomi per la stessa stanza.
+  const nomi = await page.evaluate(()=>{
+    const sub = id =>{
+      const el = document.querySelector('#' + id + ' .section-sub');
+      return el ? el.textContent.trim() : null;
+    };
+    const bottoni = Array.from(document.querySelectorAll('.dune-btn, .home-fab-row .home-fab'));
+    return {
+      // Ogni pulsante di navigazione ha un tooltip: senza, col mouse non si
+      // sa cosa sia un glifo finche' non lo si preme.
+      senzaTitle: bottoni.filter(b=> !b.getAttribute('title'))
+                         .map(b=> b.getAttribute('aria-label') || '?'),
+      // E dove la sezione ha un nome scritto, il tooltip e' quello.
+      refs: bottoni.filter(b=> /openRefsScreen/.test(b.getAttribute('onclick')||''))
+                   .map(b=> b.getAttribute('title')),
+      scene: bottoni.filter(b=> /openScene/.test(b.getAttribute('onclick')||''))
+                    .map(b=> b.getAttribute('title')),
+      nomeRefs: sub('screen-refs'), nomeScene: sub('screen-scene'),
+    };
+  });
+  ok('ogni pulsante ha un tooltip', nomi.senzaTitle.length === 0, nomi);
+  ok('References si chiama come la sua sezione',
+     nomi.refs.length === 2 && nomi.refs.every(t=> t === nomi.nomeRefs), nomi);
+  ok('e le Scene pure',
+     nomi.scene.length === 2 && nomi.scene.every(t=> t === nomi.nomeScene), nomi);
+
+  console.log('\n── su uno schermo largo il contenuto sta in una colonna ──');
+  // Inkflow e' nata dal telefono, e su un monitor si limitava a stirarsi: da 901
+  // a 1900 pixel il foglio di stile era IDENTICO. Le miniature diventavano
+  // enormi e sgranate (Cloudinary le serve a 300px), e a destra restava mezzo
+  // schermo vuoto.
+  const colonne = [];
+  for(const vp of [{width:1900,height:900},{width:1400,height:900},{width:390,height:800}]){
+    await page.setViewportSize(vp);
+    await page.waitForTimeout(350);
+    colonne.push(await page.evaluate(()=>{
+      const tetto = parseInt(getComputedStyle(document.documentElement)
+        .getPropertyValue('--colonna'), 10);
+      const dove = (id, sel)=>{
+        document.querySelectorAll('.screen').forEach(s=> s.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        const el = document.querySelector(sel);
+        if(!el) return null;
+        const q = el.getBoundingClientRect();
+        return { larghezza: Math.round(q.width),
+                 centrato: Math.abs((q.left + q.right)/2 - window.innerWidth/2) < 2 };
+      };
+      return {
+        finestra: window.innerWidth, tetto,
+        refs: dove('screen-refs', '.refs-scroll'),
+        scene: dove('screen-scene', '.scene-scroll'),
+        home: dove('screen-home', '.home-scroll'),
+        // Il frontone invece resta da bordo a bordo: capato diventava un
+        // banner arrotondato appeso in aria in mezzo allo schermo.
+        frontone: dove('screen-refs', '.refs-header'),
+      };
+    }));
+  }
+  const larghe = colonne.filter(c=> c.finestra > c.tetto);
+  ok('sopra il tetto il contenuto non lo supera',
+     larghe.every(c=> c.refs.larghezza === c.tetto && c.scene.larghezza === c.tetto
+                   && c.home.larghezza === c.tetto), colonne);
+  ok('ed e\' centrato',
+     larghe.every(c=> c.refs.centrato && c.scene.centrato && c.home.centrato), colonne);
+  ok('ma il frontone resta da bordo a bordo',
+     larghe.every(c=> c.frontone.larghezza === c.finestra), colonne);
+  // SUL TELEFONO NON CAMBIA UN PIXEL: e' il vincolo posto quando si e' deciso
+  // di fare la colonna. Sotto il tetto max-width e' inerte.
+  const stretta = colonne.find(c=> c.finestra < c.tetto);
+  ok('e sotto il tetto il contenuto e\' largo quanto la finestra',
+     stretta.refs.larghezza === stretta.finestra
+     && stretta.scene.larghezza === stretta.finestra, stretta);
+
   console.log('\n── e col mouse i pulsanti si vedono da ogni schermata ──');
   // Stavano dentro #screen-home: da References o dalle Scene, col mouse, non
   // c'era piu' un modo di spostarsi che non fosse il tasto Indietro.
@@ -404,8 +480,8 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
     const b = Array.from(document.querySelectorAll('.dune-btn'));
     return {
       etichette: b.map(x=> x.getAttribute('aria-label')),
-      scene: b.some(x=> x.getAttribute('aria-label') === 'Scene'),
-      idee: b.some(x=> x.getAttribute('aria-label') === 'Idee'),
+      scene: b.some(x=> x.getAttribute('aria-label') === 'scenes'),
+      idee: b.some(x=> x.getAttribute('aria-label') === 'ideas'),
       quanti: b.length,
     };
   });
@@ -415,7 +491,7 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
   // rettangoli generici accanto si scambiano. Una gabbia da fumetto invece dice
   // di cosa parla la sezione — ed e' quello che la Board mostra.
   const glifo = await page.evaluate(()=>{
-    const b = document.querySelector('.dune-btn[aria-label="Scene"]');
+    const b = document.querySelector('.dune-btn[aria-label="scenes"]');
     const svg = b.querySelector('svg');
     return {
       rettangoli: svg.querySelectorAll('rect').length,
@@ -442,8 +518,8 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
     const fuori = !document.getElementById('screen-home').contains(document.querySelector('.home-fab-row'));
     return {
       etichette: b.map(x=> x.getAttribute('aria-label')),
-      scene: b.some(x=> x.getAttribute('aria-label') === 'Scene'),
-      stats: b.some(x=> x.getAttribute('aria-label') === 'Statistiche'),
+      scene: b.some(x=> x.getAttribute('aria-label') === 'scenes'),
+      stats: b.some(x=> x.getAttribute('aria-label') === 'stats'),
       fuori,
     };
   });
@@ -456,10 +532,10 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
   // piu' la casa al centro, che col mouse e' il marchio in cima.
   ok('e le due navigazioni portano nelle stesse stanze',
      colMouse.etichette.join(' | ')
-       === quarto.etichette.filter(x=> x !== 'Home').join(' | '),
+       === quarto.etichette.filter(x=> x !== 'home').join(' | '),
      { colMouse: colMouse.etichette, barra: quarto.etichette });
 
-  await page.evaluate(()=> document.querySelector('.dune-btn[aria-label="Scene"]').click());
+  await page.evaluate(()=> document.querySelector('.dune-btn[aria-label="scenes"]').click());
   await page.waitForTimeout(600);
   const suScene = await page.evaluate(()=>({
     attiva: document.getElementById('screen-scene').classList.contains('active'),

@@ -39,6 +39,36 @@
   }
 }
 
+/* ── LA COLONNA ──
+   Inkflow e' nata dal telefono, e su un monitor si limitava a stirarsi: da 901
+   a 1900 pixel il foglio di stile era IDENTICO — nessun tetto di larghezza,
+   nessun contenitore centrato, nessuna media query. Le miniature diventavano
+   enormi e sgranate (Cloudinary le serve a 300px di larghezza), e a destra
+   restava mezzo schermo vuoto.
+   Il precedente sta gia' in casa: lo scriptment ha un wrap che centra e una
+   pagina a max-width (scriptment.css). Qui si fa la stessa cosa per tutte le
+   schermate in una riga sola, perche' intestazione, strisce fisse e contenuto
+   che scorre sono tutti figli diretti di .screen: capparli qui vuol dire una
+   regola invece di otto, e nessuna schermata che resta indietro domani.
+   SOTTO I 1080 NON CAMBIA UN PIXEL: max-width e' inerte quando la finestra e'
+   piu' stretta, e margin-inline:auto su un elemento gia' largo quanto il padre
+   non sposta niente. Sul telefono e' come se questa regola non esistesse. */
+:root{ --colonna:1080px }
+.screen > *{ width:100%; max-width:var(--colonna); margin-inline:auto }
+/* L'INTESTAZIONE NO: quella resta da bordo a bordo. Capata come il resto
+   diventava un banner arrotondato che galleggia in mezzo allo schermo — gli
+   angoli tondi e la striscia arcobaleno hanno senso quando toccano i lati
+   della finestra, non appesi in aria con l'aria intorno. E' il frontone
+   dell'app: sta fermo nello stesso punto passando da una schermata all'altra
+   (vedi il commento a .section-title), e un frontone che si stringe non tiene
+   piu' niente. Sotto, il contenuto e' una colonna centrata. */
+.screen > .refs-header,
+.screen > .scene-header,
+.screen > .idee-header,
+.screen > .stats-header{ max-width:none }
+/* Il foglio di una scena non e' una .screen ma segue la stessa regola. */
+.scena-scroll{ width:100%; max-width:var(--colonna); margin-inline:auto }
+
 /* ── IL FONDO SOTTO GLI ANGOLI DELL'INTESTAZIONE ──
    Le intestazioni di Scene, Idee, References, Statistiche e Progetto sono arrotondate in
    basso (border-radius: 0 0 28px 28px), e dietro i due angoli si vedeva il

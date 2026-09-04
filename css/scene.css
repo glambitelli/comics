@@ -175,13 +175,24 @@ body.is-touch .scene-scroll{padding-bottom:calc(110px + var(--safe-bot))}
    Si interrompe DOPO la card fantasma: da li' in giu' non c'e' piu' niente di
    scritto, e un filo che continuasse nel vuoto prometterebbe qualcosa. */
 .beat::after{
-  content:'';position:absolute;left:calc(11px + 22.5%);bottom:-12px;
+  content:'';position:absolute;left:calc(11px + var(--mini)/2);bottom:-12px;
   width:1.5px;height:12px;background:var(--sand3);opacity:.85;
 }
 .beat-nuovo::after{display:none}
 
+/* IL 45% HA UN TETTO. Era il 45% della card e basta, e la card e' larga quanto
+   la finestra: su un monitor la miniatura di un beat diventava ottocento pixel
+   per un'immagine che Cloudinary serve a trecento — gigante e sgranata insieme,
+   col testo spinto in una colonna altrettanto larga. Duecento pixel sono la
+   misura che aveva sul telefono, ed e' quella giusta: una vignetta si guarda,
+   non si contempla.
+   La misura sta in una variabile perche' la spina dorsale (.beat::after) deve
+   cadere al suo centro: erano due numeri scritti a mano in due punti — 45% e
+   22.5% — e appena uno dei due avesse smesso di seguire l'altro il filo si
+   sarebbe staccato dalla miniatura senza che nessuno capisse perche'. */
+.beat{--mini:min(45%, 200px)}
 .beat-mini{
-  flex:0 0 45%;aspect-ratio:4/3;padding:0;cursor:pointer;overflow:hidden;
+  flex:0 0 var(--mini);aspect-ratio:4/3;padding:0;cursor:pointer;overflow:hidden;
   border:1.5px dashed var(--sand3);border-radius:9px;background:rgba(250,244,232,.6);
   transition:border-color .18s,transform .1s;
 }
