@@ -1231,7 +1231,40 @@ export function initScene(){
   // La freccia risale di un passo: dentro una cartella torna all'elenco, e
   // dall'elenco chiude. Passa dalla cronologia, come il tasto del telefono.
   document.getElementById('sceltarif-chiudi').addEventListener('click', ()=> chiudiScelta());
-  document.getElementById('scena-chiudi').addEventListener('click', ()=> chiudiScena());
+  // Il foglio di una scena non ha piu' la freccia: si chiude col tasto
+  // Indietro e con Esc (vedi ascoltaEsc qui sotto).
 
+  ascoltaEsc();
   renderScene();
+}
+
+// ── ESC CHIUDE, come dappertutto ────────────────────────────────────────────
+// Il lettore degli albi lo fa (albums.js), la galleria dei frammenti lo fa
+// (lightbox.js), lo scriptment e i dialoghi lo fanno. I tre fogli delle Scene
+// no: erano le uniche superfici a schermo intero dell'app da cui la tastiera
+// non usciva. Finche' il foglio di una scena aveva la freccia col mouse la
+// mancanza non si vedeva; togliendola sarebbe rimasta l'unica uscita il tasto
+// Indietro del browser, che non tutti pensano di premere.
+//
+// Si chiude il foglio PIU' IN ALTO e uno solo per volta: dentro una scena si
+// puo' aprire la scelta dei riferimenti e da li' il foglio da disegno, e un
+// Esc che li chiudesse tutti e tre insieme farebbe perdere il posto in cui si
+// stava. L'ordine e' quello dei livelli — disegno 230, scelta 225, scena 210 —
+// lo stesso della catena del tasto Indietro in main.js.
+function ascoltaEsc(){
+  document.addEventListener('keydown', e=>{
+    if(e.key !== 'Escape') return;
+    // Con un campo di testo a fuoco Esc lo lascia, non chiude il foglio: si
+    // sta scrivendo un beat, e perdere la scena e' molto peggio che dover
+    // premere due volte.
+    const a = document.activeElement;
+    if(a && (a.tagName === 'TEXTAREA' || a.tagName === 'INPUT')){ a.blur(); return; }
+    const aperto = sel => {
+      const el = document.querySelector(sel);
+      return el && el.classList.contains('open');
+    };
+    if(aperto('#schizzo')){ if(window.chiudiSchizzo) window.chiudiSchizzo(); return; }
+    if(aperto('#sceltarif')){ chiudiScelta(); return; }
+    if(aperto('#scena')){ chiudiScena(); }
+  });
 }

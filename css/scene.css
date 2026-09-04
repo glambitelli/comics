@@ -124,6 +124,28 @@ body.is-touch .scene-scroll{padding-bottom:calc(110px + var(--safe-bot))}
   letter-spacing:.06em;text-transform:uppercase;line-height:1;padding:9px 11px;
   border:1px solid rgba(232,200,120,.28);border-radius:9px;
 }
+/* ── LA TESTATA DI UNA SCENA ──
+   Solo qui, non negli altri fogli: la stessa .scena-barra la usano anche la
+   scelta dei riferimenti e il foglio da disegno, dove i comandi stanno in fila
+   e la riga e' quella giusta. Qui invece non c'e' nessun comando — si chiude
+   col tasto Indietro e con Esc — e lo spazio va tutto al nome della scena.
+   Il marchio scende a occhiello: resta la via di casa, ma smette di essere la
+   cosa piu' grande di una schermata che parla d'altro. */
+.scena-testata{
+  flex-direction:column;align-items:flex-start;gap:2px;
+  padding:calc(13px + var(--safe-top)) 16px 13px;
+}
+.scena-testata .scena-marchio{font-size:11.5px;opacity:.7;padding:0}
+/* Ventisette e non tredici, e a sinistra e non a destra: e' il nome della cosa
+   che stai lavorando, e prima stava nell'angolo piu' lontano dall'occhio. In
+   Castoro come i titoli delle sezioni e come il nome di un progetto — quando
+   una cosa ha un nome proprio, nell'app lo dice questo carattere. */
+.scena-testata .scena-titolo{
+  font-family:'Castoro',Georgia,serif;font-size:27px;font-weight:400;
+  color:#f2e6cd;line-height:1.1;letter-spacing:-.01em;
+  text-align:left;opacity:1;padding:0;width:100%;
+}
+
 /* IL TITOLO E' SCRITTO, non piu' un campo da riempire. Si cambia dall'elenco,
    dai tre puntini, che e' dove si prendono le decisioni su una scena: qui
    dentro si sta lavorando, e il titolo e' solo il posto in cui si e'. */
@@ -491,7 +513,9 @@ body.is-touch .scene-scroll{padding-bottom:calc(110px + var(--safe-bot))}
    Col mouse resta: li' un Indietro sotto il dito non c'e'.
    Le due chiusure passano dalla stessa strada — la cronologia — quindi nessuna
    delle due fa qualcosa che l'altra non farebbe. */
-body.is-touch #scena-chiudi,
+/* Nel foglio di una SCENA la freccia non c'e' piu' per nessuno, nemmeno col
+   mouse: la si chiude col tasto Indietro e con Esc. Restano gli altri due
+   fogli, dove la freccia e' l'unica uscita visibile. */
 body.is-touch #sceltarif-chiudi,
 body.is-touch #schizzo-chiudi{display:none}
 

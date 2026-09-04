@@ -200,16 +200,20 @@
 
 <!-- UNA SCENA APERTA -->
 <div class="scena" id="scena">
-  <div class="scena-barra">
-    <button class="scena-btn" id="scena-chiudi" type="button" aria-label="Chiudi">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-    </button>
-    <!-- IL MARCHIO, e da qui si torna a casa. Prima al suo posto c'era il campo
-         del titolo: si rinominava una scena dalla schermata in cui la si sta
-         lavorando — cioe' nel momento in cui non interessa — e in cambio questo
-         era l'unico posto dell'app da cui la home non si raggiungeva. Il titolo
-         adesso si cambia dall'elenco, dai tre puntini, che e' dove si prendono
-         le decisioni su una scena. -->
+  <!-- LA TESTATA DI UNA SCENA, in colonna: il marchio fa da occhiello e sotto
+       c'e' il nome della scena, grande e a sinistra dove comincia la lettura.
+       Prima era tutto su una riga — freccia, marchio da 15 pixel, e il titolo
+       spinto contro il bordo destro dall'altra parte della barra: il nome della
+       cosa che stai lavorando finiva nell'angolo piu' lontano dall'occhio, in
+       corpo 13, mentre "Inkflow" — che qui e' solo una via d'uscita — si
+       prendeva il centro.
+       La barra resta scura come negli altri fogli che salgono (il disegno, la
+       scelta dei riferimenti): un foglio sopra una schermata non e' una
+       sezione, e restando scuro lo dice senza scriverlo.
+       NIENTE FRECCIA, nemmeno col mouse: si chiude col tasto Indietro e con
+       Esc (vedi ascoltaEsc in scene.js). Il marchio resta toccabile e porta a
+       casa, come in ogni altra schermata. -->
+  <div class="scena-barra scena-testata">
     <button class="scena-marchio" onclick="window.dallaScenaAllaHome()" type="button" aria-label="Torna alla home">Inkflow <span aria-hidden="true">✦</span></button>
     <span id="scena-titolo" class="scena-titolo"></span>
   </div>

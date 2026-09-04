@@ -248,3 +248,8 @@ function aggancia(){
 // Indietro deve poterlo chiudere lo stesso. Chiudendolo SALVA, quindi qui si
 // lascia la funzione che aspetta.
 window.chiudiSchizzoUI = chiudiSchizzoUI;
+// E la chiusura che passa dalla cronologia, per Esc: il tasto deve fare la
+// stessa strada della freccia e del tasto Indietro, se no il foglio sparisce
+// dallo schermo ma resta nella storia della navigazione, e il primo Indietro
+// dopo non tornerebbe indietro di niente.
+window.chiudiSchizzo = chiudiSchizzo;

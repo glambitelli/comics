@@ -73,6 +73,43 @@ module.exports = () => suite("Scene — un riquadro per volta, cento caratteri",
   ok('il titolo non e\' un campo da riempire', aperta.campo !== 'INPUT', aperta);
   ok('e senza titolo la scena si chiama da sola', /senza titolo/i.test(aperta.titolo), aperta);
   ok('nella barra c\'e\' il marchio, per tornare a casa', aperta.marchio, aperta);
+
+  // ── LA TESTATA: IL TITOLO E' LA COSA GRANDE, E STA A SINISTRA ──
+  // Prima era tutto su una riga: freccia, marchio da 15 pixel, e il titolo
+  // spinto contro il bordo destro dall'altra parte della barra. Il nome della
+  // cosa che stai lavorando finiva nell'angolo piu' lontano dall'occhio, in
+  // corpo 13, mentre "Inkflow" — che qui e' solo una via d'uscita — si
+  // prendeva il centro.
+  const testata = await page.evaluate(()=>{
+    const t = document.getElementById('scena-titolo');
+    const m = document.querySelector('.scena-marchio');
+    const barra = document.querySelector('.scena-barra.scena-testata');
+    const st = getComputedStyle(t), sm = getComputedStyle(m);
+    const rt = t.getBoundingClientRect(), rm = m.getBoundingClientRect();
+    return {
+      corpoTitolo: Math.round(parseFloat(st.fontSize)),
+      corpoMarchio: Math.round(parseFloat(sm.fontSize)),
+      allineato: st.textAlign,
+      // In colonna: il marchio sopra, il titolo sotto.
+      inColonna: !!barra && getComputedStyle(barra).flexDirection === 'column',
+      marchioSopra: rm.bottom <= rt.top + 1,
+      // Il titolo comincia dove comincia la lettura, non dove finisce.
+      partonoInsieme: Math.abs(rt.left - rm.left) < 2,
+      barraScura: !!barra && /gradient/.test(getComputedStyle(barra).backgroundImage),
+    };
+  });
+  ok('il titolo e\' la cosa piu\' grande della barra',
+     testata.corpoTitolo > testata.corpoMarchio, testata);
+  ok('e non e\' piu\' un corpo da didascalia', testata.corpoTitolo >= 24, testata);
+  ok('sta a sinistra, non buttato a destra', testata.allineato === 'left', testata);
+  ok('col marchio a occhiello sopra di lui',
+     testata.inColonna && testata.marchioSopra, testata);
+  ok('e i due cominciano dallo stesso punto', testata.partonoInsieme, testata);
+  // La barra resta scura: un foglio che sale sopra una schermata non e' una
+  // sezione, e restando scuro lo dice senza scriverlo.
+  ok('la barra resta quella scura dei fogli', testata.barraScura, testata);
+
+
   // NIENTE TASTIERA ALL'APERTURA. Il cursore ci andava da solo, nel primo
   // riquadro vuoto: aprendo una scena che esiste gia' si vuole prima
   // GUARDARLA, e la tastiera che sale si mangia meta' schermo proprio mentre il
@@ -148,20 +185,25 @@ module.exports = () => suite("Scene — un riquadro per volta, cento caratteri",
   // stessa strada — la cronologia — quindi nessuna fa qualcosa che l'altra non
   // farebbe.
   const frecce = await page.evaluate(()=>{
-    const quali = ['scena-chiudi','sceltarif-chiudi','schizzo-chiudi'];
+    const quali = ['sceltarif-chiudi','schizzo-chiudi'];
     document.body.classList.add('is-touch');
     const conDito = quali.map(id=> getComputedStyle(document.getElementById(id)).display);
     document.body.classList.remove('is-touch');
     const colMouse = quali.map(id=> getComputedStyle(document.getElementById(id)).display);
-    return { quali, conDito, colMouse };
+    return { quali, conDito, colMouse,
+      // Nel foglio di una SCENA la freccia non c'e' piu' per nessuno: da li'
+      // si esce col tasto Indietro e con Esc.
+      scenaHaLaFreccia: !!document.getElementById('scena-chiudi') };
   });
   ok('col dito spariscono tutte', frecce.conDito.every(d=> d === 'none'), frecce);
   ok('col mouse restano tutte', frecce.colMouse.every(d=> d !== 'none'), frecce);
+  ok('ma nel foglio di una scena non c\'e\' piu\', nemmeno col mouse',
+     !frecce.scenaHaLaFreccia, frecce);
 
   sezione('il titolo si scrive quando viene, e finisce nell\'elenco');
   // Si rinomina dall'elenco, dai tre puntini: e' li' che si prendono le
   // decisioni su una scena.
-  await page.evaluate(()=> document.getElementById('scena-chiudi').click());
+  await page.keyboard.press('Escape');
   await page.waitForTimeout(300);
   await page.evaluate(async ()=>{
     document.querySelector('.scene-menu').dispatchEvent(new MouseEvent('click',{bubbles:true}));
@@ -187,7 +229,7 @@ module.exports = () => suite("Scene — un riquadro per volta, cento caratteri",
   sezione('una scena senza titolo si chiama da sola');
   await page.evaluate(()=> document.getElementById('scene-nuova').click());
   await page.waitForTimeout(450);
-  await page.evaluate(()=> document.getElementById('scena-chiudi').click());
+  await page.keyboard.press('Escape');
   await page.waitForTimeout(250);
   s = await stato();
   ok('sono due scene', s.n === 2, s);
@@ -1245,14 +1287,14 @@ module.exports = () => suite("Scene — un riquadro per volta, cento caratteri",
      dalTelefono.campoVuoto, dalTelefono);
   await page.evaluate(()=> document.getElementById('sceltarif-chiudi').click());
   await page.waitForTimeout(300);
-  await page.evaluate(()=> document.getElementById('scena-chiudi').click());
+  await page.keyboard.press('Escape');
   await page.waitForTimeout(300);
 
   sezione('le scene abbandonate se ne vanno da sole');
   // Zero o un beat, e ferme da piu' di un giorno: via in silenzio, senza
   // conferme e senza cestino. Una lista di cose non fatte scoraggia l'apertura
   // dell'app piu' di quanto un archivio completo aiuti.
-  await page.evaluate(()=> document.getElementById('scena-chiudi').click());
+  await page.keyboard.press('Escape');
   await page.waitForTimeout(300);
   const pulizia = await page.evaluate(async ()=>{
     const IERI = Date.now() - 25*60*60*1000;
@@ -1281,4 +1323,56 @@ module.exports = () => suite("Scene — un riquadro per volta, cento caratteri",
      pulizia.cancellati.length === pulizia.via && pulizia.cancellati.every(c=> c === 'scene'), pulizia);
   ok('e non chiede niente a nessuno',
      await page.evaluate(()=> !document.querySelector('.modal-overlay.open')), null);
+
+  sezione('Esc chiude il foglio piu\' in alto, uno per volta');
+  // Il lettore, la galleria e lo scriptment lo fanno da sempre; i tre fogli
+  // delle Scene erano le uniche superfici a schermo intero da cui la tastiera
+  // non usciva. Togliendo la freccia sarebbe rimasto solo il tasto Indietro
+  // del browser, che non tutti pensano di premere.
+  await page.evaluate(()=> document.getElementById('scene-nuova').click());
+  await page.waitForTimeout(450);
+  const esc = await page.evaluate(async ()=>{
+    const aperto = sel => document.querySelector(sel).classList.contains('open');
+    // Dentro la scena si apre la scelta dei riferimenti: due fogli impilati.
+    document.getElementById('sceltarif').classList.add('open');
+    return { scenaPrima: aperto('#scena'), sceltaPrima: aperto('#sceltarif') };
+  });
+  ok('con due fogli aperti', esc.scenaPrima && esc.sceltaPrima, esc);
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(350);
+  const dopoUno = await page.evaluate(()=>({
+    scena: document.getElementById('scena').classList.contains('open'),
+    scelta: document.getElementById('sceltarif').classList.contains('open'),
+  }));
+  ok('il primo Esc chiude solo quello sopra', !dopoUno.scelta && dopoUno.scena, dopoUno);
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(350);
+  const dopoDue = await page.evaluate(()=>
+    document.getElementById('scena').classList.contains('open'));
+  ok('e il secondo chiude la scena', !dopoDue, dopoDue);
+
+  // MA NON MENTRE SI SCRIVE. Esc con un beat a fuoco lascia il campo, non
+  // chiude il foglio: perdere la scena e' molto peggio che premere due volte.
+  await page.evaluate(()=> document.getElementById('scene-nuova').click());
+  await page.waitForTimeout(450);
+  const scrivendo = await page.evaluate(async ()=>{
+    const ta = document.querySelector('#scena-beat textarea');
+    if(!ta) return null;
+    ta.focus();
+    return { aFuoco: document.activeElement === ta };
+  });
+  if(scrivendo){
+    ok('col cursore in un beat il campo e\' a fuoco', scrivendo.aFuoco, scrivendo);
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(300);
+    const dopoScrivendo = await page.evaluate(()=>({
+      foglio: document.getElementById('scena').classList.contains('open'),
+      ancoraAFuoco: document.activeElement === document.querySelector('#scena-beat textarea'),
+    }));
+    ok('Esc lascia il campo e NON chiude la scena',
+       dopoScrivendo.foglio && !dopoScrivendo.ancoraAFuoco, dopoScrivendo);
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(300);
+  }
+
 });
