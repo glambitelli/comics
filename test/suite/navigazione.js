@@ -224,9 +224,11 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
   ok('e il nome del lavoro sta sotto al marchio, non alla pari',
      dentroUnProgetto.misuraProgetto < dentroUnProgetto.misuraMarchio, dentroUnProgetto);
 
-  console.log('\n── dentro un progetto scorre via il marchio, non la targa ──');
-  // Sono cento pixel buoni di intestazione: quello che serve sotto gli occhi
-  // mentre si lavora e' il nome del lavoro, non il nome dell'app.
+  console.log('\n── dentro un progetto resta il marchio, e la targa scorre via ──');
+  // Ferma in cima c'e' la STESSA intestazione di ogni altra schermata. Per un
+  // po' era il contrario — il marchio spariva e restava appiccicata la targa
+  // del progetto — e passando da References a "Kara" cambiava faccia proprio
+  // la cosa che non si muove mai.
   const scorrendo = await page.evaluate(async ()=>{
     document.querySelectorAll('.screen').forEach(s=> s.classList.remove('active'));
     document.getElementById('screen-project').classList.add('active');
@@ -241,21 +243,30 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
     sc.scrollTop = 400;
     await new Promise(r=> setTimeout(r, 200));
     const scorso = dove();
-    // La targa e' opaca: il contenuto le passa dietro, e una scheda anche solo
-    // un po' trasparente li' diventerebbe illeggibile.
-    const sfondo = getComputedStyle(document.querySelector('.proj-targa')).backgroundColor;
+    // L'intestazione ferma deve essere la stessa di References: se un giorno
+    // una delle due cambia misura o posizione, questa prova lo dice.
+    const altrove = Math.round(document.querySelector('.refs-header').getBoundingClientRect().top);
+    // La targa non e' piu' appiccicata: nessun position:sticky addosso.
+    const incollata = getComputedStyle(document.querySelector('.proj-targa')).position;
+    // Sotto lo scroll ci finisce solo il lavoro: l'intestazione sta fuori,
+    // come in ogni altra sezione. Se qualcuno la rimette dentro, il marchio
+    // ricomincia a scorrere via e questa prova lo dice prima di pubblicare.
+    const fuori = !document.querySelector('.proj-scroll .proj-header');
     sc.scrollTop = 0;
-    return { fermo, scorso, sfondo, quantoHaScorso: 400 };
+    return { fermo, scorso, altrove, incollata, fuori, quantoHaScorso: 400 };
   });
   ok('fermi, il marchio e\' in cima', scorrendo.fermo.marchio === 0, scorrendo);
-  ok('scorrendo, il marchio se ne va davvero',
-     scorrendo.scorso.marchio <= -300, scorrendo);
-  ok('ma la targa resta a schermo', scorrendo.scorso.targa >= 0, scorrendo);
-  // A filo del bordo: con una fessura sopra si vedeva scorrere il contenuto
-  // dietro, una striscia in movimento incollata alla scheda ferma.
-  ok('agganciata a filo, senza fessure sopra', scorrendo.scorso.targa === 0, scorrendo);
-  ok('ed e\' opaca, perche\' il contenuto le passa dietro',
-     !/rgba\([^)]*,\s*0(\.\d+)?\)/.test(scorrendo.sfondo), scorrendo);
+  ok('e scorrendo il marchio resta dov\'e\'',
+     scorrendo.scorso.marchio === 0, scorrendo);
+  ok('mentre la targa del progetto se ne va su',
+     scorrendo.scorso.targa < scorrendo.fermo.targa - 300, scorrendo);
+  ok('la targa non e\' piu\' incollata in cima',
+     scorrendo.incollata !== 'sticky' && scorrendo.incollata !== 'fixed', scorrendo);
+  ok('e l\'intestazione sta fuori dallo scroll', scorrendo.fuori, scorrendo);
+  // Ferma nello stesso identico punto di References: e' il senso di tutto il
+  // cambiamento, non un dettaglio.
+  ok('nello stesso punto in cui sta nelle altre sezioni',
+     scorrendo.scorso.marchio === scorrendo.altrove, scorrendo);
 
   console.log('\n── i pulsanti si chiamano come le sezioni che aprono ──');
   // Passando il mouse sopra i tondi si leggeva "References" e "Scene", ma le
