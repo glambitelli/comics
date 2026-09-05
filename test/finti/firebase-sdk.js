@@ -44,6 +44,10 @@ export function getDoc(){ return Promise.resolve({exists:()=>false}); }
 const _ascoltatori = [];
 export function getAuth(){ return { currentUser: window.__utente || null }; }
 export function GoogleAuthProvider(){}
+// Il token di Google diventa una credenziale, e la credenziale entra in
+// Firebase: e' il giro nuovo, da quando l'accesso non passa piu' dalla pagina
+// di appoggio su firebaseapp.com (vedi auth.js).
+GoogleAuthProvider.credential = (idToken, accessToken)=> ({ __google: accessToken || idToken });
 export function setPersistence(){ return Promise.resolve(); }
 export const browserLocalPersistence = {};
 export function onAuthStateChanged(_a, cb){
@@ -51,7 +55,12 @@ export function onAuthStateChanged(_a, cb){
   setTimeout(()=> cb(window.__utente || null), 0);
   return ()=>{};
 }
-export function signInWithPopup(){
+// La credenziale che arriva qui deve essere quella VERA: se un giorno
+// qualcuno consegnasse a Firebase un token vuoto, l'accesso fallirebbe sul
+// telefono e le prove non se ne accorgerebbero. Qui si annota cosa e' passato.
+export function signInWithCredential(_a, cred){
+  window.__credenziale = cred;
+  if(!cred || !cred.__google) return Promise.reject(new Error('credenziale vuota'));
   window.__utente = window.__utenteDaEntrare ||
     { uid:'UID-DI-PROVA', email:'giovanni@example.com', displayName:'Giovanni' };
   _ascoltatori.forEach(cb=> cb(window.__utente));

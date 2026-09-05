@@ -48,10 +48,16 @@ module.exports = () => suite("Backup — l'archivio esce da qui, e ci rientra", 
     await page.route('**://fonts.gstatic.com/**', r=> r.abort());
     await page.route('**://www.gstatic.com/firebasejs/**', r=> r.fulfill({
       status:200, contentType:'text/javascript', body: SDK_FINTO }));
-    // La libreria di Google per Drive non serve a queste prove: la riga di
-    // Drive si guarda con un token scritto a mano in localStorage, che e'
-    // esattamente cio' che l'app rilegge all'avvio.
-    await page.route('**://accounts.google.com/**', r=> r.abort());
+    // Verso Google non si va: la riga di Drive si guarda con un token scritto
+    // a mano in localStorage, che e' esattamente cio' che l'app rilegge
+    // all'avvio.
+    // LA LIBRERIA E' L'ECCEZIONE, e da settembre 2026 e' un'eccezione
+    // necessaria: da qui passa anche la porta d'ingresso, e con la libreria
+    // buttata via il pulsante "Entra con Google" restava ad aspettare per
+    // sempre. fallback() la lascia al finto che motore.js serve a tutte le
+    // prove; tutto il resto di accounts.google.com resta chiuso.
+    await page.route('**://accounts.google.com/**', r=>
+      /\/gsi\/client/.test(r.request().url()) ? r.fallback() : r.abort());
   },
 }, async ({ page, ok, sezione }) => {
 

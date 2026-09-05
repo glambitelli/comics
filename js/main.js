@@ -828,6 +828,11 @@ function portaAperta(){
 function mostraPorta(errore){
   const porta = document.getElementById('accesso');
   if(porta) porta.hidden = false;
+  // La libreria di Google si scarica ADESSO, mentre la porta e' li' ferma e
+  // nessuno ha ancora premuto niente. Se la si aspettasse dentro il tocco,
+  // l'attivazione scadrebbe durante il download e il browser bloccherebbe la
+  // finestra in silenzio — e' successo per anni al pulsante di Drive.
+  if(_authApp && _authApp.preparaAccesso) _authApp.preparaAccesso();
   // Il pulsante si spegne quando si preme (vedi entraInInkflow): se si torna
   // qui, va riacceso — se no resta un pulsante che non si lascia premere e
   // l'unica via d'uscita e' ricaricare l'app.

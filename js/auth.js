@@ -22,7 +22,8 @@
 // non funziona a fronte di regole gia' chiuse vuol dire archivio irraggiungibile
 // dal proprietario.
 import { firebaseApp } from './firebase.js';
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged,
+import { CLIENT_ID_GOOGLE, caricaGis, gisPronta } from './gis.js';
+import { getAuth, GoogleAuthProvider, signInWithCredential, signOut, onAuthStateChanged,
          setPersistence, browserLocalPersistence }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
@@ -68,12 +69,93 @@ export function alCambioAccesso(fn){
   if(_risolto) { try{ fn(_utente); }catch(e){} }
 }
 
-// La finestra di Google va aperta DENTRO il tocco, senza niente di lento prima:
-// e' la stessa lezione di Drive (vedi requestToken in drive.js). Qui l'unica
-// cosa che precede e' getAuth, che e' sincrono.
+// ── SI ENTRA DAL NOSTRO DOMINIO, NON DALLA PAGINA DI APPOGGIO DI FIREBASE ──
+//
+// Prima qui c'era signInWithPopup, ed e' andato bene finche' non e' arrivato
+// un iPad. signInWithPopup non apre Google: apre
+// inkflow-95f2f.firebaseapp.com/__/auth/handler, che e' un dominio DIVERSO da
+// glambitelli.github.io. Lo stato dell'accesso viene scritto prima di partire
+// e riletto al ritorno, ma Safari tiene cassetti separati per lo stesso
+// dominio a seconda di chi lo apre (storage partitioning): quello scritto
+// dalla pagina di Inkflow non e' quello riletto dalla pagina di appoggio.
+// Il 5 settembre 2026, su iPad, questo si vedeva cosi':
+//   "Unable to process request due to missing initial state."
+// e non c'era modo di entrare — non un caso raro, l'unico esito possibile su
+// quel browser.
+//
+// Adesso il giro e' piu' corto e non tocca nessun terzo dominio: la libreria
+// di Google (la stessa che collega Drive) apre la finestra di Google dal
+// nostro dominio e restituisce un token; il token si consegna a Firebase con
+// signInWithCredential, che e' una normale chiamata HTTP. Nessuna pagina di
+// appoggio, nessuno stato da riprendere al ritorno, niente da partizionare.
+//
+// SI CHIEDE SOLO L'EMAIL. Entrare non deve far comparire una richiesta di
+// permesso su Drive: quella arriva quando si collega Drive, ed e' un'altra
+// decisione. Firebase con l'email costruisce l'account, e basta.
+const SCOPE_ACCESSO = 'https://www.googleapis.com/auth/userinfo.email'
+  + ' https://www.googleapis.com/auth/userinfo.profile';
+
+let _clientAccesso = null;
+function clientAccesso(){
+  if(_clientAccesso) return _clientAccesso;
+  if(!gisPronta()) return null;
+  _clientAccesso = window.google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID_GOOGLE,
+    scope: SCOPE_ACCESSO,
+    callback: ()=>{},        // riassegnata ad ogni richiesta, vedi tokenGoogle
+  });
+  return _clientAccesso;
+}
+
+// Scarica la libreria e prepara il client SENZA chiedere niente: nessuna
+// finestra, nessun token. Serve solo a fare in tempo — si chiama quando
+// compare la porta, cosi' quando il dito arriva sul pulsante non c'e' piu'
+// niente da aspettare. Ripeterla non costa niente.
+export function preparaAccesso(){
+  return caricaGis().then(()=> !!clientAccesso()).catch(()=> false);
+}
+
+// LA FINESTRA DI GOOGLE DEVE PARTIRE DENTRO IL TOCCO. E' la lezione che il
+// collegamento a Drive ha imparato a sue spese (vedi requestToken in
+// drive.js): se fra il dito e requestAccessToken c'e' un await che aspetta il
+// download della libreria — sul telefono anche qualche secondo — quando la
+// libreria arriva l'attivazione del tocco e' scaduta e il browser blocca la
+// finestra IN SILENZIO. Nessuna schermata, nessun errore, e sembra che il
+// pulsante non funzioni. Quindi se il client c'e' gia' si parte subito, senza
+// nemmeno una promessa di mezzo.
+function tokenGoogle(){
+  return new Promise((risolvi, rifiuta)=>{
+    const parti = (c)=>{
+      c.callback = (r)=>{
+        if(!r || r.error || !r.access_token){
+          rifiuta(new Error((r && (r.error_description || r.error)) || 'Accesso a Google non riuscito.'));
+          return;
+        }
+        risolvi(r.access_token);
+      };
+      // Finestra chiusa o annullata: non e' un errore da urlare, ed e' lo
+      // stesso codice che usava Firebase, cosi' chi lo guarda (vedi
+      // entraInInkflow in main.js) non deve imparare un nome nuovo.
+      c.error_callback = (err)=>{
+        const e = new Error((err && err.message) || 'Accesso annullato.');
+        e.code = 'auth/popup-closed-by-user';
+        rifiuta(e);
+      };
+      c.requestAccessToken({});
+    };
+    const c = clientAccesso();
+    if(c){ parti(c); return; }
+    caricaGis().then(()=>{
+      const pronto = clientAccesso();
+      if(pronto) parti(pronto);
+      else rifiuta(new Error('Il servizio di accesso Google non e\' disponibile.'));
+    }).catch(rifiuta);
+  });
+}
+
 export async function entraConGoogle(){
-  const provider = new GoogleAuthProvider();
-  const esito = await signInWithPopup(auth(), provider);
+  const token = await tokenGoogle();
+  const esito = await signInWithCredential(auth(), GoogleAuthProvider.credential(null, token));
   _utente = esito && esito.user ? esito.user : auth().currentUser;
   _inAscolto.forEach(fn=>{ try{ fn(_utente); }catch(e){} });
   return _utente;

@@ -23,14 +23,17 @@
 //    → tipo "Applicazione web":
 //      - Origini JavaScript autorizzate: https://glambitelli.github.io
 //      (nessun URI di reindirizzamento: GIS non ne usa)
-// 5. Incolla il Client ID qui sotto in DRIVE_CLIENT_ID.
+// 5. Incolla il Client ID in CLIENT_ID_GOOGLE dentro js/gis.js. Sta li' e non
+//    piu' qui perche' lo stesso client serve adesso anche alla porta
+//    d'ingresso dell'app (vedi auth.js): e' un client OAuth del progetto, non
+//    un dettaglio di Drive.
 // 6. Sul Drive dell'account dedicato crea UNA cartella radice per Inkflow;
 //    apri la cartella nel browser, copia l'ID dall'URL (dopo "/folders/") e
 //    incollalo in DRIVE_ROOT_FOLDER_ID.
 // 7. Dentro quella cartella crea una sottocartella per ogni cartella-autore
 //    già presente in Inkflow, con lo STESSO NOME (es. "Otomo"): i file .cbz/
 //    .cbr messi lì dentro appariranno da soli nello scaffale di quell'autore.
-const DRIVE_CLIENT_ID = '58067893949-o05jibjpk2fgjfal4k57tmjikgg7b78c.apps.googleusercontent.com';
+import { CLIENT_ID_GOOGLE as DRIVE_CLIENT_ID, caricaGis } from './gis.js';
 const DRIVE_ROOT_FOLDER_ID = '1CY6IGLbsd_M5pX8APCiOmLxssWCjWtaE';
 
 const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/userinfo.email';
@@ -117,26 +120,11 @@ export function driveAccountEmail(){
 // un'ora e non esiste un refresh token (richiederebbe un segreto lato server,
 // che un sito statico non può custodire). La differenza è che ora il rinnovo
 // avviene da solo, senza mostrare nulla.
-const GIS_SRC = 'https://accounts.google.com/gsi/client';
-let _gisLoading = null;
-
-function loadGis(){
-  if(window.google && window.google.accounts && window.google.accounts.oauth2) return Promise.resolve();
-  if(_gisLoading) return _gisLoading;
-  _gisLoading = new Promise((resolve, reject)=>{
-    const sc = document.createElement('script');
-    sc.src = GIS_SRC;
-    sc.async = true; sc.defer = true;
-    sc.onload = ()=> resolve();
-    sc.onerror = ()=>{ _gisLoading = null; reject(new Error('Impossibile caricare il servizio di accesso Google.')); };
-    document.head.appendChild(sc);
-  });
-  return _gisLoading;
-}
-
+// Il caricatore della libreria sta in gis.js: lo condivide con la porta
+// d'ingresso, che da settembre 2026 passa dalla stessa libreria.
 let _tokenClient = null;
 async function getTokenClient(){
-  await loadGis();
+  await caricaGis();
   if(!_tokenClient){
     _tokenClient = window.google.accounts.oauth2.initTokenClient({
       client_id: DRIVE_CLIENT_ID,

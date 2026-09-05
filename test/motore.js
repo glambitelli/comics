@@ -11,6 +11,7 @@ const fs = require('fs');
 const path = require('path');
 
 const RADICE = path.join(__dirname, '..');
+const GIS_FINTA = fs.readFileSync(path.join(__dirname, 'finti', 'gis-libreria.js'), 'utf8');
 const MIME = {
   '.html':'text/html; charset=utf-8', '.js':'text/javascript; charset=utf-8',
   '.css':'text/css; charset=utf-8', '.json':'application/json',
@@ -102,6 +103,15 @@ async function suite(nome, opzioni, corpo){
   });
   console.log('\n\x1b[1m' + nome + '\x1b[0m');
   try{
+    // LA LIBRERIA DI GOOGLE NON SI SCARICA MAI DAVVERO. La porta d'ingresso e
+    // il collegamento a Drive caricano uno <script> da accounts.google.com; su
+    // questa macchina non c'e' rete verso Google, e la richiesta resterebbe
+    // appesa fino al timeout. Qui la serve un finto (test/finti/gis-libreria.js)
+    // a TUTTE le prove: sta prima di `prima` apposta, cosi' una suite che
+    // volesse un comportamento diverso la puo' ancora coprire — l'ultima
+    // intercettazione registrata e' quella che vince.
+    await page.route('**://accounts.google.com/gsi/client*', r=> r.fulfill({
+      status:200, contentType:'text/javascript', body: GIS_FINTA }));
     // `prima` serve alle suite che aprono l'APP VERA invece di un banco: e'
     // l'unico momento in cui si possono intercettare le richieste (l'SDK di
     // Firebase, i caratteri) prima che la pagina parta.

@@ -102,4 +102,74 @@ module.exports = () => suite("Accesso — l'archivio si apre solo a chi e' entra
   // ricaricare l'app.
   ok('e il pulsante si lascia premere di nuovo',
      await page.evaluate(()=> !document.getElementById('accesso-btn').disabled), null);
+
+  sezione('si entra dal NOSTRO dominio, non dalla pagina di appoggio di Firebase');
+  // IL GUASTO CHE HA PORTATO QUI. signInWithPopup di Firebase non apre Google:
+  // apre inkflow-95f2f.firebaseapp.com, un altro dominio, e ci lascia in
+  // deposito lo stato dell'accesso per rileggerlo al ritorno. Safari su iPad
+  // tiene cassetti separati per lo stesso dominio a seconda di chi lo apre, e
+  // quello che scriveva Inkflow non era quello che rileggeva la pagina di
+  // appoggio: "Unable to process request due to missing initial state", e
+  // nessun modo di entrare (5 settembre 2026, iPad). Adesso la finestra la
+  // apre la libreria di Google dal nostro dominio e il token si consegna a
+  // Firebase per via diretta.
+  await page.evaluate(()=>{
+    window.__gisRichieste = 0;
+    window.__credenziale = null;
+    window.__gisToken = 'TOKEN-DAL-VIVO';
+  });
+  await page.evaluate(()=> window.entraInInkflow());
+  await page.waitForFunction(()=> document.getElementById('accesso').hidden === true, { timeout: 8000 });
+  const giro = await page.evaluate(()=>({
+    richieste: window.__gisRichieste || 0,
+    scope: window.__gisScope || '',
+    cliente: window.__gisClientId || '',
+    cred: window.__credenziale,
+  }));
+  ok('la finestra di Google si apre, e una volta sola', giro.richieste === 1, giro);
+  // Entrare non deve far comparire una richiesta di permesso su Drive: quella
+  // arriva quando si collega Drive, ed e' un'altra decisione.
+  ok('e chiede solo l\'email, non Drive',
+     /userinfo\.email/.test(giro.scope) && !/auth\/drive/.test(giro.scope), giro.scope);
+  ok('con il client OAuth del progetto',
+     /\.apps\.googleusercontent\.com$/.test(giro.cliente), giro.cliente);
+  // Il token VERO, non un segnaposto: se un giorno si consegnasse a Firebase
+  // una credenziale vuota, l'accesso fallirebbe solo sul telefono.
+  ok('e il token di Google arriva davvero a Firebase',
+     !!giro.cred && giro.cred.__google === 'TOKEN-DAL-VIVO', giro.cred);
+
+  sezione('e chiudere la finestra di Google non rompe niente');
+  await page.evaluate(async ()=>{
+    const a = await import('/js/auth.js');
+    await a.esci();
+    await new Promise(r=>setTimeout(r,300));
+    window.__gisAnnullato = true;
+    window.entraInInkflow();
+  });
+  await page.waitForTimeout(900);
+  const annullato = await page.evaluate(()=>({
+    porta: !document.getElementById('accesso').hidden,
+    premibile: !document.getElementById('accesso-btn').disabled,
+    errore: !document.getElementById('accesso-errore').hidden,
+  }));
+  ok('la porta resta li\'', annullato.porta, annullato);
+  ok('il pulsante torna premibile', annullato.premibile, annullato);
+  // Chi chiude una finestra sa di averla chiusa: non gli si dice anche che
+  // qualcosa e' andato storto.
+  ok('e nessun messaggio d\'errore', !annullato.errore, annullato);
+  await page.evaluate(()=>{ window.__gisAnnullato = false; });
+
+  sezione('e la pagina di appoggio non si usa piu\', nemmeno per sbaglio');
+  // Una guardia sul codice, non sul comportamento: rimettere signInWithPopup
+  // farebbe passare tutte le prove qui sopra — la finestra si aprirebbe lo
+  // stesso — e romperebbe di nuovo SOLO l'iPad, cioe' l'unico posto dove
+  // nessuna prova arriva.
+  const sorgente = await page.evaluate(()=> fetch('/js/auth.js').then(r=> r.text()));
+  // I commenti si tolgono prima di guardare: la' dentro il nome ci sta, e ci
+  // DEVE stare — e' li' che e' scritto perche' non si usa piu'.
+  const codice = sorgente.replace(/^\s*\/\/.*$/gm, '');
+  ok('l\'accesso non chiama piu\' signInWithPopup',
+     !/signInWithPopup\s*[(,]/.test(codice), (codice.match(/signInWithPopup.{0,20}/g)||[]));
+  ok('e consegna la credenziale a Firebase per via diretta',
+     /signInWithCredential\s*\(/.test(codice), null);
 });
