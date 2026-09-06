@@ -215,6 +215,7 @@ function fitLoadingGlyphFill(){
 }
 
 function clearPages(){
+  svuotaCodaTavole();
   _pages.forEach(p=>{ try{ if(p.url) URL.revokeObjectURL(p.url); }catch(e){} });
   _pages = [];
   // Il .cbr tiene vivo un worker con l'archivio aperto finché si legge:
@@ -250,6 +251,100 @@ async function pageUrl(src, page){
   if(!blob) return '';
   page.url = URL.createObjectURL(blob);
   return page.url;
+}
+
+// ── UNA FILA SOLA, E CON LE PRECEDENZE GIUSTE ──
+//
+// La sorgente pigra serve UNA tavola per volta: il .cbr passa da un worker
+// solo (libarchive), Drive da una richiesta di rete alla volta. Chiedergliene
+// quattro insieme non le fa arrivare prima — le mette in fila. E la fila,
+// senza precedenze, era quella sbagliata.
+//
+// Posandosi su una tavola l'app ne chiedeva quattro: quella sotto gli occhi,
+// le due vicine e due di scorta. In un .cbz da disco durano un lampo e non si
+// nota niente; dentro un .cbr da mezzo giga ognuna costa secondi, perche'
+// libarchive per tirarne fuori UNA riapre l'archivio e cammina su tutte quelle
+// prima. Cosi', arrivando sulla tavola 22, la richiesta della 22 si metteva in
+// coda DIETRO alla 20 — quella che ti eri appena lasciato alle spalle — e
+// dietro a quello che era rimasto in sospeso dalla pagina prima. Il dito
+// scorreva, il contatore avanzava, lo schermo restava nero: e' il "devo fare
+// due o tre swipe perche' cambi pagina" del 6 settembre 2026.
+//
+// Adesso le richieste passano tutte di qui. Ogni volta che se ne serve una si
+// guarda la fila DA CAPO e si sceglie in base a dove si e' ADESSO: prima la
+// tavola sotto gli occhi, poi quelle nel verso in cui si sta leggendo, per
+// ultime quelle alle spalle. E quello che nel frattempo non serve piu' — un
+// albo chiuso, una tavola rimasta indietro dopo un salto — si butta prima di
+// arrivare al worker, invece di rubargli il turno.
+const _codaTavole = [];
+let _codaGira = false;
+
+// Quanto "costa" servire una tavola adesso. Zero per quella sotto gli occhi:
+// tutto il resto puo' aspettare.
+function costoTavola(i){
+  const d = i - _idx;
+  if(d === 0) return 0;
+  // Le spalle valgono cento: anche la quinta tavola in avanti passa prima
+  // della prima all'indietro. Tornare indietro esiste, ma chi legge va avanti.
+  return (d * _readDir > 0 ? 1 : 100) + Math.abs(d);
+}
+
+function chiediTavola(index){
+  const page = _pages[index];
+  if(!page) return Promise.resolve('');
+  if(page.url) return Promise.resolve(page.url);
+  // Sorgente non pigra (uno .cbz gia' in memoria): i byte ci sono, non c'e'
+  // nessuna fila da fare e passare di qui aggiungerebbe solo un giro.
+  if(!_source || !_source.getData) return pageUrl(_source, page);
+  let voce = _codaTavole.find(v => v.index === index);
+  if(!voce){
+    voce = { index, token: _openToken };
+    voce.attesa = new Promise(ris => { voce.risolvi = ris; });
+    _codaTavole.push(voce);
+  }
+  // NON SI PARTE SUBITO, e non e' un dettaglio: posandosi su una tavola l'app
+  // ne chiede due (avanti e indietro) nello stesso istante, una riga dopo
+  // l'altra. Partendo alla prima, la fila avrebbe un elemento solo e la
+  // precedenza non avrebbe niente da scegliere: si serviva quella arrivata per
+  // prima nel codice — che e' la tavola ALLE SPALLE — e la precedenza non
+  // entrava mai in gioco. Un giro di microtask basta a far arrivare tutte
+  // quelle dello stesso momento prima che si decida.
+  queueMicrotask(giraCodaTavole);
+  return voce.attesa;
+}
+
+async function giraCodaTavole(){
+  if(_codaGira) return;
+  _codaGira = true;
+  try{
+    while(_codaTavole.length){
+      // Prima si butta via quello che non serve piu': un albo chiuso o
+      // cambiato, o una tavola finita fuori dalla finestra utile dopo un
+      // salto. Scartarla qui costa niente; farla estrarre costa un turno.
+      for(let i = _codaTavole.length - 1; i >= 0; i--){
+        const v = _codaTavole[i];
+        if(v.token !== _openToken || !_pages[v.index] || Math.abs(v.index - _idx) > PAGE_WINDOW){
+          _codaTavole.splice(i, 1);
+          v.risolvi('');
+        }
+      }
+      if(!_codaTavole.length) break;
+      let scelta = 0;
+      for(let i = 1; i < _codaTavole.length; i++){
+        if(costoTavola(_codaTavole[i].index) < costoTavola(_codaTavole[scelta].index)) scelta = i;
+      }
+      const v = _codaTavole.splice(scelta, 1)[0];
+      let url = '';
+      try{ url = await pageUrl(_source, _pages[v.index]); }catch(e){}
+      v.risolvi(url);
+    }
+  } finally { _codaGira = false; }
+}
+
+// Un albo che si chiude lascia in fila richieste che non interessano piu' a
+// nessuno: si sciolgono subito, se no chi le aspetta resta appeso.
+function svuotaCodaTavole(){
+  while(_codaTavole.length) _codaTavole.pop().risolvi('');
 }
 
 // Tiene materializzate solo le pagine vicine a quella corrente: oltre quella
@@ -1130,7 +1225,7 @@ async function loadArCell(cell, index, token){
   }
   cell.page = index;
   cell.el.classList.add('pending');
-  const url = await pageUrl(_source, _pages[index]);
+  const url = await chiediTavola(index);
   // Albo cambiato sotto i piedi, o cella già riassegnata a un'altra tavola
   // mentre si estraeva: questo lavoro non serve più, e peggio ancora
   // sovrascriverebbe una cella che ormai serve a qualcos'altro.
@@ -1246,10 +1341,20 @@ function primeNeighbours(idx, token){
   // due lavori cadono dentro il primo fotogramma del gesto e si sentono come
   // una partenza impastata. Un rAF li sposta fuori, e per un precarico
   // sedici millisecondi non cambiano niente.
+  // E si chiede PRIMA quella nel verso in cui si sta leggendo. A decidere il
+  // turno e' comunque la precedenza della fila (vedi costoTavola), ma l'ordine
+  // in cui si chiede resta quello giusto anche per una sorgente che di fila
+  // non ne ha — e chi legge il codice non deve dedurre da due righe piu' sotto
+  // qual e' quella che conta.
   requestAnimationFrame(()=>{
     if(token !== _openToken || !_arCells || _idx !== idx) return;
-    loadArCell(_arCells[0], idx - 1, token);
-    loadArCell(_arCells[2], idx + 1, token);
+    if(_readDir >= 0){
+      loadArCell(_arCells[2], idx + 1, token);
+      loadArCell(_arCells[0], idx - 1, token);
+    } else {
+      loadArCell(_arCells[0], idx - 1, token);
+      loadArCell(_arCells[2], idx + 1, token);
+    }
   });
   // Il resto della finestra (due tavole nel verso di lettura, una alle spalle)
   // resta rinviato a thread libero e si limita a ESTRARRE i byte, senza
@@ -1269,7 +1374,7 @@ function primeNeighbours(idx, token){
       // Ancora dentro la finestra utile rispetto a dove siamo ADESSO?
       // Se nel frattempo si è saltati altrove, questa tavola non serve più.
       if(Math.abs(i - _idx) > 2) continue;
-      await pageUrl(_source, _pages[i]);
+      await chiediTavola(i);
     }
     trimPages();
   });

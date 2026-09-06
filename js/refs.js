@@ -872,15 +872,39 @@ export function startRefsListener(){
     // in References (vedi la nota in drive.js): adesso il collegamento parte
     // solo da un tocco, e finche' non arriva lo scaffale mostra "Ricollega".
   }
+  ascoltaAlbi();
+  ascoltaDati();
+  subscribeRecentDests();
+}
+
+// Gli albi dello scaffale. Staccato da startRefsListener per lo stesso motivo
+// di ascoltaRefs: e' dato, non e' Drive, e si puo' accendere prima che qualcuno
+// entri in archivio.
+export function ascoltaAlbi(){
+  if(_albumsUnsub) return;
+  _albumsUnsub = onSnapshot(collection(db, ALBUMS_COL), snap=>{
+    _albums = snap.docs.map(d=>({id:d.id, ...d.data()}));
+    renderRefsScreen();
+  }, err=>console.warn('refAlbums listener error:', err));
+}
+
+// ── I DATI SI ACCENDONO PRIMA CHE SERVANO ──
+//
+// Entrando in archivio si vedeva per un attimo una schermata VUOTA, e poi di
+// colpo tutte le cartelle. Non era lentezza di Firestore: era l'ordine delle
+// cose. La schermata compare subito (giusto: un tocco deve rispondere subito),
+// ma il modulo si scarica in quel momento e l'ascolto parte in quel momento, e
+// il primo elenco arriva quando arriva — anche leggendolo dalla copia locale,
+// che e' un giro asincrono.
+//
+// Questa funzione accende SOLO i dati: niente Drive, niente aggancio di gesti,
+// niente di quello che appartiene alla schermata. Si chiama a mano ferma poco
+// dopo l'avvio (vedi main.js), cosi' quando il dito arriva sul tondo
+// dell'archivio l'elenco e' gia' in casa e la schermata nasce piena.
+export function ascoltaDati(){
   ascoltaRefs();
   ascoltaCartelle();
-  if(!_albumsUnsub){
-    _albumsUnsub = onSnapshot(collection(db, ALBUMS_COL), snap=>{
-      _albums = snap.docs.map(d=>({id:d.id, ...d.data()}));
-      renderRefsScreen();
-    }, err=>console.warn('refAlbums listener error:', err));
-  }
-  subscribeRecentDests();
+  ascoltaAlbi();
 }
 
 // ── MIGRAZIONE UNA TANTUM: vecchie immagini base64 (Firestore) → Cloudinary ──

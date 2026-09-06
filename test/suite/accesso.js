@@ -60,6 +60,36 @@ module.exports = () => suite("Accesso — l'archivio si apre solo a chi e' entra
   ok('e adesso i progetti si ascoltano', aperta.ascolti.includes('projects'), aperta.ascolti);
   ok('con la home a schermo', aperta.home, aperta);
 
+  sezione('ed entrando, archivio e scene si scaldano prima che tu li apra');
+  // IL GUASTO (6 settembre 2026): "quando apro visual archive o scenes
+  // all'inizio non compare nulla, poi appaiono tutte le cartelle o i progetti".
+  // Non era lentezza di Firestore: era l'ordine delle cose. La schermata
+  // compariva subito — giusto — ma in quell'istante cominciava il download del
+  // modulo, e solo dopo partiva l'ascolto, il cui primo elenco arrivava un
+  // altro giro dopo. Tre attese in fila, tutte davanti agli occhi.
+  // Adesso i dati si accendono a mano ferma, appena entrati, senza che nessuno
+  // abbia aperto niente.
+  await page.waitForFunction(()=>{
+    const a = window.__ascolti || [];
+    return a.includes('refs') && a.includes('scene');
+  }, { timeout: 10000 }).catch(()=>{});
+  const scaldati = await page.evaluate(()=>({
+    ascolti: window.__ascolti || [],
+    // E nessuna di quelle schermate e' stata aperta: si scaldano i DATI, non
+    // le stanze.
+    archivioAperto: document.getElementById('screen-refs').classList.contains('active'),
+    sceneAperte: document.getElementById('screen-scene').classList.contains('active'),
+  }));
+  ok('l\'archivio e\' gia\' in ascolto', scaldati.ascolti.includes('refs'), scaldati.ascolti);
+  // Le cartelle vanno insieme alle immagini: un'immagine sa in che cartella
+  // sta, ma il NOME della cartella e' nell'altra collezione.
+  ok('con le cartelle, che senza nome non servono a niente',
+     scaldati.ascolti.includes('refFolders'), scaldati.ascolti);
+  ok('e gli albi dello scaffale', scaldati.ascolti.includes('refAlbums'), scaldati.ascolti);
+  ok('e le scene anche', scaldati.ascolti.includes('scene'), scaldati.ascolti);
+  ok('senza che nessuna delle due schermate sia stata aperta',
+     !scaldati.archivioAperto && !scaldati.sceneAperte, scaldati);
+
   sezione('e la porta si apre anche se la risposta di Google si perde');
   // Il guasto raccontato cosi': "faccio l'accesso ma non va avanti". La
   // finestra di Google e' una finestra a parte, e mentre e' aperta il telefono

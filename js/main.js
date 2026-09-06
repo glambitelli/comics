@@ -824,6 +824,39 @@ function portaAperta(){
   _portaGiaAperta = true;
   avviaListenerProgetti();
   loadUserData();
+  scaldaArchivioEScene();
+}
+
+// ── L'ARCHIVIO E LE SCENE SI SCALDANO PRIMA CHE LE APRA QUALCUNO ──
+//
+// Entrando in Visual Archive o in Scene si vedeva per un attimo una schermata
+// VUOTA, e poi di colpo tutte le cartelle (o tutte le scene). Non era lentezza
+// di Firestore: era l'ordine delle cose. La schermata compare subito — giusto,
+// un tocco deve rispondere subito — ma in QUELL'istante comincia anche il
+// download del modulo (refs.js e albums.js insieme fanno un bel po' di
+// JavaScript da leggere e compilare, sul telefono qualche decimo di secondo) e
+// solo dopo parte l'ascolto, il cui primo elenco arriva un altro giro dopo.
+// Tre attese in fila, tutte davanti agli occhi.
+//
+// Qui si fanno le prime due PRIMA, a mano ferma: appena l'app e' aperta e non
+// si sta ancora facendo niente, si portano in casa i moduli e si accendono i
+// soli ascolti dei dati (non Drive, non i gesti: quelli restano attaccati
+// all'ingresso vero). Quando poi il dito arriva sul tondo, la schermata nasce
+// gia' piena.
+//
+// A thread libero e non subito: all'avvio c'e' gia' la home da disegnare e i
+// progetti da ascoltare, e mettersi in mezzo li' vorrebbe dire spostare
+// l'attesa invece che toglierla.
+function scaldaArchivioEScene(){
+  const dopo = window.requestIdleCallback || (fn => setTimeout(fn, 1500));
+  dopo(()=>{
+    import('./refs.js').then(m=> m.ascoltaDati()).catch(()=>{});
+    import('./scene.js').then(m=> m.startSceneListener()).catch(()=>{});
+    // albums.js non ha dati suoi da ascoltare, ma e' l'altra meta' del peso
+    // che si scarica entrando in archivio: portarlo qui vuol dire che entrando
+    // non resta piu' niente da aspettare.
+    import('./albums.js').catch(()=>{});
+  });
 }
 function mostraPorta(errore){
   const porta = document.getElementById('accesso');
