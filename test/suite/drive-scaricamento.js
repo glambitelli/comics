@@ -124,4 +124,30 @@ module.exports = () => suite("Drive — un solo scaricamento per albo", {"banco"
   ok('viene riconosciuto come gia\' collegato', vecchio.segno === '1', vecchio);
   ok('e gli si propone di ricollegare, senza aprirgli niente',
      vecchio.ricollegare === true && vecchio.scriptGoogle === 0, vecchio);
+
+  console.log('\n── e l\'app si ricorda di averlo gia\' scaricato ──');
+  // LA CACHE DEGLI ALBI NON E' UNA CASSAFORTE: e' spazio che il browser si
+  // riprende quando gli serve, e con un albo da mezzo giga se lo riprende
+  // volentieri. Il 6 settembre 2026 e' successo davvero: albo letto, pagina
+  // ricaricata, e riaprendolo ripartiva lo scaricamento da zero senza una
+  // parola — con l'unica conclusione ragionevole che l'app avesse perso il
+  // file per un suo errore. Il ricordo sta in localStorage, che quello spazio
+  // non se lo riprende nessuno, e serve solo a poterlo DIRE.
+  const memoria = await page.evaluate(async ()=>{
+    const prima = window.drive.eraGiaScaricato('D1');
+    // Il browser si riprende lo spazio: la cache degli albi sparisce.
+    const c = await caches.open('inkflow-drive-albums');
+    for(const k of await c.keys()) await c.delete(k);
+    return {
+      prima,
+      maiVisto: window.drive.eraGiaScaricato('MAI-SCARICATO'),
+      dopoLoSfratto: window.drive.eraGiaScaricato('D1'),
+      inCasa: !!(await window.drive.albumGiaScaricato('D1', 'Naruto 11.cbz')),
+    };
+  });
+  ok('dopo lo scaricamento l\'albo risulta gia\' preso', memoria.prima, memoria);
+  ok('e uno mai toccato no', !memoria.maiVisto, memoria);
+  ok('il file sparisce davvero quando il browser fa spazio', !memoria.inCasa, memoria);
+  ok('ma il ricordo resta, ed e\' quello che permette di spiegarlo',
+     memoria.dopoLoSfratto, memoria);
 });

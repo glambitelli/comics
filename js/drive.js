@@ -591,6 +591,34 @@ const ALBUM_CACHE_MAX = 4; // quanti albi tenere (i più recenti); il resto si r
 
 function albumCacheKey(id){ return 'https://inkflow.local/album/' + id; }
 
+// ── "QUESTO L'AVEVO GIA' SCARICATO" ──
+//
+// La Cache API non e' una cassaforte: e' spazio che il browser puo' riprendersi
+// quando gli serve, e con un albo da mezzo giga se lo riprende volentieri. Da
+// fuori si vede solo che un albo letto ieri ricomincia a scaricarsi oggi, senza
+// che nessuno abbia toccato niente — e sembra un difetto dell'app.
+//
+// Qui si tiene un elenco degli id gia' scaricati almeno una volta: e' minuscolo
+// (una riga di localStorage) e sopravvive a tutto, cache compresa. Serve a una
+// cosa sola: distinguere "non l'hai mai scaricato" da "il telefono ha fatto
+// spazio", e poterlo DIRE invece di far ripartire una barra senza spiegazioni.
+const SCARICATI_KEY = 'inkflow-albi-scaricati';
+
+function elencoScaricati(){
+  try{ return JSON.parse(localStorage.getItem(SCARICATI_KEY)) || []; }
+  catch(e){ return []; }
+}
+function segnaScaricato(id){
+  try{
+    const el = elencoScaricati().filter(x => x !== id);
+    el.push(id);
+    // Non serve la storia di tutti gli albi di sempre: gli ultimi trenta
+    // coprono largamente il periodo in cui il browser puo' aver fatto spazio.
+    localStorage.setItem(SCARICATI_KEY, JSON.stringify(el.slice(-30)));
+  }catch(e){}
+}
+export function eraGiaScaricato(id){ return elencoScaricati().includes(id); }
+
 // C'E' GIA' IN CASA? Serve a chi apre un albo senza rete: il file scaricato
 // ieri e' li', ma per arrivarci si passava prima da "collegati a Google Drive"
 // — che senza rete non riesce — e l'albo restava chiuso con dentro tutto
@@ -675,5 +703,6 @@ export async function getDriveAlbumFile(fileMeta, onProgress, signal){
   // Il File torna dalla cache: è appoggiato al disco, non una copia in memoria.
   const file = await readAlbumCache(fileMeta.id, fileMeta.name);
   if(!file) throw new Error('Albo scaricato ma non rileggibile dalla cache.');
+  segnaScaricato(fileMeta.id);
   return { file, fromCache: false };
 }

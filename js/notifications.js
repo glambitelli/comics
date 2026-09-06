@@ -14,19 +14,86 @@ let swReg = null;
 // ragionevole e' che l'aggiornamento non sia arrivato. E' costato piu' di una
 // segnalazione di difetti gia' corretti.
 //
-// Quando il ricambio avviene davvero, quindi, si ricarica una volta sola. Il
-// controllo avviene un istante dopo l'avvio — installazione, attivazione e
-// presa in carico stanno tutte li' — quindi non capita mai in mezzo a qualcosa
-// che si stava scrivendo.
+// Quando il ricambio avviene davvero, quindi, si ricarica una volta sola.
+//
+// ── MA NON MENTRE STAI FACENDO QUALCOSA ──
+//
+// Questo pezzo prima ricaricava e basta, e il commento diceva che il controllo
+// "avviene un istante dopo l'avvio, quindi non capita mai in mezzo a qualcosa".
+// Era vero finche' il controllo lo faceva solo l'avvio. Da quando si ricontrolla
+// anche ad ogni ritorno nell'app (vedi ricontrollaAlRitorno qui sotto) non lo e'
+// piu', e il 6 settembre 2026 e' successo esattamente questo: cronometro
+// avviato, un albo da mezzo giga scaricato da Drive, e mentre la tavola era a
+// schermo la pagina si e' ricaricata da sola. Ci si e' ritrovati sulla home,
+// con l'albo da riscaricare da capo.
+//
+// Ricaricare butta via quello che si sta guardando o scrivendo. Quindi adesso
+// si aspetta che l'app sia LIBERA: niente lettore aperto, niente galleria,
+// niente foglio, niente cursore dentro un testo. Finche' non lo e', si
+// ricontrolla ogni due secondi (e ad ogni ritorno nell'app) senza toccare
+// niente.
+//
+// IL PREZZO, detto chiaro: da quando il nuovo service worker prende il posto a
+// quando la pagina si ricarica, i file gia' caricati sono i vecchi e quelli
+// caricati DOPO — un modulo che arriva pigro, un'icona — sono i nuovi. E' una
+// convivenza breve e sempre esistita (anche prima passava qualche decimo di
+// secondo), ma adesso puo' durare quanto una lettura. E' un rischio piccolo e
+// accettato: mandare qualcuno fuori da un albo mentre lo legge, no.
+const OCCUPATA = [
+  'album-reading',      // il lettore degli albi
+  'refs-lightbox-open', // un frammento a tutto schermo
+  'idea-editor-open',   // un'idea aperta
+  'scriptment-open',    // il copione
+  'scena-open',         // il foglio di una scena
+  'settings-open',      // il pannello delle impostazioni
+];
+export function appOccupata(){
+  if(OCCUPATA.some(c => document.body.classList.contains(c))) return true;
+  // Il ritaglio a tutto schermo non mette una classe sul body: e' un foglio
+  // suo, e si riconosce dall'attributo hidden.
+  const rifila = document.getElementById('rifila');
+  if(rifila && !rifila.hidden) return true;
+  // E qualunque cosa si stia scrivendo, ovunque sia: il cursore dentro un
+  // campo vuol dire parole non ancora salvate.
+  const a = document.activeElement;
+  if(a && (/^(INPUT|TEXTAREA)$/.test(a.tagName) || a.isContentEditable)) return true;
+  return false;
+}
+
+// Sostituibile dalle prove: ricaricare davvero, dentro una prova, chiuderebbe
+// la pagina che sta provando.
+let _ricarica = ()=> location.reload();
+let _fatto = false;
+let _attesa = null;
+
+function ricaricaAppenaLibera(){
+  if(_fatto) return false;
+  if(appOccupata()){
+    if(!_attesa){
+      _attesa = setInterval(ricaricaAppenaLibera, 2000);
+      // E anche appena si torna a guardare l'app: chi ha chiuso il lettore e
+      // messo via il telefono non deve aspettare il prossimo giro di orologio.
+      document.addEventListener('visibilitychange', ricaricaAppenaLibera);
+    }
+    return false;
+  }
+  _fatto = true;
+  if(_attesa){ clearInterval(_attesa); _attesa = null; }
+  _ricarica();
+  return true;
+}
+
+export function aggiornamentoInAttesa(){ return !!_attesa && !_fatto; }
+export function __perLeProve_ricarica(fn){ _ricarica = fn; _fatto = false; }
+export function __perLeProve_ricambio(){ return ricaricaAppenaLibera(); }
+
 function ricaricaAlRicambio(){
   // Al PRIMISSIMO avvio non c'e' nessun vecchio da sostituire: il controller
   // arriva per la prima volta, e ricaricare li' sarebbe un giro a vuoto.
   const cEraGiaUnVecchio = !!navigator.serviceWorker.controller;
-  let fatto = false;
   navigator.serviceWorker.addEventListener('controllerchange', ()=>{
-    if(!cEraGiaUnVecchio || fatto) return;
-    fatto = true;
-    location.reload();
+    if(!cEraGiaUnVecchio) return;
+    ricaricaAppenaLibera();
   });
 }
 

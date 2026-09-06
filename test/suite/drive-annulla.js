@@ -106,4 +106,26 @@ module.exports = () => suite("Drive — annullare uno scaricamento", {"banco": "
   });
   ok('li\' si chiede il collegamento', niente.chiesto === 1, niente);
   ok('e si dice cosa fare', /ricollega/i.test(niente.avviso), niente);
+
+  console.log('\n── un albo gia\' scaricato che riparte da zero lo dice ──');
+  // Il browser si riprende lo spazio degli albi quando gli serve, e con mezzo
+  // giga se lo riprende volentieri. Senza una parola si vedeva solo una barra
+  // che ripartiva da zero su un albo letto ieri, e l'unica conclusione
+  // ragionevole era che l'app avesse perso il file per un suo errore. Adesso
+  // il banner dice di chi e' la decisione.
+  await page.evaluate(()=>{
+    window.__senzaRete = false;   // le prove qui sopra l'hanno tolta di mezzo
+    window.__inCasa = null;       // e in casa non c'e' piu' niente: e' il punto
+    window.__giaScaricato = true;
+    window.albums.openAlbumFromDrive('A1');
+  });
+  await page.waitForTimeout(400);
+  const riscarico = await page.evaluate(()=> document.querySelector('.ar-toast').textContent);
+  ok('il banner dice che era il telefono a fare spazio',
+     /fatto spazio/i.test(riscarico) && /riscarico/i.test(riscarico), riscarico);
+  ok('e i megabyte si vedono lo stesso', /MB/.test(riscarico), riscarico);
+  await page.evaluate(()=>{
+    window.__giaScaricato = false;
+    document.querySelector('.ar-cancel-dl').dispatchEvent(new MouseEvent('click',{bubbles:true}));
+  });
 });

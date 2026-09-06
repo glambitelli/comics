@@ -67,4 +67,55 @@ module.exports = () => suite("Versione — quella scritta e' quella che gira", {
   ok('e la versione vera si legge in Diagnostica',
      dove.inDiagnostica === ATTESA, dove);
 
+  sezione('e la versione nuova non ti butta fuori da quello che stai facendo');
+  // IL GUASTO, raccontato com'e' arrivato (6 settembre 2026): cronometro
+  // avviato, un albo da mezzo giga scaricato da Drive, e mentre la tavola era
+  // a schermo la pagina si e' ricaricata da sola. Ci si e' ritrovati sulla
+  // home, con l'albo da riscaricare da capo.
+  // Non era un capriccio: era il ricambio del service worker, che ricaricava
+  // sempre e subito. Andava bene finche' il controllo lo faceva solo l'avvio;
+  // da quando si ricontrolla anche ad ogni ritorno nell'app, quel "subito"
+  // puo' cadere in mezzo a una lettura.
+  const ricambio = await page.evaluate(async ()=>{
+    const n = await import('/js/notifications.js');
+    const r = {};
+    let ricariche = 0;
+
+    // 1) app libera: si ricarica, ed e' giusto cosi'.
+    n.__perLeProve_ricarica(()=> ricariche++);
+    r.libera = n.__perLeProve_ricambio();
+    r.dopoLibera = ricariche;
+
+    // 2) albo aperto: non si tocca niente.
+    n.__perLeProve_ricarica(()=> ricariche++);
+    document.body.classList.add('album-reading');
+    r.leggendo = n.__perLeProve_ricambio();
+    r.occupataLeggendo = n.appOccupata();
+    r.inAttesa = n.aggiornamentoInAttesa();
+    r.dopoLettura = ricariche;
+
+    // 3) chiuso l'albo, al primo controllo utile si ricarica.
+    document.body.classList.remove('album-reading');
+    r.riaperta = n.__perLeProve_ricambio();
+    r.alla_fine = ricariche;
+
+    // 4) e lo stesso vale per un testo che si sta scrivendo, ovunque sia.
+    n.__perLeProve_ricarica(()=> ricariche++);
+    const ta = document.createElement('textarea');
+    document.body.appendChild(ta); ta.focus();
+    r.scrivendo = n.appOccupata();
+    r.bloccataScrivendo = n.__perLeProve_ricambio();
+    ta.blur(); ta.remove();
+    return r;
+  });
+  ok('con l\'app libera la pagina si ricarica subito',
+     ricambio.libera === true && ricambio.dopoLibera === 1, ricambio);
+  ok('ma leggendo un albo l\'app risulta occupata', ricambio.occupataLeggendo, ricambio);
+  ok('e la pagina NON si ricarica',
+     ricambio.leggendo === false && ricambio.dopoLettura === 1, ricambio);
+  ok('l\'aggiornamento resta li\' ad aspettare', ricambio.inAttesa, ricambio);
+  ok('e appena si chiude l\'albo la pagina si ricarica',
+     ricambio.riaperta === true && ricambio.alla_fine === 2, ricambio);
+  ok('lo stesso vale mentre si scrive', ricambio.scrivendo, ricambio);
+  ok('e nemmeno li\' la pagina si ricarica', ricambio.bloccataScrivendo === false, ricambio);
 });

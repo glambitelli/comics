@@ -31,7 +31,8 @@ import {
   clipDestinations, clipCategories, getFolderName, rememberClipDest, tagSuggeriti,
 } from './refs.js';
 import { uploadToCloudinary } from './cloudinary.js';
-import { albumGiaScaricato, getDriveAlbumFile, ensureDriveConnected, isDownloadCancelled } from './drive.js';
+import { albumGiaScaricato, getDriveAlbumFile, ensureDriveConnected, isDownloadCancelled,
+         eraGiaScaricato } from './drive.js';
 import { openRemoteZipSource, openBlobZipSource } from './zipremote.js';
 import { haptic } from './state.js';
 import { escAttr } from './testo.js';
@@ -666,6 +667,15 @@ export async function openAlbumFromDrive(albumId){
   _dlAbort = new AbortController();
   dlSignal = _dlAbort.signal;
   showCancelDownload(true);
+  // UN ALBO GIA' SCARICATO CHE RICOMINCIA A SCARICARSI NON E' UN DIFETTO, ed e'
+  // giusto che si sappia: la memoria dove stanno gli albi il browser se la
+  // riprende quando gli serve spazio, e con mezzo giga se la riprende
+  // volentieri. Senza questa riga si vedeva solo una barra che ripartiva da
+  // zero su un albo letto ieri, e l'unica conclusione ragionevole era che
+  // l'app avesse perso il file per un suo errore.
+  const testaScarico = eraGiaScaricato(a.driveFileId)
+    ? 'Il telefono aveva fatto spazio: riscarico… '
+    : 'Scarico da Drive… ';
   try{
     // Throttle del progresso: aggiornare il banner ad ogni blocco ricevuto
     // (migliaia su un file grande) è lavoro inutile sul thread principale.
@@ -678,7 +688,7 @@ export async function openAlbumFromDrive(albumId){
         if(now - lastPaint < 250 && (!total || loaded < total)) return;
         lastPaint = now;
         const mb = n => (n / 1048576).toFixed(1);
-        toast('Scarico da Drive… ' + mb(loaded) + (total ? ' / ' + mb(total) + ' MB' : ' MB'), false, true);
+        toast(testaScarico + mb(loaded) + (total ? ' / ' + mb(total) + ' MB' : ' MB'), false, true);
       },
       dlSignal
     );

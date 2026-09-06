@@ -31,3 +31,6 @@ export function getDriveAlbumFile(meta, onProgress, signal){
 // C'e' gia' in casa? Nel banco no, se non lo dice la prova: window.__inCasa e'
 // il file gia' scaricato che si trova senza passare da Google.
 export function albumGiaScaricato(){ return Promise.resolve(window.__inCasa || null); }
+// "L'avevo gia' scaricato": lo decide la prova, per guardare cosa dice l'app
+// quando il browser si e' ripreso lo spazio degli albi.
+export function eraGiaScaricato(){ return window.__giaScaricato === true; }

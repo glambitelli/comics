@@ -46,3 +46,6 @@ export function ascoltaRientroDrive(){}
 // C'e' gia' in casa? Nel banco no, se non lo dice la prova: window.__inCasa e'
 // il file gia' scaricato che si trova senza passare da Google.
 export function albumGiaScaricato(){ return Promise.resolve(window.__inCasa || null); }
+// "L'avevo gia' scaricato": nel banco lo decide la prova, cosi' si puo'
+// guardare cosa dice l'app quando il browser si e' ripreso lo spazio.
+export function eraGiaScaricato(){ return window.__giaScaricato === true; }
