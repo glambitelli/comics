@@ -850,6 +850,13 @@ export async function openAlbumFromDrive(albumId){
       { id: a.driveFileId, name: a.sourceName || (a.title||'albo') },
       (loaded, total)=>{
         if(token !== _openToken) return; // apertura superata: non disturbare
+        // E MAI FUORI DAL LETTORE. L'avanzamento e' roba di questa vista: se
+        // il lettore non c'e' piu', toast() lo scriverebbe sulla schermata
+        // sotto (vedi toast), dove nessuno l'ha chiesto e dove non c'e' il
+        // pulsante per fermarlo. Chiudere il lettore ferma gia' lo
+        // scaricamento (vedi closeReaderUI): questa e' la rete sotto, per
+        // qualunque altra strada arrivi qui.
+        if(!(_reader && _reader.classList.contains('open'))) return;
         const now = Date.now();
         if(now - lastPaint < 250 && (!total || loaded < total)) return;
         lastPaint = now;
@@ -1053,13 +1060,23 @@ function showCancelDownload(on){
 // buttato, non resta un albo troncato in cache), si scarta qualunque lavoro
 // ancora in sospeso su questa apertura, e si torna allo scaffale da cui si era
 // partiti — un lettore aperto e vuoto sarebbe un vicolo cieco.
-function cancelAlbumDownload(){
-  if(!_dlAbort) return;
+// Ferma lo scaricamento in corso, se ce n'e' uno. Torna true se c'era
+// qualcosa da fermare — serve a chi chiama per sapere se deve dirlo.
+// Staccata dal pulsante "Annulla" perche' da settembre 2026 la usa anche la
+// chiusura del lettore (vedi closeReaderUI): erano la stessa cosa scritta in
+// un posto solo, e il posto sbagliato.
+function fermaScaricamento(){
+  if(!_dlAbort) return false;
   _dlAbort.abort();
   _dlAbort = null;
   showCancelDownload(false);
   ++_openToken;
   toast('');
+  return true;
+}
+
+function cancelAlbumDownload(){
+  if(!fermaScaricamento()) return;
   // La vista si chiude SUBITO e poi si allinea la cronologia: così il messaggio
   // qui sotto trova il lettore già chiuso e va a finire sulla schermata
   // References, dove l'utente sta per tornare, invece che su un banner che
@@ -1122,6 +1139,23 @@ function closeReader(){
 // Esportata perché la chiama anche il gestore del tasto Indietro in main.js.
 export function closeReaderUI(){
   if(!_reader) return;
+  // ── CHIUDERE IL LETTORE FERMA LO SCARICAMENTO ──
+  //
+  // Prima no, e si vedeva cosi' (14 settembre 2026, foto): si apre OPUS 02, lo
+  // scaricamento parte, si torna indietro a guardare lo scaffale — e in cima
+  // alla schermata References resta piantata la striscia verde "Scarico da
+  // Drive... 406.5 / 502.4 MB". Il banner sceglie dove scriversi nell'istante
+  // in cui parla (vedi toast): a lettore chiuso finisce sulla schermata sotto,
+  // dove nessuno l'ha chiesto, e siccome e' persistente non se ne va piu'.
+  //
+  // Ma la striscia era solo la spia. Il guaio vero e' che quel mezzo giga
+  // continuava ad arrivare, senza piu' il pulsante per fermarlo — nascosto
+  // proprio da questa funzione due righe piu' sotto. Scaricare di nascosto e
+  // senza freno e' il difetto corretto ad agosto, tornato da un'altra porta.
+  //
+  // Chiudere il lettore vuol dire "ho cambiato idea", esattamente come
+  // premere Annulla: lo scaricamento si ferma e lo si dice.
+  const stavaScaricando = fermaScaricamento();
   saveReadingPos();
   if(_clipMode) toggleClip(false);
   _reader.classList.remove('open');
@@ -1133,6 +1167,12 @@ export function closeReaderUI(){
   cancelIdle(_prefetchT); _prefetchT = null;
   showCancelDownload(false);
   clearReaderCells();
+  // Detto DOPO aver tolto la classe "open", cosi' il messaggio va a finire
+  // sulla schermata References — quella che si sta per rivedere — e non su un
+  // banner che sparisce nello stesso istante. Chi ha premuto Annulla lo sa
+  // gia': la' il messaggio lo dice cancelAlbumDownload, e qui fermaScaricamento
+  // ha gia' risposto "non c'era niente da fermare".
+  if(stavaScaricando) toast('Scaricamento annullato.');
   // Le pagine restano in memoria finché non apri un altro albo: riaprire lo
   // stesso file dal picker le ricrea comunque. Le liberiamo alla prossima apertura.
 }

@@ -128,4 +128,57 @@ module.exports = () => suite("Drive — annullare uno scaricamento", {"banco": "
     window.__giaScaricato = false;
     document.querySelector('.ar-cancel-dl').dispatchEvent(new MouseEvent('click',{bubbles:true}));
   });
+
+  console.log('\n── chiudendo il lettore lo scaricamento si ferma ──');
+  // IL GUASTO (14 settembre 2026, foto): si apre OPUS 02, lo scaricamento
+  // parte, si torna indietro a guardare lo scaffale — e in cima alla
+  // schermata References resta piantata la striscia verde "Scarico da
+  // Drive... 406.5 / 502.4 MB". Il banner sceglie dove scriversi nell'istante
+  // in cui parla: a lettore chiuso finisce sulla schermata sotto, e siccome e'
+  // persistente non se ne va piu'.
+  // Ma la striscia era la spia: il guaio vero e' che mezzo giga continuava ad
+  // arrivare senza piu' il pulsante per fermarlo.
+  await page.evaluate(()=>{
+    window.__senzaRete = false;
+    window.__inCasa = null;
+    window.__giaScaricato = false;
+    document.getElementById('refs-upload-status').className = 'refs-upload-status';
+    document.getElementById('refs-upload-status').textContent = '';
+    window.albums.openAlbumFromDrive('A1');
+  });
+  await page.waitForTimeout(400);
+  const inCorso = await page.evaluate(()=>({
+    avviato: !!(window.__dl && window.__dl.avviato),
+    banner: document.querySelector('.ar-toast').textContent,
+  }));
+  ok('lo scaricamento e\' partito', inCorso.avviato && /MB/.test(inCorso.banner), inCorso);
+
+  // Si torna indietro: il tasto X del lettore, la stessa strada del gesto
+  // Indietro di Android.
+  await page.evaluate(()=> window.albums.closeReaderUI());
+  await page.waitForTimeout(400);
+  const dopo = await page.evaluate(()=>({
+    segnaleAbortito: !!(window.__dl && window.__dl.signal && window.__dl.signal.aborted),
+    lettoreAperto: document.querySelector('.album-reader').classList.contains('open'),
+    avviso: document.getElementById('refs-upload-status').textContent,
+    persistente: document.getElementById('refs-upload-status').className,
+  }));
+  ok('la rete si ferma davvero', dopo.segnaleAbortito, dopo);
+  ok('il lettore e\' chiuso', !dopo.lettoreAperto, dopo);
+  // E quello che resta a schermo e' UNA FRASE che se ne va da sola, non i
+  // megabyte di uno scaricamento che nessuno sta piu' guardando.
+  ok('e sullo scaffale resta detto che e\' stato annullato',
+     /annullato/i.test(dopo.avviso), dopo);
+  ok('non i megabyte di uno scaricamento fantasma',
+     !/MB/.test(dopo.avviso), dopo);
+
+  console.log('\n── e dopo, l\'avanzamento non scrive piu\' da nessuna parte ──');
+  // La rete sotto: qualunque avanzamento ancora in volo non deve dipingere
+  // sulla schermata sotto, dove non c'e' nemmeno il pulsante per fermarlo.
+  const dopoAncora = await page.evaluate(async ()=>{
+    const prima = document.getElementById('refs-upload-status').textContent;
+    await new Promise(r=> setTimeout(r, 700));
+    return { prima, poi: document.getElementById('refs-upload-status').textContent };
+  });
+  ok('la striscia non torna da sola', !/MB/.test(dopoAncora.poi), dopoAncora);
 });
