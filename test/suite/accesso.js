@@ -133,47 +133,74 @@ module.exports = () => suite("Accesso — l'archivio si apre solo a chi e' entra
   ok('e il pulsante si lascia premere di nuovo',
      await page.evaluate(()=> !document.getElementById('accesso-btn').disabled), null);
 
-  sezione('si entra dal NOSTRO dominio, non dalla pagina di appoggio di Firebase');
-  // IL GUASTO CHE HA PORTATO QUI. signInWithPopup di Firebase non apre Google:
-  // apre inkflow-95f2f.firebaseapp.com, un altro dominio, e ci lascia in
-  // deposito lo stato dell'accesso per rileggerlo al ritorno. Safari su iPad
-  // tiene cassetti separati per lo stesso dominio a seconda di chi lo apre, e
-  // quello che scriveva Inkflow non era quello che rileggeva la pagina di
-  // appoggio: "Unable to process request due to missing initial state", e
-  // nessun modo di entrare (5 settembre 2026, iPad). Adesso la finestra la
-  // apre la libreria di Google dal nostro dominio e il token si consegna a
-  // Firebase per via diretta.
+  sezione('si entra, e non col client sbagliato');
+  // LA STORIA, per intero, perche' e' costata due giorni.
+  //
+  // Il 5 settembre da iPad "Entra con Google" finiva su una pagina bianca:
+  // signInWithPopup di Firebase non apre Google, apre una pagina di appoggio
+  // su un ALTRO dominio, e Safari non le fa rileggere quello che Inkflow le
+  // aveva lasciato. La cura giusta e' chiedere il token a Google dal NOSTRO
+  // dominio (GIS) e consegnarlo a Firebase.
+  //
+  // L'ho fatto col client OAuth di Drive. Sbagliato: quel client vive nel
+  // progetto Google 58067893949, Firebase e' il progetto 323774526281. Due
+  // progetti diversi, e Firebase ha risposto "access_token audience is not for
+  // this project", chiudendo fuori dall'app anche il telefono — che prima
+  // entrava. Il 14 settembre l'accesso era rotto dappertutto.
+  //
+  // Finche' non esiste un client del progetto di Firebase (vedi
+  // CLIENT_ID_ACCESSO in gis.js) si entra dalla finestra di Firebase.
   await page.evaluate(()=>{
     window.__gisRichieste = 0;
     window.__credenziale = null;
-    window.__gisToken = 'TOKEN-DAL-VIVO';
+    window.__utenteDaEntrare = null;
   });
   await page.evaluate(()=> window.entraInInkflow());
   await page.waitForFunction(()=> document.getElementById('accesso').hidden === true, { timeout: 8000 });
-  const giro = await page.evaluate(()=>({
+  const dentro = await page.evaluate(()=>({
+    porta: !document.getElementById('accesso').hidden,
     richieste: window.__gisRichieste || 0,
-    scope: window.__gisScope || '',
     cliente: window.__gisClientId || '',
-    cred: window.__credenziale,
   }));
-  ok('la finestra di Google si apre, e una volta sola', giro.richieste === 1, giro);
-  // Entrare non deve far comparire una richiesta di permesso su Drive: quella
-  // arriva quando si collega Drive, ed e' un'altra decisione.
-  ok('e chiede solo l\'email, non Drive',
-     /userinfo\.email/.test(giro.scope) && !/auth\/drive/.test(giro.scope), giro.scope);
-  ok('con il client OAuth del progetto',
-     /\.apps\.googleusercontent\.com$/.test(giro.cliente), giro.cliente);
-  // Il token VERO, non un segnaposto: se un giorno si consegnasse a Firebase
-  // una credenziale vuota, l'accesso fallirebbe solo sul telefono.
-  ok('e il token di Google arriva davvero a Firebase',
-     !!giro.cred && giro.cred.__google === 'TOKEN-DAL-VIVO', giro.cred);
+  ok('si entra davvero', !dentro.porta, dentro);
+  // Senza il client della strada A non si deve nemmeno provare a chiedere un
+  // token a Google: si prende la finestra di Firebase e basta.
+  ok('e senza chiedere token a Google con un client che non e\' suo',
+     dentro.richieste === 0, dentro);
+
+  sezione('e i due client di Google non si confondono mai');
+  // E' la prova che sarebbe servita il 14 settembre. Il client di Drive e
+  // quello della porta d'ingresso appartengono a due progetti Google diversi:
+  // scambiarli non da' un errore di sintassi, da' un'app in cui nessuno entra
+  // piu'. Qui si guarda il codice, non il comportamento — perche' col client
+  // sbagliato il comportamento e' identico fino all'ultima riga, e poi Firebase
+  // dice di no.
+  const sorgenti = await page.evaluate(async ()=>({
+    auth: await fetch('/js/auth.js').then(r=> r.text()),
+    gis: await fetch('/js/gis.js').then(r=> r.text()),
+  }));
+  const codiceAuth = sorgenti.auth.replace(/^\s*\/\/.*$/gm, '');
+  ok('la porta d\'ingresso non tocca il client di Drive',
+     !/CLIENT_ID_GOOGLE/.test(codiceAuth),
+     (codiceAuth.match(/CLIENT_ID_GOOGLE.{0,30}/g) || []));
+  const idDrive = (sorgenti.gis.match(/CLIENT_ID_GOOGLE\s*=\s*'([^']*)'/) || [])[1];
+  const idAccesso = (sorgenti.gis.match(/CLIENT_ID_ACCESSO\s*=\s*'([^']*)'/) || [])[1];
+  ok('i due client esistono come cose distinte',
+     idDrive !== undefined && idAccesso !== undefined, { idDrive, idAccesso });
+  // Vuoto va bene: vuol dire "strada A non configurata, si usa la finestra di
+  // Firebase". Quello che non deve succedere MAI e' che siano lo stesso.
+  ok('e quando ci sara\', non sara\' lo stesso di Drive',
+     !idAccesso || idAccesso !== idDrive, { idDrive, idAccesso });
 
   sezione('e chiudere la finestra di Google non rompe niente');
+  // La finestra si chiude senza entrare: il finto lo dice rifiutando, ed e' lo
+  // stesso codice d'errore con cui rispondono tutte e due le strade.
   await page.evaluate(async ()=>{
     const a = await import('/js/auth.js');
     await a.esci();
     await new Promise(r=>setTimeout(r,300));
     window.__gisAnnullato = true;
+    window.__popupAnnullato = true;
     window.entraInInkflow();
   });
   await page.waitForTimeout(900);
@@ -189,17 +216,15 @@ module.exports = () => suite("Accesso — l'archivio si apre solo a chi e' entra
   ok('e nessun messaggio d\'errore', !annullato.errore, annullato);
   await page.evaluate(()=>{ window.__gisAnnullato = false; });
 
-  sezione('e la pagina di appoggio non si usa piu\', nemmeno per sbaglio');
-  // Una guardia sul codice, non sul comportamento: rimettere signInWithPopup
-  // farebbe passare tutte le prove qui sopra — la finestra si aprirebbe lo
-  // stesso — e romperebbe di nuovo SOLO l'iPad, cioe' l'unico posto dove
-  // nessuna prova arriva.
+  sezione('e la strada per l\'iPad resta li\', pronta');
+  // Non e' stata buttata via: e' giusta, le manca solo un client OAuth del
+  // progetto di Firebase. Se un domani qualcuno la cancellasse "perche' tanto
+  // non si usa", l'iPad resterebbe fuori per sempre e nessuno saprebbe piu'
+  // perche'.
   const sorgente = await page.evaluate(()=> fetch('/js/auth.js').then(r=> r.text()));
-  // I commenti si tolgono prima di guardare: la' dentro il nome ci sta, e ci
-  // DEVE stare — e' li' che e' scritto perche' non si usa piu'.
   const codice = sorgente.replace(/^\s*\/\/.*$/gm, '');
-  ok('l\'accesso non chiama piu\' signInWithPopup',
-     !/signInWithPopup\s*[(,]/.test(codice), (codice.match(/signInWithPopup.{0,20}/g)||[]));
-  ok('e consegna la credenziale a Firebase per via diretta',
+  ok('la consegna diretta a Firebase c\'e\' ancora',
      /signInWithCredential\s*\(/.test(codice), null);
+  ok('e la finestra di Firebase e\' quella che si usa oggi',
+     /signInWithPopup\s*\(/.test(codice), null);
 });

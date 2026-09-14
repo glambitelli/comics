@@ -497,6 +497,17 @@ function spiegaErroreAccesso(e){
            'deve partire dal tocco, senza attese in mezzo.';
   if(/network-request-failed/.test(codice))
     return 'Senza rete non si può entrare. Riprova quando torna la connessione.';
+  // È l'errore del 14 settembre 2026, e il messaggio di Firebase — "access_token
+  // audience is not for this project" — non dice a nessuno cosa fare. Vuol dire
+  // che il token arriva da un client OAuth di un ALTRO progetto Google: il
+  // client di Drive (58067893949) invece di quello di Firebase (323774526281).
+  // Non dovrebbe più succedere (vedi CLIENT_ID_ACCESSO in gis.js), ma se
+  // succede va detto in modo che si capisca dove guardare.
+  if(/invalid-credential/.test(codice) || /audience is not for this project/.test((e && e.message) || ''))
+    return 'Google ha risposto con un accesso che non appartiene a questo progetto. ' +
+           'È un errore di configurazione, non tuo: il client OAuth della porta ' +
+           'd\'ingresso deve stare nel progetto Firebase (vedi CLIENT_ID_ACCESSO ' +
+           'in js/gis.js). Segnalalo e nel frattempo riprova più tardi.';
   return 'Non sono riuscito a entrare: ' + ((e && e.message) ? e.message : e);
 }
 // Le prove leggono le spiegazioni senza dover far fallire Google davvero.

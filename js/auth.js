@@ -22,9 +22,9 @@
 // non funziona a fronte di regole gia' chiuse vuol dire archivio irraggiungibile
 // dal proprietario.
 import { firebaseApp } from './firebase.js';
-import { CLIENT_ID_GOOGLE, caricaGis, gisPronta } from './gis.js';
-import { getAuth, GoogleAuthProvider, signInWithCredential, signOut, onAuthStateChanged,
-         setPersistence, browserLocalPersistence }
+import { CLIENT_ID_ACCESSO, caricaGis, gisPronta } from './gis.js';
+import { getAuth, GoogleAuthProvider, signInWithCredential, signInWithPopup, signOut,
+         onAuthStateChanged, setPersistence, browserLocalPersistence }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 let _auth = null;
@@ -69,38 +69,38 @@ export function alCambioAccesso(fn){
   if(_risolto) { try{ fn(_utente); }catch(e){} }
 }
 
-// ── SI ENTRA DAL NOSTRO DOMINIO, NON DALLA PAGINA DI APPOGGIO DI FIREBASE ──
+// ── DUE STRADE PER ENTRARE, E OGGI SI PRENDE LA SECONDA ──
 //
-// Prima qui c'era signInWithPopup, ed e' andato bene finche' non e' arrivato
-// un iPad. signInWithPopup non apre Google: apre
-// inkflow-95f2f.firebaseapp.com/__/auth/handler, che e' un dominio DIVERSO da
-// glambitelli.github.io. Lo stato dell'accesso viene scritto prima di partire
-// e riletto al ritorno, ma Safari tiene cassetti separati per lo stesso
-// dominio a seconda di chi lo apre (storage partitioning): quello scritto
-// dalla pagina di Inkflow non e' quello riletto dalla pagina di appoggio.
-// Il 5 settembre 2026, su iPad, questo si vedeva cosi':
-//   "Unable to process request due to missing initial state."
-// e non c'era modo di entrare — non un caso raro, l'unico esito possibile su
-// quel browser.
+// STRADA A — GIS dal nostro dominio, poi signInWithCredential.
+// E' quella giusta, e serve all'iPad: signInWithPopup di Firebase non apre
+// Google, apre una pagina di appoggio su inkflow-95f2f.firebaseapp.com — un
+// dominio DIVERSO da glambitelli.github.io — e ci lascia in deposito lo stato
+// dell'accesso per rileggerlo al ritorno. Safari tiene cassetti separati per
+// lo stesso dominio a seconda di chi lo apre, quindi su iPad quello stato non
+// si ritrova mai: "Unable to process request due to missing initial state", e
+// nessun modo di entrare (5 settembre 2026). GIS non ha pagine di appoggio.
+// Richiede pero' un client OAuth che appartenga al progetto di Firebase, e
+// oggi non c'e': vedi CLIENT_ID_ACCESSO in gis.js, dove ci sono anche i
+// quattro passi per crearlo. Finche' quella riga e' vuota questa strada non si
+// prende — l'ho provata col client di Drive, che sta in un ALTRO progetto
+// Google, e Firebase ha risposto "access_token audience is not for this
+// project" chiudendo fuori anche il telefono, che prima entrava.
 //
-// Adesso il giro e' piu' corto e non tocca nessun terzo dominio: la libreria
-// di Google (la stessa che collega Drive) apre la finestra di Google dal
-// nostro dominio e restituisce un token; il token si consegna a Firebase con
-// signInWithCredential, che e' una normale chiamata HTTP. Nessuna pagina di
-// appoggio, nessuno stato da riprendere al ritorno, niente da partizionare.
+// STRADA B — la finestra di Firebase. Funziona dappertutto tranne che su
+// iPad, ed e' quella che si usa finche' la A non e' configurata.
 //
-// SI CHIEDE SOLO L'EMAIL. Entrare non deve far comparire una richiesta di
-// permesso su Drive: quella arriva quando si collega Drive, ed e' un'altra
-// decisione. Firebase con l'email costruisce l'account, e basta.
+// SI CHIEDE SOLO L'EMAIL (strada A). Entrare non deve far comparire una
+// richiesta di permesso su Drive: quella arriva quando si collega Drive, ed e'
+// un'altra decisione.
 const SCOPE_ACCESSO = 'https://www.googleapis.com/auth/userinfo.email'
   + ' https://www.googleapis.com/auth/userinfo.profile';
 
 let _clientAccesso = null;
 function clientAccesso(){
   if(_clientAccesso) return _clientAccesso;
-  if(!gisPronta()) return null;
+  if(!CLIENT_ID_ACCESSO || !gisPronta()) return null;
   _clientAccesso = window.google.accounts.oauth2.initTokenClient({
-    client_id: CLIENT_ID_GOOGLE,
+    client_id: CLIENT_ID_ACCESSO,
     scope: SCOPE_ACCESSO,
     callback: ()=>{},        // riassegnata ad ogni richiesta, vedi tokenGoogle
   });
@@ -112,6 +112,9 @@ function clientAccesso(){
 // compare la porta, cosi' quando il dito arriva sul pulsante non c'e' piu'
 // niente da aspettare. Ripeterla non costa niente.
 export function preparaAccesso(){
+  // Senza il client della strada A non c'e' niente da preparare: la finestra
+  // di Firebase non ha bisogno di scaldare nessuna libreria.
+  if(!CLIENT_ID_ACCESSO) return Promise.resolve(false);
   return caricaGis().then(()=> !!clientAccesso()).catch(()=> false);
 }
 
@@ -154,8 +157,12 @@ function tokenGoogle(){
 }
 
 export async function entraConGoogle(){
-  const token = await tokenGoogle();
-  const esito = await signInWithCredential(auth(), GoogleAuthProvider.credential(null, token));
+  // La scelta fra le due strade e' SINCRONA (una costante), e deve restarlo:
+  // la finestra di Google va aperta dentro il tocco, e un await qui davanti
+  // la farebbe bloccare in silenzio dal browser.
+  const esito = CLIENT_ID_ACCESSO
+    ? await signInWithCredential(auth(), GoogleAuthProvider.credential(null, await tokenGoogle()))
+    : await signInWithPopup(auth(), new GoogleAuthProvider());
   _utente = esito && esito.user ? esito.user : auth().currentUser;
   _inAscolto.forEach(fn=>{ try{ fn(_utente); }catch(e){} });
   return _utente;

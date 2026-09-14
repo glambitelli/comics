@@ -362,13 +362,24 @@ module.exports = () => suite("Backup — l'archivio esce da qui, e ci rientra", 
     const m = await import('/js/settings.js');
     return m.__perLeProve_spiega({ code:'auth/configuration-not-found' }) + '|' +
            m.__perLeProve_spiega({ code:'auth/unauthorized-domain' }) + '|' +
-           m.__perLeProve_spiega({ code:'auth/network-request-failed' });
+           m.__perLeProve_spiega({ code:'auth/network-request-failed' }) + '|' +
+           m.__perLeProve_spiega({ code:'auth/invalid-credential',
+             message:'Firebase: Invalid Idp Response: access_token audience is not for this project' });
   });
   ok('spiega che l\'accesso con Google va acceso, e dove',
      /Authentication → Sign-in method → Google/.test(spiegato), spiegato);
   ok('e che il dominio va autorizzato, dicendo quale',
      /glambitelli\.github\.io/.test(spiegato), spiegato);
   ok('senza rete lo dice e basta, senza codici', /Senza rete/.test(spiegato), spiegato);
+  // Il 14 settembre 2026 questo errore e' arrivato a schermo cosi' com'era
+  // ("Invalid Idp Response: access_token audience is not for this project"):
+  // vero, esatto e completamente inutile a chi lo legge. Dice che il token
+  // viene da un client OAuth di un altro progetto Google — e chi sta davanti
+  // allo schermo deve almeno capire che non e' colpa sua.
+  ok('e un accesso che non appartiene al progetto lo dice a parole',
+     /non appartiene a questo progetto/.test(spiegato), spiegato);
+  ok('senza rovesciare addosso il messaggio di Firebase',
+     !/Invalid Idp Response/.test(spiegato), spiegato);
 
   sezione('e uscendo si torna come prima');
   await tocca();

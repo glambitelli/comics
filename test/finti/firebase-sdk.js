@@ -55,12 +55,9 @@ export function onAuthStateChanged(_a, cb){
   setTimeout(()=> cb(window.__utente || null), 0);
   return ()=>{};
 }
-// La credenziale che arriva qui deve essere quella VERA: se un giorno
-// qualcuno consegnasse a Firebase un token vuoto, l'accesso fallirebbe sul
-// telefono e le prove non se ne accorgerebbero. Qui si annota cosa e' passato.
-export function signInWithCredential(_a, cred){
-  window.__credenziale = cred;
-  if(!cred || !cred.__google) return Promise.reject(new Error('credenziale vuota'));
+// L'accesso riuscito, comunque ci si sia arrivati: le due strade (la finestra
+// di Firebase e la credenziale consegnata a mano) finiscono qui.
+function entrato(){
   window.__utente = window.__utenteDaEntrare ||
     { uid:'UID-DI-PROVA', email:'giovanni@example.com', displayName:'Giovanni' };
   _ascoltatori.forEach(cb=> cb(window.__utente));
@@ -72,6 +69,28 @@ export function signInWithCredential(_a, cred){
   // bloccati davanti a "Entra con Google", ed e' l'unico modo di provarlo.
   if(window.__popupSiPerde) return new Promise(()=>{});
   return Promise.resolve({ user: window.__utente });
+}
+
+// STRADA B — la finestra di Firebase, quella che si usa oggi.
+export function signInWithPopup(){
+  // Finestra chiusa senza entrare: e' il codice che l'app riconosce per non
+  // urlare un errore a chi ha solo cambiato idea (vedi entraInInkflow).
+  if(window.__popupAnnullato){
+    const e = new Error('popup chiuso');
+    e.code = 'auth/popup-closed-by-user';
+    return Promise.reject(e);
+  }
+  return entrato();
+}
+
+// STRADA A — la credenziale consegnata a mano, per il giorno in cui l'iPad
+// avra' il suo client. Quello che arriva qui deve essere il token VERO: se un
+// giorno qualcuno ne consegnasse uno vuoto, l'accesso fallirebbe solo sul
+// telefono e le prove non se ne accorgerebbero. Qui si annota cosa e' passato.
+export function signInWithCredential(_a, cred){
+  window.__credenziale = cred;
+  if(!cred || !cred.__google) return Promise.reject(new Error('credenziale vuota'));
+  return entrato();
 }
 export function signOut(){
   window.__utente = null;
