@@ -22,9 +22,11 @@
 // non funziona a fronte di regole gia' chiuse vuol dire archivio irraggiungibile
 // dal proprietario.
 import { firebaseApp } from './firebase.js';
+import { segnaErrore } from './registro.js';
 import { CLIENT_ID_ACCESSO, caricaGis, gisPronta } from './gis.js';
-import { getAuth, GoogleAuthProvider, signInWithCredential, signInWithPopup, signOut,
-         onAuthStateChanged, setPersistence, browserLocalPersistence }
+import { getAuth, initializeAuth, indexedDBLocalPersistence, browserLocalPersistence,
+         browserPopupRedirectResolver, GoogleAuthProvider, signInWithCredential,
+         signInWithPopup, signOut, onAuthStateChanged }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 let _auth = null;
@@ -32,14 +34,75 @@ let _utente = null;
 let _risolto = false;
 const _inAscolto = [];
 let _attesaPrimoStato = null;
+// L'ultima uscita l'ha chiesta qualcuno? Serve a distinguere "ho premuto Esci"
+// da "mi sono ritrovato fuori" (vedi sotto).
+let _uscitaVoluta = false;
 
+// ── QUANDO LA SESSIONE CADE DA SOLA, SE NE TIENE TRACCIA ──
+//
+// "Entra con Google compare in modo randomico" (14 settembre 2026), e non
+// c'era modo di sapere perche': la porta compariva, il registro raccoglieva
+// solo la conseguenza ("Missing or insufficient permissions", cioe' Firestore
+// che rifiuta le letture di uno che non e' piu' nessuno), e la causa restava
+// fuori. La prima ipotesi — il telefono che si riprende la memoria dell'app —
+// e' stata smentita: Diagnostica diceva "Memoria protetta: Sì".
+//
+// Quindi qui si scrive il fatto nudo, con l'ora e quel poco di contorno che
+// puo' servire a riconoscere il momento: da quanto si era dentro, e se
+// Firebase si ricorda ancora di qualcuno. Non e' una cura, e' la traccia che
+// serviva per trovarla — si legge in Impostazioni -> Diagnostica.
+const QUANDO_ENTRATO = 'inkflow_entrato_il';
+function segnaEntrata(){
+  try{ localStorage.setItem(QUANDO_ENTRATO, String(Date.now())); }catch(e){}
+}
+function segnaCaduta(){
+  let da = '';
+  try{
+    const t = parseInt(localStorage.getItem(QUANDO_ENTRATO) || '0', 10);
+    if(t) da = ', dentro da ' + Math.round((Date.now() - t) / 60000) + ' min';
+  }catch(e){}
+  const resta = _auth && _auth.currentUser ? 'si' : 'no';
+  segnaErrore('Sessione con Google finita da sola' + da
+    + ' (Firebase ricorda ancora l\'account: ' + resta + ')', 'accesso');
+}
+
+// ── DOVE VIVE LA SESSIONE, E PERCHE' SI DICE ALL'INIZIO E NON DOPO ──
+//
+// La sessione deve sopravvivere alla chiusura dell'app: senza, ogni avvio
+// chiederebbe di rientrare, e da spenti — cioe' proprio quando serve la copia
+// offline — non si entrerebbe affatto.
+//
+// Prima qui c'era getAuth() seguito da setPersistence(browserLocalPersistence)
+// lanciato e lasciato andare, e sono due cose sbagliate in una riga:
+//
+//  1. browserLocalPersistence NON e' IndexedDB, e' localStorage (il commento
+//     di prima diceva il contrario). Il default di Firebase sul web e'
+//     IndexedDB con localStorage come ripiego: quella riga, invece di
+//     rafforzare la persistenza, la declassava.
+//  2. setPersistence CAMBIA il magazzino mentre Firebase sta gia' rileggendo
+//     chi era entrato, e la si lanciava senza aspettarla, un'istruzione prima
+//     di attaccare l'ascolto dello stato. Due cose che corrono sullo stesso
+//     dato: se il travaso finisce nell'istante sbagliato, l'utente rimesso in
+//     piedi si perde per strada — e da fuori si vede "Entra con Google" che
+//     compare senza motivo (segnalato il 14 settembre 2026, con la memoria del
+//     telefono protetta, quindi non era il sistema a fare pulizia).
+//
+// initializeAuth dice le stesse cose UNA volta sola, all'inizio, prima che
+// esista qualcosa da travasare: niente corsa, e l'ordine giusto dei magazzini.
+// popupRedirectResolver va passato qui, se no signInWithPopup non saprebbe da
+// che parte cominciare (con getAuth arriva incluso, con initializeAuth no).
 function auth(){
   if(_auth) return _auth;
-  _auth = getAuth(firebaseApp);
-  // La sessione vive in IndexedDB e sopravvive alla chiusura dell'app: senza,
-  // ogni avvio chiederebbe di rientrare, e da spenti — cioe' proprio quando
-  // serve la copia offline — non si entrerebbe affatto.
-  setPersistence(_auth, browserLocalPersistence).catch(()=>{});
+  try{
+    _auth = initializeAuth(firebaseApp, {
+      persistence: [indexedDBLocalPersistence, browserLocalPersistence],
+      popupRedirectResolver: browserPopupRedirectResolver,
+    });
+  }catch(e){
+    // initializeAuth protesta se qualcuno ha gia' chiesto l'autenticazione di
+    // questa app: allora ci si tiene quella, che e' comunque configurata bene.
+    _auth = getAuth(firebaseApp);
+  }
   return _auth;
 }
 
@@ -52,9 +115,15 @@ export function attendiAccesso(){
   if(_attesaPrimoStato) return _attesaPrimoStato;
   _attesaPrimoStato = new Promise(risolvi=>{
     onAuthStateChanged(auth(), u=>{
+      const cEra = !!_utente;
       _utente = u || null;
       const primo = !_risolto;
       _risolto = true;
+      if(_utente) segnaEntrata();
+      // Si era dentro, adesso no, e nessuno ha premuto Esci: e' il caso che
+      // si stava cercando.
+      else if(cEra && !_uscitaVoluta) segnaCaduta();
+      _uscitaVoluta = false;
       _inAscolto.forEach(fn=>{ try{ fn(_utente); }catch(e){} });
       if(primo) risolvi(_utente);
     }, ()=>{ _risolto = true; risolvi(null); });
@@ -164,11 +233,13 @@ export async function entraConGoogle(){
     ? await signInWithCredential(auth(), GoogleAuthProvider.credential(null, await tokenGoogle()))
     : await signInWithPopup(auth(), new GoogleAuthProvider());
   _utente = esito && esito.user ? esito.user : auth().currentUser;
+  if(_utente) segnaEntrata();
   _inAscolto.forEach(fn=>{ try{ fn(_utente); }catch(e){} });
   return _utente;
 }
 
 export async function esci(){
+  _uscitaVoluta = true;
   await signOut(auth());
   _utente = null;
   _inAscolto.forEach(fn=>{ try{ fn(null); }catch(e){} });

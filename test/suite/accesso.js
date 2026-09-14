@@ -134,6 +134,28 @@ module.exports = () => suite("Accesso — l'archivio si apre solo a chi e' entra
      !perSuoConto.porta, perSuoConto);
   ok('e con la home a schermo, come sempre', perSuoConto.home, perSuoConto);
 
+  sezione('la sessione e\' configurata all\'inizio, nel posto giusto');
+  // "Entra con Google compare in modo randomico" (14 settembre 2026), con la
+  // memoria del telefono PROTETTA — quindi non era il sistema a fare pulizia.
+  // Il sospetto e' finito su come si diceva a Firebase dove tenere la
+  // sessione: getAuth(), e subito dopo setPersistence lanciato e lasciato
+  // andare mentre Firebase stava gia' rileggendo chi era entrato. Due cose che
+  // corrono sullo stesso dato, e l'utente rimesso in piedi che si perde per
+  // strada. Adesso si dice una volta sola, all'inizio.
+  const avvio = await page.evaluate(()=> window.__authInit || null);
+  ok('si configura all\'avvio, non dopo', !!avvio, avvio);
+  // E NELL'ORDINE GIUSTO: IndexedDB prima, localStorage come ripiego. Era
+  // scritto al contrario — solo localStorage — e il commento diceva
+  // "IndexedDB", quindi nessuno se n'era accorto rileggendo.
+  ok('IndexedDB e\' il primo magazzino, non localStorage',
+     !!avvio && avvio.magazzini[0] === 'indexedDB', avvio);
+  ok('con localStorage dietro, per chi IndexedDB non ce l\'ha',
+     !!avvio && avvio.magazzini.includes('localStorage'), avvio);
+  // Senza resolver la finestra di Google non saprebbe da che parte cominciare:
+  // con getAuth arriva incluso, configurando a mano no. Dimenticarlo non da'
+  // errore finche' qualcuno non preme "Entra".
+  ok('e la finestra di Google sa da dove partire', !!avvio && avvio.resolver, avvio);
+
   sezione('e uscendo la porta si richiude');
   // Uscire dalle impostazioni non deve lasciare l'app aperta su dati che da
   // quel momento non ha piu' il diritto di leggere.
@@ -154,6 +176,54 @@ module.exports = () => suite("Accesso — l'archivio si apre solo a chi e' entra
   // ricaricare l'app.
   ok('e il pulsante si lascia premere di nuovo',
      await page.evaluate(()=> !document.getElementById('accesso-btn').disabled), null);
+
+  sezione('e se la sessione cade da sola, resta scritto');
+  // Era il buco vero: la porta compariva, il registro raccoglieva solo la
+  // conseguenza ("Missing or insufficient permissions", cioe' Firestore che
+  // rifiuta le letture di uno che non e' piu' nessuno) e la causa non la
+  // vedeva nessuno. Adesso il fatto si scrive da solo, e si legge in
+  // Impostazioni -> Diagnostica.
+  const caduta = await page.evaluate(async ()=>{
+    const r = await import('/js/registro.js');
+    const a = await import('/js/auth.js');
+    r.svuotaRegistro();
+    // Prima si entra... (e la risposta arriva: due sezioni fa si era provato
+    // il caso in cui si perde per strada, e quel comando resta acceso).
+    window.__popupSiPerde = false;
+    window.__popupAnnullato = false;
+    await a.entraConGoogle();
+    await new Promise(res=> setTimeout(res, 200));
+    const dopoIngresso = r.registro().length;
+    // ...e poi Firebase dice che non c'e' piu' nessuno, senza che nessuno
+    // abbia premuto Esci.
+    window.__utente = null;
+    window.__buttaFuori();
+    await new Promise(res=> setTimeout(res, 200));
+    return { dopoIngresso, righe: r.registro().map(x=> x.messaggio) };
+  });
+  ok('entrare non scrive niente nel registro', caduta.dopoIngresso === 0, caduta);
+  ok('ma una sessione caduta da sola si', caduta.righe.length === 1, caduta.righe);
+  ok('e dice che e\' finita da sola',
+     /finita da sola/i.test(caduta.righe[0] || ''), caduta.righe);
+  // Quanto si era stati dentro e se Firebase ricorda ancora l'account: sono i
+  // due dettagli che permettono di riconoscere il momento senza indovinare.
+  ok('con da quanto eri dentro', /dentro da \d+ min/.test(caduta.righe[0] || ''), caduta.righe);
+
+  sezione('e premere Esci invece non e\' un guasto');
+  const volontaria = await page.evaluate(async ()=>{
+    const r = await import('/js/registro.js');
+    const a = await import('/js/auth.js');
+    r.svuotaRegistro();
+    window.__popupSiPerde = false;
+    window.__popupAnnullato = false;
+    await a.entraConGoogle();
+    await new Promise(res=> setTimeout(res, 200));
+    await a.esci();
+    await new Promise(res=> setTimeout(res, 200));
+    return r.registro().map(x=> x.messaggio);
+  });
+  ok('uscire di proposito non finisce nel quadernetto dei guasti',
+     volontaria.length === 0, volontaria);
 
   sezione('si entra, e non col client sbagliato');
   // LA STORIA, per intero, perche' e' costata due giorni.

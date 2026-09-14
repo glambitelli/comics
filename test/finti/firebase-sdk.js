@@ -43,13 +43,25 @@ export function getDoc(){ return Promise.resolve({exists:()=>false}); }
 // prima dell'avvio, oppure entraConGoogle() dalla prova.
 const _ascoltatori = [];
 export function getAuth(){ return { currentUser: window.__utente || null }; }
+// La sessione si configura all'inizio, una volta sola: il finto si limita a
+// registrare COSA e' stato chiesto, perche' e' esattamente quello che conta
+// (l'ordine dei magazzini, e il resolver senza cui la finestra non parte).
+export function initializeAuth(_app, opzioni){
+  window.__authInit = {
+    magazzini: (opzioni && opzioni.persistence || []).map(p=> p && p.__nome),
+    resolver: !!(opzioni && opzioni.popupRedirectResolver),
+  };
+  return getAuth();
+}
+export const indexedDBLocalPersistence = { __nome:'indexedDB' };
+export const browserPopupRedirectResolver = { __nome:'popup' };
 export function GoogleAuthProvider(){}
 // Il token di Google diventa una credenziale, e la credenziale entra in
 // Firebase: e' il giro nuovo, da quando l'accesso non passa piu' dalla pagina
 // di appoggio su firebaseapp.com (vedi auth.js).
 GoogleAuthProvider.credential = (idToken, accessToken)=> ({ __google: accessToken || idToken });
 export function setPersistence(){ return Promise.resolve(); }
-export const browserLocalPersistence = {};
+export const browserLocalPersistence = { __nome:'localStorage' };
 export function onAuthStateChanged(_a, cb){
   _ascoltatori.push(cb);
   setTimeout(()=> cb(window.__utente || null), 0);
@@ -92,6 +104,9 @@ export function signInWithCredential(_a, cred){
   if(!cred || !cred.__google) return Promise.reject(new Error('credenziale vuota'));
   return entrato();
 }
+// "Firebase dice che non c'e' piu' nessuno", senza che nessuno abbia premuto
+// Esci: e' il caso che si voleva poter provare.
+window.__buttaFuori = ()=>{ window.__utente = null; _ascoltatori.forEach(cb=> cb(null)); };
 export function signOut(){
   window.__utente = null;
   _ascoltatori.forEach(cb=> cb(null));
