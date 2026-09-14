@@ -784,6 +784,37 @@ function mostraVersione(){
 }
 mostraVersione();
 
+// ── E SE LA MEMORIA E' PROTETTA O NO ──
+//
+// Sta accanto alla versione perche' risponde alla stessa famiglia di domande:
+// "perche' l'app si comporta cosi' e non e' colpa di quello che ho fatto io".
+// Senza memoria protetta il telefono puo' riprendersi lo spazio dell'app
+// quando gliene serve: se ne vanno gli albi scaricati E la sessione con
+// Google, e "Entra con Google" ricompare senza un motivo visibile. Non si puo'
+// impedire, ma si puo' smettere di far sembrare un mistero.
+function mostraMemoria(){
+  const el = document.getElementById('memoria-protetta');
+  const nota = document.getElementById('memoria-nota');
+  if(!el) return;
+  const dillo = (stato)=>{
+    el.textContent = stato === true ? 'Sì' : stato === false ? 'No' : 'Non lo so';
+    if(!nota) return;
+    nota.hidden = stato === true;
+    if(stato !== true){
+      nota.textContent = 'Il telefono può riprendersi lo spazio di Inkflow quando gliene serve: '
+        + 'spariscono gli albi scaricati e l\'accesso con Google va rifatto. '
+        + 'Aggiungendo Inkflow alla schermata Home il sistema la protegge.';
+    }
+  };
+  if(!(navigator.storage && navigator.storage.persisted)){ dillo(null); return; }
+  // Si richiede sul momento invece di fidarsi del valore preso all'avvio: il
+  // permesso puo' essere arrivato dopo (installando l'app), e leggere un "No"
+  // vecchio di mezz'ora sarebbe peggio che non leggere niente.
+  navigator.storage.persisted().then(dillo).catch(()=> dillo(null));
+}
+window.mostraMemoria = mostraMemoria;
+mostraMemoria();
+
 // ── "QUESTI DATI NON BUTTARLI VIA" ──
 // Tutto quello che l'app tiene sul telefono — la copia offline di Firestore in
 // IndexedDB, gli albi scaricati da Drive (centinaia di MB), i file dell'app
@@ -858,9 +889,30 @@ function scaldaArchivioEScene(){
     import('./albums.js').catch(()=>{});
   });
 }
+// "ENTRA CON GOOGLE" NON DEVE COMPARIRE SENZA UN PERCHE'.
+//
+// La porta compare in due situazioni molto diverse, e finora diceva la stessa
+// frase in tutte e due: la prima volta (o dopo "Esci"), che e' ovvio; e in
+// mezzo all'uso, quando la sessione con Google si spegne da sola. Il secondo
+// caso e' quello che il 14 settembre 2026 e' arrivato addosso a Giovanni
+// mentre leggeva OPUS 01: "appare all'improvviso senza un reale motivo".
+//
+// Un motivo c'e': la sessione vive nella memoria del browser, e quella memoria
+// il telefono se la riprende quando gli serve spazio — la stessa cosa che si
+// mangia gli albi scaricati (vedi eraGiaScaricato in drive.js). Dirlo non
+// impedisce che succeda, ma cambia cosa si capisce: "e' finita la sessione,
+// rientri e ritrovi tutto" invece di "questa app mi rifa' fare il login a
+// caso".
 function mostraPorta(errore){
   const porta = document.getElementById('accesso');
   if(porta) porta.hidden = false;
+  const testo = document.getElementById('accesso-testo');
+  // _portaGiaAperta dice che in questa sessione ci si era gia' dentro: se e'
+  // vero, la porta non si sta aprendo per la prima volta, si sta RICHIUDENDO
+  // alle spalle di qualcuno che stava lavorando.
+  if(testo) testo.textContent = _portaGiaAperta
+    ? 'La sessione con Google è finita. Rientra e ritrovi tutto dov\'era.'
+    : 'Accedi con il tuo account Google.';
   // La libreria di Google si scarica ADESSO, mentre la porta e' li' ferma e
   // nessuno ha ancora premuto niente. Se la si aspettasse dentro il tocco,
   // l'attivazione scadrebbe durante il download e il browser bloccherebbe la
@@ -937,8 +989,15 @@ window.entraInInkflow = function(){
 
 if(navigator.storage && navigator.storage.persist){
   navigator.storage.persisted().then(gia=>{
-    if(!gia) return navigator.storage.persist();
-  }).catch(()=>{});
+    if(gia) return true;
+    return navigator.storage.persist();
+  // L'esito si annota: e' la risposta alla domanda "perche' mi rifa' fare
+  // l'accesso a caso?" e si legge in Impostazioni -> Diagnostica. Senza
+  // memoria protetta il telefono puo' riprendersi lo spazio dell'app quando
+  // gliene serve, e con lui se ne va la sessione con Google (e gli albi
+  // scaricati). Non e' un difetto dell'app, ma nessuno puo' indovinarlo.
+  }).then(esito=>{ window.__memoriaProtetta = esito === true; })
+    .catch(()=>{ window.__memoriaProtetta = null; });
 }
 
 // Precarica stats.js in un momento di inattività: è un modulo pigro (si

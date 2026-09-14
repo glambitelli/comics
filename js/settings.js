@@ -187,6 +187,10 @@ export function openSettings(){
   if(el) el.textContent = stars;
   const streakEl = document.getElementById('settings-streak-count');
   if(streakEl) streakEl.textContent = getStreak();
+  // "Memoria protetta" si rilegge ad ogni apertura: il permesso puo' essere
+  // arrivato nel frattempo (installando l'app dalla schermata Home), e un "No"
+  // vecchio di mezz'ora sarebbe peggio che non scrivere niente.
+  if(window.mostraMemoria) window.mostraMemoria();
   mostraTempo();
   restoreReminderUI();
   const st = document.getElementById('sound-toggle');

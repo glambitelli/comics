@@ -58,12 +58,19 @@
        pulsante: quale account. "Questo archivio è tuo, e solo tuo" era una
        rassicurazione che nessuno aveva chiesto — davanti a una porta chiusa
        si vuole sapere come si entra, non a chi appartiene la casa. -->
-  <p class="accesso-testo">Accedi con il tuo account Google.</p>
+  <p class="accesso-testo" id="accesso-testo">Accedi con il tuo account Google.</p>
   <button class="accesso-btn" id="accesso-btn" type="button" onclick="window.entraInInkflow()">
     <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M21.6 12.2c0-.7-.06-1.35-.17-2H12v3.8h5.4a4.6 4.6 0 0 1-2 3v2.5h3.2c1.9-1.75 3-4.33 3-7.3z"/><path fill="currentColor" d="M12 22c2.7 0 4.97-.9 6.6-2.43l-3.2-2.5c-.9.6-2.05.95-3.4.95-2.6 0-4.8-1.76-5.6-4.12H3.1v2.58A10 10 0 0 0 12 22z"/><path fill="currentColor" d="M6.4 13.9a6 6 0 0 1 0-3.83V7.5H3.1a10 10 0 0 0 0 9l3.3-2.6z"/><path fill="currentColor" d="M12 5.98c1.47 0 2.79.5 3.83 1.5l2.84-2.84C16.96 2.99 14.7 2 12 2A10 10 0 0 0 3.1 7.5l3.3 2.57C7.2 7.73 9.4 5.98 12 5.98z"/></svg>
     <span>Entra con Google</span>
   </button>
   <p class="accesso-errore" id="accesso-errore" hidden></p>
+  <!-- DUE ACCESSI CON GOOGLE, E NON SONO LO STESSO. Questo apre Inkflow: senza,
+       progetti, scene e archivio non si leggono nemmeno. Quello che si fa da
+       Visual Archive serve solo a prendere gli albi da Drive. Hanno lo stesso
+       logo e lo stesso account, quindi vedendone comparire uno viene naturale
+       pensare che l'altro non sia servito a niente ("ho appena fatto
+       l'accesso, perche' me lo richiede?"). Una riga toglie il dubbio. -->
+  <p class="accesso-nota">Non è il collegamento a Drive: quello serve solo agli albi.</p>
 </div>
 
 <div class="loading-screen" id="loading">
@@ -1118,6 +1125,19 @@
           <span class="settings-ico"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4.4l2.8 1.7"/></svg></span>
           <span class="settings-item"><b>Versione installata</b><span id="versione-viva">—</span></span>
         </div>
+        <div class="settings-divider"></div>
+        <!-- PERCHE' "ENTRA CON GOOGLE" COMPARE A SORPRESA. La sessione vive
+             nella memoria del browser, e quella memoria il telefono se la
+             riprende quando gli serve spazio — e' la stessa cosa che si mangia
+             gli albi scaricati. Quando succede si viene buttati fuori senza un
+             motivo visibile. Qui si legge se quella memoria e' protetta: se
+             dice di no, buttarci fuori e' una possibilita' concreta e non un
+             mistero. -->
+        <div class="settings-row">
+          <span class="settings-ico"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></span>
+          <span class="settings-item"><b>Memoria protetta</b><span id="memoria-protetta">—</span></span>
+        </div>
+        <div class="settings-note" id="memoria-nota" hidden></div>
         <div class="settings-divider"></div>
         <div class="settings-note" id="registro-riassunto">Nessun errore registrato.</div>
         <pre class="settings-registro" id="registro-testo" hidden></pre>

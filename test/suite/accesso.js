@@ -37,6 +37,8 @@ module.exports = () => suite("Accesso — l'archivio si apre solo a chi e' entra
     // Nessun ascolto sui dati: e' il punto vero di tutta la faccenda.
     ascolti: window.__ascolti || [],
     bottone: (document.getElementById('accesso-btn')||{}).textContent.trim(),
+    frase: (document.getElementById('accesso-testo')||{}).textContent || '',
+    nota: (document.querySelector('.accesso-nota')||{}).textContent || '',
   }));
   ok('la porta e\' a schermo', chiusa.porta, chiusa.porta);
   // UNA RIGA SOLA, e dice come si entra. "Questo archivio e' tuo, e solo tuo"
@@ -47,6 +49,20 @@ module.exports = () => suite("Accesso — l'archivio si apre solo a chi e' entra
   ok('e come si entra', /Entra con Google/i.test(chiusa.bottone||''), chiusa.bottone);
   ok('e NESSUN dato viene chiesto prima di entrare',
      chiusa.ascolti.length === 0, chiusa.ascolti);
+  // "Entra con Google compare in modo randomico": e' la segnalazione del 14
+  // settembre 2026, e il punto non era il momento — era che la porta diceva la
+  // stessa frase in due situazioni opposte. Qui e' il caso ovvio, la prima
+  // volta: non si nomina nessuna sessione, perche' non ce n'e' mai stata una.
+  ok('a freddo dice solo come si entra',
+     /accedi con il tuo account/i.test(chiusa.frase), chiusa.frase);
+  ok('senza parlare di sessioni a chi non ne ha mai avuta una',
+     !/sessione/i.test(chiusa.frase), chiusa.frase);
+  // E LA CONFUSIONE FRA I DUE ACCESSI CON GOOGLE. Questo apre Inkflow; quello
+  // di Visual Archive serve a prendere gli albi da Drive. Stesso logo, stesso
+  // account: vedendone comparire uno viene naturale pensare che l'altro non
+  // sia servito a niente.
+  ok('e una riga distingue questo accesso da quello di Drive',
+     /drive/i.test(chiusa.nota), chiusa.nota);
 
   sezione('entrando, la porta si apre e i dati partono');
   await page.evaluate(()=> window.entraInInkflow());
@@ -127,6 +143,12 @@ module.exports = () => suite("Accesso — l'archivio si apre solo a chi e' entra
   });
   await page.waitForFunction(()=> document.getElementById('accesso').hidden === false, { timeout: 8000 });
   ok('la porta torna davanti', await page.evaluate(()=> !document.getElementById('accesso').hidden), null);
+  // Adesso che ci si era gia' dentro, la frase cambia: non e' una porta che si
+  // apre per la prima volta, e' una porta che si richiude alle spalle.
+  const dopoLUscita = await page.evaluate(()=> document.getElementById('accesso-testo').textContent);
+  ok('e adesso dice che la sessione e\' finita', /sessione/i.test(dopoLUscita), dopoLUscita);
+  ok('dicendo anche che non si perde niente',
+     /ritrovi tutto/i.test(dopoLUscita), dopoLUscita);
   // Il pulsante si spegne quando lo premi: tornando alla porta va riacceso, se
   // no resta un pulsante che non si lascia premere e l'unica via d'uscita e'
   // ricaricare l'app.

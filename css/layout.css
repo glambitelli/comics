@@ -283,6 +283,9 @@ body:not(.is-touch):not(.evening-mode) .idee-scroll{padding-bottom:calc(85px + v
 .accesso-btn:disabled{opacity:.6}
 /* Il messaggio d'errore dice cosa fare (vedi spiegaErroreAccesso in
    settings.js): qui si legge per intero, non e' una riga di log. */
+/* La riga che distingue questo accesso da quello di Drive: c'e' ma non si
+   mette in mezzo — chi ha gia' capito la scavalca senza leggerla. */
+.accesso-nota{font-size:11.5px;color:var(--ink3);line-height:1.5;max-width:300px;margin:20px 0 0}
 .accesso-errore{
   margin-top:20px;max-width:320px;font-size:12.5px;line-height:1.5;
   color:#8a3020;background:var(--coral-pale);border-radius:12px;padding:12px 14px;

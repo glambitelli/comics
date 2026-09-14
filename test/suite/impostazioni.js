@@ -125,6 +125,42 @@ module.exports = () => suite("Impostazioni — il pannello dice solo quello che 
   ok('e dice come uscire da una versione vecchia',
      /riaprila due volte/i.test(aiuto.testo), aiuto.testo);
 
+  sezione('e Diagnostica dice se la memoria dell\'app e\' protetta');
+  // E' la risposta a "perche' Entra con Google compare in modo randomico" (14
+  // settembre 2026). La sessione con Google vive nella memoria del browser, e
+  // quella memoria il telefono se la riprende quando gli serve spazio — la
+  // stessa cosa che si mangia gli albi scaricati. Senza questa riga il
+  // fenomeno resta un mistero e sembra un difetto dell'app.
+  const memoria = await page.evaluate(async ()=>{
+    // Memoria NON protetta: e' il caso in cui c'e' qualcosa da spiegare.
+    navigator.storage.persisted = ()=> Promise.resolve(false);
+    window.mostraMemoria();
+    await new Promise(r=> setTimeout(r, 120));
+    const senza = {
+      valore: document.getElementById('memoria-protetta').textContent,
+      nota: document.getElementById('memoria-nota').textContent,
+      notaVisibile: !document.getElementById('memoria-nota').hidden,
+    };
+    // E protetta: niente da spiegare, la nota sparisce.
+    navigator.storage.persisted = ()=> Promise.resolve(true);
+    window.mostraMemoria();
+    await new Promise(r=> setTimeout(r, 120));
+    const con = {
+      valore: document.getElementById('memoria-protetta').textContent,
+      notaVisibile: !document.getElementById('memoria-nota').hidden,
+    };
+    return { senza, con };
+  });
+  ok('quando non lo e\', lo dice', memoria.senza.valore === 'No', memoria.senza);
+  ok('e spiega cosa comporta: albi e accesso se ne vanno',
+     /albi/i.test(memoria.senza.nota) && /accesso/i.test(memoria.senza.nota), memoria.senza.nota);
+  // Non basta dire cosa va storto: va detto cosa si puo' fare.
+  ok('e dice anche come rimediare',
+     /schermata home/i.test(memoria.senza.nota), memoria.senza.nota);
+  ok('quando invece lo e\', dice di si\'', memoria.con.valore === 'Sì', memoria.con);
+  ok('e non spiega niente, perche\' non c\'e\' niente da spiegare',
+     memoria.con.notaVisibile === false, memoria.con);
+
   sezione('il quadernetto dei guasti');
   // Nel codice ci sono quaranta punti in cui un errore viene ingoiato in
   // silenzio: giusto uno per uno, disastroso tutti insieme — sul telefono non
