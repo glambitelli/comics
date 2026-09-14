@@ -28,6 +28,7 @@ import { unzipSync } from './vendor/fflate.js';
 import {
   addRefBlob, getActiveFolderId, findExactAlbumMatch, createAlbumDoc,
   updateAlbumLastPage, updateAlbumSourceName, getAlbumById, findAlbumByDriveId,
+  completaAlbumDoc,
   clipDestinations, clipCategories, getFolderName, rememberClipDest, tagSuggeriti,
 } from './refs.js';
 import { uploadToCloudinary } from './cloudinary.js';
@@ -661,12 +662,90 @@ async function createAlbumFromCurrent(folderId, file, token){
 async function sbircia(driveFile){
   const name = driveFile.name || '';
   const size = Number(driveFile.size) || 0;
+  // PRIMA SI GUARDA IN CASA. Un albo gia' scaricato e' un file che sta sul
+  // telefono: aprirlo non costa ne' rete ne' attesa, e si legge QUALUNQUE
+  // formato — .cbr compresi. E' l'unica strada che una copertina di .cbr ha:
+  // dentro un RAR non si puo' sbirciare a distanza (vedi sotto), quindi finche'
+  // nessuno l'ha scaricato quelle schede restano col riquadro "DA APRIRE".
+  try{
+    const giaQui = await albumGiaScaricato(driveFile.id, name || 'albo');
+    if(giaQui){
+      const src = await extractPagesForFile(giaQui);
+      if(src && src.pages.length) return src;
+      if(src && src.close) try{ src.close(); }catch(e){}
+    }
+  }catch(e){ console.warn('lettura locale fallita per', name, e.message); }
+  // E se in casa non c'e', si sbircia a distanza — ma solo negli ZIP. Un .cbz
+  // ha l'indice in fondo e si legge con poche richieste Range, qualche decina
+  // di kB. Un RAR no: per sapere anche solo QUANTE tavole contiene bisogna
+  // averlo tutto, e mezzo giga scaricato di nascosto per fare una miniatura e'
+  // esattamente il difetto corretto ad agosto.
   if(!/\.cbz$/i.test(name) || !(size > 0)) return null;
   try{
     const src = await openRemoteZipSource(driveFile.id, size, isImageEntry, naturalCompare);
     if(src.pages.length) return src;
   }catch(e){ console.warn('lettura remota ZIP fallita per', name, e.message); }
   return null;
+}
+
+// La copertina da una sorgente gia' aperta: si sceglie la tavola giusta, si
+// riduce e si carica. Divisa fra chi crea una scheda nuova e chi ne completa
+// una nata senza — erano due copie della stessa cosa, e una delle due sarebbe
+// invecchiata da sola.
+async function copertinaDa(src){
+  const pagina = pickCoverPage(src.pages);
+  if(!pagina) return null;
+  const blob = await makeCoverBlob(await pageBlob(src, pagina));
+  if(!blob) return null;
+  const tag = Date.now().toString(36) + Math.random().toString(36).slice(2,8);
+  const { url } = await uploadToCloudinary(blob, 'cover-'+tag+'.jpg');
+  return url || null;
+}
+
+// Chiude una sorgente usata di sfuggita (una copertina, un conteggio) senza
+// lasciare in giro blob e worker: il .cbr tiene vivo libarchive finche' non
+// glielo si dice.
+function chiudiSorgente(src){
+  if(!src) return;
+  src.pages.forEach(p=>{ try{ if(p.url) URL.revokeObjectURL(p.url); }catch(e){} });
+  if(src.close) try{ src.close(); }catch(e){}
+}
+
+// ── UNA SCHEDA MEZZA VUOTA SI COMPLETA DA SOLA ──
+//
+// Il 14 settembre 2026, con Drive collegato: "non vedo le copertine degli albi
+// scaricati e mi segnala comunque 0 pagine". Erano due .cbr. La scheda si crea
+// comunque — un albo che si vede e si apre e' incomparabilmente meglio di un
+// albo che non esiste — ma copertina e conteggio restavano vuoti per sempre,
+// perche' si tentavano UNA VOLTA SOLA, alla creazione, quando il file non era
+// ancora stato scaricato e dentro un RAR non si puo' sbirciare a distanza.
+//
+// Adesso si riprova nei due momenti in cui il file e' gia' in casa e non costa
+// niente: quando lo scaffale si sincronizza con Drive (vedi
+// syncDriveAlbumsForFolder in refs.js) e quando l'albo si apre per leggerlo,
+// che e' il momento in cui la sorgente e' gia' aperta fra le mani.
+export async function completaSchedaAlbo(a, sorgenteAperta){
+  if(!a || !a.id) return false;
+  if(a.cover && a.pageCount) return false;
+  const src = sorgenteAperta || await sbircia({
+    id: a.driveFileId, name: a.sourceName || a.title || 'albo', size: a.sourceSize || 0,
+  });
+  if(!src || !src.pages.length) return false;
+  try{
+    const campi = {};
+    if(!a.pageCount) campi.pageCount = src.pages.length;
+    if(!a.cover){
+      try{ const url = await copertinaDa(src); if(url) campi.cover = url; }
+      catch(e){ console.warn('copertina tardiva fallita per', a.title, e.message); }
+    }
+    if(!Object.keys(campi).length) return false;
+    await completaAlbumDoc(a.id, campi);
+    return true;
+  }finally{
+    // La sorgente presa in prestito da chi sta leggendo NON si chiude: e'
+    // ancora la sua.
+    if(!sorgenteAperta) chiudiSorgente(src);
+  }
 }
 
 // Per ogni file trovato nella sottocartella Drive di una cartella-autore che
@@ -690,17 +769,9 @@ export async function createAlbumFromDriveFile(folderId, driveFile){
   const src = await sbircia(driveFile);
   if(src){
     pageCount = src.pages.length;
-    const coverPage = pickCoverPage(src.pages);
-    if(coverPage){
-      try{
-        const coverBlob = await makeCoverBlob(await pageBlob(src, coverPage));
-        if(coverBlob){
-          const tag = Date.now().toString(36) + Math.random().toString(36).slice(2,8);
-          ({ url: cover } = await uploadToCloudinary(coverBlob, 'cover-'+tag+'.jpg'));
-        }
-      }catch(e){ console.warn('drive sync: copertina fallita per', name, e.message); }
-    }
-    src.pages.forEach(p=>{ try{ if(p.url) URL.revokeObjectURL(p.url); }catch(e){} });
+    try{ cover = await copertinaDa(src); }
+    catch(e){ console.warn('drive sync: copertina fallita per', name, e.message); }
+    chiudiSorgente(src);
   }
 
   await createAlbumDoc({
@@ -819,6 +890,10 @@ export async function openAlbumFromDrive(albumId){
   toast('');
   _reader.querySelector('.ar-title').textContent = _albumName;
   renderPage();
+  // E gia' che la sorgente e' aperta, si riempiono le caselle che la scheda
+  // non era riuscita a riempire da sola (i .cbr nascono tutti cosi'). A thread
+  // libero: la tavola che si sta guardando viene prima.
+  whenIdle(()=>{ completaSchedaAlbo(a, src).catch(()=>{}); });
 }
 
 // ── READER (overlay a schermo intero) ───────────────────────────────────────

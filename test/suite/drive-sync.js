@@ -13,7 +13,17 @@ const { suite } = require('../motore.js');
 
 module.exports = () => suite("Drive — la sincronizzazione non scarica per la miniatura", {
   banco: '/test/banco/lettore-drive.html',
-}, async ({ page, ok, sezione }) => {
+}, async ({ page, base, ok, sezione }) => {
+
+  // Un albo vero da mettere "in casa" quando serve: e' un .cbz, ma lo si
+  // presenta col nome .cbr — dentro l'app decide la FIRMA dei byte, non
+  // l'estensione, quindi va benissimo per provare la strada dei .cbr senza
+  // dover impacchettare un RAR (che nessuno qui sa fare).
+  await page.evaluate(async (url)=>{
+    const buf = await (await fetch(url)).arrayBuffer();
+    window.__inCasaFinto = new File([buf], 'OPUS 01.cbr', { type:'application/octet-stream' });
+    window.__inCasa = null;
+  }, base + '/test/fixtures/pagine.cbz');
 
   sezione('un .cbr non fa partire nessuno scaricamento');
   const cbr = await page.evaluate(async ()=>{
@@ -67,4 +77,90 @@ module.exports = () => suite("Drive — la sincronizzazione non scarica per la m
   });
   ok('la sincronizzazione resta silenziosa e non rompe', doppio.schede === 1, doppio);
 
+  sezione('ma se l\'albo e\' gia\' in casa, la scheda nasce completa');
+  // IL PUNTO. Dentro un RAR non si sbircia a distanza, quindi un .cbr nasce col
+  // riquadro "DA APRIRE" e "0 pagine". Ma se quel file e' gia' stato scaricato
+  // — perche' lo si e' letto — sta sul telefono: leggerlo di li' non costa ne'
+  // rete ne' attesa, e la copertina si puo' fare eccome.
+  const inCasa = await page.evaluate(async ()=>{
+    window.__schede = [];
+    window.__dl = null;
+    window.__caricamenti = [];
+    window.__inCasa = window.__inCasaFinto;
+    await window.albums.createAlbumFromDriveFile('F1', {
+      id:'D-CASA', name:'OPUS 01.cbr', size: 504 * 1048576,
+    });
+    window.__inCasa = null;
+    return {
+      scaricato: !!(window.__dl && window.__dl.avviato),
+      scheda: window.__schede[0] || null,
+      caricamenti: (window.__caricamenti || []).length,
+    };
+  });
+  ok('nemmeno qui si scarica niente: il file c\'era gia\'', inCasa.scaricato === false, inCasa);
+  ok('la copertina c\'e\'', !!(inCasa.scheda && inCasa.scheda.cover), inCasa.scheda);
+  ok('ed e\' stata caricata davvero, non inventata', inCasa.caricamenti === 1, inCasa);
+  ok('e il conteggio pagine e\' quello vero',
+     inCasa.scheda && inCasa.scheda.pageCount === 12, inCasa.scheda);
+
+  sezione('e una scheda nata vuota si completa dopo, senza scaricare niente');
+  // Il caso di Giovanni, 14 settembre 2026: Drive collegato, gli albi
+  // scaricati e letti, ma le schede restavano col riquadro "DA APRIRE" e "0
+  // pagine" per sempre — copertina e conteggio si tentavano UNA VOLTA SOLA,
+  // alla creazione, quando il file non c'era ancora.
+  const tardi = await page.evaluate(async ()=>{
+    window.__completate = [];
+    window.__dl = null;
+    window.__caricamenti = [];
+    window.__inCasa = window.__inCasaFinto;
+    const fatto = await window.albums.completaSchedaAlbo({
+      id:'A-VUOTA', driveFileId:'D-CASA', sourceName:'OPUS 01.cbr',
+      title:'OPUS 01', cover:null, pageCount:0,
+    });
+    window.__inCasa = null;
+    return {
+      fatto,
+      scaricato: !!(window.__dl && window.__dl.avviato),
+      completate: window.__completate,
+    };
+  });
+  ok('la scheda si completa', tardi.fatto === true, tardi);
+  ok('senza scaricare niente', tardi.scaricato === false, tardi);
+  ok('e ci finiscono dentro copertina e conteggio',
+     tardi.completate.length === 1
+     && tardi.completate[0].id === 'A-VUOTA'
+     && !!tardi.completate[0].campi.cover
+     && tardi.completate[0].campi.pageCount === 12, tardi.completate);
+
+  sezione('una scheda gia\' a posto non si tocca');
+  const gia = await page.evaluate(async ()=>{
+    window.__completate = [];
+    window.__inCasa = window.__inCasaFinto;
+    const fatto = await window.albums.completaSchedaAlbo({
+      id:'A-PIENA', driveFileId:'D-CASA', sourceName:'OPUS 01.cbr',
+      cover:'https://gia/qui.jpg', pageCount: 7,
+    });
+    window.__inCasa = null;
+    return { fatto, completate: window.__completate.length };
+  });
+  // Non e' pignoleria: questa funzione gira ad ogni sincronizzazione dello
+  // scaffale, e senza questo controllo rifarebbe copertina e caricamento su
+  // Cloudinary per ogni albo, ogni volta.
+  ok('non si riscrive niente', gia.fatto === false && gia.completate === 0, gia);
+
+  sezione('e se l\'albo non e\' in casa, non lo si va a prendere');
+  const lontano = await page.evaluate(async ()=>{
+    window.__completate = [];
+    window.__dl = null;
+    window.__inCasa = null;      // mai scaricato
+    const fatto = await window.albums.completaSchedaAlbo({
+      id:'A-LONTANA', driveFileId:'D-MAI', sourceName:'OPUS 02.cbr',
+      cover:null, pageCount:0,
+    });
+    return { fatto, scaricato: !!(window.__dl && window.__dl.avviato),
+             completate: window.__completate.length };
+  });
+  ok('niente scaricamento di nascosto', lontano.scaricato === false, lontano);
+  ok('e la scheda resta com\'era, in attesa che l\'albo passi di qui',
+     lontano.fatto === false && lontano.completate === 0, lontano);
 });

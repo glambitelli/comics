@@ -55,7 +55,7 @@ exposeLazy('./refs.js', ['refsBackToFolders','openRefLightbox','closeRefLightbox
 // e' il frammento aperto in quel momento (vedi apriRitaglio in refs.js).
 window.rifilaDaLightbox = ()=> window.apriRitaglio();
 exposeLazy('./albums.js', ['openAlbumPicker','openAlbumFromFile','openAlbumFromDrive',
-  'createAlbumFromDriveFile']);
+  'createAlbumFromDriveFile','completaSchedaAlbo']);
 exposeLazy('./scriptment.js', ['openScriptment','closeScriptment','setScriptmentFont',
   'stepScriptmentSize','formatScriptment','openScriptmentRead','toggleScriptmentRead',
   'closeFormatPreview','applyFormatPreview','onScriptmentInput']);

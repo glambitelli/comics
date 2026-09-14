@@ -29,6 +29,12 @@ export function createAlbumDoc(dati){
   (window.__schede || (window.__schede = [])).push(dati);
   return Promise.resolve(null);
 }
+// Le caselle riempite dopo, su una scheda nata senza copertina: la prova
+// guarda QUI per sapere se l'albo si e' completato da solo.
+export function completaAlbumDoc(id, campi){
+  (window.__completate || (window.__completate = [])).push({ id, campi });
+  return Promise.resolve();
+}
 export function updateAlbumLastPage(){}
 export function updateAlbumSourceName(){}
 export function getAlbumById(){ return window.__album || null; }

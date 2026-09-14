@@ -671,6 +671,19 @@ export function updateAlbumLastPage(albumId, page){
   }, 900));
 }
 
+// ── UNA SCHEDA NATA INCOMPLETA SI PUO' COMPLETARE DOPO ──
+// Gli albi .cbr nascono senza copertina e con "0 pagine": per guardare dentro
+// un RAR serve il file INTERO, e scaricare mezzo giga di nascosto per fare una
+// miniatura e' proprio il difetto corretto ad agosto (vedi sbircia in
+// albums.js). Appena quel file e' in casa per altri motivi — lo si e' aperto,
+// o lo si e' scaricato — quelle due caselle si possono riempire senza chiedere
+// niente a nessuno.
+export function completaAlbumDoc(id, campi){
+  if(!id || !campi || !Object.keys(campi).length) return Promise.resolve();
+  if(campi.cover) warmDerived(campi.cover, COVER_W);
+  return setDoc(doc(db, ALBUMS_COL, id), campi, {merge:true});
+}
+
 // Il nome del file può cambiare (cloud drive che rinomina in "nome (1).cbz");
 // se un match "probabile" (solo peso) è confermato riallineamo il nome atteso.
 export function updateAlbumSourceName(albumId, sourceName){
@@ -753,7 +766,19 @@ export async function syncDriveAlbumsForFolder(folderId){
     _scartatiDrive = esito.scartati || [];
     renderScaffaleDrive();
     for(const file of esito.files){
-      if(findAlbumByDriveId(folderId, file.id)) continue;
+      const gia = findAlbumByDriveId(folderId, file.id);
+      if(gia){
+        // LA SCHEDA C'E' MA E' MEZZA VUOTA. Succede a tutti i .cbr: a distanza
+        // dentro un RAR non si legge, quindi nascono con il riquadro "DA
+        // APRIRE" e "0 pagine". Se nel frattempo il file e' finito in casa —
+        // lo si e' scaricato per leggerlo — copertina e conteggio si prendono
+        // da li', senza toccare la rete. Riprovare non costa: appena le due
+        // caselle sono piene questa riga non fa piu' niente.
+        if((!gia.cover || !gia.pageCount) && window.completaSchedaAlbo){
+          await window.completaSchedaAlbo(gia);
+        }
+        continue;
+      }
       if(window.createAlbumFromDriveFile) await window.createAlbumFromDriveFile(folderId, file);
     }
   }catch(e){
