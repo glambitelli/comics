@@ -20,11 +20,11 @@ import {
 // deve sapere che si e' trasferita.
 import {
   openRefLightbox, closeRefLightbox, closeLightboxUI, nextRefImage, prevRefImage,
-  resetImageZoom, refreshLightboxLinkBtn, apriElenco,
+  resetImageZoom, refreshLightboxLinkBtn, apriElenco, refAperto,
 } from './lightbox.js';
 export {
   openRefLightbox, closeRefLightbox, closeLightboxUI, nextRefImage, prevRefImage,
-  resetImageZoom,
+  resetImageZoom, refAperto,
 };
 
 const REFS_COL = 'refs';
@@ -232,7 +232,7 @@ export async function ripristinaImmagine(id, prima){
 // così il frammento sa da dove viene.
 export async function addRefBlob(blob, opts={}){
   if(!blob) return null;
-  const { folderId=null, source='clip', provenance=null, w=null, h=null, onProgress=null, tavola=false, tags=null } = opts;
+  const { folderId=null, source='clip', provenance=null, w=null, h=null, onProgress=null, tavola=false, tags=null, prosp=null } = opts;
   const id = genId();
   try{
     // L'estensione segue il formato vero del blob: da quando i ritagli
@@ -255,6 +255,11 @@ export async function addRefBlob(blob, opts={}){
       // Cosa c'e' dentro, se lo si e' detto al momento del ritaglio.
       tags: Array.isArray(tags) ? tags.map(normTag).filter(Boolean) : [],
     };
+    // I numeri dello studio di prospettiva viaggiano col documento: e' quello
+    // che rende confrontabili due studi fatti a un mese di distanza, e che
+    // permette alla griglia di scrivere "23%" sotto ogni scheda senza dover
+    // riaprire niente.
+    if(prosp) data.prosp = prosp;
     if(provenance) data.provenance = provenance;
     await setDoc(doc(db, REFS_COL, id), data);
     // Si torna anche l'indirizzo, non solo l'id. Chi carica dall'archivio non
@@ -582,7 +587,22 @@ function countInFolder(folderId){
 // avere due definizioni di "cos'è una tavola" in due punti diversi è il modo
 // classico per ritrovarsi un numero sul tab che non corrisponde a quello che
 // si vede sotto.
-export function isTavola(r){ return !!(r && r.tavola); }
+export function isTavola(r){ return !!(r && r.tavola && !r.prosp); }
+
+// ── IL TERZO GENERE: GLI STUDI DI PROSPETTIVA ──
+//
+// Una vignetta con sopra lo schema dei punti di fuga non e' un frammento e non
+// e' una tavola: un frammento e' un riferimento che si colleziona per il gusto
+// o per un progetto, uno studio e' una nota su una pagina precisa. Mischiati
+// ai frammenti sporcherebbero la griglia da cui si pescano i riferimenti; in
+// uno scaffale loro, con sotto ognuno la sua percentuale, diventano
+// CONFRONTABILI — ed e' esattamente lo studio per cui lo strumento esiste
+// ("dove Otomo piazza la linea dell'orizzonte").
+// Il campo porta anche i numeri: { orizzonte: 23, fughe: [...] }.
+export function isProspettiva(r){ return !!(r && r.prosp); }
+export function generoDi(r){
+  return isProspettiva(r) ? 'prospettive' : isTavola(r) ? 'tavole' : 'ritagli';
+}
 
 // Spostare a mano un'immagine fra i due scaffali. Serve perché la classifica
 // automatica ha un caso che sbaglia per forza: la pagina intera archiviata
@@ -603,12 +623,12 @@ function folderHaTab(folderId){
   return !!f && categoriaDiPersone(f.category);
 }
 
-function countRitagliInFolder(folderId){
-  return _refs.filter(r=>r.folderId===folderId && !isTavola(r)).length;
+function countPerGenere(folderId, genere){
+  return _refs.filter(r=> r.folderId === folderId && generoDi(r) === genere).length;
 }
-function countTavoleInFolder(folderId){
-  return _refs.filter(r=>r.folderId===folderId && isTavola(r)).length;
-}
+function countRitagliInFolder(folderId){ return countPerGenere(folderId, 'ritagli'); }
+function countTavoleInFolder(folderId){ return countPerGenere(folderId, 'tavole'); }
+function countProspettiveInFolder(folderId){ return countPerGenere(folderId, 'prospettive'); }
 
 function countAlbumsByFolder(folderId){
   return _albums.filter(a=>a.folderId===folderId).length;
@@ -1132,7 +1152,7 @@ export function wireSwipeAssi(){
 // 'ritagli' perche' e' la chiave con cui l'archivio e' scritto su Firestore da
 // sempre, e rinominarla vorrebbe dire riscrivere ogni documento per cambiare
 // una parola su un pulsante.
-const SCAFFALI = ['albi','ritagli','tavole'];
+const SCAFFALI = ['albi','ritagli','tavole','prospettive'];
 export function wireSwipeScaffali(){
   wireSwipe(document.getElementById('screen-refs'), 'scaffali', verso=>{
     const tabs = document.getElementById('refs-tabs');
@@ -1144,7 +1164,7 @@ export function wireSwipeScaffali(){
 }
 
 export function setFolderTab(tab){
-  if(tab !== 'albi' && tab !== 'ritagli' && tab !== 'tavole') return;
+  if(!SCAFFALI.includes(tab)) return;
   if(_folderTab === tab) return;
   _folderTab = tab;
   // Niente haptic('tap') qui: la tab è un <button onclick>, già coperta dal
@@ -1488,6 +1508,8 @@ function renderFolderTabs(){
   if(albiN) albiN.textContent = countAlbumsByFolder(_activeFolderId);
   if(ritagliN) ritagliN.textContent = countRitagliInFolder(_activeFolderId);
   if(tavoleN) tavoleN.textContent = countTavoleInFolder(_activeFolderId);
+  const prospN = document.getElementById('refs-tab-prospettive-n');
+  if(prospN) prospN.textContent = countProspettiveInFolder(_activeFolderId);
 
   SCAFFALI.forEach(t=>{
     const b = document.getElementById('refs-tab-'+t);
@@ -1970,8 +1992,7 @@ function rawGridList(){
     // rese invisibili, perche' non ci sarebbe stato nessun tab da toccare per
     // andarle a prendere.
     if(!folderHaTab(_activeFolderId)) return _refs.filter(r=>r.folderId===_activeFolderId);
-    const tavole = _folderTab === 'tavole';
-    return _refs.filter(r=>r.folderId===_activeFolderId && isTavola(r) === tavole);
+    return _refs.filter(r=> r.folderId === _activeFolderId && generoDi(r) === _folderTab);
   }
   return _refs;
 }
@@ -2021,7 +2042,11 @@ export function renderRefsGrid(){
   // sono proprio quello che si cerca aprendo questo scaffale, e il quadrato li
   // buttava via tutti e tre. Qui la tessera diventa verticale e l'immagine ci
   // sta dentro tutta (vedi .refs-grid.tavole nel CSS).
-  const mostraTavole = _view === 'folder' && !!_activeFolderId && _folderTab === 'tavole';
+  // Gli studi si guardano INTERI come le tavole: sono vignette, e un quadrato
+  // ritagliato al centro butterebbe via meta' della prospettiva — cioe' proprio
+  // la parte che si era andati a misurare.
+  const mostraTavole = _view === 'folder' && !!_activeFolderId
+    && (_folderTab === 'tavole' || _folderTab === 'prospettive');
   grid.classList.toggle('tavole', mostraTavole);
 
   // OGNI TAVOLA PRENDE LE SUE PROPORZIONI.
@@ -2087,10 +2112,18 @@ export function renderRefsGrid(){
     // gia' collegata a QUEL progetto: e' l'informazione che serve mentre si
     // sceglie, e si vede senza aprire niente.
     const preso = _perProgetto ? projectIdsOf(r).includes(_perProgetto) : _scelti.has(r.id);
+    // LA PERCENTUALE SCRITTA SULLO STUDIO. E' la ragione per cui gli studi
+    // stanno in uno scaffale loro: uno accanto all'altro, ognuno col suo
+    // numero, si vede a colpo d'occhio dove un autore mette l'orizzonte — che
+    // e' la domanda con cui si e' aperto lo strumento la prima volta. Aprirli
+    // uno per uno per leggere lo stesso numero non sarebbe uno studio, sarebbe
+    // un archivio.
+    const misura = isProspettiva(r) && typeof r.prosp.orizzonte === 'number'
+      ? `<span class="refs-thumb-oriz">${r.prosp.orizzonte}%</span>` : '';
     return `
     <div class="refs-thumb${preso ? ' scelta' : ''}"${forma(r)} data-id="${r.id}">
       <img src="${cldResize(r.url, mostraTavole ? TAVOLA_W : THUMB_W)}" loading="lazy" decoding="async" alt=""/>
-      ${dot}${tag}
+      ${dot}${tag}${misura}
       <span class="refs-spunta${preso ? ' on' : ''}" role="checkbox" aria-checked="${preso}" aria-label="Scegli"></span>
     </div>
   `;

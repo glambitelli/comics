@@ -9,10 +9,11 @@ module.exports = () => suite("References — Frammenti e Tavole dentro una carte
   };
   const stato = ()=> page.evaluate(()=>{
     const n = id => (document.getElementById(id)||{}).textContent;
-    const attivo = ['albi','ritagli','tavole'].find(t=>
+    const attivo = ['albi','ritagli','tavole','prospettive'].find(t=>
       (document.getElementById('refs-tab-'+t)||{classList:{contains:()=>false}}).classList.contains('active'));
     return {
       albiN: n('refs-tab-albi-n'), ritagliN: n('refs-tab-ritagli-n'), tavoleN: n('refs-tab-tavole-n'),
+      fugheN: n('refs-tab-prospettive-n'),
       attivo,
       tabVisibili: document.getElementById('refs-tabs').classList.contains('show'),
       inGriglia: Array.from(document.querySelectorAll('.refs-thumb')).map(e=>e.dataset.id),
@@ -341,7 +342,7 @@ module.exports = () => suite("References — Frammenti e Tavole dentro una carte
       fondoVasca: getComputedStyle(vascaEl).backgroundColor,
       fondoCursore: s.backgroundColor, ombra: s.boxShadow,
       largoVasca: v.width, largoCursore: c.width, scarto: c.left - v.left,
-      lineette: ['albi','ritagli','tavole'].map(t=>
+      lineette: ['albi','ritagli','tavole','prospettive'].map(t=>
         getComputedStyle(document.getElementById('refs-tab-'+t)).borderBottomWidth),
     };
   });
@@ -351,19 +352,21 @@ module.exports = () => suite("References — Frammenti e Tavole dentro una carte
      scaffali.lineette.every(l=> parseFloat(l) === 0), scaffali.lineette);
   ok('il cursore e\' bianco e appoggiato sopra',
      /254, 252, 248/.test(scaffali.fondoCursore) && !/inset/.test(scaffali.ombra), scaffali);
-  ok('e largo un terzo di vaschetta, perche\' le voci sono tre',
-     Math.abs(scaffali.largoCursore - (scaffali.largoVasca - 4)/3) < 1.5, scaffali);
+  // Quattro voci da settembre 2026: Albi, Frammenti, Tavole e Fughe (gli studi
+  // di prospettiva, vedi isProspettiva in refs.js).
+  ok('e largo un quarto di vaschetta, perche\' le voci sono quattro',
+     Math.abs(scaffali.largoCursore - (scaffali.largoVasca - 4)/4) < 1.5, scaffali);
   ok('sugli Albi sta tutto a sinistra', scaffali.scarto < 4, scaffali);
-  await tocca('tavole');
+  await tocca('prospettive');
   await page.waitForTimeout(400);
   const inFondo = await leggiScaffali();
-  ok('e su Tavole arriva in fondo a destra',
-     Math.abs(inFondo.scarto - (inFondo.largoVasca - 4) * 2/3) < 2, inFondo);
+  ok('e sulle Fughe arriva in fondo a destra',
+     Math.abs(inFondo.scarto - (inFondo.largoVasca - 4) * 3/4) <= 2.5, inFondo);
 
   sezione('e si passa da uno scaffale all\'altro anche col dito');
-  // Lo stesso gesto dei due assi. Agli estremi ci si ferma: da Tavole uno
-  // swipe in avanti non deve riportare agli Albi facendo sembrare di aver
-  // sbagliato la direzione.
+  // Lo stesso gesto dei due assi. Agli estremi ci si ferma: dall'ultimo
+  // scaffale uno swipe in avanti non deve riportare agli Albi facendo sembrare
+  // di aver sbagliato la direzione.
   const swipe = async (dx, dy=0)=> {
     await page.evaluate(([dx,dy])=>{
       const el = document.getElementById('refs-gallery-view');
@@ -381,7 +384,11 @@ module.exports = () => suite("References — Frammenti e Tavole dentro una carte
   await swipe(-120);
   ok('un altro porta alle Tavole', (await stato()).attivo === 'tavole', await stato());
   await swipe(-120);
-  ok('e da li\' in avanti non si va da nessuna parte', (await stato()).attivo === 'tavole', await stato());
+  ok('un altro ancora porta alle Fughe', (await stato()).attivo === 'prospettive', await stato());
+  await swipe(-120);
+  ok('e da li\' in avanti non si va da nessuna parte',
+     (await stato()).attivo === 'prospettive', await stato());
+  await swipe(120);
   await swipe(120);
   ok('indietro si torna ai Ritagli', (await stato()).attivo === 'ritagli', await stato());
   // Scorrere l'elenco col pollice non fa mai linee dritte: un movimento
@@ -408,4 +415,48 @@ module.exports = () => suite("References — Frammenti e Tavole dentro una carte
   ok('col dito la X sparisce', xLightbox.conDito === 'none', xLightbox);
   ok('col mouse resta', xLightbox.colMouse !== 'none', xLightbox);
 
+  sezione('e gli studi di prospettiva hanno il loro scaffale');
+  // Uno studio non e' un frammento: un frammento e' un riferimento che si
+  // colleziona, uno studio e' una nota su una pagina precisa. Mischiati
+  // sporcherebbero la griglia da cui si pescano i riferimenti — e soprattutto
+  // non sarebbero confrontabili, che e' tutto il punto.
+  const fughe = await page.evaluate(async ()=>{
+    const arr = window.refs.getRefs();
+    arr.push({ id:'f0', url:'data:image/png;base64,iVBORw0KGgo=', folderId:'F1',
+               tavola:true, prosp:{ orizzonte:23, fughe:[{x:1.4,y:0.23}] } });
+    arr.push({ id:'f1', url:'data:image/png;base64,iVBORw0KGgo=', folderId:'F1',
+               tavola:true, prosp:{ orizzonte:81, fughe:[{x:0.5,y:0.81}] } });
+    window.refs.renderRefsScreen();
+    await new Promise(r=> setTimeout(r, 200));
+    return null;
+  });
+  await tocca('ritagli');
+  const fraIFrammenti = await stato();
+  // NON devono comparire fra i frammenti, e nemmeno fra le tavole: hanno la
+  // bandierina "tavola" addosso perche' sono pagine intere, ma il genere lo
+  // decide lo studio.
+  ok('uno studio non finisce fra i frammenti',
+     !fraIFrammenti.inGriglia.includes('f0'), fraIFrammenti);
+  await tocca('tavole');
+  const fraLeTavole = await stato();
+  ok('e nemmeno fra le tavole', !fraLeTavole.inGriglia.includes('f0'), fraLeTavole);
+  await tocca('prospettive');
+  const nelleFughe = await stato();
+  ok('ma stanno tutti nel loro scaffale',
+     nelleFughe.inGriglia.includes('f0') && nelleFughe.inGriglia.includes('f1'), nelleFughe);
+  ok('e il numero accanto al nome li conta', nelleFughe.fugheN === '2', nelleFughe);
+  // LA PERCENTUALE SCRITTA SOPRA: e' la ragione per cui hanno uno scaffale
+  // loro. Uno accanto all'altro, ognuno col suo numero, si vede a colpo
+  // d'occhio dove un autore mette l'orizzonte — aprirli uno per uno per
+  // leggere lo stesso numero sarebbe un archivio, non uno studio.
+  const numeri = await page.evaluate(()=>
+    Array.from(document.querySelectorAll('.refs-thumb-oriz')).map(e=> e.textContent));
+  ok('con la percentuale dell\'orizzonte scritta sopra',
+     numeri.includes('23%') && numeri.includes('81%'), numeri);
+  // E si guardano interi, come le tavole: un quadrato ritagliato al centro
+  // butterebbe via meta' della prospettiva, cioe' proprio quello che si era
+  // andati a misurare.
+  const interi = await page.evaluate(()=>
+    document.querySelector('.refs-grid').classList.contains('tavole'));
+  ok('e si vedono per intero, non ritagliati in un quadrato', interi, interi);
 });

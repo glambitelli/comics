@@ -16,7 +16,7 @@
 .refs-crumb-sort[hidden]{display:none}
 .refs-breadcrumb-back{font-size:18px;font-weight:700;color:#8a7248;line-height:1}
 
-/* Albi / Ritagli / Tavole — visibili solo dentro una cartella vera.
+/* Albi / Frammenti / Tavole / Fughe — visibili solo dentro una cartella vera.
    Sono lo STESSO interruttore di Artists/References (vedi .seg-vasca piu'
    sotto): erano tre parole con una lineetta corallo sotto quella scelta, cioe'
    il linguaggio dei titoli, mentre qui si sceglie uno scaffale fra tre. Ora la
@@ -24,10 +24,27 @@
    modo, e in tutte e due si cambia anche con uno swipe. */
 .refs-tabs{display:none;padding:2px 16px 12px;background:var(--fondo-carta);flex-shrink:0}
 .refs-tabs.show{display:block}
-.refs-tabs .seg-vasca{--n:3}
+.refs-tabs .seg-vasca{--n:4}
+/* Con quattro scaffali le parole si stringono: su un telefono stretto "Fughe"
+   e il suo numero non ci stanno piu' a 13,5px, e andrebbero a capo dentro il
+   cursore. Il numero e' un contorno, quindi e' lui a cedere per primo. */
+@media (max-width:420px){
+  .refs-tabs .seg-tab{font-size:12.5px;letter-spacing:-.02em}
+  .refs-tabs .refs-tab-n{margin-left:3px;font-size:10.5px}
+}
 /* Il numero accanto al nome non e' un dato, e' un contorno: serve a sapere se
    uno scaffale e' vuoto prima di aprirlo, quindi resta piccolo e chiaro. */
 .refs-tab-n{font-size:11.5px;font-weight:700;color:#a9987a;margin-left:4px}
+
+/* La percentuale dell'orizzonte, scritta sullo studio. Oro su fondo scuro come
+   nello strumento che l'ha misurata, e in basso a sinistra: l'angolo opposto
+   alla spunta e lontano dal puntino del progetto, che sono altre due cose. */
+.refs-thumb-oriz{
+  position:absolute;left:5px;bottom:5px;z-index:2;pointer-events:none;
+  background:rgba(20,15,8,.78);color:#f0c020;
+  font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;letter-spacing:-.01em;
+  padding:2px 6px;border-radius:7px;line-height:1.3;
+}
 .refs-tab.active .refs-tab-n{color:#b8a078}
 .refs-albums-empty{display:flex}
 /* Scala tipografica della cartella, dall'alto in basso: il NOME è il titolo

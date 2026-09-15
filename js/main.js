@@ -64,7 +64,20 @@ window.prospettivaDaLightbox = function(){
   const cella = document.querySelectorAll('#refs-lightbox .refs-lightbox-cell')[1];
   const img = cella && cella.querySelector('img');
   if(!img || !img.naturalWidth) return;
-  import('./prospettiva.js').then(m=> m.apriProspettiva(img)).catch(()=>{});
+  Promise.all([import('./prospettiva.js'), import('./refs.js')]).then(([m, refs])=>{
+    // Lo studio di un frammento finisce nella cartella del frammento: e' della
+    // stessa persona, e la domanda "dove lo metto" ha una risposta sola.
+    const r = refs.refAperto ? refs.refAperto() : null;
+    m.apriProspettiva(img, {
+      salva: async ({ blob, w, h, misure })=>{
+        await refs.addRefBlob(blob, {
+          folderId: r ? (r.folderId || null) : refs.getActiveFolderId(),
+          source: 'prospettiva', w, h, prosp: misure,
+          provenance: (r && r.provenance) || '',
+        });
+      },
+    });
+  }).catch(()=>{});
 };
 // La chiusura NON si definisce qui: se la mette addosso a window il modulo
 // stesso quando arriva (vedi in fondo a prospettiva.js). Definendola anche qui

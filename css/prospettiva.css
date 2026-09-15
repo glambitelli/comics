@@ -24,7 +24,7 @@
 .prosp-lettura{display:flex;flex-direction:column;gap:3px;min-width:0}
 /* Il numero dell'orizzonte e' la ragione per cui si e' aperto lo strumento:
    si legge senza cercarlo, ed e' ciano come la linea a cui si riferisce. */
-.prosp-oriz{font-size:15px;font-weight:800;color:#00e0ff;line-height:1.25}
+.prosp-oriz{font-size:15px;font-weight:800;color:#f0c020;line-height:1.25}
 .prosp-fughe{font-size:11.5px;color:rgba(240,232,216,.72);line-height:1.35}
 .prosp-fughe:empty{display:none}
 .prosp-comandi{display:flex;gap:8px;align-items:center}
@@ -42,7 +42,13 @@
   flex:0 0 auto;width:42px;height:38px;padding:0;
   display:flex;align-items:center;justify-content:center;
 }
-.prosp-esci{background:rgba(255,46,166,.18);border-color:rgba(255,46,166,.35);color:#ffd7ee}
+/* La croce prende il rame, che nell'app e' il colore dell'"attenzione senza
+   rosso squillante": chiude e basta, non e' un allarme. */
+.prosp-esci{background:rgba(154,90,52,.26);border-color:rgba(194,150,100,.4);color:#f3ddc6}
+/* "Salva" e' l'unico tasto che lascia un segno: prende l'oro, come tutto
+   quello che nell'app conta davvero. */
+.prosp-salva{background:rgba(240,192,32,.2);border-color:rgba(240,192,32,.45);color:#f7e2a0}
+.prosp-salva:disabled{opacity:.45}
 
 /* Con lo studio aperto sparisce tutto il resto dei comandi: la barra-duna, la
    capsula del cronometro e i comandi del lettore. Restano quelli dello studio,

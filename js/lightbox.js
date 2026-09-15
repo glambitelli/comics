@@ -119,6 +119,14 @@ export function openRefLightbox(id, elenco){
 // Funzione a parte (non solo inline in updateLightboxChrome) perché va
 // rifatta anche subito dopo aver collegato un ritaglio dal menu, senza
 // aspettare il giro di andata e ritorno da Firestore.
+// L'immagine che si sta guardando ADESSO. Serve a chi le fa qualcosa sopra —
+// lo studio della prospettiva — per sapere in che cartella nasce quello che ne
+// esce: e' della stessa persona, e la domanda "dove lo metto" ha una risposta
+// sola.
+export function refAperto(){
+  return _lightboxIndex >= 0 ? (_lightboxList[_lightboxIndex] || null) : null;
+}
+
 export function refreshLightboxLinkBtn(item){
   const linkBtn = document.getElementById('refs-lightbox-link');
   if(!linkBtn || !item) return;

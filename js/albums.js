@@ -1029,7 +1029,22 @@ function buildReaderDOM(){
       if(_clipMode) toggleClip(false);
       const cella = _arCells && _arCells[1];
       if(cella && cella.img && cella.img.naturalWidth){
-        import('./prospettiva.js').then(m=> m.apriProspettiva(cella.img)).catch(()=>{});
+        // DOVE VA A FINIRE LO STUDIO NON LO CHIEDE A NESSUNO: l'albo che si sta
+        // leggendo sta in una cartella, e lo studio di una sua pagina sta li'.
+        // Il ritaglio una destinazione la chiede — un frammento puo' servire a
+        // qualunque progetto — ma uno studio e' una nota su QUESTA pagina di
+        // QUESTO autore, e la domanda avrebbe una risposta sola.
+        const albo = _currentAlbumId ? getAlbumById(_currentAlbumId) : null;
+        const pagina = String(_idx + 1).padStart(String(_pages.length).length, '0');
+        import('./prospettiva.js').then(m=> m.apriProspettiva(cella.img, {
+          salva: async ({ blob, w, h, misure })=>{
+            await addRefBlob(blob, {
+              folderId: albo ? albo.folderId : getActiveFolderId(),
+              source: 'prospettiva', w, h, prosp: misure,
+              provenance: (albo ? (albo.title || '') : _albumName) + ' · p. ' + pagina,
+            });
+          },
+        })).catch(()=>{});
       } else {
         toast('Aspetta che la tavola sia a schermo.', false, false, 1800);
       }

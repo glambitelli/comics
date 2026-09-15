@@ -350,4 +350,75 @@ module.exports = () => suite("Prospettiva — il righello per leggere l'orizzont
     return { aperto: window.P.prospettivaAperta() };
   });
   ok('chiuso il lettore, si chiude anche lo studio', !chiusura.aperto, chiusura);
+
+  sezione('e lo studio si salva: la vignetta sola, con lo schema sopra');
+  // NON UNO SCREENSHOT. La vignetta si ridisegna alla sua risoluzione vera e lo
+  // schema ci va sopra: uno screenshot porterebbe dentro la barra dei comandi,
+  // la pagina intorno scurita e la risoluzione dello schermo — tre cose che non
+  // c'entrano con lo studio — e su un telefono darebbe un'immagine piu' piccola
+  // dell'originale.
+  const salvato = await page.evaluate(async ()=>{
+    const P = window.P;
+    const preso = [];
+    P.chiudiProspettiva();
+    P.apriProspettiva(window.__img, { salva: async d=> { preso.push(d); } });
+    const btn = ()=> document.querySelector('.prosp-salva');
+    // Senza una fuga non c'e' niente da salvare: il pulsante non c'e'.
+    const primaDelRiquadro = btn().hidden;
+    // La vignetta e' la meta' alta dell'immagine.
+    P.__perLeProveRiquadro({ x:0, y:0, w:1, h:0.5 });
+    const senzaFughe = btn().hidden;
+    P.__perLeProveTraccia({ a:{x:0.05,y:0.10}, b:{x:0.95,y:0.18} });
+    P.__perLeProveTraccia({ a:{x:0.05,y:0.40}, b:{x:0.95,y:0.32} });
+    const conFuga = btn().hidden;
+    btn().dispatchEvent(new MouseEvent('click', { bubbles:true }));
+    await new Promise(r=> setTimeout(r, 900));
+    const d = preso[0] || null;
+    return {
+      primaDelRiquadro, senzaFughe, conFuga,
+      quanti: preso.length,
+      tipo: d && d.blob && d.blob.type, peso: d && d.blob && d.blob.size,
+      w: d && d.w, h: d && d.h,
+      natW: window.__img.naturalWidth, natH: window.__img.naturalHeight,
+      misure: d && d.misure,
+      chiuso: !P.prospettivaAperta(),
+    };
+  });
+  ok('senza riquadro il pulsante non c\'e\'', salvato.primaDelRiquadro, salvato);
+  ok('e nemmeno senza una fuga: non ci sarebbe niente da salvare',
+     salvato.senzaFughe, salvato);
+  ok('con la fuga compare', salvato.conFuga === false, salvato);
+  ok('e premendolo esce un\'immagine sola', salvato.quanti === 1, salvato);
+  // La vignetta, non la pagina: meta' altezza, larghezza intera, alla
+  // risoluzione VERA dell'immagine — non a quella dello schermo.
+  ok('grande quanto la vignetta, non quanto la pagina',
+     salvato.w === salvato.natW && Math.abs(salvato.h - salvato.natH/2) <= 1, salvato);
+  ok('in webp, che pesa meno a parita\' di tratto',
+     /webp/.test(salvato.tipo || ''), salvato.tipo);
+  // I NUMERI VIAGGIANO COL DOCUMENTO: senza, per sapere dove cade l'orizzonte
+  // di uno studio archiviato bisognerebbe riaprirlo e rimisurarlo, e lo
+  // scaffale delle Fughe non potrebbe scrivere la percentuale sotto ognuno.
+  ok('con dentro la misura dell\'orizzonte, riferita alla vignetta',
+     salvato.misure && salvato.misure.orizzonte === 50, salvato.misure);
+  ok('e le fughe, anche loro in coordinate di vignetta',
+     salvato.misure && salvato.misure.fughe.length === 1, salvato.misure);
+  // Chi salva ha finito di studiare QUESTA vignetta: restare davanti a un
+  // foglio di linee su una cosa gia' archiviata farebbe del gesto successivo
+  // sempre "chiudi".
+  ok('e lo studio si chiude da solo', salvato.chiuso, salvato);
+
+  sezione('senza nessuno che sappia dove metterlo, non si salva');
+  // Il modulo non sa niente di cartelle: chi lo apre gli passa chi salva. Se
+  // un domani lo si aprisse da un posto che non sa dove mettere lo studio, il
+  // pulsante non deve comparire invece di fallire al tocco.
+  const senzaCasa = await page.evaluate(()=>{
+    const P = window.P;
+    P.chiudiProspettiva();
+    P.apriProspettiva(window.__img);
+    P.__perLeProveRiquadro({ x:0, y:0, w:1, h:1 });
+    P.__perLeProveTraccia({ a:{x:0.05,y:0.30}, b:{x:0.95,y:0.38} });
+    P.__perLeProveTraccia({ a:{x:0.05,y:0.70}, b:{x:0.95,y:0.62} });
+    return document.querySelector('.prosp-salva').hidden;
+  });
+  ok('il pulsante Salva non compare', senzaCasa, senzaCasa);
 });

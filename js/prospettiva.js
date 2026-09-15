@@ -35,8 +35,19 @@
 // linea magenta su un cielo retinato di nero sparisce, e su una nuvola bianca
 // sparirebbe quella scura. Con l'ombra sotto si vede sempre, su qualunque
 // fondo, senza dover cambiare colore a mano.
-const MAGENTA = '#ff2ea6';   // le linee tracciate e il fascio
-const CIANO   = '#00e0ff';   // l'orizzonte: colore diverso perche' e' un'altra cosa
+// I COLORI SONO QUELLI DI INKFLOW, e si dividono i ruoli come se li dividono
+// in tutto il resto dell'app: l'oro e' la cosa che conta (le stelle,
+// l'avanzamento, il contatore del lettore), l'azzurro e' il contorno.
+// Qui l'oro e' l'ORIZZONTE — la risposta alla domanda per cui si e' aperto lo
+// strumento — e l'azzurro sono le linee e il fascio, che sono il mezzo.
+// Prima erano magenta e ciano fluo: si vedevano benissimo e sembravano di
+// un'altra applicazione. Su una tavola in bianco e nero questi due reggono
+// lo stesso, a patto di tenere l'ombra scura sotto ogni tratto (vedi sotto):
+// l'oro pieno #f0c020 e' chiaro abbastanza per staccare sul nero, e l'ombra
+// gli fa da bordo sul bianco.
+const ORO      = '#f0c020';  // l'orizzonte, e il numero che lo accompagna
+const AZZURRO  = '#4ab8d8';  // le linee tracciate, il fascio e il punto di fuga
+const SABBIA   = '#f2e6cd';  // il bordo della vignetta riquadrata
 const RAGGI = 12;            // quante linee nel fascio: abbastanza da leggere la fuga, non tante da coprire il disegno
 const MIN_TRATTO = 0.04;     // un tratto piu' corto di cosi' e' un tocco andato storto, non una linea
 const MIN_RIQUADRO = 0.06;   // e un riquadro piu' piccolo di cosi' non e' una vignetta
@@ -175,7 +186,7 @@ function costruisci(){
            serve a capire dove sta l'inquadratura nella pagina — ma smette di
            contendere l'attenzione a quella che si sta misurando. -->
       <path class="prosp-velo" fill="rgba(0,0,0,.5)" fill-rule="evenodd"></path>
-      <rect class="prosp-cornice" fill="none" stroke="#fff" stroke-width="1.5" stroke-dasharray="7 5" opacity=".85"></rect>
+      <rect class="prosp-cornice" fill="none" stroke="#f2e6cd" stroke-width="1.5" stroke-dasharray="7 5" opacity=".85"></rect>
       <g class="prosp-fascio" clip-path="url(#prosp-clip)"></g>
       <!-- L'ORIZZONTE E' TAGLIATO SULL'IMMAGINE, il resto no. L'orizzonte e'
            una proprieta' della tavola: lasciandolo correre per tutto lo
@@ -204,6 +215,7 @@ function costruisci(){
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9h11a4.5 4.5 0 0 1 0 9H9"/><path d="M8 5 4 9l4 4"/></svg>
         </button>
         <button class="prosp-btn" data-act="pulisci" type="button">Clean</button>
+        <button class="prosp-btn prosp-salva" data-act="salva" type="button">Salva</button>
         <button class="prosp-btn prosp-ico prosp-esci" data-act="esci" type="button" aria-label="Chiudi" title="Chiudi">
           <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" aria-hidden="true"><path d="M6.5 6.5 17.5 17.5 M17.5 6.5 6.5 17.5"/></svg>
         </button>
@@ -222,6 +234,7 @@ function costruisci(){
     // "Tutta l'immagine" salta il riquadro: per un frammento gia' ritagliato su
     // una vignetta sola, riquadrarlo sarebbe un gesto a vuoto.
     else if(a === 'tutta'){ _riquadro = { x:0, y:0, w:1, h:1 }; disegna(); }
+    else if(a === 'salva'){ salva(); }
     else chiudiProspettiva();
   });
   agganciaTratto(ov.querySelector('.prosp-svg'));
@@ -343,7 +356,7 @@ export function disegna(){
       // Prolungato oltre il bordo: con la fuga dentro la vignetta un raggio
       // che si ferma sul bordo lascerebbe mezzo ventaglio vuoto.
       const dx = b.x - c.x, dy = b.y - c.y;
-      fascio += `<line x1="${c.x}" y1="${c.y}" x2="${c.x + dx*3}" y2="${c.y + dy*3}" stroke="${MAGENTA}" stroke-width="1" opacity=".32"/>`;
+      fascio += `<line x1="${c.x}" y1="${c.y}" x2="${c.x + dx*3}" y2="${c.y + dy*3}" stroke="${AZZURRO}" stroke-width="1" opacity=".38"/>`;
     }
   }
   _ov.querySelector('.prosp-fascio').innerHTML = fascio;
@@ -364,22 +377,22 @@ export function disegna(){
       // ripasserebbe sopra il tratto pieno, raddoppiandolo.
       const da = Math.hypot(b.x - c.x, b.y - c.y) < Math.hypot(a.x - c.x, a.y - c.y) ? b : a;
       tratti += `<line x1="${da.x}" y1="${da.y}" x2="${c.x}" y2="${c.y}" stroke="rgba(0,0,0,.45)" stroke-width="2.6" stroke-dasharray="6 5"/>`
-             +  `<line x1="${da.x}" y1="${da.y}" x2="${c.x}" y2="${c.y}" stroke="${MAGENTA}" stroke-width="1.3" stroke-dasharray="6 5"/>`;
+             +  `<line x1="${da.x}" y1="${da.y}" x2="${c.x}" y2="${c.y}" stroke="${AZZURRO}" stroke-width="1.3" stroke-dasharray="6 5"/>`;
     }
-    tratti += tratto(a.x, a.y, b.x, b.y, MAGENTA, 2.2);
+    tratti += tratto(a.x, a.y, b.x, b.y, AZZURRO, 2.2);
   });
   _ov.querySelector('.prosp-tratti').innerHTML = tratti;
 
   _ov.querySelector('.prosp-orizzonte').innerHTML = orizzonte
     ? (()=>{ const a = aSchermo(orizzonte.a, r), b = aSchermo(orizzonte.b, r);
-             return tratto(a.x, a.y, b.x, b.y, CIANO, 2.6); })()
+             return tratto(a.x, a.y, b.x, b.y, ORO, 3); })()
     : '';
 
   let punti = '';
   for(const f of fuochi){
     const c = aSchermo(f, r);
     punti += `<circle cx="${c.x}" cy="${c.y}" r="7" fill="rgba(0,0,0,.6)"/>`
-          +  `<circle cx="${c.x}" cy="${c.y}" r="4.5" fill="${MAGENTA}"/>`;
+          +  `<circle cx="${c.x}" cy="${c.y}" r="4.5" fill="${AZZURRO}"/>`;
   }
   _ov.querySelector('.prosp-punti').innerHTML = punti;
 
@@ -394,6 +407,9 @@ function scriviBarra(linee, fuochi, orizzonte){
   _ov.querySelector('.prosp-tutta').hidden = !riq;
   _ov.querySelector('[data-act="indietro"]').hidden = riq && !_linee.length;
   _ov.querySelector('[data-act="pulisci"]').hidden = riq && !_linee.length;
+  // "Salva" compare solo quando c'e' qualcosa da salvare: senza una fuga, lo
+  // studio e' una vignetta con sopra due righe storte.
+  _ov.querySelector('.prosp-salva').hidden = !fuochi.length || !_salvataggio;
 
   if(riq){
     oriz.textContent = 'Riquadra la vignetta';
@@ -407,12 +423,145 @@ function scriviBarra(linee, fuochi, orizzonte){
     fuochi.map((f, i)=> letturaFuoco(f, i + 1, cornice())).join(' · ');
 }
 
-export function apriProspettiva(img, alChiude){
+// ── SALVARE LO STUDIO ──
+//
+// Non uno screenshot: la vignetta si RIDISEGNA su una tela alla sua
+// risoluzione vera, e lo schema ci va sopra con la stessa geometria. Uno
+// screenshot porterebbe dentro la barra dei comandi, la pagina intorno
+// scurita e la risoluzione dello schermo — cioe' tre cose che non c'entrano
+// con lo studio — e su un telefono darebbe un'immagine piu' piccola
+// dell'originale.
+//
+// Quello che si salva e' la VIGNETTA sola, ritagliata sul riquadro: e' quello
+// che si stava studiando, ed e' quello che si vuole poter mettere accanto a
+// un'altra fra un mese.
+const LATO_MAX = 1600;       // oltre, il file cresce senza che si veda di piu'
+
+function disegnaSuTela(){
+  if(!_img || !_img.naturalWidth) return null;
+  const r = cornice();
+  const NW = _img.naturalWidth, NH = _img.naturalHeight;
+  const sx = r.x * NW, sy = r.y * NH, sw = r.w * NW, sh = r.h * NH;
+  if(sw < 8 || sh < 8) return null;
+  const k = Math.min(1, LATO_MAX / Math.max(sw, sh));
+  const W = Math.round(sw * k), H = Math.round(sh * k);
+  const tela = document.createElement('canvas');
+  tela.width = W; tela.height = H;
+  const c = tela.getContext('2d');
+  c.drawImage(_img, sx, sy, sw, sh, 0, 0, W, H);
+
+  // Dalle coordinate dell'IMMAGINE a quelle della tela (che e' la vignetta).
+  const P = p => ({ x: (p.x * NW - sx) * k, y: (p.y * NH - sy) * k });
+  // Le misure seguono la tela: su una vignetta grande le linee devono restare
+  // proporzionate, non diventare capelli.
+  const u = Math.max(1, Math.min(W, H) / 380);
+  const riga = (a, b, colore, spessore, tratteggio)=>{
+    c.setLineDash(tratteggio ? [6*u, 5*u] : []);
+    c.lineCap = tratteggio ? 'butt' : 'round';
+    c.strokeStyle = 'rgba(0,0,0,.6)'; c.lineWidth = (spessore + 2) * u;
+    c.beginPath(); c.moveTo(a.x, a.y); c.lineTo(b.x, b.y); c.stroke();
+    c.strokeStyle = colore; c.lineWidth = spessore * u;
+    c.beginPath(); c.moveTo(a.x, a.y); c.lineTo(b.x, b.y); c.stroke();
+  };
+
+  const fuochi = fuochiDa(_linee);
+  const orizzonte = orizzonteDa(fuochi);
+
+  // Il fascio sta dentro la vignetta, come a schermo.
+  c.save(); c.beginPath(); c.rect(0, 0, W, H); c.clip();
+  c.globalAlpha = .38; c.strokeStyle = AZZURRO; c.lineWidth = u; c.setLineDash([]);
+  for(const f of fuochi){
+    const cc = P(f);
+    for(let i = 0; i < RAGGI; i++){
+      const t = i / RAGGI * 4, lato = Math.floor(t), q = t - lato;
+      const b = lato === 0 ? { x:q*W, y:0 } : lato === 1 ? { x:W, y:q*H }
+              : lato === 2 ? { x:(1-q)*W, y:H } : { x:0, y:(1-q)*H };
+      c.beginPath(); c.moveTo(cc.x, cc.y);
+      c.lineTo(cc.x + (b.x - cc.x) * 3, cc.y + (b.y - cc.y) * 3); c.stroke();
+    }
+  }
+  c.globalAlpha = 1;
+  if(orizzonte) riga(P(orizzonte.a), P(orizzonte.b), ORO, 3);
+  c.restore();
+
+  _linee.forEach((l, i)=>{
+    const a = P(l.a), b = P(l.b), f = fuochi[Math.floor(i / 2)];
+    if(f){
+      const cc = P(f);
+      const da = Math.hypot(b.x - cc.x, b.y - cc.y) < Math.hypot(a.x - cc.x, a.y - cc.y) ? b : a;
+      riga(da, cc, AZZURRO, 1.3, true);
+    }
+    riga(a, b, AZZURRO, 2.2);
+  });
+  c.setLineDash([]);
+  for(const f of fuochi){
+    const cc = P(f);
+    c.fillStyle = 'rgba(0,0,0,.6)'; c.beginPath(); c.arc(cc.x, cc.y, 7*u, 0, 7); c.fill();
+    c.fillStyle = AZZURRO; c.beginPath(); c.arc(cc.x, cc.y, 4.5*u, 0, 7); c.fill();
+  }
+  return { tela, W, H };
+}
+
+// I numeri dello studio, che vanno sul documento insieme all'immagine: sono
+// loro a rendere confrontabili due studi fatti a un mese di distanza, e a
+// permettere alla griglia di scrivere "23%" sotto ogni scheda senza riaprire
+// niente.
+export function misureStudio(){
+  const r = cornice();
+  const fuochi = fuochiDa(_linee);
+  if(!fuochi.length) return null;
+  const orizzonte = orizzonteDa(fuochi);
+  const cx = r.x + r.w / 2;
+  const t = (cx - orizzonte.a.x) / ((orizzonte.b.x - orizzonte.a.x) || 1);
+  const y = orizzonte.a.y + t * (orizzonte.b.y - orizzonte.a.y);
+  return {
+    orizzonte: Math.round((y - r.y) / (r.h || 1) * 100),
+    fughe: fuochi.map(f=> ({
+      x: Math.round((f.x - r.x) / (r.w || 1) * 1000) / 1000,
+      y: Math.round((f.y - r.y) / (r.h || 1) * 1000) / 1000,
+    })),
+  };
+}
+
+let _salvando = false;
+async function salva(){
+  if(_salvando || !_salvataggio) return;
+  const misure = misureStudio();
+  const fatto = disegnaSuTela();
+  if(!misure || !fatto) return;
+  _salvando = true;
+  const btn = _ov.querySelector('.prosp-salva');
+  btn.disabled = true; btn.textContent = 'Salvo…';
+  try{
+    const blob = await new Promise(res=> fatto.tela.toBlob(res, 'image/webp', 0.9));
+    await _salvataggio({ blob, w: fatto.W, h: fatto.H, misure });
+    btn.textContent = 'Salvato';
+    // Chi salva ha finito di studiare QUESTA vignetta: si chiude da solo dopo
+    // un attimo, se no resta un foglio di linee su una cosa gia' archiviata e
+    // il gesto successivo e' sempre "chiudi".
+    setTimeout(()=>{ if(prospettivaAperta()) chiudiProspettiva(); }, 700);
+  }catch(e){
+    btn.textContent = 'Non riuscito';
+    setTimeout(()=>{ btn.textContent = 'Salva'; btn.disabled = false; }, 2200);
+  }finally{ _salvando = false; }
+}
+
+// CHI SA SALVARE LO PASSA CHI APRE. Il lettore sa in che cartella sta l'albo
+// che si sta leggendo, la galleria sa in che cartella sta il frammento aperto:
+// nessuno dei due ha bisogno di chiedere dove mettere lo studio, e questo
+// modulo non deve sapere niente ne' di cartelle ne' di Firestore.
+// Senza chi salva, il pulsante non compare: e' quello che succede in un banco
+// di prova, o se un domani lo si aprisse da un posto che non sa dove metterlo.
+let _salvataggio = null;
+
+export function apriProspettiva(img, opzioni){
   if(!img) return false;
+  const o = typeof opzioni === 'function' ? { alChiude: opzioni } : (opzioni || {});
   _ov = _ov || costruisci();
   _img = img;
   _linee = []; _bozza = null; _riquadro = null; _bozzaRiq = null;
-  _alChiude = alChiude || null;
+  _salvataggio = o.salva || null;
+  _alChiude = o.alChiude || null;
   _ov.hidden = false;
   document.body.classList.add('prosp-aperta');
   window.addEventListener('resize', disegna);
@@ -426,6 +575,9 @@ export function chiudiProspettiva(){
   if(!_ov || _ov.hidden) return;
   _ov.hidden = true;
   _img = null; _linee = []; _bozza = null; _riquadro = null; _bozzaRiq = null;
+  _salvataggio = null; _salvando = false;
+  const b = _ov.querySelector('.prosp-salva');
+  if(b){ b.disabled = false; b.textContent = 'Salva'; }
   document.body.classList.remove('prosp-aperta');
   window.removeEventListener('resize', disegna);
   window.removeEventListener('orientationchange', disegna);
