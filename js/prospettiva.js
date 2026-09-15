@@ -49,8 +49,9 @@ const ORO      = '#f0c020';  // l'orizzonte, e il numero che lo accompagna
 const AZZURRO  = '#4ab8d8';  // le linee tracciate, il fascio e il punto di fuga
 const SABBIA   = '#f2e6cd';  // il bordo della vignetta riquadrata
 const RAGGI = 12;            // quante linee nel fascio: abbastanza da leggere la fuga, non tante da coprire il disegno
-const MIN_TRATTO = 0.04;     // un tratto piu' corto di cosi' e' un tocco andato storto, non una linea
-const MIN_RIQUADRO = 0.06;   // e un riquadro piu' piccolo di cosi' non e' una vignetta
+// Un gesto piu' corto di cosi' — in pixel di SCHERMO, non in frazioni
+// d'immagine — e' un tocco andato storto, non una linea ne' una vignetta.
+const MIN_PX = 18;
 
 let _ov = null;              // il foglio con l'SVG, uno solo per tutta l'app
 let _img = null;             // l'immagine che si sta studiando
@@ -83,13 +84,118 @@ export function faseRiquadro(){ return !_riquadro; }
 // Il rettangolo dell'immagine a schermo, adesso. Si richiede ad ogni disegno e
 // non si tiene da parte: fra un tocco e l'altro puo' essere cambiato tutto
 // (rotazione, tastiera che si apre, finestra ridimensionata).
-function rett(){
-  if(!_img) return null;
+// ── DUE MOMENTI, DUE MODI DI STARE A SCHERMO ──
+//
+// MENTRE SI RIQUADRA lo strumento e' un velo appoggiato sulla pagina: deve
+// stare esattamente sopra l'immagine com'e' in quel momento — ingrandita dal
+// lettore, spostata, quello che e' — perche' la vignetta la si sceglie
+// guardando la pagina.
+//
+// APPENA LA VIGNETTA E' SCELTA, cambia mestiere: si prende un TAVOLO suo. La
+// pagina sparisce, la vignetta viene ritagliata, centrata e ingrandita quanto
+// lo spazio permette, e da li' in poi e' l'unica cosa a schermo. Il motivo lo
+// ha detto Giovanni provandolo: ingrandendo prima di riquadrare, dopo non ci
+// si poteva piu' spostare, e la barra dei comandi finiva sopra il disegno che
+// si stava misurando. Un tavolo proprio risolve tutti e due — e permette la
+// cosa che senza non si poteva fare per niente: allargare la veduta quando la
+// fuga cade lontanissimo dalla vignetta, che e' proprio il caso interessante.
+//
+// Da qui in giu' esiste UNA sola trasformazione, { ox, oy, s }: dove sta a
+// schermo il pixel (0,0) dell'immagine, e quanti pixel di schermo vale un
+// pixel d'immagine. Cambia solo chi la decide.
+let _vista = null;           // { ox, oy, s } — il tavolo; null finche' si riquadra
+
+function trasforma(){
+  if(!_img || !_img.naturalWidth) return null;
+  if(_vista) return _vista;
   const r = _img.getBoundingClientRect();
-  return (r.width > 4 && r.height > 4) ? r : null;
+  if(!(r.width > 4 && r.height > 4)) return null;
+  return { ox: r.left, oy: r.top, s: r.width / _img.naturalWidth };
 }
-function aSchermo(p, r){ return { x: r.left + p.x * r.width, y: r.top + p.y * r.height }; }
-function aImmagine(cx, cy, r){ return { x: (cx - r.left) / r.width, y: (cy - r.top) / r.height }; }
+function aSchermo(p, t){
+  return { x: t.ox + p.x * _img.naturalWidth * t.s, y: t.oy + p.y * _img.naturalHeight * t.s };
+}
+function aImmagine(cx, cy, t){
+  return { x: (cx - t.ox) / (_img.naturalWidth * t.s), y: (cy - t.oy) / (_img.naturalHeight * t.s) };
+}
+
+// Lo spazio in cui il tavolo puo' stendersi: lo schermo meno la barra dei
+// comandi. E' la riga che fa sparire la sovrapposizione — prima la vignetta
+// veniva centrata sullo schermo intero e la barra le finiva sopra.
+function spazioLibero(){
+  const barra = _ov && _ov.querySelector('.prosp-barra');
+  const h = barra ? barra.getBoundingClientRect().height + 20 : 110;
+  return { x: 14, y: 14, w: window.innerWidth - 28, h: Math.max(80, window.innerHeight - h - 28) };
+}
+
+// Porta dentro lo spazio libero un rettangolo dato in coordinate 0..1
+// dell'immagine, centrandolo. Serve due volte: per la vignetta da sola, e per
+// la vignetta piu' le fughe quando si vuole vedere dove vanno a finire.
+function inquadra(r){
+  if(!_img || !_img.naturalWidth) return;
+  const NW = _img.naturalWidth, NH = _img.naturalHeight;
+  const L = spazioLibero();
+  const s = Math.min(L.w / (r.w * NW), L.h / (r.h * NH));
+  _vista = {
+    s,
+    ox: L.x + (L.w - r.w * NW * s) / 2 - r.x * NW * s,
+    oy: L.y + (L.h - r.h * NH * s) / 2 - r.y * NH * s,
+  };
+}
+
+// Il rettangolo che contiene la vignetta E tutte le fughe. Con la fuga dentro
+// la vignetta e' la vignetta; con la fuga a due larghezze di distanza diventa
+// tre volte piu' largo, e allargando la veduta la si vede finalmente.
+function abbraccioFughe(){
+  const r = cornice();
+  let x0 = r.x, y0 = r.y, x1 = r.x + r.w, y1 = r.y + r.h;
+  for(const f of fuochiDa(_linee)){
+    x0 = Math.min(x0, f.x); y0 = Math.min(y0, f.y);
+    x1 = Math.max(x1, f.x); y1 = Math.max(y1, f.y);
+  }
+  // Un filo d'aria intorno, se no il pallino della fuga finisce tagliato a
+  // meta' dal bordo dello schermo proprio mentre lo si va a guardare.
+  const m = 0.04 * Math.max(x1 - x0, y1 - y0);
+  return { x: x0 - m, y: y0 - m, w: (x1 - x0) + 2*m, h: (y1 - y0) + 2*m };
+}
+
+let _vedutaLarga = false;
+export function adattaVeduta(tutto){
+  _vedutaLarga = !!tutto; _mossoAMano = false;
+  inquadra(tutto ? abbraccioFughe() : cornice());
+  disegna();
+}
+
+function prendiIlTavolo(){
+  _vedutaLarga = false; _mossoAMano = false;
+  inquadra(cornice());
+  document.body.classList.add('prosp-tavolo-aperto');
+}
+function lasciaIlTavolo(){
+  _vista = null; _vedutaLarga = false;
+  document.body.classList.remove('prosp-tavolo-aperto');
+}
+
+// Il ritaglio della vignetta a schermo: un contenitore grande quanto la
+// vignetta, con dentro l'immagine intera spostata in modo che sia proprio quel
+// pezzo a cadere nel buco. Tutto in CSS, quindi ingrandire non ridisegna
+// niente.
+function sistemaIlTavolo(t){
+  const tav = _ov.querySelector('.prosp-tavolo');
+  if(!_vista){ tav.hidden = true; return; }
+  const r = cornice(), NW = _img.naturalWidth, NH = _img.naturalHeight;
+  const q = aSchermo({ x:r.x, y:r.y }, t);
+  tav.hidden = false;
+  tav.style.left = q.x + 'px'; tav.style.top = q.y + 'px';
+  tav.style.width = (r.w * NW * t.s) + 'px';
+  tav.style.height = (r.h * NH * t.s) + 'px';
+  const im = tav.querySelector('img');
+  if(im.src !== _img.currentSrc && im.src !== _img.src) im.src = _img.currentSrc || _img.src;
+  im.style.width = (NW * t.s) + 'px';
+  im.style.height = (NH * t.s) + 'px';
+  im.style.left = (-r.x * NW * t.s) + 'px';
+  im.style.top = (-r.y * NH * t.s) + 'px';
+}
 
 // Dove si incontrano due rette (non due segmenti: le rette che li contengono,
 // prolungate all'infinito — ed e' tutto il punto). Se sono parallele, o quasi,
@@ -180,6 +286,12 @@ function costruisci(){
   ov.id = 'prospettiva';
   ov.hidden = true;
   ov.innerHTML = `
+    <!-- IL TAVOLO. Un ritaglio dell'immagine vera, non una copia ridisegnata:
+         e' lo stesso file gia' decodificato dal lettore, spostato e ingrandito
+         con una trasformazione CSS — quindi ingrandire e restringere non costa
+         niente, anche su una tavola da tremila pixel. Quello che sborda dalla
+         vignetta lo taglia il contenitore. -->
+    <div class="prosp-tavolo" hidden><img alt=""></div>
     <svg class="prosp-svg" aria-hidden="true">
       <defs><clipPath id="prosp-clip"><rect class="prosp-clip-rect" x="0" y="0" width="0" height="0"/></clipPath></defs>
       <!-- Fuori dalla vignetta si scurisce: la tavola intorno resta visibile —
@@ -214,6 +326,15 @@ function costruisci(){
         <button class="prosp-btn prosp-ico" data-act="indietro" type="button" aria-label="Torna indietro" title="Torna indietro">
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9h11a4.5 4.5 0 0 1 0 9H9"/><path d="M8 5 4 9l4 4"/></svg>
         </button>
+        <!-- ALLARGA LA VEDUTA. Quando la fuga cade due larghezze fuori dalla
+             vignetta — il caso interessante — a schermo non c'e' modo di
+             vederla. Questo tasto rimpicciolisce quanto basta a farci stare
+             dentro la vignetta E le fughe, e ripremendolo si torna alla
+             vignetta sola. Compare solo quando c'e' una fuga da andare a
+             cercare. -->
+        <button class="prosp-btn prosp-ico prosp-veduta" data-act="veduta" type="button" aria-label="Allarga la veduta" title="Allarga la veduta">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3H4.5A1.5 1.5 0 0 0 3 4.5V9"/><path d="M15 3h4.5A1.5 1.5 0 0 1 21 4.5V9"/><path d="M21 15v4.5a1.5 1.5 0 0 1-1.5 1.5H15"/><path d="M3 15v4.5A1.5 1.5 0 0 0 4.5 21H9"/></svg>
+        </button>
         <button class="prosp-btn" data-act="pulisci" type="button">Clean</button>
         <button class="prosp-btn prosp-salva" data-act="salva" type="button">Salva</button>
         <button class="prosp-btn prosp-ico prosp-esci" data-act="esci" type="button" aria-label="Chiudi" title="Chiudi">
@@ -229,12 +350,17 @@ function costruisci(){
     // La freccia torna indietro di UN passo, qualunque sia: prima le linee,
     // una per volta, e finite quelle il riquadro — che e' l'ordine in cui sono
     // state fatte. Un solo tasto per disfare, che e' come funziona ovunque.
-    if(a === 'indietro'){ if(_linee.length) _linee.pop(); else _riquadro = null; disegna(); }
-    else if(a === 'pulisci'){ _linee = []; _riquadro = null; disegna(); }
+    if(a === 'indietro'){
+      if(_linee.length) _linee.pop();
+      else { _riquadro = null; lasciaIlTavolo(); }
+      disegna();
+    }
+    else if(a === 'pulisci'){ _linee = []; _riquadro = null; lasciaIlTavolo(); disegna(); }
     // "Tutta l'immagine" salta il riquadro: per un frammento gia' ritagliato su
     // una vignetta sola, riquadrarlo sarebbe un gesto a vuoto.
-    else if(a === 'tutta'){ _riquadro = { x:0, y:0, w:1, h:1 }; disegna(); }
+    else if(a === 'tutta'){ _riquadro = { x:0, y:0, w:1, h:1 }; prendiIlTavolo(); disegna(); }
     else if(a === 'salva'){ salva(); }
+    else if(a === 'veduta'){ _vedutaLarga = !_vedutaLarga; adattaVeduta(_vedutaLarga); }
     else chiudiProspettiva();
   });
   agganciaTratto(ov.querySelector('.prosp-svg'));
@@ -245,52 +371,111 @@ function costruisci(){
 // mouse e pennino, che e' esattamente il pubblico di questo strumento.
 function agganciaTratto(svg){
   let attivo = null;
-  // LO STESSO TRASCINAMENTO FA DUE COSE, a seconda di dove si e' arrivati:
-  // finche' la vignetta non e' riquadrata tira un rettangolo, dopo tira una
-  // linea. Un gesto solo da imparare, e l'ordine e' quello giusto — prima si
-  // decide su cosa si misura, poi si misura.
+  // Le dita appoggiate adesso. Con una si disegna, con due si guarda: stringere
+  // e spostare la veduta e' un gesto a due dita, cosi' non ruba niente al
+  // tratto — che e' il gesto principale e deve restare il piu' immediato.
+  const dita = new Map();
+  let pizzico = null;
+
+  const centro = ()=>{
+    const v = Array.from(dita.values());
+    return { x:(v[0].x + v[1].x)/2, y:(v[0].y + v[1].y)/2,
+             d: Math.hypot(v[0].x - v[1].x, v[0].y - v[1].y) };
+  };
+
   svg.addEventListener('pointerdown', e=>{
-    const r = rett(); if(!r) return;
-    attivo = e.pointerId;
+    const t = trasforma(); if(!t) return;
+    dita.set(e.pointerId, { x:e.clientX, y:e.clientY });
     try{ svg.setPointerCapture(e.pointerId); }catch(err){}
-    const p = aImmagine(e.clientX, e.clientY, r);
+    e.preventDefault();
+    // Il secondo dito annulla il tratto appena cominciato: chi apre due dita
+    // vuole guardare, non ha sbagliato a disegnare.
+    if(dita.size === 2 && _vista){
+      _bozza = null; _bozzaRiq = null; attivo = null;
+      const c = centro();
+      pizzico = { d:c.d, x:c.x, y:c.y, s:_vista.s, ox:_vista.ox, oy:_vista.oy };
+      disegna();
+      return;
+    }
+    if(dita.size > 1) return;
+    attivo = e.pointerId;
+    const p = aImmagine(e.clientX, e.clientY, t);
     if(faseRiquadro()) _bozzaRiq = { a:p, b:p };
     else _bozza = { a:p, b:p };
-    e.preventDefault();
   });
+
   svg.addEventListener('pointermove', e=>{
+    if(dita.has(e.pointerId)) dita.set(e.pointerId, { x:e.clientX, y:e.clientY });
+    if(pizzico && dita.size === 2){
+      const c = centro();
+      const k = c.d > 8 ? c.d / (pizzico.d || 1) : 1;
+      // Si stringe intorno al punto fra le due dita, e insieme si sposta di
+      // quanto quel punto si e' spostato: e' la somma delle due cose, ed e'
+      // quello che il dito si aspetta.
+      _vista = {
+        s: pizzico.s * k,
+        ox: c.x - (pizzico.x - pizzico.ox) * k,
+        oy: c.y - (pizzico.y - pizzico.oy) * k,
+      };
+      _vedutaLarga = false; _mossoAMano = true;
+      disegna();
+      return;
+    }
     if(attivo !== e.pointerId) return;
-    const r = rett(); if(!r) return;
-    const p = aImmagine(e.clientX, e.clientY, r);
+    const t = trasforma(); if(!t) return;
+    const p = aImmagine(e.clientX, e.clientY, t);
     if(_bozzaRiq) _bozzaRiq.b = p;
     else if(_bozza) _bozza.b = p;
     else return;
     disegna();
   });
+
   const finisci = e=>{
+    dita.delete(e.pointerId);
+    if(dita.size < 2) pizzico = null;
     if(attivo !== e.pointerId) return;
     attivo = null;
-    if(_bozzaRiq){
-      const w = Math.abs(_bozzaRiq.b.x - _bozzaRiq.a.x), h = Math.abs(_bozzaRiq.b.y - _bozzaRiq.a.y);
-      // Un riquadro grande come un francobollo e' un tocco andato storto, non
-      // una vignetta: misurarci sopra darebbe percentuali senza senso.
-      if(w >= MIN_RIQUADRO && h >= MIN_RIQUADRO){
+    const t = trasforma();
+    if(_bozzaRiq && t){
+      const a = aSchermo(_bozzaRiq.a, t), b = aSchermo(_bozzaRiq.b, t);
+      // Le misure minime si contano in PIXEL DI SCHERMO e non in frazioni
+      // d'immagine: sul tavolo la vignetta e' ingrandita, e "un ventesimo
+      // dell'immagine" sarebbe diventato mezzo schermo.
+      if(Math.abs(b.x - a.x) >= MIN_PX && Math.abs(b.y - a.y) >= MIN_PX){
         _riquadro = {
-          x: Math.min(_bozzaRiq.a.x, _bozzaRiq.b.x), y: Math.min(_bozzaRiq.a.y, _bozzaRiq.b.y), w, h,
+          x: Math.min(_bozzaRiq.a.x, _bozzaRiq.b.x), y: Math.min(_bozzaRiq.a.y, _bozzaRiq.b.y),
+          w: Math.abs(_bozzaRiq.b.x - _bozzaRiq.a.x), h: Math.abs(_bozzaRiq.b.y - _bozzaRiq.a.y),
         };
+        prendiIlTavolo();
       }
       _bozzaRiq = null;
-    } else if(_bozza){
-      const lungo = Math.hypot(_bozza.b.x - _bozza.a.x, _bozza.b.y - _bozza.a.y);
+    } else if(_bozza && t){
+      const a = aSchermo(_bozza.a, t), b = aSchermo(_bozza.b, t);
       // Un tocco senza trascinamento non e' una linea: senza questo controllo
       // ogni tocco a vuoto sporcherebbe lo schema con un puntino inutile.
-      if(lungo >= MIN_TRATTO) _linee.push(_bozza);
+      if(Math.hypot(b.x - a.x, b.y - a.y) >= MIN_PX) _linee.push(_bozza);
       _bozza = null;
     }
     disegna();
   };
   svg.addEventListener('pointerup', finisci);
   svg.addEventListener('pointercancel', finisci);
+
+  // COL MOUSE LA ROTELLA. Due dita non ce le ha nessuno su un portatile, e
+  // Giovanni lo strumento lo usa anche da browser: senza la rotella, allargare
+  // la veduta resterebbe possibile solo col tasto.
+  svg.addEventListener('wheel', e=>{
+    if(!_vista) return;
+    e.preventDefault();
+    const k = Math.exp(-e.deltaY * 0.0016);
+    _vista = {
+      s: _vista.s * k,
+      ox: e.clientX - (e.clientX - _vista.ox) * k,
+      oy: e.clientY - (e.clientY - _vista.oy) * k,
+    };
+    _vedutaLarga = false; _mossoAMano = true;
+    disegna();
+  }, { passive:false });
 }
 
 // Ogni tratto due volte: l'ombra scura sotto e il colore sopra (vedi la nota
@@ -302,10 +487,11 @@ function tratto(x1, y1, x2, y2, colore, spessore){
 
 export function disegna(){
   if(!_ov || _ov.hidden) return;
-  const r = rett();
+  const t = trasforma();
   const svg = _ov.querySelector('.prosp-svg');
-  if(!r) return;
+  if(!t) return;
   svg.setAttribute('viewBox', '0 0 ' + window.innerWidth + ' ' + window.innerHeight);
+  sistemaIlTavolo(t);
 
   // La cornice a schermo: quella scelta, o quella che il dito sta trascinando
   // adesso — cosi' il velo e il bordo seguono il trascinamento invece di
@@ -314,28 +500,29 @@ export function disegna(){
     ? { x: Math.min(_bozzaRiq.a.x, _bozzaRiq.b.x), y: Math.min(_bozzaRiq.a.y, _bozzaRiq.b.y),
         w: Math.abs(_bozzaRiq.b.x - _bozzaRiq.a.x), h: Math.abs(_bozzaRiq.b.y - _bozzaRiq.a.y) }
     : cornice();
-  const q = { x: r.left + riq.x * r.width, y: r.top + riq.y * r.height,
-              w: riq.w * r.width, h: riq.h * r.height };
+  const a0 = aSchermo({ x:riq.x, y:riq.y }, t), a1 = aSchermo({ x:riq.x+riq.w, y:riq.y+riq.h }, t);
+  const q = { x: a0.x, y: a0.y, w: a1.x - a0.x, h: a1.y - a0.y };
 
-  // Tutto si taglia sulla VIGNETTA, non piu' sull'immagine: il fascio che
-  // sborda nelle vignette accanto non e' la prospettiva di questa.
+  // Tutto si taglia sulla VIGNETTA, non sull'immagine: il fascio che sborda
+  // nelle vignette accanto non e' la prospettiva di questa.
   const clip = _ov.querySelector('.prosp-clip-rect');
   clip.setAttribute('x', q.x); clip.setAttribute('y', q.y);
   clip.setAttribute('width', q.w); clip.setAttribute('height', q.h);
 
-  // Il velo: tutto lo schermo meno il buco della vignetta (regola evenodd).
-  // Con la vignetta grande quanto l'immagine il velo non si vede — ed e'
-  // giusto: non c'e' niente da mettere da parte.
+  // Il velo serve solo MENTRE si sceglie la vignetta, per staccarla dal resto
+  // della pagina. Sul tavolo non c'e' piu' niente da mettere da parte: la
+  // pagina non c'e' proprio, e un grigio sopra sarebbe solo grigio.
   const W = window.innerWidth, H = window.innerHeight;
   const velo = _ov.querySelector('.prosp-velo');
+  const suPagina = !_vista;
   const tutta = riq.w >= 0.999 && riq.h >= 0.999 && riq.x <= 0.001 && riq.y <= 0.001;
-  velo.setAttribute('d', (_riquadro || _bozzaRiq) && !tutta
+  velo.setAttribute('d', suPagina && (_riquadro || _bozzaRiq) && !tutta
     ? `M0 0 H${W} V${H} H0 Z M${q.x} ${q.y} H${q.x + q.w} V${q.y + q.h} H${q.x} Z` : '');
   const bordo = _ov.querySelector('.prosp-cornice');
-  const mostraBordo = (_riquadro || _bozzaRiq) && !tutta;
+  const mostraBordo = _riquadro || _bozzaRiq;
   bordo.setAttribute('x', q.x); bordo.setAttribute('y', q.y);
-  bordo.setAttribute('width', mostraBordo ? q.w : 0);
-  bordo.setAttribute('height', mostraBordo ? q.h : 0);
+  bordo.setAttribute('width', mostraBordo ? Math.max(0, q.w) : 0);
+  bordo.setAttribute('height', mostraBordo ? Math.max(0, q.h) : 0);
 
   const linee = _bozza ? _linee.concat([_bozza]) : _linee;
   const fuochi = fuochiDa(linee);
@@ -347,10 +534,10 @@ export function disegna(){
   // ventaglio la copre sempre tutta, ovunque sia la fuga.
   let fascio = '';
   for(const f of fuochi){
-    const c = aSchermo(f, r);
+    const c = aSchermo(f, t);
     for(let i = 0; i < RAGGI; i++){
-      const t = i / RAGGI * 4;               // giro completo del perimetro, in quarti
-      const lato = Math.floor(t), u = t - lato;
+      const k = i / RAGGI * 4;               // giro completo del perimetro, in quarti
+      const lato = Math.floor(k), u = k - lato;
       const b = lato === 0 ? { x:q.x + u*q.w, y:q.y } : lato === 1 ? { x:q.x + q.w, y:q.y + u*q.h }
               : lato === 2 ? { x:q.x + (1-u)*q.w, y:q.y + q.h } : { x:q.x, y:q.y + (1-u)*q.h };
       // Prolungato oltre il bordo: con la fuga dentro la vignetta un raggio
@@ -369,10 +556,10 @@ export function disegna(){
   // cio' che si voleva capire.
   let tratti = '';
   linee.forEach((l, i)=>{
-    const a = aSchermo(l.a, r), b = aSchermo(l.b, r);
+    const a = aSchermo(l.a, t), b = aSchermo(l.b, t);
     const f = fuochi[Math.floor(i / 2)];
     if(f){
-      const c = aSchermo(f, r);
+      const c = aSchermo(f, t);
       // Si parte dall'estremo PIU' VICINO alla fuga: prolungare dall'altro
       // ripasserebbe sopra il tratto pieno, raddoppiandolo.
       const da = Math.hypot(b.x - c.x, b.y - c.y) < Math.hypot(a.x - c.x, a.y - c.y) ? b : a;
@@ -384,13 +571,13 @@ export function disegna(){
   _ov.querySelector('.prosp-tratti').innerHTML = tratti;
 
   _ov.querySelector('.prosp-orizzonte').innerHTML = orizzonte
-    ? (()=>{ const a = aSchermo(orizzonte.a, r), b = aSchermo(orizzonte.b, r);
+    ? (()=>{ const a = aSchermo(orizzonte.a, t), b = aSchermo(orizzonte.b, t);
              return tratto(a.x, a.y, b.x, b.y, ORO, 3); })()
     : '';
 
   let punti = '';
   for(const f of fuochi){
-    const c = aSchermo(f, r);
+    const c = aSchermo(f, t);
     punti += `<circle cx="${c.x}" cy="${c.y}" r="7" fill="rgba(0,0,0,.6)"/>`
           +  `<circle cx="${c.x}" cy="${c.y}" r="4.5" fill="${AZZURRO}"/>`;
   }
@@ -410,6 +597,12 @@ function scriviBarra(linee, fuochi, orizzonte){
   // "Salva" compare solo quando c'e' qualcosa da salvare: senza una fuga, lo
   // studio e' una vignetta con sopra due righe storte.
   _ov.querySelector('.prosp-salva').hidden = !fuochi.length || !_salvataggio;
+  // Il tasto della veduta compare solo quando c'e' una fuga da andare a
+  // cercare, e dice in che stato si e': premuto vuol dire "sto guardando
+  // largo".
+  const ved = _ov.querySelector('.prosp-veduta');
+  ved.hidden = !fuochi.length;
+  ved.classList.toggle('acceso', _vedutaLarga);
 
   if(riq){
     oriz.textContent = 'Riquadra la vignetta';
@@ -560,12 +753,13 @@ export function apriProspettiva(img, opzioni){
   _ov = _ov || costruisci();
   _img = img;
   _linee = []; _bozza = null; _riquadro = null; _bozzaRiq = null;
+  lasciaIlTavolo();
   _salvataggio = o.salva || null;
   _alChiude = o.alChiude || null;
   _ov.hidden = false;
   document.body.classList.add('prosp-aperta');
-  window.addEventListener('resize', disegna);
-  window.addEventListener('orientationchange', disegna);
+  window.addEventListener('resize', riadatta);
+  window.addEventListener('orientationchange', riadatta);
   document.addEventListener('keydown', tasti);
   disegna();
   return true;
@@ -575,15 +769,25 @@ export function chiudiProspettiva(){
   if(!_ov || _ov.hidden) return;
   _ov.hidden = true;
   _img = null; _linee = []; _bozza = null; _riquadro = null; _bozzaRiq = null;
+  lasciaIlTavolo();
   _salvataggio = null; _salvando = false;
   const b = _ov.querySelector('.prosp-salva');
   if(b){ b.disabled = false; b.textContent = 'Salva'; }
   document.body.classList.remove('prosp-aperta');
-  window.removeEventListener('resize', disegna);
-  window.removeEventListener('orientationchange', disegna);
+  window.removeEventListener('resize', riadatta);
+  window.removeEventListener('orientationchange', riadatta);
   document.removeEventListener('keydown', tasti);
   const f = _alChiude; _alChiude = null;
   if(f) try{ f(); }catch(e){}
+}
+
+// Girando il telefono lo spazio libero cambia forma: il tavolo si rimette a
+// posto da solo invece di restare inquadrato per lo schermo di prima. Se pero'
+// si era stretto o spostato a mano, quella scelta si rispetta.
+let _mossoAMano = false;
+function riadatta(){
+  if(_vista && !_mossoAMano) inquadra(_vedutaLarga ? abbraccioFughe() : cornice());
+  disegna();
 }
 
 function tasti(e){
@@ -600,5 +804,8 @@ window.chiudiProspettiva = chiudiProspettiva;
 
 // Per le prove: leggere lo stato senza dover simulare venti gesti.
 export function __perLeProve(){ return { linee: _linee.slice(), fuochi: fuochiDa(_linee), riquadro: _riquadro }; }
-export function __perLeProveRiquadro(r){ _riquadro = r; disegna(); }
+// Scegliere la vignetta vuol dire anche prendersi il tavolo: il gancio per le
+// prove fa le due cose insieme, come le fa il dito. Facendone una sola si
+// proverebbe uno stato che nell'app non esiste.
+export function __perLeProveRiquadro(r){ _riquadro = r; prendiIlTavolo(); disegna(); }
 export function __perLeProveTraccia(l){ _linee.push(l); disegna(); }

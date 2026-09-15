@@ -6,8 +6,16 @@
    Lo z-index sta sopra la galleria (9500), che e' la cosa piu' alta dell'app. */
 .prosp{position:fixed;inset:0;z-index:9800;touch-action:none;-webkit-tap-highlight-color:transparent}
 .prosp[hidden]{display:none}
-/* Nessun fondo: l'immagine sotto si deve vedere intera e com'e'. E' un
-   righello appoggiato sopra il disegno, non una finestra nuova. */
+/* MENTRE SI SCEGLIE LA VIGNETTA non c'e' fondo: l'immagine sotto si deve
+   vedere intera e com'e', ed e' un righello appoggiato sopra il disegno.
+   APPENA LA VIGNETTA E' SCELTA il fondo si chiude: la pagina sparisce e resta
+   solo la vignetta, centrata sul suo tavolo. */
+body.prosp-tavolo-aperto .prosp{background:#16120c}
+/* Il ritaglio della vignetta: un buco grande quanto lei, con dentro
+   l'immagine intera spostata perche' sia quel pezzo a caderci. */
+.prosp-tavolo{position:absolute;overflow:hidden;will-change:left,top,width,height}
+.prosp-tavolo[hidden]{display:none}
+.prosp-tavolo img{position:absolute;max-width:none;max-height:none;image-rendering:auto}
 .prosp-svg{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:crosshair}
 
 /* La barra sta in BASSO e non in alto: il pollice arriva li', e in alto
@@ -45,6 +53,10 @@
 /* La croce prende il rame, che nell'app e' il colore dell'"attenzione senza
    rosso squillante": chiude e basta, non e' un allarme. */
 .prosp-esci{background:rgba(154,90,52,.26);border-color:rgba(194,150,100,.4);color:#f3ddc6}
+/* Il tasto della veduta resta acceso finche' si sta guardando largo: senza,
+   dopo averlo premuto non ci sarebbe modo di sapere se la vignetta e' piccola
+   perche' l'ho chiesto io o perche' e' successo qualcosa. */
+.prosp-veduta.acceso{background:rgba(74,184,216,.26);border-color:rgba(74,184,216,.5);color:#d6f2fb}
 /* "Salva" e' l'unico tasto che lascia un segno: prende l'oro, come tutto
    quello che nell'app conta davvero. */
 .prosp-salva{background:rgba(240,192,32,.2);border-color:rgba(240,192,32,.45);color:#f7e2a0}

@@ -161,7 +161,10 @@ module.exports = () => suite("Prospettiva — il righello per leggere l'orizzont
     P.__perLeProveTraccia({ a:{x:0.05,y:0.70}, b:{x:0.95,y:0.62} });
     await new Promise(r=> setTimeout(r, 60));
     const ov = document.getElementById('prospettiva');
-    const r = window.__img.getBoundingClientRect();
+    // Il ritaglio si misura sul TAVOLO, non sull'immagine nella pagina: da
+    // quando la vignetta viene portata su un tavolo suo, e' quello il posto in
+    // cui sta.
+    const r = ov.querySelector('.prosp-tavolo').getBoundingClientRect();
     const clip = ov.querySelector('.prosp-clip-rect');
     return {
       aperto: P.prospettivaAperta(),
@@ -185,7 +188,7 @@ module.exports = () => suite("Prospettiva — il righello per leggere l'orizzont
   // Senza il taglio, il ventaglio si stenderebbe su tutta la finestra: col
   // mouse, dove la tavola sta al centro fra due fasce scure, diventerebbe uno
   // scarabocchio rosa intorno all'immagine invece che una prospettiva dentro.
-  ok('il fascio e l\'orizzonte stanno dentro la tavola',
+  ok('il fascio e l\'orizzonte stanno dentro la vignetta',
      schermo.clipSuImmagine
      && /prosp-clip/.test(schermo.orizzonteTagliato || '')
      && /prosp-clip/.test(schermo.fascioTagliato || ''), schermo);
@@ -225,8 +228,12 @@ module.exports = () => suite("Prospettiva — il righello per leggere l'orizzont
     // Un riquadro grande come un francobollo non e' una vignetta.
     tocco('pointerdown', 0.4, 0.4); tocco('pointermove', 0.42, 0.42); tocco('pointerup', 0.42, 0.42);
     const dopoIlFrancobollo = P.faseRiquadro();
-    // Questo invece si: la vignetta in alto, un terzo di pagina.
-    tocco('pointerdown', 0.1, 0.05); tocco('pointermove', 0.9, 0.35); tocco('pointerup', 0.9, 0.35);
+    // Questo invece si: la vignetta in alto, un terzo di pagina. Mentre il dito
+    // e' ancora giu', intorno la pagina si scurisce — serve a vedere cosa si
+    // sta prendendo.
+    tocco('pointerdown', 0.1, 0.05); tocco('pointermove', 0.9, 0.35);
+    const veloDurante = !!document.querySelector('.prosp-velo').getAttribute('d');
+    tocco('pointerup', 0.9, 0.35);
     const riq = P.__perLeProve().riquadro;
     const dopo = P.faseRiquadro();
     const testoDopo = document.querySelector('.prosp-oriz').textContent;
@@ -235,7 +242,7 @@ module.exports = () => suite("Prospettiva — il righello per leggere l'orizzont
     const linee = P.__perLeProve().linee.length;
     const velo = document.querySelector('.prosp-velo').getAttribute('d');
     return { primaDelRiquadro, testoPrima, dopoIlFrancobollo, riq, dopo, testoDopo, linee,
-             veloAcceso: !!velo };
+             veloDurante, veloDopo: !!velo };
   });
   ok('appena aperto, si aspetta la vignetta', riquadro.primaDelRiquadro, riquadro);
   ok('e lo dice', /riquadra la vignetta/i.test(riquadro.testoPrima), riquadro.testoPrima);
@@ -243,11 +250,127 @@ module.exports = () => suite("Prospettiva — il righello per leggere l'orizzont
   ok('trascinando si riquadra davvero',
      !riquadro.dopo && Math.abs(riquadro.riq.x - 0.1) < 0.02
      && Math.abs(riquadro.riq.h - 0.30) < 0.02, riquadro.riq);
-  // Fuori dalla vignetta si scurisce: la pagina resta visibile — serve a
-  // capire dove sta l'inquadratura — ma smette di contendere l'attenzione.
-  ok('e intorno la pagina si scurisce', riquadro.veloAcceso, riquadro);
+  // Mentre si sceglie, fuori dalla vignetta si scurisce: serve a vedere cosa
+  // si sta prendendo. Appena scelta, invece, la pagina sparisce del tutto e il
+  // velo non serve piu' — un grigio sopra il nulla sarebbe solo grigio.
+  ok('mentre si sceglie, intorno la pagina si scurisce', riquadro.veloDurante, riquadro);
+  ok('e a scelta fatta il velo non serve piu\'', !riquadro.veloDopo, riquadro);
   ok('da li\' in poi si chiedono le linee', /due linee/i.test(riquadro.testoDopo), riquadro.testoDopo);
   ok('e lo stesso trascinamento adesso traccia una linea', riquadro.linee === 1, riquadro);
+
+  sezione('scelta la vignetta, lo strumento si prende un tavolo suo');
+  // I DUE GUAI CHE HA TROVATO GIOVANNI PROVANDOLO (15 settembre 2026):
+  // ingrandendo la pagina prima di riquadrare, dopo non ci si poteva piu'
+  // spostare; e la barra dei comandi finiva SOPRA la vignetta che si stava
+  // misurando. Nascevano dalla stessa cosa: lo strumento restava appeso
+  // all'immagine com'era nella pagina. Adesso, scelta la vignetta, la ritaglia
+  // e se la porta su un tavolo suo — centrata, grande quanto lo spazio libero,
+  // e lo spazio libero e' lo schermo MENO la barra.
+  const tavolo = await page.evaluate(async ()=>{
+    const P = window.P;
+    P.chiudiProspettiva();
+    P.apriProspettiva(window.__img);
+    const suPagina = {
+      tavolo: document.querySelector('.prosp-tavolo').hidden,
+      classe: document.body.classList.contains('prosp-tavolo-aperto'),
+    };
+    // Una vignetta piccola, in alto a sinistra: sulla pagina sarebbe un
+    // francobollo, sul tavolo deve riempire lo schermo.
+    P.__perLeProveRiquadro({ x:0.05, y:0.05, w:0.35, h:0.22 });
+    await new Promise(r=> setTimeout(r, 80));
+    const tav = document.querySelector('.prosp-tavolo').getBoundingClientRect();
+    const barra = document.querySelector('.prosp-barra').getBoundingClientRect();
+    const img = window.__img.getBoundingClientRect();
+    return {
+      suPagina,
+      classe: document.body.classList.contains('prosp-tavolo-aperto'),
+      tav: { x:tav.left, y:tav.top, w:tav.width, h:tav.height },
+      barraSopra: barra.top,
+      schermo: { w: window.innerWidth, h: window.innerHeight },
+      // Quanto era grande quella vignetta quando stava nella pagina.
+      nellaPagina: { w: img.width * 0.35, h: img.height * 0.22 },
+      proporzione: (tav.width / tav.height) /
+        ((window.__img.naturalWidth * 0.35) / (window.__img.naturalHeight * 0.22)),
+    };
+  });
+  ok('finche\' si sceglie, il tavolo non c\'e\'',
+     tavolo.suPagina.tavolo && !tavolo.suPagina.classe, tavolo.suPagina);
+  ok('scelta la vignetta, il tavolo si apre', tavolo.classe, tavolo);
+  // PIU' GRANDE DI COM'ERA NELLA PAGINA: e' il senso del tavolo. Una vignetta
+  // che occupa un ottavo di pagina, da sola, puo' riempire lo schermo.
+  ok('e la vignetta ci arriva ingrandita',
+     tavolo.tav.w > tavolo.nellaPagina.w * 1.5, tavolo);
+  ok('senza deformarsi', Math.abs(tavolo.proporzione - 1) < 0.02, tavolo.proporzione);
+  ok('centrata in orizzontale',
+     Math.abs((tavolo.tav.x + tavolo.tav.w/2) - tavolo.schermo.w/2) < 2, tavolo);
+  // LA BARRA NON CI FINISCE SOPRA. E' meta' della segnalazione, ed e' il
+  // motivo per cui lo spazio libero si calcola togliendo l'altezza della barra
+  // invece di centrare sullo schermo intero.
+  ok('e la barra dei comandi non la copre',
+     tavolo.tav.y + tavolo.tav.h <= tavolo.barraSopra, tavolo);
+
+  // E CON UNA VIGNETTA ALTA, che e' il caso in cui il difetto si vedeva.
+  // Una vignetta bassa ci sta comunque sopra la barra anche centrandola sullo
+  // schermo intero: e' quella verticale — mezza pagina di manga — che cresce
+  // fino a finirci sotto. Senza questa prova, misurare lo spazio libero male
+  // sarebbe passato liscio.
+  const alta = await page.evaluate(async ()=>{
+    const P = window.P;
+    P.chiudiProspettiva();
+    P.apriProspettiva(window.__img);
+    P.__perLeProveRiquadro({ x:0.1, y:0.03, w:0.4, h:0.94 });
+    await new Promise(r=> setTimeout(r, 80));
+    const tav = document.querySelector('.prosp-tavolo').getBoundingClientRect();
+    const barra = document.querySelector('.prosp-barra').getBoundingClientRect();
+    return { basso: tav.top + tav.height, barraSopra: barra.top, alto: tav.top,
+             schermo: window.innerHeight };
+  });
+  ok('anche una vignetta alta resta tutta sopra la barra',
+     alta.basso <= alta.barraSopra, alta);
+  ok('e non esce dallo schermo dall\'altra parte', alta.alto >= 0, alta);
+
+  sezione('e la veduta si allarga per andare a vedere dove cade la fuga');
+  // L'ALTRA META' DELLA SEGNALAZIONE: con la fuga due larghezze fuori dalla
+  // vignetta — il caso interessante, quello che allunga le scene — a schermo
+  // non c'era modo di vederla, e non si poteva nemmeno rimpicciolire.
+  const veduta = await page.evaluate(async ()=>{
+    const P = window.P;
+    P.chiudiProspettiva();
+    P.apriProspettiva(window.__img);
+    P.__perLeProveRiquadro({ x:0.1, y:0.1, w:0.8, h:0.4 });
+    // Due linee che convergono LONTANO a destra, ben fuori dalla vignetta.
+    P.__perLeProveTraccia({ a:{x:0.12,y:0.20}, b:{x:0.70,y:0.245} });
+    P.__perLeProveTraccia({ a:{x:0.12,y:0.44}, b:{x:0.70,y:0.335} });
+    await new Promise(r=> setTimeout(r, 60));
+    const dovE = ()=> document.querySelector('.prosp-punti circle').getBoundingClientRect();
+    const stretta = { vignetta: document.querySelector('.prosp-tavolo').getBoundingClientRect().width,
+                      fuga: dovE().left, schermo: window.innerWidth };
+    const bottone = document.querySelector('.prosp-veduta');
+    const cEra = !bottone.hidden;
+    bottone.dispatchEvent(new MouseEvent('click', { bubbles:true }));
+    await new Promise(r=> setTimeout(r, 80));
+    const larga = { vignetta: document.querySelector('.prosp-tavolo').getBoundingClientRect().width,
+                    fuga: dovE().left, acceso: bottone.classList.contains('acceso') };
+    bottone.dispatchEvent(new MouseEvent('click', { bubbles:true }));
+    await new Promise(r=> setTimeout(r, 80));
+    const tornata = { vignetta: document.querySelector('.prosp-tavolo').getBoundingClientRect().width,
+                      acceso: bottone.classList.contains('acceso') };
+    return { cEra, stretta, larga, tornata, lettura: document.querySelector('.prosp-fughe').textContent };
+  });
+  ok('la fuga cade davvero fuori dalla vignetta',
+     /fuori a destra/.test(veduta.lettura), veduta.lettura);
+  ok('col tavolo stretto sta fuori dallo schermo',
+     veduta.stretta.fuga > veduta.stretta.schermo, veduta.stretta);
+  ok('il tasto per allargare c\'e\'', veduta.cEra, veduta);
+  ok('premendolo la vignetta si rimpicciolisce',
+     veduta.larga.vignetta < veduta.stretta.vignetta * 0.8, veduta);
+  // E' il punto: non basta rimpicciolire, la fuga deve entrare nello schermo.
+  ok('e la fuga entra finalmente nello schermo',
+     veduta.larga.fuga < veduta.stretta.schermo && veduta.larga.fuga > 0, veduta.larga);
+  ok('il tasto resta acceso, cosi\' si sa dove si e\'', veduta.larga.acceso, veduta.larga);
+  ok('e ripremendolo si torna sulla vignetta',
+     !veduta.tornata.acceso
+     && Math.abs(veduta.tornata.vignetta - veduta.stretta.vignetta) < 2, veduta);
 
   sezione('e per un frammento, che una vignetta lo e\' gia\', si salta');
   // Un frammento ritagliato su una vignetta sola riquadrarlo sarebbe un gesto
@@ -323,7 +446,7 @@ module.exports = () => suite("Prospettiva — il righello per leggere l'orizzont
     P.__perLeProveTraccia({ a:{x:0.1,y:0.2}, b:{x:0.9,y:0.3} });
     P.__perLeProveTraccia({ a:{x:0.1,y:0.8}, b:{x:0.9,y:0.7} });
     await new Promise(r=> setTimeout(r, 60));
-    const rImg = centrale.getBoundingClientRect();
+    const rImg = ov.querySelector('.prosp-tavolo').getBoundingClientRect();
     const clip = ov.querySelector('.prosp-clip-rect');
     return {
       aperto: P.prospettivaAperta(),
@@ -339,7 +462,10 @@ module.exports = () => suite("Prospettiva — il righello per leggere l'orizzont
   // la fascia bassa della tavola.
   ok('i comandi del lettore si tolgono di mezzo',
      dalLettore.barra === 'none' && dalLettore.topbar === 'none', dalLettore);
-  ok('e lo studio si aggancia alla tavola che si sta guardando',
+  // La vignetta sul tavolo viene da QUELLA tavola: se un domani lo strumento
+  // si agganciasse all'immagine sbagliata, il ritaglio e la vignetta non
+  // coinciderebbero piu'.
+  ok('e il ritaglio combacia con la vignetta sul tavolo',
      dalLettore.suQuellaTavola, dalLettore);
   ok('con la lettura riferita a quella', /50% dall'alto/.test(dalLettore.lettura), dalLettore.lettura);
 
