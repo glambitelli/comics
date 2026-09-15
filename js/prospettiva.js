@@ -300,15 +300,19 @@ function costruisci(){
       <path class="prosp-velo" fill="rgba(0,0,0,.5)" fill-rule="evenodd"></path>
       <rect class="prosp-cornice" fill="none" stroke="#f2e6cd" stroke-width="1.5" stroke-dasharray="7 5" opacity=".85"></rect>
       <g class="prosp-fascio" clip-path="url(#prosp-clip)"></g>
-      <!-- L'ORIZZONTE E' TAGLIATO SULL'IMMAGINE, il resto no. L'orizzonte e'
-           una proprieta' della tavola: lasciandolo correre per tutto lo
-           schermo, col mouse — dove la tavola sta al centro fra due fasce
-           scure — diventava una riga di ciano da un bordo all'altro della
-           finestra, che non appartiene a niente. Il pallino della fuga e il
-           tratteggio che ci arriva invece devono poter uscire: quando Otomo
-           mette la fuga fuori dalla vignetta, e' proprio li' fuori che si
-           vuole vedere dov'e' andata a finire. -->
-      <g class="prosp-orizzonte" clip-path="url(#prosp-clip)"></g>
+      <!-- L'ORIZZONTE NON SI TAGLIA, il fascio si.
+           Il fascio e' la struttura di QUESTA vignetta: sparso su tutto lo
+           schermo sarebbe rumore. L'orizzonte no: e' l'altezza dell'occhio, e
+           quando cade fuori dal riquadro — il caso di Otomo, e il motivo per
+           cui esiste il tasto per allargare la veduta — e' proprio LI' FUORI
+           che lo si vuole vedere. Tagliandolo sulla vignetta, allargare la
+           veduta non mostrava niente di nuovo: difetto trovato il 15 settembre
+           2026 su uno studio salvato, dove la riga d'oro non c'era proprio.
+           (Tagliarlo aveva un senso quando lo strumento stava appoggiato alla
+           pagina e la riga correva da un bordo all'altro della finestra. Da
+           quando la vignetta ha un tavolo suo, intorno c'e' il fondo del
+           tavolo, e una riga d'oro che lo attraversa dice una cosa vera.) -->
+      <g class="prosp-orizzonte"></g>
       <g class="prosp-tratti"></g>
       <g class="prosp-punti"></g>
     </svg>
@@ -629,25 +633,84 @@ function scriviBarra(linee, fuochi, orizzonte){
 // che si stava studiando, ed e' quello che si vuole poter mettere accanto a
 // un'altra fra un mese.
 const LATO_MAX = 1600;       // oltre, il file cresce senza che si veda di piu'
+const FONDO = '#16120c';     // il fondo del tavolo, dove la pagina non arriva
+
+// CHE PEZZO DI MONDO FINISCE NELL'IMMAGINE SALVATA.
+//
+// Prima era sempre e solo la vignetta, e il 15 settembre 2026 si e' visto il
+// limite: con l'orizzonte fuori dal riquadro, nello studio salvato la riga
+// d'oro non c'era proprio — restava una vignetta con due linee azzurre e
+// nessuna risposta.
+//
+// La regola adesso e' quella che ci si aspetta guardando lo schermo: SI SALVA
+// QUELLO CHE SI VEDE. Se si e' allargata la veduta per andare a prendere la
+// fuga (il tasto ⤢, o due dita, o la rotella) finisce dentro anche quella, col
+// fondo del tavolo dove la pagina non arriva e la vignetta segnata dal suo
+// bordo tratteggiato. Se invece si sta guardando la vignetta e basta, si salva
+// lei sola, pulita: e' il caso normale e non deve portarsi dietro cornici nere.
+//
+// E per i casi che NESSUNA inquadratura potrebbe contenere — l'orizzonte a
+// meno millecinquecento per cento, la fuga a undici larghezze — sotto
+// l'immagine si scrivono i numeri (vedi strisciaDati). Li' il dato E' il
+// numero, non il disegno.
+function areaDaSalvare(){
+  if(!_vista || !(_vedutaLarga || _mossoAMano)) return cornice();
+  const L = spazioLibero();
+  const a = aImmagine(L.x, L.y, _vista), b = aImmagine(L.x + L.w, L.y + L.h, _vista);
+  return { x:a.x, y:a.y, w:b.x - a.x, h:b.y - a.y };
+}
+
+// La striscia coi numeri sotto l'immagine. Non e' una didascalia carina: e'
+// l'unica forma in cui uno studio con la fuga a undici larghezze puo' dire
+// qualcosa, e fra un mese e' quello che si va a leggere.
+function strisciaDati(c, W, y, h, misure){
+  c.fillStyle = 'rgba(12,9,5,.96)';
+  c.fillRect(0, y, W, h);
+  const fs = Math.max(11, Math.round(h * 0.34));
+  c.textBaseline = 'middle';
+  c.font = '800 ' + fs + 'px system-ui, -apple-system, sans-serif';
+  c.fillStyle = ORO;
+  const pct = misure.orizzonte;
+  const testa = 'Orizzonte ' + pct + '%'
+    + (pct < 0 ? ' (sopra)' : pct > 100 ? ' (sotto)' : ' dall\'alto');
+  c.fillText(testa, h * 0.34, y + h * 0.34);
+  c.font = '600 ' + Math.round(fs * 0.82) + 'px system-ui, -apple-system, sans-serif';
+  c.fillStyle = 'rgba(240,232,216,.72)';
+  c.fillText(misure.fughe.map((f, i)=> letturaFuoco(
+    { x: cornice().x + f.x * cornice().w, y: cornice().y + f.y * cornice().h },
+    i + 1, cornice())).join('   ·   '), h * 0.34, y + h * 0.72);
+}
 
 function disegnaSuTela(){
   if(!_img || !_img.naturalWidth) return null;
-  const r = cornice();
+  const A = areaDaSalvare();
+  const riq = cornice();
   const NW = _img.naturalWidth, NH = _img.naturalHeight;
-  const sx = r.x * NW, sy = r.y * NH, sw = r.w * NW, sh = r.h * NH;
-  if(sw < 8 || sh < 8) return null;
-  const k = Math.min(1, LATO_MAX / Math.max(sw, sh));
-  const W = Math.round(sw * k), H = Math.round(sh * k);
+  const ax = A.x * NW, ay = A.y * NH, aw = A.w * NW, ah = A.h * NH;
+  if(aw < 8 || ah < 8) return null;
+  const k = Math.min(1, LATO_MAX / Math.max(aw, ah));
+  const W = Math.round(aw * k), Hi = Math.round(ah * k);
+  const striscia = Math.max(30, Math.round(Math.min(W, Hi) * 0.1));
   const tela = document.createElement('canvas');
-  tela.width = W; tela.height = H;
+  tela.width = W; tela.height = Hi + striscia;
   const c = tela.getContext('2d');
-  c.drawImage(_img, sx, sy, sw, sh, 0, 0, W, H);
 
-  // Dalle coordinate dell'IMMAGINE a quelle della tela (che e' la vignetta).
-  const P = p => ({ x: (p.x * NW - sx) * k, y: (p.y * NH - sy) * k });
+  // Il fondo del tavolo prima di tutto: dove la pagina non arriva — e con la
+  // veduta larga non arriva quasi mai — resta lui, non un rettangolo nero
+  // trasparente che in WebP diventa una macchia.
+  c.fillStyle = FONDO; c.fillRect(0, 0, W, Hi + striscia);
+  const sx0 = Math.max(0, ax), sy0 = Math.max(0, ay);
+  const sx1 = Math.min(NW, ax + aw), sy1 = Math.min(NH, ay + ah);
+  if(sx1 > sx0 && sy1 > sy0){
+    c.drawImage(_img, sx0, sy0, sx1 - sx0, sy1 - sy0,
+                (sx0 - ax) * k, (sy0 - ay) * k, (sx1 - sx0) * k, (sy1 - sy0) * k);
+  }
+
+  // Dalle coordinate dell'IMMAGINE a quelle della tela.
+  const P = p => ({ x: (p.x * NW - ax) * k, y: (p.y * NH - ay) * k });
   // Le misure seguono la tela: su una vignetta grande le linee devono restare
   // proporzionate, non diventare capelli.
-  const u = Math.max(1, Math.min(W, H) / 380);
+  const u = Math.max(1, Math.min(W, Hi) / 380);
   const riga = (a, b, colore, spessore, tratteggio)=>{
     c.setLineDash(tratteggio ? [6*u, 5*u] : []);
     c.lineCap = tratteggio ? 'butt' : 'round';
@@ -659,23 +722,37 @@ function disegnaSuTela(){
 
   const fuochi = fuochiDa(_linee);
   const orizzonte = orizzonteDa(fuochi);
+  const q0 = P({ x:riq.x, y:riq.y }), q1 = P({ x:riq.x + riq.w, y:riq.y + riq.h });
 
-  // Il fascio sta dentro la vignetta, come a schermo.
-  c.save(); c.beginPath(); c.rect(0, 0, W, H); c.clip();
+  // Il fascio e l'orizzonte stanno dentro la VIGNETTA, come a schermo: sono la
+  // prospettiva di lei, non di quello che le sta intorno.
+  c.save(); c.beginPath(); c.rect(q0.x, q0.y, q1.x - q0.x, q1.y - q0.y); c.clip();
   c.globalAlpha = .38; c.strokeStyle = AZZURRO; c.lineWidth = u; c.setLineDash([]);
   for(const f of fuochi){
     const cc = P(f);
     for(let i = 0; i < RAGGI; i++){
-      const t = i / RAGGI * 4, lato = Math.floor(t), q = t - lato;
-      const b = lato === 0 ? { x:q*W, y:0 } : lato === 1 ? { x:W, y:q*H }
-              : lato === 2 ? { x:(1-q)*W, y:H } : { x:0, y:(1-q)*H };
+      const t = i / RAGGI * 4, lato = Math.floor(t), g = t - lato;
+      const b = lato === 0 ? { x:q0.x + g*(q1.x-q0.x), y:q0.y }
+              : lato === 1 ? { x:q1.x, y:q0.y + g*(q1.y-q0.y) }
+              : lato === 2 ? { x:q0.x + (1-g)*(q1.x-q0.x), y:q1.y }
+              : { x:q0.x, y:q0.y + (1-g)*(q1.y-q0.y) };
       c.beginPath(); c.moveTo(cc.x, cc.y);
       c.lineTo(cc.x + (b.x - cc.x) * 3, cc.y + (b.y - cc.y) * 3); c.stroke();
     }
   }
   c.globalAlpha = 1;
-  if(orizzonte) riga(P(orizzonte.a), P(orizzonte.b), ORO, 3);
   c.restore();
+  // L'orizzonte FUORI dal ritaglio del fascio, per la ragione detta sopra:
+  // quando cade fuori dalla vignetta e' li' fuori che lo si vuole vedere.
+  if(orizzonte) riga(P(orizzonte.a), P(orizzonte.b), ORO, 3);
+
+  // Il bordo della vignetta, ma solo se intorno c'e' altro: sulla vignetta sola
+  // sarebbe una cornice disegnata sul bordo dell'immagine, cioe' niente.
+  if(A.w > riq.w * 1.02 || A.h > riq.h * 1.02){
+    c.setLineDash([7*u, 5*u]); c.lineWidth = 1.5 * u; c.strokeStyle = SABBIA;
+    c.strokeRect(q0.x, q0.y, q1.x - q0.x, q1.y - q0.y);
+    c.setLineDash([]);
+  }
 
   _linee.forEach((l, i)=>{
     const a = P(l.a), b = P(l.b), f = fuochi[Math.floor(i / 2)];
@@ -692,7 +769,10 @@ function disegnaSuTela(){
     c.fillStyle = 'rgba(0,0,0,.6)'; c.beginPath(); c.arc(cc.x, cc.y, 7*u, 0, 7); c.fill();
     c.fillStyle = AZZURRO; c.beginPath(); c.arc(cc.x, cc.y, 4.5*u, 0, 7); c.fill();
   }
-  return { tela, W, H };
+
+  const misure = misureStudio();
+  if(misure) strisciaDati(c, W, Hi, striscia, misure);
+  return { tela, W, H: Hi + striscia };
 }
 
 // I numeri dello studio, che vanno sul documento insieme all'immagine: sono

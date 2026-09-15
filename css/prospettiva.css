@@ -35,7 +35,10 @@ body.prosp-tavolo-aperto .prosp{background:#16120c}
 .prosp-oriz{font-size:15px;font-weight:800;color:#f0c020;line-height:1.25}
 .prosp-fughe{font-size:11.5px;color:rgba(240,232,216,.72);line-height:1.35}
 .prosp-fughe:empty{display:none}
-.prosp-comandi{display:flex;gap:8px;align-items:center}
+.prosp-comandi{display:flex;gap:8px;align-items:center;min-width:0}
+/* I tasti scritti cedono per primi quando lo spazio manca: meglio "Clean"
+   stretto che una fila che esce dalla barra. */
+.prosp-btn{min-width:0}
 .prosp-btn{
   flex:1;background:rgba(255,248,232,.1);border:1px solid rgba(255,248,232,.16);
   color:#f0e8d8;font-family:inherit;font-size:12.5px;font-weight:700;
@@ -80,5 +83,10 @@ body.prosp-aperta .refs-lightbox-nav{display:none !important}
      una riga di testo lunga un metro con tre bottoni all'altro capo. */
   .prosp-barra{left:50%;right:auto;transform:translateX(-50%);width:min(560px, calc(100% - 32px))}
   .prosp-comandi{justify-content:flex-end}
-  .prosp-btn{flex:0 0 auto;min-width:118px}
+  /* IL min-width VALE SOLO PER I TASTI SCRITTI, e il :not() non e' pignoleria:
+     senza, quel 118px si applicava anche alla freccia e alla croce — che il
+     loro 42px ce l'hanno scritto sopra, ma perdevano — e da cinque tasti in su
+     la fila usciva dal bordo arrotondato della barra. E' il difetto visto il
+     15 settembre 2026, comparso appena e' arrivato il quinto tasto. */
+  .prosp-btn:not(.prosp-ico){flex:0 0 auto;min-width:112px}
 }

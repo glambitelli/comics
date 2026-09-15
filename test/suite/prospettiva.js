@@ -185,13 +185,15 @@ module.exports = () => suite("Prospettiva — il righello per leggere l'orizzont
   ok('e legge l\'orizzonte a meta\' altezza', /50% dall'alto/.test(schermo.lettura), schermo.lettura);
   ok('il fascio c\'e\'', schermo.raggi === 12, schermo);
   ok('e la fuga e\' segnata con un punto', schermo.punti === 2, schermo);
-  // Senza il taglio, il ventaglio si stenderebbe su tutta la finestra: col
-  // mouse, dove la tavola sta al centro fra due fasce scure, diventerebbe uno
-  // scarabocchio rosa intorno all'immagine invece che una prospettiva dentro.
-  ok('il fascio e l\'orizzonte stanno dentro la vignetta',
-     schermo.clipSuImmagine
-     && /prosp-clip/.test(schermo.orizzonteTagliato || '')
-     && /prosp-clip/.test(schermo.fascioTagliato || ''), schermo);
+  // IL FASCIO SI TAGLIA, L'ORIZZONTE NO, e sono due decisioni diverse.
+  // Il fascio e' la struttura di QUESTA vignetta: sparso su tutto lo schermo
+  // sarebbe rumore. L'orizzonte e' l'altezza dell'occhio, e quando cade fuori
+  // dal riquadro e' proprio li' fuori che lo si vuole vedere — tagliandolo,
+  // allargare la veduta non mostrava niente di nuovo.
+  ok('il fascio sta dentro la vignetta',
+     schermo.clipSuImmagine && /prosp-clip/.test(schermo.fascioTagliato || ''), schermo);
+  ok('ma l\'orizzonte puo\' uscirne, se e\' li\' che va a finire',
+     !schermo.orizzonteTagliato, schermo);
   // Due tratti pieni + due tratteggi verso la fuga, ognuno in doppia copia
   // (ombra + colore): otto linee.
   ok('ogni tratto ha la sua ombra, per vedersi anche sul nero',
@@ -516,9 +518,11 @@ module.exports = () => suite("Prospettiva — il righello per leggere l'orizzont
   ok('con la fuga compare', salvato.conFuga === false, salvato);
   ok('e premendolo esce un\'immagine sola', salvato.quanti === 1, salvato);
   // La vignetta, non la pagina: meta' altezza, larghezza intera, alla
-  // risoluzione VERA dell'immagine — non a quella dello schermo.
+  // risoluzione VERA dell'immagine — non a quella dello schermo. Sotto c'e' in
+  // piu' la striscia coi numeri, che e' alta un decimo del lato corto.
   ok('grande quanto la vignetta, non quanto la pagina',
-     salvato.w === salvato.natW && Math.abs(salvato.h - salvato.natH/2) <= 1, salvato);
+     salvato.w === salvato.natW
+     && salvato.h > salvato.natH/2 && salvato.h < salvato.natH/2 * 1.2, salvato);
   ok('in webp, che pesa meno a parita\' di tratto',
      /webp/.test(salvato.tipo || ''), salvato.tipo);
   // I NUMERI VIAGGIANO COL DOCUMENTO: senza, per sapere dove cade l'orizzonte
@@ -547,4 +551,106 @@ module.exports = () => suite("Prospettiva — il righello per leggere l'orizzont
     return document.querySelector('.prosp-salva').hidden;
   });
   ok('il pulsante Salva non compare', senzaCasa, senzaCasa);
+
+  sezione('e con l\'orizzonte fuori dalla vignetta, lo studio lo dice lo stesso');
+  // IL LIMITE TROVATO SUL CAMPO (15 settembre 2026): con l'orizzonte fuori dal
+  // riquadro, nello studio salvato la riga d'oro non c'era proprio — restava
+  // una vignetta con due linee azzurre e nessuna risposta. E per i casi
+  // estremi (orizzonte a meno millecinquecento per cento, fuga a undici
+  // larghezze) NESSUNA inquadratura potrebbe contenerla: li' il dato e' il
+  // numero. Quindi due cure: si salva quello che si vede — allargando la
+  // veduta entra anche la fuga — e sotto l'immagine si scrivono i numeri.
+  const fuoriCampo = await page.evaluate(async ()=>{
+    const P = window.P;
+    const preso = [];
+    P.chiudiProspettiva();
+    P.apriProspettiva(window.__img, { salva: async d=>{ preso.push(d); } });
+    P.__perLeProveRiquadro({ x:0.1, y:0.5, w:0.6, h:0.25 });
+    // Due linee che convergono molto in alto a destra: l'orizzonte cade SOPRA
+    // la vignetta, fuori dal riquadro.
+    P.__perLeProveTraccia({ a:{x:0.12,y:0.72}, b:{x:0.66,y:0.60} });
+    P.__perLeProveTraccia({ a:{x:0.12,y:0.60}, b:{x:0.66,y:0.545} });
+    await new Promise(r=> setTimeout(r, 60));
+    const lettura = document.querySelector('.prosp-oriz').textContent;
+    const misure = P.misureStudio();
+    // Prima si salva la vignetta sola, com'e' il caso normale.
+    document.querySelector('.prosp-salva').dispatchEvent(new MouseEvent('click',{bubbles:true}));
+    await new Promise(r=> setTimeout(r, 900));
+    // Poi la stessa cosa con la veduta allargata.
+    P.apriProspettiva(window.__img, { salva: async d=>{ preso.push(d); } });
+    P.__perLeProveRiquadro({ x:0.1, y:0.5, w:0.6, h:0.25 });
+    P.__perLeProveTraccia({ a:{x:0.12,y:0.72}, b:{x:0.66,y:0.60} });
+    P.__perLeProveTraccia({ a:{x:0.12,y:0.60}, b:{x:0.66,y:0.545} });
+    P.adattaVeduta(true);
+    await new Promise(r=> setTimeout(r, 60));
+    document.querySelector('.prosp-salva').dispatchEvent(new MouseEvent('click',{bubbles:true}));
+    await new Promise(r=> setTimeout(r, 900));
+    const leggi = async b=> new Promise(res=>{
+      const im = new Image(); im.onload = ()=> res(im); im.src = URL.createObjectURL(b);
+    });
+    const stretta = await leggi(preso[0].blob), larga = await leggi(preso[1].blob);
+    // Nell'immagine larga si va a cercare l'oro dell'orizzonte: se c'e', la
+    // riga e' finita dentro davvero.
+    const cercaOro = (im)=>{
+      const cv = document.createElement('canvas');
+      cv.width = im.width; cv.height = im.height;
+      const cx = cv.getContext('2d'); cx.drawImage(im, 0, 0);
+      const d = cx.getImageData(0, 0, cv.width, Math.round(cv.height * 0.88)).data;
+      let n = 0;
+      for(let i = 0; i < d.length; i += 4){
+        if(d[i] > 200 && d[i+1] > 150 && d[i+1] < 220 && d[i+2] < 90) n++;
+      }
+      return n;
+    };
+    return {
+      lettura, misure,
+      stretta: { w: stretta.width, h: stretta.height, oro: cercaOro(stretta) },
+      larga: { w: larga.width, h: larga.height, oro: cercaOro(larga) },
+    };
+  });
+  ok('l\'orizzonte cade davvero sopra la vignetta',
+     /sopra la vignetta/.test(fuoriCampo.lettura), fuoriCampo.lettura);
+  // Salvando la vignetta sola la riga d'oro non c'e': e' fuori, ed e' giusto
+  // cosi' — quello che si vedeva a schermo era quello.
+  ok('salvando la vignetta sola, la riga d\'oro non ci sta',
+     fuoriCampo.stretta.oro < 200, fuoriCampo.stretta);
+  // Allargando la veduta prima di salvare, invece, ci entra.
+  ok('ma allargando la veduta prima di salvare, ci entra',
+     fuoriCampo.larga.oro > 1000, fuoriCampo.larga);
+  ok('e l\'immagine larga e\' piu\' alta di quella stretta',
+     fuoriCampo.larga.h > fuoriCampo.stretta.h * 1.5, fuoriCampo);
+  // E IN OGNI CASO I NUMERI SONO SCRITTI SOTTO. E' l'unica risposta possibile
+  // quando la fuga sta a undici larghezze e nessuna inquadratura la contiene.
+  const striscia = await page.evaluate(async ()=>{
+    const P = window.P;
+    const preso = [];
+    P.chiudiProspettiva();
+    P.apriProspettiva(window.__img, { salva: async d=>{ preso.push(d); } });
+    P.__perLeProveRiquadro({ x:0, y:0, w:1, h:0.5 });
+    P.__perLeProveTraccia({ a:{x:0.05,y:0.10}, b:{x:0.95,y:0.18} });
+    P.__perLeProveTraccia({ a:{x:0.05,y:0.40}, b:{x:0.95,y:0.32} });
+    await new Promise(r=> setTimeout(r, 60));
+    document.querySelector('.prosp-salva').dispatchEvent(new MouseEvent('click',{bubbles:true}));
+    await new Promise(r=> setTimeout(r, 900));
+    const im = await new Promise(res=>{
+      const i = new Image(); i.onload = ()=> res(i); i.src = URL.createObjectURL(preso[0].blob); });
+    const cv = document.createElement('canvas');
+    cv.width = im.width; cv.height = im.height;
+    const cx = cv.getContext('2d'); cx.drawImage(im, 0, 0);
+    // La striscia sta in fondo ed e' scura: si guarda una riga di pixel a
+    // pochi punti dal bordo basso.
+    // La striscia sta in fondo: si guarda tutta la sua fascia, non una riga
+    // sola — il testo non e' garantito che passi esattamente di li'.
+    const alta = Math.max(30, Math.round(Math.min(cv.width, cv.height) * 0.09));
+    const d = cx.getImageData(0, cv.height - alta, cv.width, alta).data;
+    let scuri = 0, oro = 0;
+    for(let i = 0; i < d.length; i += 4){
+      if(d[i] < 60 && d[i+1] < 60 && d[i+2] < 60) scuri++;
+      if(d[i] > 200 && d[i+1] > 150 && d[i+2] < 90) oro++;
+    }
+    return { larghezza: cv.width, punti: d.length/4, scuri, oro, altezza: cv.height };
+  });
+  ok('sotto l\'immagine c\'e\' una striscia scura',
+     striscia.scuri > striscia.punti * 0.6, striscia);
+  ok('e dentro ci sono scritti i numeri, in oro', striscia.oro > 20, striscia);
 });
