@@ -27,13 +27,21 @@
 .prosp-oriz{font-size:15px;font-weight:800;color:#00e0ff;line-height:1.25}
 .prosp-fughe{font-size:11.5px;color:rgba(240,232,216,.72);line-height:1.35}
 .prosp-fughe:empty{display:none}
-.prosp-comandi{display:flex;gap:8px}
+.prosp-comandi{display:flex;gap:8px;align-items:center}
 .prosp-btn{
   flex:1;background:rgba(255,248,232,.1);border:1px solid rgba(255,248,232,.16);
   color:#f0e8d8;font-family:inherit;font-size:12.5px;font-weight:700;
   border-radius:10px;padding:9px 6px;cursor:pointer;-webkit-tap-highlight-color:transparent;
 }
+.prosp-btn[hidden]{display:none}
 .prosp-btn:active{transform:scale(.97);background:rgba(255,248,232,.18)}
+/* I due tasti a icona non si allargano: una freccia e una croce larghe come
+   mezza barra sembrerebbero due cose importanti, e non lo sono — sono il
+   "torna indietro" e il "chiudi" che ci sono ovunque. Quadrati e piccoli. */
+.prosp-ico{
+  flex:0 0 auto;width:42px;height:38px;padding:0;
+  display:flex;align-items:center;justify-content:center;
+}
 .prosp-esci{background:rgba(255,46,166,.18);border-color:rgba(255,46,166,.35);color:#ffd7ee}
 
 /* Con lo studio aperto sparisce tutto il resto dei comandi: la barra-duna, la

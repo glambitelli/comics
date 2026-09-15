@@ -39,14 +39,35 @@ const MAGENTA = '#ff2ea6';   // le linee tracciate e il fascio
 const CIANO   = '#00e0ff';   // l'orizzonte: colore diverso perche' e' un'altra cosa
 const RAGGI = 12;            // quante linee nel fascio: abbastanza da leggere la fuga, non tante da coprire il disegno
 const MIN_TRATTO = 0.04;     // un tratto piu' corto di cosi' e' un tocco andato storto, non una linea
+const MIN_RIQUADRO = 0.06;   // e un riquadro piu' piccolo di cosi' non e' una vignetta
 
 let _ov = null;              // il foglio con l'SVG, uno solo per tutta l'app
 let _img = null;             // l'immagine che si sta studiando
 let _linee = [];             // { a:{x,y}, b:{x,y} } in coordinate 0..1 dell'immagine
 let _bozza = null;           // la linea che il dito sta tracciando in questo momento
 let _alChiude = null;
+// ── PRIMA LA VIGNETTA, POI LE LINEE ──
+//
+// La prima versione misurava l'orizzonte sull'INTERA tavola, e la percentuale
+// non voleva dire niente: una pagina di manga sono sei vignette, e "orizzonte
+// al 23% della pagina" non risponde alla domanda — che riguarda la singola
+// inquadratura. Adesso si comincia riquadrando la vignetta, e da li' in poi
+// tutto e' misurato su QUELLA: l'altezza dell'orizzonte, le larghezze di
+// distanza della fuga, il taglio del fascio.
+//
+// Il riquadro sta anche lui in coordinate 0..1 dell'immagine, come le linee:
+// ruotando il telefono si sposta tutto insieme.
+let _riquadro = null;        // { x, y, w, h } — null finche' non e' stato scelto
+let _bozzaRiq = null;        // il riquadro che il dito sta trascinando adesso
 
 export function prospettivaAperta(){ return !!_ov && !_ov.hidden; }
+
+// La cornice su cui si misura tutto. Senza riquadro e' l'immagine intera: e'
+// il caso di un frammento, che una vignetta lo e' gia' di suo e riquadrarlo
+// sarebbe un gesto a vuoto.
+function cornice(){ return _riquadro || { x:0, y:0, w:1, h:1 }; }
+export function corniceAttiva(){ return cornice(); }
+export function faseRiquadro(){ return !_riquadro; }
 
 // Il rettangolo dell'immagine a schermo, adesso. Si richiede ad ogni disegno e
 // non si tiene da parte: fra un tocco e l'altro puo' essere cambiato tutto
@@ -102,36 +123,43 @@ export function orizzonteDa(fuochi){
   return { a:{ x:p.x - dx/n*20, y:p.y - dy/n*20 }, b:{ x:q.x + dx/n*20, y:q.y + dy/n*20 } };
 }
 
-// Come si legge la posizione dell'orizzonte, a parole. E' l'informazione per
-// cui lo strumento esiste, quindi va detta in italiano e non in coordinate.
-export function letturaOrizzonte(orizzonte, fuochi){
+// La posizione dell'orizzonte, misurata SULLA VIGNETTA. E' l'informazione per
+// cui lo strumento esiste, ed e' un numero: la percentuale dell'altezza a cui
+// cade, contata dall'alto.
+//
+// Prima al numero era appiccicato un aggettivo — "altissimo", "a terra", "a
+// meta' altezza" — e quelle parole sono state tolte: davanti a una tavola di
+// Otomo, "23%" e' un dato, "altissimo" e' un giudizio che uno si fa da solo, e
+// scritto dallo strumento suona sciocco. Qui si misura e basta.
+export function letturaOrizzonte(orizzonte, fuochi, riq){
   if(!orizzonte) return '';
-  // L'altezza si misura al centro dell'immagine: con l'orizzonte inclinato
-  // "l'altezza" da sola non vorrebbe dire niente, e il centro e' il punto di
-  // cui si parla guardando una vignetta.
-  const t = (0.5 - orizzonte.a.x) / ((orizzonte.b.x - orizzonte.a.x) || 1);
+  const r = riq || { x:0, y:0, w:1, h:1 };
+  // Si misura al centro della vignetta: con l'orizzonte inclinato "l'altezza"
+  // da sola non vorrebbe dire niente, e il centro e' il punto di cui si parla
+  // guardando un'inquadratura.
+  const cx = r.x + r.w / 2;
+  const t = (cx - orizzonte.a.x) / ((orizzonte.b.x - orizzonte.a.x) || 1);
   const y = orizzonte.a.y + t * (orizzonte.b.y - orizzonte.a.y);
-  const pct = Math.round(y * 100);
-  if(pct < 0) return 'Orizzonte SOPRA la vignetta, fuori di ' + Math.abs(pct) + '%';
-  if(pct > 100) return 'Orizzonte SOTTO la vignetta, fuori di ' + (pct - 100) + '%';
-  let dove = 'a metà altezza';
-  if(pct <= 12) dove = 'altissimo';
-  else if(pct <= 35) dove = 'alto';
-  else if(pct >= 88) dove = 'a terra';
-  else if(pct >= 65) dove = 'basso';
-  return 'Orizzonte al ' + pct + '% — ' + dove;
+  const pct = Math.round((y - r.y) / (r.h || 1) * 100);
+  if(pct < 0)   return 'Orizzonte ' + pct + '% — sopra la vignetta';
+  if(pct > 100) return 'Orizzonte ' + pct + '% — sotto la vignetta';
+  return 'Orizzonte ' + pct + '% dall\'alto';
 }
 
-// E dove cade la fuga: dentro la vignetta o fuori, e di quanto. Fuori e' il
-// caso che interessa — e' quello che allunga le scene — e a schermo non si
-// vedrebbe.
-export function letturaFuoco(p, n){
+// E dove cade la fuga rispetto alla vignetta: dentro o fuori, e di quante sue
+// larghezze. Fuori e' il caso che interessa — e' quello che allunga le scene —
+// e a schermo non si vedrebbe.
+export function letturaFuoco(p, n, riq){
+  const r = riq || { x:0, y:0, w:1, h:1 };
   const nome = 'Fuga ' + n;
-  if(p.x >= 0 && p.x <= 1 && p.y >= 0 && p.y <= 1) return nome + ': dentro la tavola';
-  if(p.x < 0)  return nome + ': fuori a sinistra, ' + (Math.round(-p.x * 10) / 10) + ' larghezze';
-  if(p.x > 1)  return nome + ': fuori a destra, ' + (Math.round((p.x - 1) * 10) / 10) + ' larghezze';
-  if(p.y < 0)  return nome + ': fuori in alto';
-  return nome + ': fuori in basso';
+  const u = (p.x - r.x) / (r.w || 1);
+  const v = (p.y - r.y) / (r.h || 1);
+  const q = x => Math.round(x * 10) / 10;
+  if(u >= 0 && u <= 1 && v >= 0 && v <= 1) return nome + ' dentro';
+  if(u < 0) return nome + ' fuori a sinistra, ' + q(-u) + ' larghezze';
+  if(u > 1) return nome + ' fuori a destra, ' + q(u - 1) + ' larghezze';
+  if(v < 0) return nome + ' fuori in alto';
+  return nome + ' fuori in basso';
 }
 
 // ── IL FOGLIO ──
@@ -143,6 +171,11 @@ function costruisci(){
   ov.innerHTML = `
     <svg class="prosp-svg" aria-hidden="true">
       <defs><clipPath id="prosp-clip"><rect class="prosp-clip-rect" x="0" y="0" width="0" height="0"/></clipPath></defs>
+      <!-- Fuori dalla vignetta si scurisce: la tavola intorno resta visibile —
+           serve a capire dove sta l'inquadratura nella pagina — ma smette di
+           contendere l'attenzione a quella che si sta misurando. -->
+      <path class="prosp-velo" fill="rgba(0,0,0,.5)" fill-rule="evenodd"></path>
+      <rect class="prosp-cornice" fill="none" stroke="#fff" stroke-width="1.5" stroke-dasharray="7 5" opacity=".85"></rect>
       <g class="prosp-fascio" clip-path="url(#prosp-clip)"></g>
       <!-- L'ORIZZONTE E' TAGLIATO SULL'IMMAGINE, il resto no. L'orizzonte e'
            una proprieta' della tavola: lasciandolo correre per tutto lo
@@ -158,21 +191,37 @@ function costruisci(){
     </svg>
     <div class="prosp-barra">
       <div class="prosp-lettura">
-        <b class="prosp-oriz">Traccia due linee lungo due bordi che vanno in profondità</b>
+        <b class="prosp-oriz"></b>
         <span class="prosp-fughe"></span>
       </div>
+      <!-- DUE ICONE E UNA PAROLA. "Togli l'ultima" e "Chiudi" scritti per
+           esteso occupavano mezza barra per dire due cose che una freccia e
+           una croce dicono meglio: sono i due gesti piu' universali che
+           esistano. Resta scritto solo quello che un simbolo non direbbe. -->
       <div class="prosp-comandi">
-        <button class="prosp-btn" data-act="indietro" type="button">Togli l'ultima</button>
-        <button class="prosp-btn" data-act="pulisci" type="button">Pulisci</button>
-        <button class="prosp-btn prosp-esci" data-act="esci" type="button">Chiudi</button>
+        <button class="prosp-btn prosp-tutta" data-act="tutta" type="button">Tutta l'immagine</button>
+        <button class="prosp-btn prosp-ico" data-act="indietro" type="button" aria-label="Torna indietro" title="Torna indietro">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9h11a4.5 4.5 0 0 1 0 9H9"/><path d="M8 5 4 9l4 4"/></svg>
+        </button>
+        <button class="prosp-btn" data-act="pulisci" type="button">Clean</button>
+        <button class="prosp-btn prosp-ico prosp-esci" data-act="esci" type="button" aria-label="Chiudi" title="Chiudi">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" aria-hidden="true"><path d="M6.5 6.5 17.5 17.5 M17.5 6.5 6.5 17.5"/></svg>
+        </button>
       </div>
     </div>`;
   document.body.appendChild(ov);
   ov.addEventListener('click', e=>{
     const b = e.target.closest('[data-act]');
     if(!b) return;
-    if(b.dataset.act === 'indietro'){ _linee.pop(); disegna(); }
-    else if(b.dataset.act === 'pulisci'){ _linee = []; disegna(); }
+    const a = b.dataset.act;
+    // La freccia torna indietro di UN passo, qualunque sia: prima le linee,
+    // una per volta, e finite quelle il riquadro — che e' l'ordine in cui sono
+    // state fatte. Un solo tasto per disfare, che e' come funziona ovunque.
+    if(a === 'indietro'){ if(_linee.length) _linee.pop(); else _riquadro = null; disegna(); }
+    else if(a === 'pulisci'){ _linee = []; _riquadro = null; disegna(); }
+    // "Tutta l'immagine" salta il riquadro: per un frammento gia' ritagliato su
+    // una vignetta sola, riquadrarlo sarebbe un gesto a vuoto.
+    else if(a === 'tutta'){ _riquadro = { x:0, y:0, w:1, h:1 }; disegna(); }
     else chiudiProspettiva();
   });
   agganciaTratto(ov.querySelector('.prosp-svg'));
@@ -183,24 +232,42 @@ function costruisci(){
 // mouse e pennino, che e' esattamente il pubblico di questo strumento.
 function agganciaTratto(svg){
   let attivo = null;
+  // LO STESSO TRASCINAMENTO FA DUE COSE, a seconda di dove si e' arrivati:
+  // finche' la vignetta non e' riquadrata tira un rettangolo, dopo tira una
+  // linea. Un gesto solo da imparare, e l'ordine e' quello giusto — prima si
+  // decide su cosa si misura, poi si misura.
   svg.addEventListener('pointerdown', e=>{
     const r = rett(); if(!r) return;
     attivo = e.pointerId;
     try{ svg.setPointerCapture(e.pointerId); }catch(err){}
     const p = aImmagine(e.clientX, e.clientY, r);
-    _bozza = { a:p, b:p };
+    if(faseRiquadro()) _bozzaRiq = { a:p, b:p };
+    else _bozza = { a:p, b:p };
     e.preventDefault();
   });
   svg.addEventListener('pointermove', e=>{
-    if(attivo !== e.pointerId || !_bozza) return;
+    if(attivo !== e.pointerId) return;
     const r = rett(); if(!r) return;
-    _bozza.b = aImmagine(e.clientX, e.clientY, r);
+    const p = aImmagine(e.clientX, e.clientY, r);
+    if(_bozzaRiq) _bozzaRiq.b = p;
+    else if(_bozza) _bozza.b = p;
+    else return;
     disegna();
   });
   const finisci = e=>{
     if(attivo !== e.pointerId) return;
     attivo = null;
-    if(_bozza){
+    if(_bozzaRiq){
+      const w = Math.abs(_bozzaRiq.b.x - _bozzaRiq.a.x), h = Math.abs(_bozzaRiq.b.y - _bozzaRiq.a.y);
+      // Un riquadro grande come un francobollo e' un tocco andato storto, non
+      // una vignetta: misurarci sopra darebbe percentuali senza senso.
+      if(w >= MIN_RIQUADRO && h >= MIN_RIQUADRO){
+        _riquadro = {
+          x: Math.min(_bozzaRiq.a.x, _bozzaRiq.b.x), y: Math.min(_bozzaRiq.a.y, _bozzaRiq.b.y), w, h,
+        };
+      }
+      _bozzaRiq = null;
+    } else if(_bozza){
       const lungo = Math.hypot(_bozza.b.x - _bozza.a.x, _bozza.b.y - _bozza.a.y);
       // Un tocco senza trascinamento non e' una linea: senza questo controllo
       // ogni tocco a vuoto sporcherebbe lo schema con un puntino inutile.
@@ -224,12 +291,38 @@ export function disegna(){
   if(!_ov || _ov.hidden) return;
   const r = rett();
   const svg = _ov.querySelector('.prosp-svg');
-  if(!r){ svg.innerHTML = svg.innerHTML; return; }
+  if(!r) return;
   svg.setAttribute('viewBox', '0 0 ' + window.innerWidth + ' ' + window.innerHeight);
 
+  // La cornice a schermo: quella scelta, o quella che il dito sta trascinando
+  // adesso — cosi' il velo e il bordo seguono il trascinamento invece di
+  // comparire solo alla fine.
+  const riq = _bozzaRiq
+    ? { x: Math.min(_bozzaRiq.a.x, _bozzaRiq.b.x), y: Math.min(_bozzaRiq.a.y, _bozzaRiq.b.y),
+        w: Math.abs(_bozzaRiq.b.x - _bozzaRiq.a.x), h: Math.abs(_bozzaRiq.b.y - _bozzaRiq.a.y) }
+    : cornice();
+  const q = { x: r.left + riq.x * r.width, y: r.top + riq.y * r.height,
+              w: riq.w * r.width, h: riq.h * r.height };
+
+  // Tutto si taglia sulla VIGNETTA, non piu' sull'immagine: il fascio che
+  // sborda nelle vignette accanto non e' la prospettiva di questa.
   const clip = _ov.querySelector('.prosp-clip-rect');
-  clip.setAttribute('x', r.left); clip.setAttribute('y', r.top);
-  clip.setAttribute('width', r.width); clip.setAttribute('height', r.height);
+  clip.setAttribute('x', q.x); clip.setAttribute('y', q.y);
+  clip.setAttribute('width', q.w); clip.setAttribute('height', q.h);
+
+  // Il velo: tutto lo schermo meno il buco della vignetta (regola evenodd).
+  // Con la vignetta grande quanto l'immagine il velo non si vede — ed e'
+  // giusto: non c'e' niente da mettere da parte.
+  const W = window.innerWidth, H = window.innerHeight;
+  const velo = _ov.querySelector('.prosp-velo');
+  const tutta = riq.w >= 0.999 && riq.h >= 0.999 && riq.x <= 0.001 && riq.y <= 0.001;
+  velo.setAttribute('d', (_riquadro || _bozzaRiq) && !tutta
+    ? `M0 0 H${W} V${H} H0 Z M${q.x} ${q.y} H${q.x + q.w} V${q.y + q.h} H${q.x} Z` : '');
+  const bordo = _ov.querySelector('.prosp-cornice');
+  const mostraBordo = (_riquadro || _bozzaRiq) && !tutta;
+  bordo.setAttribute('x', q.x); bordo.setAttribute('y', q.y);
+  bordo.setAttribute('width', mostraBordo ? q.w : 0);
+  bordo.setAttribute('height', mostraBordo ? q.h : 0);
 
   const linee = _bozza ? _linee.concat([_bozza]) : _linee;
   const fuochi = fuochiDa(linee);
@@ -237,20 +330,19 @@ export function disegna(){
 
   // IL FASCIO. Invece di scegliere degli angoli — che con la fuga fuori
   // schermo diventerebbero tutti uguali e il fascio un pennello solo — si
-  // tirano le linee verso punti distribuiti sul BORDO dell'immagine: cosi' il
-  // ventaglio copre sempre la vignetta, ovunque sia la fuga.
+  // tirano le linee verso punti distribuiti sul BORDO DELLA VIGNETTA: cosi' il
+  // ventaglio la copre sempre tutta, ovunque sia la fuga.
   let fascio = '';
   for(const f of fuochi){
     const c = aSchermo(f, r);
     for(let i = 0; i < RAGGI; i++){
       const t = i / RAGGI * 4;               // giro completo del perimetro, in quarti
-      const lato = Math.floor(t), q = t - lato;
-      const b = lato === 0 ? { x:q, y:0 } : lato === 1 ? { x:1, y:q }
-              : lato === 2 ? { x:1-q, y:1 } : { x:0, y:1-q };
-      const s = aSchermo(b, r);
+      const lato = Math.floor(t), u = t - lato;
+      const b = lato === 0 ? { x:q.x + u*q.w, y:q.y } : lato === 1 ? { x:q.x + q.w, y:q.y + u*q.h }
+              : lato === 2 ? { x:q.x + (1-u)*q.w, y:q.y + q.h } : { x:q.x, y:q.y + (1-u)*q.h };
       // Prolungato oltre il bordo: con la fuga dentro la vignetta un raggio
       // che si ferma sul bordo lascerebbe mezzo ventaglio vuoto.
-      const dx = s.x - c.x, dy = s.y - c.y;
+      const dx = b.x - c.x, dy = b.y - c.y;
       fascio += `<line x1="${c.x}" y1="${c.y}" x2="${c.x + dx*3}" y2="${c.y + dy*3}" stroke="${MAGENTA}" stroke-width="1" opacity=".32"/>`;
     }
   }
@@ -291,26 +383,35 @@ export function disegna(){
   }
   _ov.querySelector('.prosp-punti').innerHTML = punti;
 
+  scriviBarra(linee, fuochi, orizzonte);
+}
+
+// Quello che c'e' scritto in basso, in tre stati: riquadra, traccia, leggi.
+// Asciutto: e' uno strumento di misura, non un accompagnatore.
+function scriviBarra(linee, fuochi, orizzonte){
   const oriz = _ov.querySelector('.prosp-oriz');
-  oriz.textContent = fuochi.length
-    ? letturaOrizzonte(orizzonte, fuochi)
-    : (linee.length === 1 ? 'Ancora una linea, e compare la fuga'
-                          : 'Traccia due linee lungo due bordi che vanno in profondità');
-  _ov.querySelector('.prosp-fughe').textContent =
-    fuochi.map((f, i)=> letturaFuoco(f, i + 1)).join(' · ');
-  // Due linee che non si incontrano sono un'informazione, non un errore: vuol
-  // dire che quei due bordi in prospettiva non ci vanno (sono paralleli al
-  // piano dell'immagine).
-  if(linee.length >= 2 && !fuochi.length && !_bozza){
-    oriz.textContent = 'Queste due linee sono parallele: nessuna fuga';
+  const riq = faseRiquadro();
+  _ov.querySelector('.prosp-tutta').hidden = !riq;
+  _ov.querySelector('[data-act="indietro"]').hidden = riq && !_linee.length;
+  _ov.querySelector('[data-act="pulisci"]').hidden = riq && !_linee.length;
+
+  if(riq){
+    oriz.textContent = 'Riquadra la vignetta';
+    _ov.querySelector('.prosp-fughe').textContent = '';
+    return;
   }
+  if(fuochi.length) oriz.textContent = letturaOrizzonte(orizzonte, fuochi, cornice());
+  else if(linee.length >= 2 && !_bozza) oriz.textContent = 'Linee parallele: nessuna fuga';
+  else oriz.textContent = linee.length === 1 ? 'Ancora una linea' : 'Traccia due linee in profondità';
+  _ov.querySelector('.prosp-fughe').textContent =
+    fuochi.map((f, i)=> letturaFuoco(f, i + 1, cornice())).join(' · ');
 }
 
 export function apriProspettiva(img, alChiude){
   if(!img) return false;
   _ov = _ov || costruisci();
   _img = img;
-  _linee = []; _bozza = null;
+  _linee = []; _bozza = null; _riquadro = null; _bozzaRiq = null;
   _alChiude = alChiude || null;
   _ov.hidden = false;
   document.body.classList.add('prosp-aperta');
@@ -324,7 +425,7 @@ export function apriProspettiva(img, alChiude){
 export function chiudiProspettiva(){
   if(!_ov || _ov.hidden) return;
   _ov.hidden = true;
-  _img = null; _linee = []; _bozza = null;
+  _img = null; _linee = []; _bozza = null; _riquadro = null; _bozzaRiq = null;
   document.body.classList.remove('prosp-aperta');
   window.removeEventListener('resize', disegna);
   window.removeEventListener('orientationchange', disegna);
@@ -346,5 +447,6 @@ function tasti(e){
 window.chiudiProspettiva = chiudiProspettiva;
 
 // Per le prove: leggere lo stato senza dover simulare venti gesti.
-export function __perLeProve(){ return { linee: _linee.slice(), fuochi: fuochiDa(_linee) }; }
+export function __perLeProve(){ return { linee: _linee.slice(), fuochi: fuochiDa(_linee), riquadro: _riquadro }; }
+export function __perLeProveRiquadro(r){ _riquadro = r; disegna(); }
 export function __perLeProveTraccia(l){ _linee.push(l); disegna(); }
