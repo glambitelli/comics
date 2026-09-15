@@ -368,6 +368,9 @@ export function closeLightboxUI(){
   const ov = document.getElementById('refs-lightbox');
   if(ov) ov.classList.remove('open');
   document.body.classList.remove('refs-lightbox-open');
+  // Lo studio della prospettiva vive sopra l'immagine: se l'immagine se ne va,
+  // se ne va anche lui, se no resta un foglio di linee sopra il nulla.
+  if(window.chiudiProspettiva) window.chiudiProspettiva();
   resetImageZoom();
 }
 

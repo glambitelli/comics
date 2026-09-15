@@ -966,6 +966,14 @@ function buildReaderDOM(){
         <button class="ar-btn ar-tutta" data-act="tuttalatavola" aria-label="Salva tutta la tavola" title="Tutta la tavola">
           <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V5.6A1.6 1.6 0 0 1 5.6 4H9"/><path d="M15 4h3.4A1.6 1.6 0 0 1 20 5.6V9"/><path d="M20 15v3.4a1.6 1.6 0 0 1-1.6 1.6H15"/><path d="M9 20H5.6A1.6 1.6 0 0 1 4 18.4V15"/></svg>
         </button>
+        <!-- PROSPETTIVA. Sta accanto alle forbici perche' e' lo stesso genere
+             di gesto — si guarda la tavola e ci si fa qualcosa sopra — e
+             perche' su una pagina di manga le due cose si alternano: si
+             ritaglia la vignetta che interessa, e su quella si studia dove
+             cade l'orizzonte. L'icona e' un fascio che converge su un punto. -->
+        <button class="ar-btn ar-prosp" aria-label="Studia la prospettiva" title="Studia la prospettiva" data-act="prosp">
+          <svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M3 20 L19 8 M3 14 L19 8 M3 8 L19 8"/><circle cx="19.5" cy="8" r="1.8" fill="currentColor" stroke="none"/></svg>
+        </button>
         <button class="ar-btn ar-clip" aria-label="Ritaglia" data-act="clip">
           <svg viewBox="0 0 24 24" width="20" height="20"><circle cx="6.5" cy="6.5" r="2.4" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="6.5" cy="17.5" r="2.4" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8.6 8.2 20 18 M8.6 15.8 20 6" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg>
         </button>
@@ -1010,6 +1018,22 @@ function buildReaderDOM(){
     else if(act === 'prev') stepPage(-1);
     else if(act === 'next') stepPage(1);
     else if(act === 'clip') toggleClip();
+    // Lo studio della prospettiva arriva pigro: e' un modulo che la maggior
+    // parte delle letture non apre mai, e non deve pesare sull'apertura di un
+    // albo. La tavola da studiare e' quella della cella centrale — l'unica che
+    // si sta guardando davvero.
+    else if(act === 'prosp'){
+      // Il ritaglio si spegne: sono due righelli sulla stessa tavola, e
+      // tenerli accesi insieme vuol dire due trascinamenti che si contendono
+      // lo stesso dito.
+      if(_clipMode) toggleClip(false);
+      const cella = _arCells && _arCells[1];
+      if(cella && cella.img && cella.img.naturalWidth){
+        import('./prospettiva.js').then(m=> m.apriProspettiva(cella.img)).catch(()=>{});
+      } else {
+        toast('Aspetta che la tavola sia a schermo.', false, false, 1800);
+      }
+    }
     else if(act === 'first') gotoPage(0);
     else if(act === 'last') gotoPage(_pages.length - 1);
     else if(act === 'retryclip'){ if(ov._clipRetry) ov._clipRetry(); }
@@ -1156,6 +1180,9 @@ export function closeReaderUI(){
   // Chiudere il lettore vuol dire "ho cambiato idea", esattamente come
   // premere Annulla: lo scaricamento si ferma e lo si dice.
   const stavaScaricando = fermaScaricamento();
+  // Lo studio della prospettiva vive sopra la tavola: se la tavola se ne va,
+  // se ne va anche lui, se no resta un foglio di linee sopra il nulla.
+  if(window.chiudiProspettiva) window.chiudiProspettiva();
   saveReadingPos();
   if(_clipMode) toggleClip(false);
   _reader.classList.remove('open');

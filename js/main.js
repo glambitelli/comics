@@ -54,6 +54,23 @@ exposeLazy('./refs.js', ['refsBackToFolders','openRefLightbox','closeRefLightbox
 // L'onclick del pulsante nella barra della vista a schermo intero: senza id,
 // e' il frammento aperto in quel momento (vedi apriRitaglio in refs.js).
 window.rifilaDaLightbox = ()=> window.apriRitaglio();
+// ── LO STUDIO DELLA PROSPETTIVA, DALLA GALLERIA ──
+// Stessa strada del lettore (vedi data-act="prosp" in albums.js): il modulo
+// arriva pigro, e la tavola da studiare e' quella della cella centrale, l'unica
+// che si sta guardando davvero. Serve anche il globale per chiuderlo da fuori:
+// chiudendo il lettore o la galleria, il foglio di linee non deve restare
+// appeso sopra il nulla.
+window.prospettivaDaLightbox = function(){
+  const cella = document.querySelectorAll('#refs-lightbox .refs-lightbox-cell')[1];
+  const img = cella && cella.querySelector('img');
+  if(!img || !img.naturalWidth) return;
+  import('./prospettiva.js').then(m=> m.apriProspettiva(img)).catch(()=>{});
+};
+// La chiusura NON si definisce qui: se la mette addosso a window il modulo
+// stesso quando arriva (vedi in fondo a prospettiva.js). Definendola anche qui
+// si sarebbe sovrascritta quella vera con una che ricarica il modulo, e
+// soprattutto il lettore e la galleria — che la chiamano — funzionano cosi'
+// anche nei banchi di prova, dove main.js non c'e'.
 exposeLazy('./albums.js', ['openAlbumPicker','openAlbumFromFile','openAlbumFromDrive',
   'createAlbumFromDriveFile','completaSchedaAlbo']);
 exposeLazy('./scriptment.js', ['openScriptment','closeScriptment','setScriptmentFont',

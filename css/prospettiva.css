@@ -1,0 +1,58 @@
+/* ── LO STUDIO DELLA PROSPETTIVA ──
+   Un foglio sopra tutto: copre lettore e galleria, e insieme li disinnesca.
+   E' voluto — mentre si traccia una linea il trascinamento NON deve girare
+   pagina ne' ingrandire, e senza un foglio sopra bisognerebbe spegnere a mano
+   ogni gesto delle due schermate sotto, due volte, e ricordarsene per sempre.
+   Lo z-index sta sopra la galleria (9500), che e' la cosa piu' alta dell'app. */
+.prosp{position:fixed;inset:0;z-index:9800;touch-action:none;-webkit-tap-highlight-color:transparent}
+.prosp[hidden]{display:none}
+/* Nessun fondo: l'immagine sotto si deve vedere intera e com'e'. E' un
+   righello appoggiato sopra il disegno, non una finestra nuova. */
+.prosp-svg{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:crosshair}
+
+/* La barra sta in BASSO e non in alto: il pollice arriva li', e in alto
+   coprirebbe proprio la fascia di cielo dove l'orizzonte cade piu' spesso
+   nelle tavole che si vanno a studiare. */
+.prosp-barra{
+  position:absolute;left:10px;right:10px;bottom:calc(10px + var(--safe-bot));
+  background:rgba(18,13,8,.86);
+  backdrop-filter:blur(10px) saturate(1.1);-webkit-backdrop-filter:blur(10px) saturate(1.1);
+  border:1px solid rgba(232,200,120,.22);border-radius:16px;
+  padding:11px 13px;display:flex;flex-direction:column;gap:9px;
+  font-family:'Nunito',system-ui,sans-serif;
+}
+.prosp-lettura{display:flex;flex-direction:column;gap:3px;min-width:0}
+/* Il numero dell'orizzonte e' la ragione per cui si e' aperto lo strumento:
+   si legge senza cercarlo, ed e' ciano come la linea a cui si riferisce. */
+.prosp-oriz{font-size:15px;font-weight:800;color:#00e0ff;line-height:1.25}
+.prosp-fughe{font-size:11.5px;color:rgba(240,232,216,.72);line-height:1.35}
+.prosp-fughe:empty{display:none}
+.prosp-comandi{display:flex;gap:8px}
+.prosp-btn{
+  flex:1;background:rgba(255,248,232,.1);border:1px solid rgba(255,248,232,.16);
+  color:#f0e8d8;font-family:inherit;font-size:12.5px;font-weight:700;
+  border-radius:10px;padding:9px 6px;cursor:pointer;-webkit-tap-highlight-color:transparent;
+}
+.prosp-btn:active{transform:scale(.97);background:rgba(255,248,232,.18)}
+.prosp-esci{background:rgba(255,46,166,.18);border-color:rgba(255,46,166,.35);color:#ffd7ee}
+
+/* Con lo studio aperto sparisce tutto il resto dei comandi: la barra-duna, la
+   capsula del cronometro e i comandi del lettore. Restano quelli dello studio,
+   che sono tre e bastano. */
+body.prosp-aperta .dune-nav,
+body.prosp-aperta .home-fab-row,
+body.prosp-aperta .tempo-capsula,
+body.prosp-aperta .ar-bottombar,
+body.prosp-aperta .ar-topbar,
+body.prosp-aperta .refs-lightbox-bottom,
+body.prosp-aperta .refs-lightbox-close,
+body.prosp-aperta .ar-nav,
+body.prosp-aperta .refs-lightbox-nav{display:none !important}
+
+@media (min-width:760px){
+  /* Col mouse la barra non deve stendersi per tutta la finestra: diventerebbe
+     una riga di testo lunga un metro con tre bottoni all'altro capo. */
+  .prosp-barra{left:50%;right:auto;transform:translateX(-50%);width:min(560px, calc(100% - 32px))}
+  .prosp-comandi{justify-content:flex-end}
+  .prosp-btn{flex:0 0 auto;min-width:118px}
+}
