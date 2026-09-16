@@ -662,24 +662,33 @@ const FONDO = '#16120c';     // il fondo del tavolo, dove la pagina non arriva
 // Prima era sempre e solo la vignetta, e il 15 settembre 2026 si e' visto il
 // limite: con l'orizzonte fuori dal riquadro, nello studio salvato la riga
 // d'oro non c'era proprio — restava una vignetta con due linee azzurre e
-// nessuna risposta.
+// nessuna risposta. La cura di allora era "si salva quello che si vede a
+// schermo in quel momento": bastava aver allargato la veduta (⤢, due dita, la
+// rotella) prima di premere Salva, e la fuga finiva dentro.
 //
-// La regola adesso e' quella che ci si aspetta guardando lo schermo: SI SALVA
-// QUELLO CHE SI VEDE. Se si e' allargata la veduta per andare a prendere la
-// fuga (il tasto ⤢, o due dita, o la rotella) finisce dentro anche quella, col
-// fondo del tavolo dove la pagina non arriva e la vignetta segnata dal suo
-// bordo tratteggiato. Se invece si sta guardando la vignetta e basta, si salva
-// lei sola, pulita: e' il caso normale e non deve portarsi dietro cornici nere.
+// SBAGLIATA ANCHE QUELLA, e Giovanni l'ha trovato il 16 settembre 2026: per
+// TRACCIARE con precisione si zooma stretti, e la mano che ha appena finito il
+// secondo tratto e' la stessa che preme Salva — dimenticarsi di rizoomare
+// indietro prima vuol dire salvare un ritaglio, non lo studio. "Quello che si
+// vede mentre si lavora" e "quello che finisce salvato" sono due domande
+// diverse, e legarle insieme era l'errore: la prima la decide il dito (serve
+// precisione), la seconda la deve decidere lo strumento (serve completezza).
+//
+// Adesso NON dipende piu' da come si sta guardando lo schermo in quel momento:
+// e' sempre la vignetta, allargata quel poco che serve a contenere ogni fuga —
+// vedi abbraccioFughe — SOLO SE una fuga cade fuori dal riquadro. Con la fuga
+// dentro (il caso normale) si salva la vignetta sola, pulita, esattamente
+// com'era: non ha senso aggiungere margine e cornice tratteggiata a uno studio
+// che gia' contiene tutto quello che serve.
 //
 // E per i casi che NESSUNA inquadratura potrebbe contenere — l'orizzonte a
 // meno millecinquecento per cento, la fuga a undici larghezze — sotto
-// l'immagine si scrivono i numeri (vedi strisciaDati). Li' il dato E' il
-// numero, non il disegno.
+// l'immagine si scrivono comunque i numeri (vedi strisciaDati). Li' il dato E'
+// il numero, non il disegno.
 function areaDaSalvare(){
-  if(!_vista || !(_vedutaLarga || _mossoAMano)) return cornice();
-  const L = spazioLibero();
-  const a = aImmagine(L.x, L.y, _vista), b = aImmagine(L.x + L.w, L.y + L.h, _vista);
-  return { x:a.x, y:a.y, w:b.x - a.x, h:b.y - a.y };
+  const r = cornice();
+  const dentro = f => f.x >= r.x && f.x <= r.x + r.w && f.y >= r.y && f.y <= r.y + r.h;
+  return fuochiDa(_linee).every(dentro) ? r : abbraccioFughe();
 }
 
 // La striscia coi numeri sotto l'immagine. Non e' una didascalia carina: e'

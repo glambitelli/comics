@@ -568,8 +568,12 @@ module.exports = () => suite("Prospettiva — il righello per leggere l'orizzont
     // La vignetta e' la meta' alta dell'immagine.
     P.__perLeProveRiquadro({ x:0, y:0, w:1, h:0.5 });
     const senzaFughe = btn().hidden;
-    P.__perLeProveTraccia({ a:{x:0.05,y:0.10}, b:{x:0.95,y:0.18} });
-    P.__perLeProveTraccia({ a:{x:0.05,y:0.40}, b:{x:0.95,y:0.32} });
+    // Due linee che convergono al CENTRO della vignetta (0.5, 0.25): la fuga
+    // resta dentro il riquadro apposta, per provare il caso normale — quello
+    // che deve restare pulito, senza margine ne' cornice aggiunti (vedi
+    // areaDaSalvare: si allarga SOLO quando una fuga cade fuori).
+    P.__perLeProveTraccia({ a:{x:0.05,y:0.05}, b:{x:0.95,y:0.45} });
+    P.__perLeProveTraccia({ a:{x:0.05,y:0.45}, b:{x:0.95,y:0.05} });
     const conFuga = btn().hidden;
     btn().dispatchEvent(new MouseEvent('click', { bubbles:true }));
     await new Promise(r=> setTimeout(r, 900));
@@ -624,14 +628,18 @@ module.exports = () => suite("Prospettiva — il righello per leggere l'orizzont
   });
   ok('il pulsante Salva non compare', senzaCasa, senzaCasa);
 
-  sezione('e con l\'orizzonte fuori dalla vignetta, lo studio lo dice lo stesso');
-  // IL LIMITE TROVATO SUL CAMPO (15 settembre 2026): con l'orizzonte fuori dal
-  // riquadro, nello studio salvato la riga d'oro non c'era proprio — restava
-  // una vignetta con due linee azzurre e nessuna risposta. E per i casi
-  // estremi (orizzonte a meno millecinquecento per cento, fuga a undici
-  // larghezze) NESSUNA inquadratura potrebbe contenerla: li' il dato e' il
-  // numero. Quindi due cure: si salva quello che si vede — allargando la
-  // veduta entra anche la fuga — e sotto l'immagine si scrivono i numeri.
+  sezione('e con l\'orizzonte fuori dalla vignetta, il salvataggio si allarga da solo');
+  // IL LIMITE TROVATO IL 15 SETTEMBRE 2026: con l'orizzonte fuori dal riquadro,
+  // nello studio salvato la riga d'oro non c'era proprio. La prima cura era
+  // "si salva quello che si vede a schermo" — bastava allargare la veduta col
+  // tasto ⤢ prima di premere Salva.
+  //
+  // SBAGLIATA ANCHE QUELLA (16 settembre 2026): per tracciare con precisione
+  // si zooma stretti, e la stessa mano che ha appena finito il secondo tratto
+  // preme Salva — dimenticarsi di rizoomare indietro voleva dire salvare un
+  // ritaglio, non lo studio. Adesso il salvataggio NON dipende piu' da come si
+  // sta guardando lo schermo: si allarga DA SOLO quando una fuga cade fuori
+  // dal riquadro, senza che nessuno debba premere niente prima.
   const fuoriCampo = await page.evaluate(async ()=>{
     const P = window.P;
     const preso = [];
@@ -645,24 +653,16 @@ module.exports = () => suite("Prospettiva — il righello per leggere l'orizzont
     await new Promise(r=> setTimeout(r, 60));
     const lettura = document.querySelector('.prosp-oriz').textContent;
     const misure = P.misureStudio();
-    // Prima si salva la vignetta sola, com'e' il caso normale.
-    document.querySelector('.prosp-salva').dispatchEvent(new MouseEvent('click',{bubbles:true}));
-    await new Promise(r=> setTimeout(r, 900));
-    // Poi la stessa cosa con la veduta allargata.
-    P.apriProspettiva(window.__img, { salva: async d=>{ preso.push(d); } });
-    P.__perLeProveRiquadro({ x:0.1, y:0.5, w:0.6, h:0.25 });
-    P.__perLeProveTraccia({ a:{x:0.12,y:0.72}, b:{x:0.66,y:0.60} });
-    P.__perLeProveTraccia({ a:{x:0.12,y:0.60}, b:{x:0.66,y:0.545} });
-    P.adattaVeduta(true);
-    await new Promise(r=> setTimeout(r, 60));
+    // NESSUN tasto ⤢, nessun pizzico: si salva subito, cosi' com'e' appena
+    // tracciate le due linee.
     document.querySelector('.prosp-salva').dispatchEvent(new MouseEvent('click',{bubbles:true}));
     await new Promise(r=> setTimeout(r, 900));
     const leggi = async b=> new Promise(res=>{
       const im = new Image(); im.onload = ()=> res(im); im.src = URL.createObjectURL(b);
     });
-    const stretta = await leggi(preso[0].blob), larga = await leggi(preso[1].blob);
-    // Nell'immagine larga si va a cercare l'oro dell'orizzonte: se c'e', la
-    // riga e' finita dentro davvero.
+    const senzaToccareNiente = await leggi(preso[0].blob);
+    // Nell'immagine si va a cercare l'oro dell'orizzonte: se c'e', la riga e'
+    // finita dentro davvero.
     const cercaOro = (im)=>{
       const cv = document.createElement('canvas');
       cv.width = im.width; cv.height = im.height;
@@ -676,21 +676,67 @@ module.exports = () => suite("Prospettiva — il righello per leggere l'orizzont
     };
     return {
       lettura, misure,
-      stretta: { w: stretta.width, h: stretta.height, oro: cercaOro(stretta) },
-      larga: { w: larga.width, h: larga.height, oro: cercaOro(larga) },
+      immagine: { w: senzaToccareNiente.width, h: senzaToccareNiente.height, oro: cercaOro(senzaToccareNiente) },
     };
   });
   ok('l\'orizzonte cade davvero sopra la vignetta',
      /\(sopra\)/.test(fuoriCampo.lettura), fuoriCampo.lettura);
-  // Salvando la vignetta sola la riga d'oro non c'e': e' fuori, ed e' giusto
-  // cosi' — quello che si vedeva a schermo era quello.
-  ok('salvando la vignetta sola, la riga d\'oro non ci sta',
-     fuoriCampo.stretta.oro < 200, fuoriCampo.stretta);
-  // Allargando la veduta prima di salvare, invece, ci entra.
-  ok('ma allargando la veduta prima di salvare, ci entra',
-     fuoriCampo.larga.oro > 1000, fuoriCampo.larga);
-  ok('e l\'immagine larga e\' piu\' alta di quella stretta',
-     fuoriCampo.larga.h > fuoriCampo.stretta.h * 1.5, fuoriCampo);
+  // Senza premere ⤢, senza pizzicare, senza girare la rotella: la riga d'oro
+  // c'e' comunque.
+  ok('e senza toccare ⤢ ne\' zoom di nessun tipo, la riga d\'oro c\'e\' lo stesso',
+     fuoriCampo.immagine.oro > 1000, fuoriCampo.immagine);
+
+  sezione('e non dipende da come si sta guardando lo schermo quando si preme Salva');
+  // IL CASO PRECISO DI GIOVANNI: si zooma stretti per tracciare con
+  // precisione, e la vista resta cosi' finche' non si preme Salva. Il
+  // salvataggio deve ignorare quel ritaglio e comporre da solo la vignetta
+  // intera con la fuga — esattamente come nella prova sopra, ma qui in piu' si
+  // pizzica lo schermo per restringersi su un angolo minuscolo PRIMA di
+  // salvare, cosi' se qualcosa tornasse a dipendere dalla vista attuale questa
+  // prova lo direbbe.
+  const zoomatoAlMomentoDiSalvare = await page.evaluate(async ()=>{
+    const P = window.P;
+    const preso = [];
+    P.chiudiProspettiva();
+    P.apriProspettiva(window.__img, { salva: async d=>{ preso.push(d); } });
+    P.__perLeProveRiquadro({ x:0.1, y:0.5, w:0.6, h:0.25 });
+    P.__perLeProveTraccia({ a:{x:0.12,y:0.72}, b:{x:0.66,y:0.60} });
+    P.__perLeProveTraccia({ a:{x:0.12,y:0.60}, b:{x:0.66,y:0.545} });
+    await new Promise(r=> setTimeout(r, 60));
+    // Ci si stringe forte su un angolo della vignetta soltanto — non sulla
+    // fuga, non sull'orizzonte: proprio il caso in cui, se il salvataggio
+    // dipendesse ancora dalla vista, l'oro non ci sarebbe.
+    const svg = document.querySelector('.prosp-svg');
+    const tav = document.querySelector('.prosp-tavolo').getBoundingClientRect();
+    const c = { x: tav.left + tav.width * 0.3, y: tav.top + tav.height * 0.7 };
+    const dito = (id, tipo, x, y)=> svg.dispatchEvent(new PointerEvent(tipo,
+      { pointerId:id, clientX:x, clientY:y, bubbles:true, cancelable:true }));
+    dito(1, 'pointerdown', c.x - 15, c.y);
+    dito(2, 'pointerdown', c.x + 15, c.y);
+    dito(1, 'pointermove', c.x - 90, c.y - 20);
+    dito(2, 'pointermove', c.x + 90, c.y + 20);
+    dito(1, 'pointerup', c.x - 90, c.y - 20);
+    dito(2, 'pointerup', c.x + 90, c.y + 20);
+    await new Promise(r=> setTimeout(r, 60));
+    const ristretto = document.querySelector('.prosp-tavolo').getBoundingClientRect().width
+      > tav.width * 1.3;   // conferma che il pizzico ha davvero stretto la vista
+    document.querySelector('.prosp-salva').dispatchEvent(new MouseEvent('click',{bubbles:true}));
+    await new Promise(r=> setTimeout(r, 900));
+    const im = await new Promise(res=>{
+      const i = new Image(); i.onload = ()=> res(i); i.src = URL.createObjectURL(preso[0].blob); });
+    const cv = document.createElement('canvas'); cv.width = im.width; cv.height = im.height;
+    const cx = cv.getContext('2d'); cx.drawImage(im, 0, 0);
+    const d = cx.getImageData(0, 0, cv.width, Math.round(cv.height * 0.88)).data;
+    let oro = 0;
+    for(let i = 0; i < d.length; i += 4){
+      if(d[i] > 200 && d[i+1] > 150 && d[i+1] < 220 && d[i+2] < 90) oro++;
+    }
+    return { ristretto, w: im.width, h: im.height, oro };
+  });
+  ok('la vista era davvero stata ristretta prima di salvare',
+     zoomatoAlMomentoDiSalvare.ristretto, zoomatoAlMomentoDiSalvare);
+  ok('ma il salvataggio ignora quella vista e compone la vignetta intera lo stesso',
+     zoomatoAlMomentoDiSalvare.oro > 1000, zoomatoAlMomentoDiSalvare);
   // E IN OGNI CASO I NUMERI SONO SCRITTI SOTTO. E' l'unica risposta possibile
   // quando la fuga sta a undici larghezze e nessuna inquadratura la contiene.
   const striscia = await page.evaluate(async ()=>{
