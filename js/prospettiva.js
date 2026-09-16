@@ -58,6 +58,14 @@ let _img = null;             // l'immagine che si sta studiando
 let _linee = [];             // { a:{x,y}, b:{x,y} } in coordinate 0..1 dell'immagine
 let _bozza = null;           // la linea che il dito sta tracciando in questo momento
 let _alChiude = null;
+// UNA LINEA STORTA, PRIMA, SI POTEVA SOLO DISFARE E RITRACCIARE DA CAPO.
+// Giovanni l'ha segnalato il 16 settembre 2026: due tratti tirati bene tranne
+// un pelo su un estremo obbligavano a buttare via anche l'altro, giusto, per
+// rifare tutto. Ora il dito puo' anche solo CORREGGERE: appoggiandosi vicino
+// a un capo gia' piazzato lo si trascina, invece di aggiungerne uno nuovo. Lo
+// stato qui sotto ricorda quale capo, di quale linea, sta seguendo il dito in
+// questo momento — null il resto del tempo, quando il dito sta disegnando.
+let _trascinaEstremo = null; // { i, estremo:'a'|'b' }
 // ── PRIMA LA VIGNETTA, POI LE LINEE ──
 //
 // La prima versione misurava l'orizzonte sull'INTERA tavola, e la percentuale
@@ -121,13 +129,20 @@ function aImmagine(cx, cy, t){
   return { x: (cx - t.ox) / (_img.naturalWidth * t.s), y: (cy - t.oy) / (_img.naturalHeight * t.s) };
 }
 
-// Lo spazio in cui il tavolo puo' stendersi: lo schermo meno la barra dei
-// comandi. E' la riga che fa sparire la sovrapposizione — prima la vignetta
-// veniva centrata sullo schermo intero e la barra le finiva sopra.
+// Lo spazio in cui il tavolo puo' stendersi: il PALCO, non piu' "lo schermo
+// meno un conto a occhio sull'altezza della barra". Prima si misurava
+// window.innerHeight meno l'altezza della barra piu' un margine di scorta
+// indovinato (+20px) — un'approssimazione che, sbagliando il margine,
+// lasciava la barra tornare a sedersi sopra l'immagine: la sovrapposizione
+// segnalata da Giovanni il 16 settembre 2026. Da quando .prosp e' una colonna
+// flex con il palco e la barra come due righe DIVERSE (vedi costruisci e
+// prospettiva.css), lo spazio libero e' semplicemente il rettangolo che il
+// layout ha gia' assegnato al palco: non una stima, la misura vera.
 function spazioLibero(){
-  const barra = _ov && _ov.querySelector('.prosp-barra');
-  const h = barra ? barra.getBoundingClientRect().height + 20 : 110;
-  return { x: 14, y: 14, w: window.innerWidth - 28, h: Math.max(80, window.innerHeight - h - 28) };
+  const palco = _ov && _ov.querySelector('.prosp-palco');
+  if(!palco) return { x: 14, y: 14, w: window.innerWidth - 28, h: Math.max(80, window.innerHeight - 138) };
+  const r = palco.getBoundingClientRect();
+  return { x: 14, y: 14, w: Math.max(80, r.width - 28), h: Math.max(80, r.height - 28) };
 }
 
 // Porta dentro lo spazio libero un rettangolo dato in coordinate 0..1
@@ -303,36 +318,56 @@ function costruisci(){
   ov.id = 'prospettiva';
   ov.hidden = true;
   ov.innerHTML = `
-    <!-- IL TAVOLO. Un ritaglio dell'immagine vera, non una copia ridisegnata:
-         e' lo stesso file gia' decodificato dal lettore, spostato e ingrandito
-         con una trasformazione CSS — quindi ingrandire e restringere non costa
-         niente, anche su una tavola da tremila pixel. Quello che sborda dalla
-         vignetta lo taglia il contenitore. -->
-    <div class="prosp-tavolo" hidden><img alt=""></div>
-    <svg class="prosp-svg" aria-hidden="true">
-      <defs><clipPath id="prosp-clip"><rect class="prosp-clip-rect" x="0" y="0" width="0" height="0"/></clipPath></defs>
-      <!-- Fuori dalla vignetta si scurisce: la tavola intorno resta visibile —
-           serve a capire dove sta l'inquadratura nella pagina — ma smette di
-           contendere l'attenzione a quella che si sta misurando. -->
-      <path class="prosp-velo" fill="rgba(0,0,0,.5)" fill-rule="evenodd"></path>
-      <rect class="prosp-cornice" fill="none" stroke="#f2e6cd" stroke-width="1.5" stroke-dasharray="7 5" opacity=".85"></rect>
-      <g class="prosp-fascio" clip-path="url(#prosp-clip)"></g>
-      <!-- L'ORIZZONTE NON SI TAGLIA, il fascio si.
-           Il fascio e' la struttura di QUESTA vignetta: sparso su tutto lo
-           schermo sarebbe rumore. L'orizzonte no: e' l'altezza dell'occhio, e
-           quando cade fuori dal riquadro — il caso di Otomo, e il motivo per
-           cui esiste il tasto per allargare la veduta — e' proprio LI' FUORI
-           che lo si vuole vedere. Tagliandolo sulla vignetta, allargare la
-           veduta non mostrava niente di nuovo: difetto trovato il 15 settembre
-           2026 su uno studio salvato, dove la riga d'oro non c'era proprio.
-           (Tagliarlo aveva un senso quando lo strumento stava appoggiato alla
-           pagina e la riga correva da un bordo all'altro della finestra. Da
-           quando la vignetta ha un tavolo suo, intorno c'e' il fondo del
-           tavolo, e una riga d'oro che lo attraversa dice una cosa vera.) -->
-      <g class="prosp-orizzonte"></g>
-      <g class="prosp-tratti"></g>
-      <g class="prosp-punti"></g>
-    </svg>
+    <!-- IL PALCO: tutto quello su cui si lavora — il tavolo e l'SVG — vive
+         qui dentro, e QUI DENTRO SOLTANTO. Prima il tavolo e l'SVG erano
+         grandi quanto l'intero foglio, e la barra ci galleggiava sopra con
+         position:absolute: "lasciarle spazio" voleva dire un conto in JS
+         (spazioLibero) che indovinava quanto fosse alta la barra e sperava di
+         azzeccare il margine. Sbagliando quel margine la barra tornava a
+         sedersi sopra l'immagine — la sovrapposizione segnalata da Giovanni
+         il 16 settembre 2026. Ora il palco e la barra sono due righe DIVERSE
+         di una colonna flex (vedi prospettiva.css): quello che il tavolo puo'
+         occupare finisce dove comincia la barra per costruzione del layout,
+         non per un calcolo che puo' sbagliare. -->
+    <div class="prosp-palco">
+      <!-- IL TAVOLO. Un ritaglio dell'immagine vera, non una copia ridisegnata:
+           e' lo stesso file gia' decodificato dal lettore, spostato e
+           ingrandito con una trasformazione CSS — quindi ingrandire e
+           restringere non costa niente, anche su una tavola da tremila pixel.
+           Quello che sborda dalla vignetta lo taglia il contenitore. -->
+      <div class="prosp-tavolo" hidden><img alt=""></div>
+      <svg class="prosp-svg" aria-hidden="true">
+        <defs><clipPath id="prosp-clip"><rect class="prosp-clip-rect" x="0" y="0" width="0" height="0"/></clipPath></defs>
+        <!-- Fuori dalla vignetta si scurisce: la tavola intorno resta visibile —
+             serve a capire dove sta l'inquadratura nella pagina — ma smette di
+             contendere l'attenzione a quella che si sta misurando. -->
+        <path class="prosp-velo" fill="rgba(0,0,0,.5)" fill-rule="evenodd"></path>
+        <rect class="prosp-cornice" fill="none" stroke="#f2e6cd" stroke-width="1.5" stroke-dasharray="7 5" opacity=".85"></rect>
+        <g class="prosp-fascio" clip-path="url(#prosp-clip)"></g>
+        <!-- L'ORIZZONTE NON SI TAGLIA, il fascio si.
+             Il fascio e' la struttura di QUESTA vignetta: sparso su tutto lo
+             schermo sarebbe rumore. L'orizzonte no: e' l'altezza dell'occhio, e
+             quando cade fuori dal riquadro — il caso di Otomo, e il motivo per
+             cui esiste il tasto per allargare la veduta — e' proprio LI' FUORI
+             che lo si vuole vedere. Tagliandolo sulla vignetta, allargare la
+             veduta non mostrava niente di nuovo: difetto trovato il 15 settembre
+             2026 su uno studio salvato, dove la riga d'oro non c'era proprio.
+             (Tagliarlo aveva un senso quando lo strumento stava appoggiato alla
+             pagina e la riga correva da un bordo all'altro della finestra. Da
+             quando la vignetta ha un tavolo suo, intorno c'e' il fondo del
+             tavolo, e una riga d'oro che lo attraversa dice una cosa vera.) -->
+        <g class="prosp-orizzonte"></g>
+        <g class="prosp-tratti"></g>
+        <!-- LE MANIGLIE: un cerchietto vuoto su ogni estremo gia' tracciato, e
+             un quadratino su ogni angolo del riquadro scelto. Non fanno niente
+             da sole — l'aggancio e' un conto di distanza in agganciaTratto,
+             non un elemento cliccabile — servono solo a FAR VEDERE che quei
+             punti si possono riprendere in mano, invece di dover disfare tutto
+             per correggere un tratto storto (Giovanni, 16 settembre 2026). -->
+        <g class="prosp-maniglie"></g>
+        <g class="prosp-punti"></g>
+      </svg>
+    </div>
     <div class="prosp-barra">
       <div class="prosp-lettura">
         <b class="prosp-oriz"></b>
@@ -379,7 +414,7 @@ function costruisci(){
       else { _riquadro = null; prendiIlTavolo(); }
       disegna();
     }
-    else if(a === 'pulisci'){ _linee = []; _riquadro = null; prendiIlTavolo(); disegna(); }
+    else if(a === 'pulisci'){ _linee = []; _riquadro = null; _bozzaRiq = null; _trascinaEstremo = null; prendiIlTavolo(); disegna(); }
     // "Tutta l'immagine" salta il riquadro: per un frammento gia' ritagliato su
     // una vignetta sola, riquadrarlo sarebbe un gesto a vuoto.
     else if(a === 'tutta'){ _riquadro = { x:0, y:0, w:1, h:1 }; prendiIlTavolo(); disegna(); }
@@ -389,6 +424,47 @@ function costruisci(){
   });
   agganciaTratto(ov.querySelector('.prosp-svg'));
   return ov;
+}
+
+// Il dito e' arrivato vicino a un capo GIA' TRACCIATO, o vuole cominciarne
+// uno nuovo? Si cerca l'estremo piu' vicino fra tutte le linee, e si accetta
+// solo entro un raggio comodo per un polpastrello (26px, piu' largo del
+// MIN_PX del trascinamento: qui non serve distinguere un tocco vero da uno
+// storto, serve solo essere generosi nel centrare un punto piccolo). Oltre
+// quel raggio si presume che il dito voglia tracciare una riga nuova.
+const RAGGIO_MANIGLIA = 26;
+function trovaEstremo(cx, cy, t){
+  let migliore = null, meglioDist = RAGGIO_MANIGLIA;
+  _linee.forEach((l, i)=>{
+    for(const estremo of ['a', 'b']){
+      const p = aSchermo(l[estremo], t);
+      const d = Math.hypot(p.x - cx, p.y - cy);
+      if(d < meglioDist){ meglioDist = d; migliore = { i, estremo }; }
+    }
+  });
+  return migliore;
+}
+// Lo stesso, sui quattro angoli del riquadro gia' scelto. Restituisce
+// l'angolo trascinato E quello opposto (che resta fermo): e' esattamente la
+// coppia di punti che un trascinamento-da-zero produce, quindi trascinare un
+// angolo puo' riusare — vedi piu' sotto — la stessa _bozzaRiq e lo stesso
+// codice di chiusura gia' scritti per il primo riquadro.
+function trovaAngoloRiq(cx, cy, t){
+  if(!_riquadro) return null;
+  const r = _riquadro;
+  const angoli = [
+    { punto:{x:r.x,       y:r.y      }, opposto:{x:r.x+r.w, y:r.y+r.h} },
+    { punto:{x:r.x+r.w,   y:r.y      }, opposto:{x:r.x,     y:r.y+r.h} },
+    { punto:{x:r.x,       y:r.y+r.h  }, opposto:{x:r.x+r.w, y:r.y    } },
+    { punto:{x:r.x+r.w,   y:r.y+r.h  }, opposto:{x:r.x,     y:r.y    } },
+  ];
+  let migliore = null, meglioDist = RAGGIO_MANIGLIA;
+  for(const ang of angoli){
+    const p = aSchermo(ang.punto, t);
+    const d = Math.hypot(p.x - cx, p.y - cy);
+    if(d < meglioDist){ meglioDist = d; migliore = ang; }
+  }
+  return migliore;
 }
 
 // Il tratto si fa trascinando, con i Pointer Events: un solo codice per dito,
@@ -415,7 +491,7 @@ function agganciaTratto(svg){
     // Il secondo dito annulla il tratto appena cominciato: chi apre due dita
     // vuole guardare, non ha sbagliato a disegnare.
     if(dita.size === 2 && _vista){
-      _bozza = null; _bozzaRiq = null; attivo = null;
+      _bozza = null; _bozzaRiq = null; _trascinaEstremo = null; attivo = null;
       const c = centro();
       pizzico = { d:c.d, x:c.x, y:c.y, s:_vista.s, ox:_vista.ox, oy:_vista.oy };
       disegna();
@@ -423,6 +499,23 @@ function agganciaTratto(svg){
     }
     if(dita.size > 1) return;
     attivo = e.pointerId;
+    // PRIMA SI CERCA UN CAPO GIA' PIAZZATO. Una volta tracciate le linee, il
+    // dito serve piu' spesso a CORREGGERLE che ad aggiungerne di nuove — vedi
+    // la nota sopra _trascinaEstremo. Si guarda prima un estremo di linea,
+    // poi un angolo del riquadro: solo se nessuno dei due e' vicino si parte
+    // con un gesto nuovo, come prima.
+    if(!faseRiquadro()){
+      const est = trovaEstremo(e.clientX, e.clientY, t);
+      if(est){ _trascinaEstremo = est; return; }
+      const ang = trovaAngoloRiq(e.clientX, e.clientY, t);
+      if(ang){
+        // Si trascina esattamente come si disegna un riquadro da zero — vedi
+        // il commento su trovaAngoloRiq — cosi' pointermove e la chiusura del
+        // gesto qui sotto non hanno bisogno di un percorso separato.
+        _bozzaRiq = { a: ang.opposto, b: ang.punto };
+        return;
+      }
+    }
     const p = aImmagine(e.clientX, e.clientY, t);
     if(faseRiquadro()) _bozzaRiq = { a:p, b:p };
     else _bozza = { a:p, b:p };
@@ -447,6 +540,11 @@ function agganciaTratto(svg){
     }
     if(attivo !== e.pointerId) return;
     const t = trasforma(); if(!t) return;
+    if(_trascinaEstremo){
+      _linee[_trascinaEstremo.i][_trascinaEstremo.estremo] = aImmagine(e.clientX, e.clientY, t);
+      disegna();
+      return;
+    }
     const p = aImmagine(e.clientX, e.clientY, t);
     if(_bozzaRiq) _bozzaRiq.b = p;
     else if(_bozza) _bozza.b = p;
@@ -459,6 +557,14 @@ function agganciaTratto(svg){
     if(dita.size < 2) pizzico = null;
     if(attivo !== e.pointerId) return;
     attivo = null;
+    if(_trascinaEstremo){
+      // Niente MIN_PX qui: e' manipolazione diretta di un punto gia' buono,
+      // non un gesto che si distingue da un tocco a vuoto — qualunque
+      // spostamento, anche minimo, e' intenzionale.
+      _trascinaEstremo = null;
+      disegna();
+      return;
+    }
     const t = trasforma();
     if(_bozzaRiq && t){
       const a = aSchermo(_bozzaRiq.a, t), b = aSchermo(_bozzaRiq.b, t);
@@ -514,7 +620,18 @@ export function disegna(){
   const t = trasforma();
   const svg = _ov.querySelector('.prosp-svg');
   if(!t) return;
-  svg.setAttribute('viewBox', '0 0 ' + window.innerWidth + ' ' + window.innerHeight);
+  // Il viewBox segue la misura VERA del palco, non piu' quella dell'intera
+  // finestra: da quando l'SVG vive dentro .prosp-palco (una riga della
+  // colonna flex, non piu' tutto il foglio) il suo riquadro renderizzato e'
+  // gia' piu' basso della finestra di quanto la barra occupa sotto. Usare
+  // ancora window.innerHeight qui scalerebbe il contenuto (1 unita' di
+  // viewBox non varrebbe piu' un pixel), mentre le coordinate che si
+  // disegnano sopra (aSchermo, _vista) restano in pixel di pagina — il palco
+  // parte da (0,0) come partiva .prosp prima, quindi l'origine coincide e
+  // basta smettere di forzare l'altezza intera.
+  const palco = _ov.querySelector('.prosp-palco');
+  const pr = palco.getBoundingClientRect();
+  svg.setAttribute('viewBox', '0 0 ' + pr.width + ' ' + pr.height);
   sistemaIlTavolo(t);
 
   // La cornice a schermo: quella scelta, o quella che il dito sta trascinando
@@ -538,7 +655,7 @@ export function disegna(){
   // si sta pannando. Una volta scelta la vignetta il tavolo mostra solo lei:
   // non c'e' piu' niente da mettere da parte, e un grigio sopra sarebbe solo
   // grigio.
-  const W = window.innerWidth, H = window.innerHeight;
+  const W = pr.width, H = pr.height;
   const velo = _ov.querySelector('.prosp-velo');
   const scegliendo = faseRiquadro();
   const tutta = riq.w >= 0.999 && riq.h >= 0.999 && riq.x <= 0.001 && riq.y <= 0.001;
@@ -608,6 +725,26 @@ export function disegna(){
           +  `<circle cx="${c.x}" cy="${c.y}" r="4.5" fill="${AZZURRO}"/>`;
   }
   _ov.querySelector('.prosp-punti').innerHTML = punti;
+
+  // LE MANIGLIE. Un cerchietto vuoto su ogni capo di linea gia' tracciato —
+  // vuoto, per non confondersi col pallino pieno della fuga — e un
+  // quadratino sugli angoli del riquadro, se c'e' gia'. Non catturano tocchi
+  // di loro (l'aggancio e' un conto di distanza in trovaEstremo/
+  // trovaAngoloRiq, non un target DOM): servono solo a mostrare che quei
+  // punti si possono riprendere in mano.
+  let maniglie = '';
+  for(const l of _linee){
+    for(const estremo of ['a', 'b']){
+      const c = aSchermo(l[estremo], t);
+      maniglie += `<circle cx="${c.x}" cy="${c.y}" r="8" fill="rgba(0,0,0,.4)" stroke="${AZZURRO}" stroke-width="1.6" opacity=".85"/>`;
+    }
+  }
+  if(_riquadro){
+    for(const p of [{x:q.x,y:q.y}, {x:q.x+q.w,y:q.y}, {x:q.x,y:q.y+q.h}, {x:q.x+q.w,y:q.y+q.h}]){
+      maniglie += `<rect x="${p.x-6}" y="${p.y-6}" width="12" height="12" fill="rgba(0,0,0,.4)" stroke="${SABBIA}" stroke-width="1.6" opacity=".85"/>`;
+    }
+  }
+  _ov.querySelector('.prosp-maniglie').innerHTML = maniglie;
 
   scriviBarra(linee, fuochi, orizzonte);
 }
@@ -860,7 +997,7 @@ export function apriProspettiva(img, opzioni){
   const o = typeof opzioni === 'function' ? { alChiude: opzioni } : (opzioni || {});
   _ov = _ov || costruisci();
   _img = img;
-  _linee = []; _bozza = null; _riquadro = null; _bozzaRiq = null;
+  _linee = []; _bozza = null; _riquadro = null; _bozzaRiq = null; _trascinaEstremo = null;
   _salvataggio = o.salva || null;
   _alChiude = o.alChiude || null;
   _ov.hidden = false;
@@ -880,7 +1017,7 @@ export function apriProspettiva(img, opzioni){
 export function chiudiProspettiva(){
   if(!_ov || _ov.hidden) return;
   _ov.hidden = true;
-  _img = null; _linee = []; _bozza = null; _riquadro = null; _bozzaRiq = null;
+  _img = null; _linee = []; _bozza = null; _riquadro = null; _bozzaRiq = null; _trascinaEstremo = null;
   lasciaIlTavolo();
   _salvataggio = null; _salvando = false;
   const b = _ov.querySelector('.prosp-salva');

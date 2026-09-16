@@ -543,6 +543,107 @@ module.exports = () => suite("Prospettiva — il righello per leggere l'orizzont
      dalLettore.suQuellaTavola, dalLettore);
   ok('con la lettura riferita a quella', /^HL 50%$/.test(dalLettore.lettura), dalLettore.lettura);
 
+  sezione('la barra dei comandi vive nel suo spazio, non sopra il disegno');
+  // LA STESSA GARANZIA DI PRIMA (vedi "lo strumento lavora su un tavolo suo"
+  // qui sopra), ma verificata sulla STRUTTURA e non solo sulla misura: prima
+  // .prosp-barra era position:absolute e la non-sovrapposizione dipendeva da
+  // un conto in JS (spazioLibero) che indovinava l'altezza della barra.
+  // Giovanni l'ha segnalato il 16 settembre 2026: sbagliando quel conto, la
+  // barra tornava a sedersi sopra la vignetta. Ora palco e barra sono due
+  // righe diverse di una colonna flex: qui si prova che non e' piu'
+  // position:absolute, e che il palco finisce esattamente dove comincia la
+  // barra — non "quasi", per costruzione del layout.
+  const struttura = await page.evaluate(async ()=>{
+    const P = window.P;
+    P.chiudiProspettiva();
+    P.apriProspettiva(window.__img);
+    await new Promise(r=> setTimeout(r, 60));
+    const ov = document.getElementById('prospettiva');
+    const palco = ov.querySelector('.prosp-palco');
+    const barra = ov.querySelector('.prosp-barra');
+    return {
+      posizioneBarra: getComputedStyle(barra).position,
+      palcoFinisceDoveIniziaLaBarra:
+        palco.getBoundingClientRect().bottom <= barra.getBoundingClientRect().top + 0.5,
+    };
+  });
+  ok('la barra non e\' piu\' una scheda che galleggia sopra il tavolo',
+     struttura.posizioneBarra !== 'absolute', struttura);
+  ok('e il palco del disegno finisce esattamente dove comincia la barra',
+     struttura.palcoFinisceDoveIniziaLaBarra, struttura);
+
+  sezione('le linee gia\' tracciate si correggono, non solo si disfano');
+  // PRIMA SI POTEVA SOLO DISFARE E RITRACCIARE DA CAPO. Giovanni l'ha
+  // segnalato il 16 settembre 2026: due tratti tirati bene tranne un pelo su
+  // un estremo obbligavano a buttare via anche l'altro tratto, giusto, solo
+  // per rifare tutto da zero. Ora appoggiandosi vicino a un capo gia'
+  // piazzato lo si trascina, invece di aggiungerne uno nuovo.
+  const modificaLinea = await page.evaluate(async ()=>{
+    const P = window.P;
+    const svg = document.querySelector('.prosp-svg');
+    P.chiudiProspettiva();
+    P.apriProspettiva(window.__img);
+    P.__perLeProveRiquadro({ x:0, y:0, w:1, h:1 });
+    // Due linee ORIZZONTALI e parallele: non si incontrano da nessuna parte,
+    // nessuna fuga.
+    P.__perLeProveTraccia({ a:{x:0.1,y:0.3}, b:{x:0.9,y:0.3} });
+    P.__perLeProveTraccia({ a:{x:0.1,y:0.7}, b:{x:0.9,y:0.7} });
+    await new Promise(r=> setTimeout(r, 60));
+    const primaFuochi = P.__perLeProve().fuochi.length;
+    const r = document.querySelector('.prosp-tavolo').getBoundingClientRect();
+    const tocco = (tipo, u, v)=> svg.dispatchEvent(new PointerEvent(tipo, {
+      pointerId: 11, clientX: r.left + u*r.width, clientY: r.top + v*r.height,
+      bubbles:true, cancelable:true }));
+    // Si trascina l'estremo destro della prima linea (0.9, 0.3): le due
+    // linee non sono piu' parallele, deve comparire una fuga.
+    tocco('pointerdown', 0.9, 0.3);
+    tocco('pointermove', 0.9, 0.5);
+    tocco('pointerup', 0.9, 0.5);
+    const dopo = P.__perLeProve();
+    return { primaFuochi, dopoLinee: dopo.linee.length, dopoFuochi: dopo.fuochi.length,
+             primaLinea: dopo.linee[0] };
+  });
+  ok('prima le due linee erano parallele: nessuna fuga',
+     modificaLinea.primaFuochi === 0, modificaLinea);
+  ok('trascinare un estremo lo sposta, non ne aggiunge una terza',
+     modificaLinea.dopoLinee === 2, modificaLinea);
+  ok('e la fuga si ricalcola da sola',
+     modificaLinea.dopoFuochi === 1, modificaLinea);
+  ok('l\'estremo trascinato e\' arrivato dove il dito l\'ha lasciato',
+     Math.abs(modificaLinea.primaLinea.b.x - 0.9) < 0.02
+     && Math.abs(modificaLinea.primaLinea.b.y - 0.5) < 0.02, modificaLinea.primaLinea);
+
+  sezione('anche il riquadro, una volta scelto, si puo\' ritoccare');
+  // LA STESSA CORREZIONE VALE PER IL RIQUADRO: prima l'unico modo per
+  // stringerlo era "indietro" (che lo disfa del tutto, tornando a riquadrare
+  // da zero). Trascinando un angolo lo si aggiusta e basta — utile proprio
+  // quando il riquadro tracciato al volo include per sbaglio un filo della
+  // vignetta accanto.
+  const modificaRiquadro = await page.evaluate(async ()=>{
+    const P = window.P;
+    const svg = document.querySelector('.prosp-svg');
+    P.chiudiProspettiva();
+    P.apriProspettiva(window.__img);
+    P.__perLeProveRiquadro({ x:0.1, y:0.1, w:0.5, h:0.5 });
+    await new Promise(r=> setTimeout(r, 60));
+    const r = document.querySelector('.prosp-tavolo').getBoundingClientRect();
+    const tocco = (tipo, cx, cy)=> svg.dispatchEvent(new PointerEvent(tipo, {
+      pointerId: 12, clientX: cx, clientY: cy, bubbles:true, cancelable:true }));
+    // L'angolo in basso a destra del riquadro coincide col bordo del tavolo
+    // (il riquadro e' 0.1..0.6 su entrambi gli assi): lo si trascina un po'
+    // oltre, per allargarlo.
+    tocco('pointerdown', r.left + r.width, r.top + r.height);
+    tocco('pointermove', r.left + r.width * 1.3, r.top + r.height * 1.3);
+    tocco('pointerup', r.left + r.width * 1.3, r.top + r.height * 1.3);
+    await new Promise(res=> setTimeout(res, 60));
+    return P.corniceAttiva();
+  });
+  ok('l\'angolo opposto resta fermo: si allarga, non si ridisegna da zero',
+     Math.abs(modificaRiquadro.x - 0.1) < 0.02 && Math.abs(modificaRiquadro.y - 0.1) < 0.02,
+     modificaRiquadro);
+  ok('e l\'angolo trascinato porta il riquadro dove il dito l\'ha lasciato',
+     modificaRiquadro.w > 0.55 && modificaRiquadro.h > 0.55, modificaRiquadro);
+
   sezione('e chiudendo l\'albo lo schema non resta appeso sul nulla');
   const chiusura = await page.evaluate(async ()=>{
     window.albums.closeReaderUI();

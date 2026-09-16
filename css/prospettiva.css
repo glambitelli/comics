@@ -3,14 +3,34 @@
    E' voluto — mentre si traccia una linea il trascinamento NON deve girare
    pagina ne' ingrandire, e senza un foglio sopra bisognerebbe spegnere a mano
    ogni gesto delle due schermate sotto, due volte, e ricordarsene per sempre.
-   Lo z-index sta sopra la galleria (9500), che e' la cosa piu' alta dell'app. */
-.prosp{position:fixed;inset:0;z-index:9800;touch-action:none;-webkit-tap-highlight-color:transparent}
+   Lo z-index sta sopra la galleria (9500), che e' la cosa piu' alta dell'app.
+
+   UNA COLONNA, NON UN FOGLIO SOLO. Il palco (dove si lavora) e la barra
+   (dove si comanda) sono due righe DIVERSE del layout, non un disegno a
+   tutto schermo con una scheda incollata sopra. E' la correzione del 16
+   settembre 2026: prima "lasciare spazio alla barra" era un conto in JS
+   (spazioLibero, in prospettiva.js) che indovinava quanto fosse alta la
+   barra e ci aggiungeva un margine di scorta — sbagliando quel margine la
+   barra tornava a sedersi sopra l'immagine. Con una colonna flex lo spazio
+   del palco finisce dove comincia la barra per costruzione, non per stima. */
+.prosp{position:fixed;inset:0;z-index:9800;touch-action:none;-webkit-tap-highlight-color:transparent;
+  display:flex;flex-direction:column}
 .prosp[hidden]{display:none}
 /* MENTRE SI SCEGLIE LA VIGNETTA non c'e' fondo: l'immagine sotto si deve
    vedere intera e com'e', ed e' un righello appoggiato sopra il disegno.
    APPENA LA VIGNETTA E' SCELTA il fondo si chiude: la pagina sparisce e resta
    solo la vignetta, centrata sul suo tavolo. */
 body.prosp-tavolo-aperto .prosp{background:#16120c}
+/* IL PALCO: tutto quello su cui il tavolo puo' stendersi, ne' un pixel di
+   piu'. overflow:hidden e' la parte che rende la separazione vera anche a
+   zoom spinto — quello che il tavolo sposta fuori dal palco non puo'
+   comparire nella riga della barra sotto, perche' quella riga non e' nemmeno
+   nel suo contenitore. flex:1 gli da' tutto lo spazio che resta dopo la
+   barra, min-height:0 e' necessario perche' un figlio flex non si restringa
+   mai sotto il contenuto — qui il "contenuto" e' un tavolo che puo' essere
+   grande quanto vuole, e senza min-height:0 spingerebbe la barra fuori dallo
+   schermo invece di lasciarsi tagliare. */
+.prosp-palco{position:relative;flex:1 1 auto;min-height:0;overflow:hidden}
 /* Il ritaglio della vignetta: un buco grande quanto lei, con dentro
    l'immagine intera spostata perche' sia quel pezzo a caderci. */
 .prosp-tavolo{position:absolute;overflow:hidden;will-change:left,top,width,height}
@@ -20,9 +40,12 @@ body.prosp-tavolo-aperto .prosp{background:#16120c}
 
 /* La barra sta in BASSO e non in alto: il pollice arriva li', e in alto
    coprirebbe proprio la fascia di cielo dove l'orizzonte cade piu' spesso
-   nelle tavole che si vanno a studiare. */
+   nelle tavole che si vanno a studiare. Non e' piu' position:absolute: e' la
+   seconda riga della colonna, un blocco normale che il palco sopra di lei non
+   puo' attraversare. */
 .prosp-barra{
-  position:absolute;left:10px;right:10px;bottom:calc(10px + var(--safe-bot));
+  flex:0 0 auto;
+  margin:10px 10px calc(10px + var(--safe-bot));
   background:rgba(18,13,8,.86);
   backdrop-filter:blur(10px) saturate(1.1);-webkit-backdrop-filter:blur(10px) saturate(1.1);
   border:1px solid rgba(232,200,120,.22);border-radius:16px;
@@ -80,8 +103,10 @@ body.prosp-aperta .refs-lightbox-nav{display:none !important}
 
 @media (min-width:760px){
   /* Col mouse la barra non deve stendersi per tutta la finestra: diventerebbe
-     una riga di testo lunga un metro con tre bottoni all'altro capo. */
-  .prosp-barra{left:50%;right:auto;transform:translateX(-50%);width:min(560px, calc(100% - 32px))}
+     una riga di testo lunga un metro con tre bottoni all'altro capo.
+     align-self la centra nella colonna invece del vecchio left:50%+transform,
+     che serviva a centrarla da position:absolute e qui non c'e' piu'. */
+  .prosp-barra{align-self:center;width:min(560px, calc(100% - 32px))}
   .prosp-comandi{justify-content:flex-end}
   /* IL min-width VALE SOLO PER I TASTI SCRITTI, e il :not() non e' pignoleria:
      senza, quel 118px si applicava anche alla freccia e alla croce — che il
