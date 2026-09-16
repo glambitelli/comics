@@ -32,22 +32,40 @@
 //
 // OGNI TRATTO E' DISEGNATO DUE VOLTE, una scura piu' spessa sotto e una
 // colorata sopra. Le tavole che si studiano sono manga in bianco e nero: una
-// linea magenta su un cielo retinato di nero sparisce, e su una nuvola bianca
+// riga verderame su un cielo retinato di nero sparisce, e su una nuvola bianca
 // sparirebbe quella scura. Con l'ombra sotto si vede sempre, su qualunque
 // fondo, senza dover cambiare colore a mano.
-// I COLORI SONO QUELLI DI INKFLOW, e si dividono i ruoli come se li dividono
-// in tutto il resto dell'app: l'oro e' la cosa che conta (le stelle,
-// l'avanzamento, il contatore del lettore), l'azzurro e' il contorno.
-// Qui l'oro e' l'ORIZZONTE — la risposta alla domanda per cui si e' aperto lo
-// strumento — e l'azzurro sono le linee e il fascio, che sono il mezzo.
-// Prima erano magenta e ciano fluo: si vedevano benissimo e sembravano di
-// un'altra applicazione. Su una tavola in bianco e nero questi due reggono
-// lo stesso, a patto di tenere l'ombra scura sotto ogni tratto (vedi sotto):
-// l'oro pieno #f0c020 e' chiaro abbastanza per staccare sul nero, e l'ombra
-// gli fa da bordo sul bianco.
-const ORO      = '#f0c020';  // l'orizzonte, e il numero che lo accompagna
-const AZZURRO  = '#4ab8d8';  // le linee tracciate, il fascio e il punto di fuga
-const SABBIA   = '#f2e6cd';  // il bordo della vignetta riquadrata
+// I COLORI SI DIVIDONO I RUOLI come se li dividono in tutto il resto
+// dell'app: l'ORIZZONTE e' la risposta alla domanda per cui si e' aperto lo
+// strumento, e prende l'oro — il colore che in Inkflow sta su tutto quello
+// che conta (le stelle, l'avanzamento). Le linee tracciate, il fascio e il
+// punto di fuga sono il MEZZO, e prendono l'altro.
+//
+// E QUI C'ERA UNA BUGIA SCRITTA PROPRIO IN QUESTO COMMENTO: diceva "i colori
+// sono quelli di Inkflow", e non era vero. L'azzurro era #4ab8d8, cioe'
+// --sky, e l'oro era #f0c020, cioe' --gold: tutti e due della tavolozza
+// PONYO, quella vecchia. Lo strumento e' nato prima che la tavolozza di
+// Inkflow (nero, oro, rame, sabbia — vedi css/variables.css) avesse un nome,
+// e se l'e' portata dietro. Giovanni se n'e' accorto guardando, non
+// leggendo: "sembra di un'altra applicazione". Aveva ragione, ed era
+// letteralmente vero.
+//
+// PERCHE' UN VERDE, e non il rame o l'ottone che sarebbero stati la scelta
+// ovvia dentro una tavolozza tutta calda. Perche' oro e rame sono vicini di
+// tinta: il fascio comincia a somigliare all'orizzonte, e dopo dieci tavole
+// confrontate di fila la riga d'oro smette di saltare all'occhio per prima —
+// che e' l'unica cosa che questo strumento deve fare. Serviva uno stacco di
+// tinta, come lo dava l'azzurro. Il verderame e' quello stacco SENZA uscire
+// dalla famiglia: i nomi della tavolozza sono materiali, e il rame che si
+// ossida diventa verderame — il nome italiano dice gia' che e' rame.
+//
+// SU UNA TAVOLA IN BIANCO E NERO reggono tutti e due, a patto di tenere
+// l'ombra scura sotto ogni tratto (vedi la nota qui sopra): sono chiari
+// abbastanza da staccare sul nero pieno, e sul bianco e' l'ombra a fargli da
+// bordo.
+const ORO       = '#d9a417';  // --oro: l'orizzonte, e il numero che lo accompagna
+const VERDERAME = '#57ab97';  // le linee tracciate, il fascio e il punto di fuga
+const SABBIA    = '#c2a869';  // --oro-sabbia: il bordo della vignetta riquadrata
 const RAGGI = 12;            // quante linee nel fascio: abbastanza da leggere la fuga, non tante da coprire il disegno
 // Un gesto piu' corto di cosi' — in pixel di SCHERMO, non in frazioni
 // d'immagine — e' un tocco andato storto, non una linea ne' una vignetta.
@@ -349,7 +367,10 @@ function costruisci(){
              serve a capire dove sta l'inquadratura nella pagina — ma smette di
              contendere l'attenzione a quella che si sta misurando. -->
         <path class="prosp-velo" fill="rgba(0,0,0,.5)" fill-rule="evenodd"></path>
-        <rect class="prosp-cornice" fill="none" stroke="#f2e6cd" stroke-width="1.5" stroke-dasharray="7 5" opacity=".85"></rect>
+        <!-- Il bordo prende SABBIA dalla costante invece di riscriverlo a
+             mano: cambiando tavolozza, nel 2026, questo rect era l'unico
+             posto rimasto indietro col colore vecchio. -->
+        <rect class="prosp-cornice" fill="none" stroke="${SABBIA}" stroke-width="1.5" stroke-dasharray="7 5" opacity=".85"></rect>
         <g class="prosp-fascio" clip-path="url(#prosp-clip)"></g>
         <!-- L'ORIZZONTE NON SI TAGLIA, il fascio si.
              Il fascio e' la struttura di QUESTA vignetta: sparso su tutto lo
@@ -654,7 +675,7 @@ function agganciaTratto(svg){
 }
 
 // Ogni tratto due volte: l'ombra scura sotto e il colore sopra (vedi la nota
-// in cima). Senza l'ombra, su una retinatura nera il magenta sparisce.
+// in cima). Senza l'ombra, su una retinatura nera il verderame sparisce.
 function tratto(x1, y1, x2, y2, colore, spessore){
   return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="rgba(0,0,0,.6)" stroke-width="${spessore + 2}" stroke-linecap="round"/>`
        + `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${colore}" stroke-width="${spessore}" stroke-linecap="round"/>`;
@@ -731,7 +752,7 @@ export function disegna(){
       // Prolungato oltre il bordo: con la fuga dentro la vignetta un raggio
       // che si ferma sul bordo lascerebbe mezzo ventaglio vuoto.
       const dx = b.x - c.x, dy = b.y - c.y;
-      fascio += `<line x1="${c.x}" y1="${c.y}" x2="${c.x + dx*3}" y2="${c.y + dy*3}" stroke="${AZZURRO}" stroke-width="1" opacity=".38"/>`;
+      fascio += `<line x1="${c.x}" y1="${c.y}" x2="${c.x + dx*3}" y2="${c.y + dy*3}" stroke="${VERDERAME}" stroke-width="1" opacity=".38"/>`;
     }
   }
   _ov.querySelector('.prosp-fascio').innerHTML = fascio;
@@ -752,9 +773,9 @@ export function disegna(){
       // ripasserebbe sopra il tratto pieno, raddoppiandolo.
       const da = Math.hypot(b.x - c.x, b.y - c.y) < Math.hypot(a.x - c.x, a.y - c.y) ? b : a;
       tratti += `<line x1="${da.x}" y1="${da.y}" x2="${c.x}" y2="${c.y}" stroke="rgba(0,0,0,.45)" stroke-width="2.6" stroke-dasharray="6 5"/>`
-             +  `<line x1="${da.x}" y1="${da.y}" x2="${c.x}" y2="${c.y}" stroke="${AZZURRO}" stroke-width="1.3" stroke-dasharray="6 5"/>`;
+             +  `<line x1="${da.x}" y1="${da.y}" x2="${c.x}" y2="${c.y}" stroke="${VERDERAME}" stroke-width="1.3" stroke-dasharray="6 5"/>`;
     }
-    tratti += tratto(a.x, a.y, b.x, b.y, AZZURRO, 2.2);
+    tratti += tratto(a.x, a.y, b.x, b.y, VERDERAME, 2.2);
   });
   _ov.querySelector('.prosp-tratti').innerHTML = tratti;
 
@@ -767,7 +788,7 @@ export function disegna(){
   for(const f of fuochi){
     const c = aSchermo(f, t);
     punti += `<circle cx="${c.x}" cy="${c.y}" r="7" fill="rgba(0,0,0,.6)"/>`
-          +  `<circle cx="${c.x}" cy="${c.y}" r="4.5" fill="${AZZURRO}"/>`;
+          +  `<circle cx="${c.x}" cy="${c.y}" r="4.5" fill="${VERDERAME}"/>`;
   }
   _ov.querySelector('.prosp-punti').innerHTML = punti;
 
@@ -781,7 +802,7 @@ export function disegna(){
   for(const l of _linee){
     for(const estremo of ['a', 'b']){
       const c = aSchermo(l[estremo], t);
-      maniglie += `<circle cx="${c.x}" cy="${c.y}" r="8" fill="rgba(0,0,0,.4)" stroke="${AZZURRO}" stroke-width="1.6" opacity=".85"/>`;
+      maniglie += `<circle cx="${c.x}" cy="${c.y}" r="8" fill="rgba(0,0,0,.4)" stroke="${VERDERAME}" stroke-width="1.6" opacity=".85"/>`;
     }
   }
   if(_riquadro){
@@ -958,7 +979,7 @@ function disegnaSuTela(){
   // Il fascio e l'orizzonte stanno dentro la VIGNETTA, come a schermo: sono la
   // prospettiva di lei, non di quello che le sta intorno.
   c.save(); c.beginPath(); c.rect(q0.x, q0.y, q1.x - q0.x, q1.y - q0.y); c.clip();
-  c.globalAlpha = .38; c.strokeStyle = AZZURRO; c.lineWidth = u; c.setLineDash([]);
+  c.globalAlpha = .38; c.strokeStyle = VERDERAME; c.lineWidth = u; c.setLineDash([]);
   for(const f of fuochi){
     const cc = P(f);
     for(let i = 0; i < RAGGI; i++){
@@ -990,15 +1011,15 @@ function disegnaSuTela(){
     if(f){
       const cc = P(f);
       const da = Math.hypot(b.x - cc.x, b.y - cc.y) < Math.hypot(a.x - cc.x, a.y - cc.y) ? b : a;
-      riga(da, cc, AZZURRO, 1.3, true);
+      riga(da, cc, VERDERAME, 1.3, true);
     }
-    riga(a, b, AZZURRO, 2.2);
+    riga(a, b, VERDERAME, 2.2);
   });
   c.setLineDash([]);
   for(const f of fuochi){
     const cc = P(f);
     c.fillStyle = 'rgba(0,0,0,.6)'; c.beginPath(); c.arc(cc.x, cc.y, 7*u, 0, 7); c.fill();
-    c.fillStyle = AZZURRO; c.beginPath(); c.arc(cc.x, cc.y, 4.5*u, 0, 7); c.fill();
+    c.fillStyle = VERDERAME; c.beginPath(); c.arc(cc.x, cc.y, 4.5*u, 0, 7); c.fill();
   }
 
   const misure = misureStudio();
