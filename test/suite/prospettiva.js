@@ -76,7 +76,7 @@ module.exports = () => suite("Prospettiva — il righello per leggere l'orizzont
     };
   });
   ok('con una fuga sola l\'orizzonte e\' orizzontale', lettura.orizzontale, lettura);
-  ok('e dice la sua altezza in percentuale', /20% dall'alto/.test(lettura.unaSola), lettura.unaSola);
+  ok('e dice la sua altezza in percentuale', /^HL 20%$/.test(lettura.unaSola), lettura.unaSola);
   // NIENTE AGGETTIVI. La prima versione appiccicava al numero una parola —
   // "altissimo", "a terra", "a meta' altezza" — e Giovanni le ha trovate
   // sciocche, giustamente: davanti a una tavola di Otomo "20%" e' un dato,
@@ -86,7 +86,7 @@ module.exports = () => suite("Prospettiva — il righello per leggere l'orizzont
   // IL CASO DI OTOMO: l'orizzonte fuori dalla vignetta. Il numero da solo
   // (negativo, o sopra cento) lascerebbe il dubbio che sia un errore.
   ok('e uno fuori dalla vignetta lo dice, col segno e da che parte',
-     /-30%/.test(lettura.sopra) && /sopra la vignetta/.test(lettura.sopra), lettura.sopra);
+     /^HL -30% \(sopra\)$/.test(lettura.sopra), lettura.sopra);
   ok('con due fughe l\'orizzonte si inclina, invece di restare dritto',
      lettura.inclinato, lettura);
   // E L'ALTEZZA SI MISURA AL CENTRO DELLA VIGNETTA. Con l'orizzonte inclinato
@@ -95,13 +95,13 @@ module.exports = () => suite("Prospettiva — il righello per leggere l'orizzont
   // guardando una tavola. Le due fughe qui stanno al 30% e al 50%, a distanza
   // uguale dal centro: al centro fanno 40%.
   ok('e la sua altezza si legge al centro, non su un bordo',
-     /40% dall'alto/.test(lettura.due), lettura.due);
-  ok('la fuga dentro la vignetta si riconosce', /Fuga 1 dentro/.test(lettura.dentro), lettura.dentro);
+     /^HL 40%$/.test(lettura.due), lettura.due);
+  ok('la fuga dentro la vignetta si riconosce', /^VP1$/.test(lettura.dentro), lettura.dentro);
   // Quante larghezze: e' la misura di quanto e' "lunga" la scena, ed e' la
   // ragione per cui la fuga fuori campo interessa.
   ok('e quella fuori dice da che parte e di quanto',
-     /fuori a destra, 1\.4 larghezze/.test(lettura.destra), lettura.destra);
-  ok('anche a sinistra', /fuori a sinistra, 1\.2 larghezze/.test(lettura.sinistra), lettura.sinistra);
+     /VP1 destra 1\.4w/.test(lettura.destra), lettura.destra);
+  ok('anche a sinistra', /VP2 sinistra 1\.2w/.test(lettura.sinistra), lettura.sinistra);
 
   sezione('e la misura e\' sulla VIGNETTA, non sulla pagina');
   // E' la correzione piu' importante dopo la prima prova sul campo. Una pagina
@@ -126,13 +126,13 @@ module.exports = () => suite("Prospettiva — il righello per leggere l'orizzont
       largaMezza:  P.letturaFuoco({ x:1.5, y:0.3 }, 1, { x:0, y:0, w:0.5, h:1 }),
     };
   });
-  ok('sulla pagina intera legge il 25%', /25% dall'alto/.test(relativo.pagina), relativo.pagina);
+  ok('sulla pagina intera legge il 25%', /^HL 25%$/.test(relativo.pagina), relativo.pagina);
   ok('ma dentro una vignetta in cima e\' molto piu\' in basso',
-     /67% dall'alto/.test(relativo.alta), relativo.alta);
+     /^HL 67%$/.test(relativo.alta), relativo.alta);
   ok('e per una vignetta di meta\' pagina cade sopra di lei',
-     /-50%/.test(relativo.bassa) && /sopra/.test(relativo.bassa), relativo.bassa);
+     /^HL -50% \(sopra\)$/.test(relativo.bassa), relativo.bassa);
   ok('le larghezze di distanza si contano sulla vignetta, non sulla tavola',
-     /0\.5 larghezze/.test(relativo.largaTutta) && /2 larghezze/.test(relativo.largaMezza), relativo);
+     /VP1 destra 0\.5w/.test(relativo.largaTutta) && /VP1 destra 2w/.test(relativo.largaMezza), relativo);
 
   sezione('le linee si consumano a coppie: due linee, una fuga');
   const coppie = await page.evaluate(()=>{
@@ -182,7 +182,7 @@ module.exports = () => suite("Prospettiva — il righello per leggere l'orizzont
     };
   });
   ok('lo studio e\' aperto', schermo.aperto, schermo);
-  ok('e legge l\'orizzonte a meta\' altezza', /50% dall'alto/.test(schermo.lettura), schermo.lettura);
+  ok('e legge l\'orizzonte a meta\' altezza', /^HL 50%$/.test(schermo.lettura), schermo.lettura);
   ok('il fascio c\'e\'', schermo.raggi === 12, schermo);
   ok('e la fuga e\' segnata con un punto', schermo.punti === 2, schermo);
   // IL FASCIO SI TAGLIA, L'ORIZZONTE NO, e sono due decisioni diverse.
@@ -220,11 +220,17 @@ module.exports = () => suite("Prospettiva — il righello per leggere l'orizzont
   const riquadro = await page.evaluate(async ()=>{
     const P = window.P;
     const svg = document.querySelector('.prosp-svg');
-    const r = window.__img.getBoundingClientRect();
+    P.apriProspettiva(window.__img);
+    // Il tavolo si prende SUBITO, anche prima di scegliere la vignetta (vedi
+    // prendiIlTavolo in apriProspettiva): i tocchi vanno quindi riferiti al
+    // rettangolo del tavolo, non a quello che l'<img> del lettore aveva prima
+    // di aprire lo strumento — sono due rettangoli diversi, perche' il tavolo
+    // si adatta allo spazio libero (schermo meno barra), non allo spazio che
+    // occupava l'immagine nel lettore.
+    const r = document.querySelector('.prosp-tavolo').getBoundingClientRect();
     const tocco = (tipo, u, v)=> svg.dispatchEvent(new PointerEvent(tipo, {
       pointerId: 9, clientX: r.left + u*r.width, clientY: r.top + v*r.height,
       bubbles:true, cancelable:true }));
-    P.apriProspettiva(window.__img);
     const primaDelRiquadro = P.faseRiquadro();
     const testoPrima = document.querySelector('.prosp-oriz').textContent;
     // Un riquadro grande come un francobollo non e' una vignetta.
@@ -260,20 +266,86 @@ module.exports = () => suite("Prospettiva — il righello per leggere l'orizzont
   ok('da li\' in poi si chiedono le linee', /due linee/i.test(riquadro.testoDopo), riquadro.testoDopo);
   ok('e lo stesso trascinamento adesso traccia una linea', riquadro.linee === 1, riquadro);
 
-  sezione('scelta la vignetta, lo strumento si prende un tavolo suo');
-  // I DUE GUAI CHE HA TROVATO GIOVANNI PROVANDOLO (15 settembre 2026):
-  // ingrandendo la pagina prima di riquadrare, dopo non ci si poteva piu'
-  // spostare; e la barra dei comandi finiva SOPRA la vignetta che si stava
-  // misurando. Nascevano dalla stessa cosa: lo strumento restava appeso
-  // all'immagine com'era nella pagina. Adesso, scelta la vignetta, la ritaglia
-  // e se la porta su un tavolo suo — centrata, grande quanto lo spazio libero,
-  // e lo spazio libero e' lo schermo MENO la barra.
+  sezione('e si puo\' pan/zoom PRIMA di scegliere la vignetta');
+  // IL CASO SEGNALATO IL 16 SETTEMBRE 2026: si zooma la pagina nel lettore, si
+  // apre la prospettiva, e la vignetta che interessa e' finita fuori dallo
+  // schermo. Prima non c'era modo di raggiungerla — il pan/zoom a due dita (e
+  // la rotella) funzionavano solo DOPO aver riquadrato. Qui si prova che
+  // funzionano anche PRIMA, mentre si sceglie.
+  const panPrimaDiRiquadrare = await page.evaluate(async ()=>{
+    const P = window.P;
+    P.chiudiProspettiva();
+    P.apriProspettiva(window.__img);
+    const svg = document.querySelector('.prosp-svg');
+    const primaDiScegliere = P.faseRiquadro();
+    const tav0 = document.querySelector('.prosp-tavolo').getBoundingClientRect();
+    // La rotella, come da browser: deve stringere la veduta anche qui.
+    svg.dispatchEvent(new WheelEvent('wheel', { deltaY: -400, clientX: tav0.left + tav0.width/2,
+      clientY: tav0.top + tav0.height/2, bubbles:true, cancelable:true }));
+    await new Promise(r=> setTimeout(r, 60));
+    const dopoRotella = document.querySelector('.prosp-tavolo').getBoundingClientRect();
+    // E il pizzico a due dita: si stringe e ci si sposta, sempre prima di aver
+    // scelto niente.
+    const c = { x: dopoRotella.left + dopoRotella.width/2, y: dopoRotella.top + dopoRotella.height/2 };
+    const dito = (id, tipo, x, y)=>{
+      const t = new Touch({ identifier:id, target:svg, clientX:x, clientY:y });
+      svg.dispatchEvent(new PointerEvent(tipo === 'pointerdown' ? 'pointerdown'
+        : tipo, { pointerId:id, clientX:x, clientY:y, bubbles:true, cancelable:true }));
+    };
+    dito(1, 'pointerdown', c.x - 40, c.y);
+    dito(2, 'pointerdown', c.x + 40, c.y);
+    dito(1, 'pointermove', c.x - 100, c.y - 30);
+    dito(2, 'pointermove', c.x + 100, c.y + 30);
+    await new Promise(r=> setTimeout(r, 60));
+    const dopoPizzico = document.querySelector('.prosp-tavolo').getBoundingClientRect();
+    dito(1, 'pointerup', c.x - 100, c.y - 30);
+    dito(2, 'pointerup', c.x + 100, c.y + 30);
+    // E dopo tutto questo pan/zoom, si riesce ancora a riquadrare una
+    // vignetta: il gesto di disegno non si e' rotto.
+    const r = document.querySelector('.prosp-tavolo').getBoundingClientRect();
+    const tocco = (tipo, x, y)=> svg.dispatchEvent(new PointerEvent(tipo, {
+      pointerId: 9, clientX: x, clientY: y, bubbles:true, cancelable:true }));
+    tocco('pointerdown', r.left + r.width*0.2, r.top + r.height*0.2);
+    tocco('pointermove', r.left + r.width*0.6, r.top + r.height*0.5);
+    tocco('pointerup', r.left + r.width*0.6, r.top + r.height*0.5);
+    return {
+      primaDiScegliere,
+      largoIniziale: tav0.width,
+      largoDopoRotella: dopoRotella.width,
+      largoDopoPizzico: dopoPizzico.width,
+      riquadratoDopo: !P.faseRiquadro(),
+    };
+  });
+  ok('si comincia in fase di scelta della vignetta', panPrimaDiRiquadrare.primaDiScegliere, panPrimaDiRiquadrare);
+  ok('la rotella stringe la veduta anche prima di riquadrare',
+     panPrimaDiRiquadrare.largoDopoRotella > panPrimaDiRiquadrare.largoIniziale * 1.1,
+     panPrimaDiRiquadrare);
+  ok('e il pizzico a due dita anche',
+     panPrimaDiRiquadrare.largoDopoPizzico > panPrimaDiRiquadrare.largoDopoRotella * 1.1,
+     panPrimaDiRiquadrare);
+  ok('e dopo essersi spostati si riesce ancora a disegnare il riquadro',
+     panPrimaDiRiquadrare.riquadratoDopo, panPrimaDiRiquadrare);
+
+  sezione('lo strumento lavora su un tavolo suo, dalla prima inquadratura');
+  // I DUE GUAI CHE HA TROVATO GIOVANNI PROVANDOLO. Il 15 settembre 2026:
+  // scelta la vignetta, ingrandendo prima di riquadrare non ci si poteva piu'
+  // spostare, e la barra dei comandi finiva SOPRA il disegno che si stava
+  // misurando. Il 16 settembre, ancora peggio: zoomando la PAGINA nel lettore
+  // e poi aprendo la prospettiva, non c'era piu' modo di spostarsi per
+  // raggiungere una vignetta finita fuori dallo schermo — lo strumento cattura
+  // tutti i tocchi ma sapeva pannare solo DOPO aver gia' scelto la vignetta.
+  // Nascevano dalla stessa cosa: lo strumento restava appeso all'immagine
+  // com'era nel lettore. Adesso si prende un tavolo suo — pannabile e
+  // zoomabile — FIN DALL'APERTURA, prima ancora di scegliere la vignetta: la
+  // pagina non c'entra piu' niente.
   const tavolo = await page.evaluate(async ()=>{
     const P = window.P;
     P.chiudiProspettiva();
     P.apriProspettiva(window.__img);
     const suPagina = {
-      tavolo: document.querySelector('.prosp-tavolo').hidden,
+      // Dall'apertura, non solo dopo aver riquadrato: e' il punto della
+      // segnalazione del 16 settembre.
+      tavolo: !document.querySelector('.prosp-tavolo').hidden,
       classe: document.body.classList.contains('prosp-tavolo-aperto'),
     };
     // Una vignetta piccola, in alto a sinistra: sulla pagina sarebbe un
@@ -295,9 +367,9 @@ module.exports = () => suite("Prospettiva — il righello per leggere l'orizzont
         ((window.__img.naturalWidth * 0.35) / (window.__img.naturalHeight * 0.22)),
     };
   });
-  ok('finche\' si sceglie, il tavolo non c\'e\'',
-     tavolo.suPagina.tavolo && !tavolo.suPagina.classe, tavolo.suPagina);
-  ok('scelta la vignetta, il tavolo si apre', tavolo.classe, tavolo);
+  ok('il tavolo c\'e\' gia\' dall\'apertura, prima di ogni riquadro',
+     tavolo.suPagina.tavolo && tavolo.suPagina.classe, tavolo.suPagina);
+  ok('e resta acceso dopo aver scelto la vignetta', tavolo.classe, tavolo);
   // PIU' GRANDE DI COM'ERA NELLA PAGINA: e' il senso del tavolo. Una vignetta
   // che occupa un ottavo di pagina, da sola, puo' riempire lo schermo.
   ok('e la vignetta ci arriva ingrandita',
@@ -360,7 +432,7 @@ module.exports = () => suite("Prospettiva — il righello per leggere l'orizzont
     return { cEra, stretta, larga, tornata, lettura: document.querySelector('.prosp-fughe').textContent };
   });
   ok('la fuga cade davvero fuori dalla vignetta',
-     /fuori a destra/.test(veduta.lettura), veduta.lettura);
+     /destra/.test(veduta.lettura), veduta.lettura);
   ok('col tavolo stretto sta fuori dallo schermo',
      veduta.stretta.fuga > veduta.stretta.schermo, veduta.stretta);
   ok('il tasto per allargare c\'e\'', veduta.cEra, veduta);
@@ -469,7 +541,7 @@ module.exports = () => suite("Prospettiva — il righello per leggere l'orizzont
   // coinciderebbero piu'.
   ok('e il ritaglio combacia con la vignetta sul tavolo',
      dalLettore.suQuellaTavola, dalLettore);
-  ok('con la lettura riferita a quella', /50% dall'alto/.test(dalLettore.lettura), dalLettore.lettura);
+  ok('con la lettura riferita a quella', /^HL 50%$/.test(dalLettore.lettura), dalLettore.lettura);
 
   sezione('e chiudendo l\'albo lo schema non resta appeso sul nulla');
   const chiusura = await page.evaluate(async ()=>{
@@ -527,7 +599,7 @@ module.exports = () => suite("Prospettiva — il righello per leggere l'orizzont
      /webp/.test(salvato.tipo || ''), salvato.tipo);
   // I NUMERI VIAGGIANO COL DOCUMENTO: senza, per sapere dove cade l'orizzonte
   // di uno studio archiviato bisognerebbe riaprirlo e rimisurarlo, e lo
-  // scaffale delle Fughe non potrebbe scrivere la percentuale sotto ognuno.
+  // scaffale Prospettiva non potrebbe scrivere la percentuale sotto ognuno.
   ok('con dentro la misura dell\'orizzonte, riferita alla vignetta',
      salvato.misure && salvato.misure.orizzonte === 50, salvato.misure);
   ok('e le fughe, anche loro in coordinate di vignetta',
@@ -609,7 +681,7 @@ module.exports = () => suite("Prospettiva — il righello per leggere l'orizzont
     };
   });
   ok('l\'orizzonte cade davvero sopra la vignetta',
-     /sopra la vignetta/.test(fuoriCampo.lettura), fuoriCampo.lettura);
+     /\(sopra\)/.test(fuoriCampo.lettura), fuoriCampo.lettura);
   // Salvando la vignetta sola la riga d'oro non c'e': e' fuori, ed e' giusto
   // cosi' — quello che si vedeva a schermo era quello.
   ok('salvando la vignetta sola, la riga d\'oro non ci sta',

@@ -352,7 +352,7 @@ module.exports = () => suite("References — Frammenti e Tavole dentro una carte
      scaffali.lineette.every(l=> parseFloat(l) === 0), scaffali.lineette);
   ok('il cursore e\' bianco e appoggiato sopra',
      /254, 252, 248/.test(scaffali.fondoCursore) && !/inset/.test(scaffali.ombra), scaffali);
-  // Quattro voci da settembre 2026: Albi, Frammenti, Tavole e Fughe (gli studi
+  // Quattro voci da settembre 2026: Albi, Frammenti, Tavole e Prospettiva (gli studi
   // di prospettiva, vedi isProspettiva in refs.js).
   ok('e largo un quarto di vaschetta, perche\' le voci sono quattro',
      Math.abs(scaffali.largoCursore - (scaffali.largoVasca - 4)/4) < 1.5, scaffali);
@@ -360,7 +360,7 @@ module.exports = () => suite("References — Frammenti e Tavole dentro una carte
   await tocca('prospettive');
   await page.waitForTimeout(400);
   const inFondo = await leggiScaffali();
-  ok('e sulle Fughe arriva in fondo a destra',
+  ok('e su Prospettiva arriva in fondo a destra',
      Math.abs(inFondo.scarto - (inFondo.largoVasca - 4) * 3/4) <= 2.5, inFondo);
 
   sezione('e si passa da uno scaffale all\'altro anche col dito');
@@ -384,7 +384,7 @@ module.exports = () => suite("References — Frammenti e Tavole dentro una carte
   await swipe(-120);
   ok('un altro porta alle Tavole', (await stato()).attivo === 'tavole', await stato());
   await swipe(-120);
-  ok('un altro ancora porta alle Fughe', (await stato()).attivo === 'prospettive', await stato());
+  ok('un altro ancora porta a Prospettiva', (await stato()).attivo === 'prospettive', await stato());
   await swipe(-120);
   ok('e da li\' in avanti non si va da nessuna parte',
      (await stato()).attivo === 'prospettive', await stato());

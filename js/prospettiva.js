@@ -81,33 +81,35 @@ function cornice(){ return _riquadro || { x:0, y:0, w:1, h:1 }; }
 export function corniceAttiva(){ return cornice(); }
 export function faseRiquadro(){ return !_riquadro; }
 
-// Il rettangolo dell'immagine a schermo, adesso. Si richiede ad ogni disegno e
-// non si tiene da parte: fra un tocco e l'altro puo' essere cambiato tutto
-// (rotazione, tastiera che si apre, finestra ridimensionata).
-// ── DUE MOMENTI, DUE MODI DI STARE A SCHERMO ──
+// ── SI LAVORA SEMPRE SU UN TAVOLO PROPRIO, DALLA PRIMA INQUADRATURA ──
 //
-// MENTRE SI RIQUADRA lo strumento e' un velo appoggiato sulla pagina: deve
-// stare esattamente sopra l'immagine com'e' in quel momento — ingrandita dal
-// lettore, spostata, quello che e' — perche' la vignetta la si sceglie
-// guardando la pagina.
+// Appena lo strumento si apre si prende un TAVOLO: una copia pannabile e
+// zoomabile dell'immagine, indipendente da come il lettore la stava mostrando
+// in quel momento. All'inizio il tavolo contiene l'immagine INTERA (non c'e'
+// ancora una vignetta scelta); appena si riquadra, si stringe su quella sola.
 //
-// APPENA LA VIGNETTA E' SCELTA, cambia mestiere: si prende un TAVOLO suo. La
-// pagina sparisce, la vignetta viene ritagliata, centrata e ingrandita quanto
-// lo spazio permette, e da li' in poi e' l'unica cosa a schermo. Il motivo lo
-// ha detto Giovanni provandolo: ingrandendo prima di riquadrare, dopo non ci
-// si poteva piu' spostare, e la barra dei comandi finiva sopra il disegno che
-// si stava misurando. Un tavolo proprio risolve tutti e due — e permette la
-// cosa che senza non si poteva fare per niente: allargare la veduta quando la
-// fuga cade lontanissimo dalla vignetta, che e' proprio il caso interessante.
+// PRIMA NON ERA COSI': mentre si sceglieva la vignetta, lo strumento restava
+// appoggiato all'elemento <img> del lettore, che poteva essere gia' zoomato e
+// spostato da PRIMA di aprire la prospettiva. Il foglio di prospettiva cattura
+// pero' tutti i tocchi (serve, altrimenti un dito trascinerebbe anche la
+// pagina sotto) — quindi se una vignetta era finita fuori dallo schermo per lo
+// zoom del lettore, una volta aperta la prospettiva non c'era PIU' modo di
+// spostarsi per raggiungerla: ne' il lettore riceveva piu' i tocchi, ne' la
+// prospettiva sapeva ancora pannare (lo sapeva fare solo DOPO aver scelto la
+// vignetta). Segnalato da Giovanni il 16 settembre 2026. Ora si pan/zoom fin
+// da subito, sulla copia propria: quello che succede al lettore sotto non
+// conta piu'.
 //
 // Da qui in giu' esiste UNA sola trasformazione, { ox, oy, s }: dove sta a
 // schermo il pixel (0,0) dell'immagine, e quanti pixel di schermo vale un
-// pixel d'immagine. Cambia solo chi la decide.
-let _vista = null;           // { ox, oy, s } — il tavolo; null finche' si riquadra
+// pixel d'immagine.
+let _vista = null;           // { ox, oy, s } — nullo solo a strumento chiuso
 
 function trasforma(){
   if(!_img || !_img.naturalWidth) return null;
   if(_vista) return _vista;
+  // Ripiego per il primissimo istante, prima che apriProspettiva abbia fatto
+  // in tempo a chiamare prendiIlTavolo(): non dovrebbe quasi mai servire.
   const r = _img.getBoundingClientRect();
   if(!(r.width > 4 && r.height > 4)) return null;
   return { ox: r.left, oy: r.top, s: r.width / _img.naturalWidth };
@@ -166,13 +168,19 @@ export function adattaVeduta(tutto){
   disegna();
 }
 
+// Mette a fuoco il tavolo sulla cornice attuale (l'immagine intera, o la
+// vignetta appena scelta) e lo accende se non lo era gia'. Si chiama
+// all'apertura dello strumento, e ogni volta che la cornice cambia (una nuova
+// vignetta scelta, o il riquadro disfatto).
 function prendiIlTavolo(){
   _vedutaLarga = false; _mossoAMano = false;
   inquadra(cornice());
   document.body.classList.add('prosp-tavolo-aperto');
 }
+// Il vero spegnimento, solo alla chiusura dello strumento: da quel momento
+// non c'e' piu' un'immagine di cui tenere la vista.
 function lasciaIlTavolo(){
-  _vista = null; _vedutaLarga = false;
+  _vista = null; _vedutaLarga = false; _mossoAMano = false;
   document.body.classList.remove('prosp-tavolo-aperto');
 }
 
@@ -244,10 +252,19 @@ export function orizzonteDa(fuochi){
 // cui lo strumento esiste, ed e' un numero: la percentuale dell'altezza a cui
 // cade, contata dall'alto.
 //
-// Prima al numero era appiccicato un aggettivo — "altissimo", "a terra", "a
-// meta' altezza" — e quelle parole sono state tolte: davanti a una tavola di
-// Otomo, "23%" e' un dato, "altissimo" e' un giudizio che uno si fa da solo, e
-// scritto dallo strumento suona sciocco. Qui si misura e basta.
+// SI CHIAMA HL, come nel gergo del disegno (horizon line), e i punti di fuga
+// VP (vanishing point) — vedi letturaFuoco. Prima erano "Orizzonte" e "Fuga
+// N" per esteso, con frasi come "Fuga 1 fuori in alto": lette una accanto
+// all'altra, dieci volte per confrontare dieci tavole, sono lunghe da leggere
+// e non e' cosi' che si parla di prospettiva. Restano un dato, non un
+// racconto — niente aggettivi ("altissimo", "a terra") appiccicati al numero:
+// davanti a una tavola di Otomo "23%" e' un dato, "altissimo" e' un giudizio
+// che uno si fa da solo.
+function testoOrizzonte(pct){
+  if(pct < 0)   return 'HL ' + pct + '% (sopra)';
+  if(pct > 100) return 'HL ' + pct + '% (sotto)';
+  return 'HL ' + pct + '%';
+}
 export function letturaOrizzonte(orizzonte, fuochi, riq){
   if(!orizzonte) return '';
   const r = riq || { x:0, y:0, w:1, h:1 };
@@ -258,25 +275,25 @@ export function letturaOrizzonte(orizzonte, fuochi, riq){
   const t = (cx - orizzonte.a.x) / ((orizzonte.b.x - orizzonte.a.x) || 1);
   const y = orizzonte.a.y + t * (orizzonte.b.y - orizzonte.a.y);
   const pct = Math.round((y - r.y) / (r.h || 1) * 100);
-  if(pct < 0)   return 'Orizzonte ' + pct + '% — sopra la vignetta';
-  if(pct > 100) return 'Orizzonte ' + pct + '% — sotto la vignetta';
-  return 'Orizzonte ' + pct + '% dall\'alto';
+  return testoOrizzonte(pct);
 }
 
-// E dove cade la fuga rispetto alla vignetta: dentro o fuori, e di quante sue
-// larghezze. Fuori e' il caso che interessa — e' quello che allunga le scene —
-// e a schermo non si vedrebbe.
+// E dove cade il punto di fuga rispetto alla vignetta: dentro o fuori, e di
+// quante sue larghezze (w). Fuori e' il caso che interessa — e' quello che
+// allunga le scene — e a schermo non si vedrebbe. Prima il fuori-alto/basso
+// non portava nessun numero, solo "fuori in alto": qui la stessa unita' vale
+// in tutte e quattro le direzioni, cosi' si puo' confrontare anche quello.
 export function letturaFuoco(p, n, riq){
   const r = riq || { x:0, y:0, w:1, h:1 };
-  const nome = 'Fuga ' + n;
+  const nome = 'VP' + n;
   const u = (p.x - r.x) / (r.w || 1);
   const v = (p.y - r.y) / (r.h || 1);
-  const q = x => Math.round(x * 10) / 10;
-  if(u >= 0 && u <= 1 && v >= 0 && v <= 1) return nome + ' dentro';
-  if(u < 0) return nome + ' fuori a sinistra, ' + q(-u) + ' larghezze';
-  if(u > 1) return nome + ' fuori a destra, ' + q(u - 1) + ' larghezze';
-  if(v < 0) return nome + ' fuori in alto';
-  return nome + ' fuori in basso';
+  const q = x => Math.round(Math.abs(x) * 10) / 10;
+  if(u >= 0 && u <= 1 && v >= 0 && v <= 1) return nome;
+  if(u < 0) return nome + ' sinistra ' + q(u) + 'w';
+  if(u > 1) return nome + ' destra ' + q(u - 1) + 'w';
+  if(v < 0) return nome + ' sopra ' + q(v) + 'w';
+  return nome + ' sotto ' + q(v - 1) + 'w';
 }
 
 // ── IL FOGLIO ──
@@ -356,10 +373,13 @@ function costruisci(){
     // state fatte. Un solo tasto per disfare, che e' come funziona ovunque.
     if(a === 'indietro'){
       if(_linee.length) _linee.pop();
-      else { _riquadro = null; lasciaIlTavolo(); }
+      // Disfare il riquadro non chiude il tavolo, lo rimette a fuoco
+      // sull'immagine intera (cornice() torna {0,0,1,1} senza riquadro): il
+      // tavolo resta acceso dall'apertura alla chiusura dello strumento.
+      else { _riquadro = null; prendiIlTavolo(); }
       disegna();
     }
-    else if(a === 'pulisci'){ _linee = []; _riquadro = null; lasciaIlTavolo(); disegna(); }
+    else if(a === 'pulisci'){ _linee = []; _riquadro = null; prendiIlTavolo(); disegna(); }
     // "Tutta l'immagine" salta il riquadro: per un frammento gia' ritagliato su
     // una vignetta sola, riquadrarlo sarebbe un gesto a vuoto.
     else if(a === 'tutta'){ _riquadro = { x:0, y:0, w:1, h:1 }; prendiIlTavolo(); disegna(); }
@@ -513,14 +533,16 @@ export function disegna(){
   clip.setAttribute('x', q.x); clip.setAttribute('y', q.y);
   clip.setAttribute('width', q.w); clip.setAttribute('height', q.h);
 
-  // Il velo serve solo MENTRE si sceglie la vignetta, per staccarla dal resto
-  // della pagina. Sul tavolo non c'e' piu' niente da mettere da parte: la
-  // pagina non c'e' proprio, e un grigio sopra sarebbe solo grigio.
+  // Il velo serve solo MENTRE si sceglie la vignetta (nessun riquadro ancora
+  // scelto), per staccare il rettangolo in corso dal resto dell'immagine che
+  // si sta pannando. Una volta scelta la vignetta il tavolo mostra solo lei:
+  // non c'e' piu' niente da mettere da parte, e un grigio sopra sarebbe solo
+  // grigio.
   const W = window.innerWidth, H = window.innerHeight;
   const velo = _ov.querySelector('.prosp-velo');
-  const suPagina = !_vista;
+  const scegliendo = faseRiquadro();
   const tutta = riq.w >= 0.999 && riq.h >= 0.999 && riq.x <= 0.001 && riq.y <= 0.001;
-  velo.setAttribute('d', suPagina && (_riquadro || _bozzaRiq) && !tutta
+  velo.setAttribute('d', scegliendo && _bozzaRiq && !tutta
     ? `M0 0 H${W} V${H} H0 Z M${q.x} ${q.y} H${q.x + q.w} V${q.y + q.h} H${q.x} Z` : '');
   const bordo = _ov.querySelector('.prosp-cornice');
   const mostraBordo = _riquadro || _bozzaRiq;
@@ -670,10 +692,7 @@ function strisciaDati(c, W, y, h, misure){
   c.textBaseline = 'middle';
   c.font = '800 ' + fs + 'px system-ui, -apple-system, sans-serif';
   c.fillStyle = ORO;
-  const pct = misure.orizzonte;
-  const testa = 'Orizzonte ' + pct + '%'
-    + (pct < 0 ? ' (sopra)' : pct > 100 ? ' (sotto)' : ' dall\'alto');
-  c.fillText(testa, h * 0.34, y + h * 0.34);
+  c.fillText(testoOrizzonte(misure.orizzonte), h * 0.34, y + h * 0.34);
   c.font = '600 ' + Math.round(fs * 0.82) + 'px system-ui, -apple-system, sans-serif';
   c.fillStyle = 'rgba(240,232,216,.72)';
   c.fillText(misure.fughe.map((f, i)=> letturaFuoco(
@@ -833,11 +852,15 @@ export function apriProspettiva(img, opzioni){
   _ov = _ov || costruisci();
   _img = img;
   _linee = []; _bozza = null; _riquadro = null; _bozzaRiq = null;
-  lasciaIlTavolo();
   _salvataggio = o.salva || null;
   _alChiude = o.alChiude || null;
   _ov.hidden = false;
   document.body.classList.add('prosp-aperta');
+  // Il tavolo si prende SUBITO, con l'immagine intera (cornice() torna
+  // {0,0,1,1} finche' non c'e' un riquadro): da qui in poi si puo' pan/zoom
+  // fin dal primo istante, invece di restare appesi a come il lettore la
+  // stava mostrando (vedi la nota sopra trasforma()).
+  prendiIlTavolo();
   window.addEventListener('resize', riadatta);
   window.addEventListener('orientationchange', riadatta);
   document.addEventListener('keydown', tasti);

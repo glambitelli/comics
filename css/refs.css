@@ -16,7 +16,7 @@
 .refs-crumb-sort[hidden]{display:none}
 .refs-breadcrumb-back{font-size:18px;font-weight:700;color:#8a7248;line-height:1}
 
-/* Albi / Frammenti / Tavole / Fughe — visibili solo dentro una cartella vera.
+/* Albi / Frammenti / Tavole / Prospettiva — visibili solo dentro una cartella vera.
    Sono lo STESSO interruttore di Artists/References (vedi .seg-vasca piu'
    sotto): erano tre parole con una lineetta corallo sotto quella scelta, cioe'
    il linguaggio dei titoli, mentre qui si sceglie uno scaffale fra tre. Ora la
@@ -25,13 +25,16 @@
 .refs-tabs{display:none;padding:2px 16px 12px;background:var(--fondo-carta);flex-shrink:0}
 .refs-tabs.show{display:block}
 .refs-tabs .seg-vasca{--n:4}
-/* Con quattro scaffali le parole si stringono: su un telefono stretto "Fughe"
-   e il suo numero non ci stanno piu' a 13,5px, e andrebbero a capo dentro il
-   cursore. Il numero e' un contorno, quindi e' lui a cedere per primo. */
+/* Con quattro scaffali le parole si stringono, e "Prospettiva" e' la piu'
+   lunga: su un telefono stretto lei e il suo numero non ci stanno a 13,5px e
+   andrebbero a capo dentro il cursore. Il numero e' un contorno, quindi e' lui
+   a cedere per primo; e le parole non vanno mai a capo — meglio una "a" tagliata
+   che due righe dentro un tasto. */
 @media (max-width:420px){
-  .refs-tabs .seg-tab{font-size:12.5px;letter-spacing:-.02em}
-  .refs-tabs .refs-tab-n{margin-left:3px;font-size:10.5px}
+  .refs-tabs .seg-tab{font-size:11.5px;letter-spacing:-.03em;padding-left:1px;padding-right:1px}
+  .refs-tabs .refs-tab-n{margin-left:3px;font-size:10px}
 }
+.refs-tabs .seg-tab{white-space:nowrap;overflow:hidden;text-overflow:clip}
 /* Il numero accanto al nome non e' un dato, e' un contorno: serve a sapere se
    uno scaffale e' vuoto prima di aprirlo, quindi resta piccolo e chiaro. */
 .refs-tab-n{font-size:11.5px;font-weight:700;color:#a9987a;margin-left:4px}
