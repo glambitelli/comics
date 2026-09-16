@@ -644,6 +644,37 @@ module.exports = () => suite("Prospettiva — il righello per leggere l'orizzont
   ok('e l\'angolo trascinato porta il riquadro dove il dito l\'ha lasciato',
      modificaRiquadro.w > 0.55 && modificaRiquadro.h > 0.55, modificaRiquadro);
 
+  sezione('e un lato solo si stringe senza toccare gli altri tre, gia\' giusti');
+  // IL CASO PRECISO SEGNALATO DA GIOVANNI IL 16 SETTEMBRE 2026: un riquadro
+  // giusto su tre lati e un filo troppo largo sul quarto (si vedeva ancora un
+  // bordo della vignetta accanto). Trascinare un angolo avrebbe spostato
+  // anche uno dei lati gia' buoni; qui si trascina il punto di mezzo di un
+  // solo lato — quello sinistro — e si controlla che SOLO quel lato si
+  // muova.
+  const modificaLato = await page.evaluate(async ()=>{
+    const P = window.P;
+    const svg = document.querySelector('.prosp-svg');
+    P.chiudiProspettiva();
+    P.apriProspettiva(window.__img);
+    P.__perLeProveRiquadro({ x:0.1, y:0.1, w:0.5, h:0.5 });
+    await new Promise(r=> setTimeout(r, 60));
+    const r = document.querySelector('.prosp-tavolo').getBoundingClientRect();
+    const tocco = (tipo, cx, cy)=> svg.dispatchEvent(new PointerEvent(tipo, {
+      pointerId: 13, clientX: cx, clientY: cy, bubbles:true, cancelable:true }));
+    // Il punto di mezzo del lato sinistro: lo si trascina verso destra, per
+    // togliere una fetta che apparteneva alla vignetta accanto.
+    tocco('pointerdown', r.left, r.top + r.height/2);
+    tocco('pointermove', r.left + r.width * 0.2, r.top + r.height/2);
+    tocco('pointerup', r.left + r.width * 0.2, r.top + r.height/2);
+    await new Promise(res=> setTimeout(res, 60));
+    return P.corniceAttiva();
+  });
+  ok('il lato destro, quello sopra e quello sotto restano dove erano',
+     Math.abs(modificaLato.y - 0.1) < 0.02 && Math.abs(modificaLato.h - 0.5) < 0.02
+     && Math.abs((modificaLato.x + modificaLato.w) - 0.6) < 0.02, modificaLato);
+  ok('solo il lato sinistro si e\' stretto, verso dove il dito l\'ha portato',
+     modificaLato.x > 0.15, modificaLato);
+
   sezione('e chiudendo l\'albo lo schema non resta appeso sul nulla');
   const chiusura = await page.evaluate(async ()=>{
     window.albums.closeReaderUI();

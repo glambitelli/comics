@@ -66,6 +66,13 @@ let _alChiude = null;
 // stato qui sotto ricorda quale capo, di quale linea, sta seguendo il dito in
 // questo momento — null il resto del tempo, quando il dito sta disegnando.
 let _trascinaEstremo = null; // { i, estremo:'a'|'b' }
+// LO STESSO PER IL RIQUADRO: quale lato o angolo il dito sta trascinando
+// adesso (vedi trovaManigliaRiq), null il resto del tempo. A differenza delle
+// linee, qui il dito muta DIRETTAMENTE _riquadro a ogni movimento — non un
+// duplicato temporaneo — cosi' il ritaglio si stringe in diretta sotto al
+// dito: e' proprio quel riscontro immediato che serve per allineare il bordo
+// a un lato di vignetta storto, invece di indovinare e ricontrollare dopo.
+let _trascinaRiq = null;     // { fx, fy, mx, my } — vedi trovaManigliaRiq
 // ── PRIMA LA VIGNETTA, POI LE LINEE ──
 //
 // La prima versione misurava l'orizzonte sull'INTERA tavola, e la percentuale
@@ -414,7 +421,7 @@ function costruisci(){
       else { _riquadro = null; prendiIlTavolo(); }
       disegna();
     }
-    else if(a === 'pulisci'){ _linee = []; _riquadro = null; _bozzaRiq = null; _trascinaEstremo = null; prendiIlTavolo(); disegna(); }
+    else if(a === 'pulisci'){ _linee = []; _riquadro = null; _bozzaRiq = null; _trascinaEstremo = null; _trascinaRiq = null; prendiIlTavolo(); disegna(); }
     // "Tutta l'immagine" salta il riquadro: per un frammento gia' ritagliato su
     // una vignetta sola, riquadrarlo sarebbe un gesto a vuoto.
     else if(a === 'tutta'){ _riquadro = { x:0, y:0, w:1, h:1 }; prendiIlTavolo(); disegna(); }
@@ -444,27 +451,42 @@ function trovaEstremo(cx, cy, t){
   });
   return migliore;
 }
-// Lo stesso, sui quattro angoli del riquadro gia' scelto. Restituisce
-// l'angolo trascinato E quello opposto (che resta fermo): e' esattamente la
-// coppia di punti che un trascinamento-da-zero produce, quindi trascinare un
-// angolo puo' riusare — vedi piu' sotto — la stessa _bozzaRiq e lo stesso
-// codice di chiusura gia' scritti per il primo riquadro.
-function trovaAngoloRiq(cx, cy, t){
+// Lo stesso, sugli otto punti del riquadro gia' scelto: i quattro angoli
+// (che spostano due lati insieme) e i quattro punti di mezzo dei lati (che ne
+// spostano uno solo). SOLO GLI ANGOLI NON BASTAVANO: Giovanni l'ha mostrato
+// il 16 settembre 2026 con una vignetta dove a sinistra si vedeva ancora un
+// filo della vignetta successiva — il riquadro era giusto ovunque tranne che
+// su QUEL lato, e trascinare un angolo avrebbe spostato anche il lato sopra o
+// sotto, gia' preciso, per raddrizzarne uno solo. Ogni voce dice quale
+// coordinata resta FERMA (fx/fy, null se quel lato non e' vincolato su
+// quell'asse) e quale si muove (mx/my): il conto vero e' in _trascinaRiq piu'
+// sotto.
+function trovaManigliaRiq(cx, cy, t){
   if(!_riquadro) return null;
   const r = _riquadro;
-  const angoli = [
-    { punto:{x:r.x,       y:r.y      }, opposto:{x:r.x+r.w, y:r.y+r.h} },
-    { punto:{x:r.x+r.w,   y:r.y      }, opposto:{x:r.x,     y:r.y+r.h} },
-    { punto:{x:r.x,       y:r.y+r.h  }, opposto:{x:r.x+r.w, y:r.y    } },
-    { punto:{x:r.x+r.w,   y:r.y+r.h  }, opposto:{x:r.x,     y:r.y    } },
+  const candidati = [
+    { punto:{x:r.x,       y:r.y      }, fx:r.x+r.w, fy:r.y+r.h, mx:true,  my:true  },
+    { punto:{x:r.x+r.w,   y:r.y      }, fx:r.x,     fy:r.y+r.h, mx:true,  my:true  },
+    { punto:{x:r.x,       y:r.y+r.h  }, fx:r.x+r.w, fy:r.y,     mx:true,  my:true  },
+    { punto:{x:r.x+r.w,   y:r.y+r.h  }, fx:r.x,     fy:r.y,     mx:true,  my:true  },
+    { punto:{x:r.x,       y:r.y+r.h/2}, fx:r.x+r.w, fy:null,    mx:true,  my:false },
+    { punto:{x:r.x+r.w,   y:r.y+r.h/2}, fx:r.x,     fy:null,    mx:true,  my:false },
+    { punto:{x:r.x+r.w/2, y:r.y      }, fx:null,    fy:r.y+r.h, mx:false, my:true  },
+    { punto:{x:r.x+r.w/2, y:r.y+r.h  }, fx:null,    fy:r.y,     mx:false, my:true  },
   ];
   let migliore = null, meglioDist = RAGGIO_MANIGLIA;
-  for(const ang of angoli){
-    const p = aSchermo(ang.punto, t);
+  for(const cand of candidati){
+    const p = aSchermo(cand.punto, t);
     const d = Math.hypot(p.x - cx, p.y - cy);
-    if(d < meglioDist){ meglioDist = d; migliore = ang; }
+    if(d < meglioDist){ meglioDist = d; migliore = cand; }
   }
   return migliore;
+}
+// Sotto quanto non si lascia stringere un lato: un riquadro a fetta di
+// carta non misurerebbe piu' niente.
+const RIQ_MIN = 0.02;
+function versoIlFermo(v, fermo, min){
+  return v < fermo ? Math.min(v, fermo - min) : Math.max(v, fermo + min);
 }
 
 // Il tratto si fa trascinando, con i Pointer Events: un solo codice per dito,
@@ -491,7 +513,7 @@ function agganciaTratto(svg){
     // Il secondo dito annulla il tratto appena cominciato: chi apre due dita
     // vuole guardare, non ha sbagliato a disegnare.
     if(dita.size === 2 && _vista){
-      _bozza = null; _bozzaRiq = null; _trascinaEstremo = null; attivo = null;
+      _bozza = null; _bozzaRiq = null; _trascinaEstremo = null; _trascinaRiq = null; attivo = null;
       const c = centro();
       pizzico = { d:c.d, x:c.x, y:c.y, s:_vista.s, ox:_vista.ox, oy:_vista.oy };
       disegna();
@@ -502,19 +524,13 @@ function agganciaTratto(svg){
     // PRIMA SI CERCA UN CAPO GIA' PIAZZATO. Una volta tracciate le linee, il
     // dito serve piu' spesso a CORREGGERLE che ad aggiungerne di nuove — vedi
     // la nota sopra _trascinaEstremo. Si guarda prima un estremo di linea,
-    // poi un angolo del riquadro: solo se nessuno dei due e' vicino si parte
-    // con un gesto nuovo, come prima.
+    // poi una maniglia del riquadro: solo se nessuno dei due e' vicino si
+    // parte con un gesto nuovo, come prima.
     if(!faseRiquadro()){
       const est = trovaEstremo(e.clientX, e.clientY, t);
       if(est){ _trascinaEstremo = est; return; }
-      const ang = trovaAngoloRiq(e.clientX, e.clientY, t);
-      if(ang){
-        // Si trascina esattamente come si disegna un riquadro da zero — vedi
-        // il commento su trovaAngoloRiq — cosi' pointermove e la chiusura del
-        // gesto qui sotto non hanno bisogno di un percorso separato.
-        _bozzaRiq = { a: ang.opposto, b: ang.punto };
-        return;
-      }
+      const man = trovaManigliaRiq(e.clientX, e.clientY, t);
+      if(man){ _trascinaRiq = man; return; }
     }
     const p = aImmagine(e.clientX, e.clientY, t);
     if(faseRiquadro()) _bozzaRiq = { a:p, b:p };
@@ -545,6 +561,26 @@ function agganciaTratto(svg){
       disegna();
       return;
     }
+    if(_trascinaRiq){
+      // Si muta _riquadro SUBITO, non una bozza a parte: sistemaIlTavolo
+      // legge cornice() a ogni disegna(), quindi il ritaglio si stringe in
+      // diretta sotto al dito — e' quel riscontro immediato, non un
+      // anteprima seguita da un salto, che serve per allineare il bordo a un
+      // lato di vignetta storto.
+      const p = aImmagine(e.clientX, e.clientY, t);
+      if(_trascinaRiq.mx){
+        const nx = versoIlFermo(p.x, _trascinaRiq.fx, RIQ_MIN);
+        _riquadro.x = Math.min(nx, _trascinaRiq.fx);
+        _riquadro.w = Math.abs(nx - _trascinaRiq.fx);
+      }
+      if(_trascinaRiq.my){
+        const ny = versoIlFermo(p.y, _trascinaRiq.fy, RIQ_MIN);
+        _riquadro.y = Math.min(ny, _trascinaRiq.fy);
+        _riquadro.h = Math.abs(ny - _trascinaRiq.fy);
+      }
+      disegna();
+      return;
+    }
     const p = aImmagine(e.clientX, e.clientY, t);
     if(_bozzaRiq) _bozzaRiq.b = p;
     else if(_bozza) _bozza.b = p;
@@ -562,6 +598,15 @@ function agganciaTratto(svg){
       // non un gesto che si distingue da un tocco a vuoto — qualunque
       // spostamento, anche minimo, e' intenzionale.
       _trascinaEstremo = null;
+      disegna();
+      return;
+    }
+    if(_trascinaRiq){
+      // _riquadro e' gia' quello giusto (mutato a ogni pointermove): qui
+      // resta solo da rimettere a fuoco il tavolo sulla misura nuova, come
+      // dopo aver scelto un riquadro da zero.
+      _trascinaRiq = null;
+      prendiIlTavolo();
       disegna();
       return;
     }
@@ -740,7 +785,16 @@ export function disegna(){
     }
   }
   if(_riquadro){
-    for(const p of [{x:q.x,y:q.y}, {x:q.x+q.w,y:q.y}, {x:q.x,y:q.y+q.h}, {x:q.x+q.w,y:q.y+q.h}]){
+    // Angoli E meta' dei lati: un angolo sposta due bordi insieme, un punto
+    // di mezzo lato ne stringe uno solo — serve proprio quando il riquadro e'
+    // giusto ovunque tranne che su UN lato (vedi trovaManigliaRiq).
+    const otto = [
+      {x:q.x,       y:q.y      }, {x:q.x+q.w,   y:q.y      },
+      {x:q.x,       y:q.y+q.h  }, {x:q.x+q.w,   y:q.y+q.h  },
+      {x:q.x+q.w/2, y:q.y      }, {x:q.x+q.w/2, y:q.y+q.h  },
+      {x:q.x,       y:q.y+q.h/2}, {x:q.x+q.w,   y:q.y+q.h/2},
+    ];
+    for(const p of otto){
       maniglie += `<rect x="${p.x-6}" y="${p.y-6}" width="12" height="12" fill="rgba(0,0,0,.4)" stroke="${SABBIA}" stroke-width="1.6" opacity=".85"/>`;
     }
   }
@@ -1009,7 +1063,7 @@ export function apriProspettiva(img, opzioni){
   const o = typeof opzioni === 'function' ? { alChiude: opzioni } : (opzioni || {});
   _ov = _ov || costruisci();
   _img = img;
-  _linee = []; _bozza = null; _riquadro = null; _bozzaRiq = null; _trascinaEstremo = null;
+  _linee = []; _bozza = null; _riquadro = null; _bozzaRiq = null; _trascinaEstremo = null; _trascinaRiq = null;
   _salvataggio = o.salva || null;
   _alChiude = o.alChiude || null;
   _ov.hidden = false;
@@ -1029,7 +1083,7 @@ export function apriProspettiva(img, opzioni){
 export function chiudiProspettiva(){
   if(!_ov || _ov.hidden) return;
   _ov.hidden = true;
-  _img = null; _linee = []; _bozza = null; _riquadro = null; _bozzaRiq = null; _trascinaEstremo = null;
+  _img = null; _linee = []; _bozza = null; _riquadro = null; _bozzaRiq = null; _trascinaEstremo = null; _trascinaRiq = null;
   lasciaIlTavolo();
   _salvataggio = null; _salvando = false;
   const b = _ov.querySelector('.prosp-salva');
