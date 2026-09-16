@@ -860,12 +860,24 @@ function disegnaSuTela(){
   tela.width = W; tela.height = Hi + striscia;
   const c = tela.getContext('2d');
 
-  // Il fondo del tavolo prima di tutto: dove la pagina non arriva — e con la
-  // veduta larga non arriva quasi mai — resta lui, non un rettangolo nero
-  // trasparente che in WebP diventa una macchia.
+  // Il fondo del tavolo prima di tutto: dove la pagina non arriva resta lui,
+  // non un rettangolo nero trasparente che in WebP diventa una macchia.
   c.fillStyle = FONDO; c.fillRect(0, 0, W, Hi + striscia);
-  const sx0 = Math.max(0, ax), sy0 = Math.max(0, ay);
-  const sx1 = Math.min(NW, ax + aw), sy1 = Math.min(NH, ay + ah);
+  // SI DISEGNA SOLO LA VIGNETTA VERA — il riquadro, non tutta l'area
+  // allargata. Il primo tentativo disegnava l'immagine sorgente su TUTTA
+  // l'area di abbraccioFughe: sembrava giusto ("dove la pagina non arriva
+  // resta il fondo"), ma la fuga cade quasi sempre ancora DENTRO l'immagine —
+  // solo in un'ALTRA vignetta della stessa tavola, la stessa foto di pagina.
+  // Il margine allargato finiva cosi' pieno del disegno della vignetta
+  // accanto, invece che neutro. Giovanni l'ha trovato il 16 settembre 2026 su
+  // una fuga molto alta: lo studio esportato mostrava un'intera altra
+  // vignetta sopra, non uno sfondo pulito — esattamente il contrario di
+  // quello per cui esiste il tavolo (vedi la nota in apertura del file). A
+  // schermo il problema non si vedeva perche' sistemaIlTavolo ritaglia SEMPRE
+  // al riquadro, mai all'area allargata: qui si fa la stessa cosa.
+  const rx = riq.x * NW, ry = riq.y * NH, rw = riq.w * NW, rh = riq.h * NH;
+  const sx0 = Math.max(0, rx), sy0 = Math.max(0, ry);
+  const sx1 = Math.min(NW, rx + rw), sy1 = Math.min(NH, ry + rh);
   if(sx1 > sx0 && sy1 > sy0){
     c.drawImage(_img, sx0, sy0, sx1 - sx0, sy1 - sy0,
                 (sx0 - ax) * k, (sy0 - ay) * k, (sx1 - sx0) * k, (sy1 - sy0) * k);

@@ -787,6 +787,57 @@ module.exports = () => suite("Prospettiva — il righello per leggere l'orizzont
   ok('e senza toccare ⤢ ne\' zoom di nessun tipo, la riga d\'oro c\'e\' lo stesso',
      fuoriCampo.immagine.oro > 1000, fuoriCampo.immagine);
 
+  sezione('e quel margine allargato resta neutro: non si vede la vignetta accanto');
+  // LA FUGA CADE SPESSO DENTRO UN'ALTRA VIGNETTA della stessa tavola — e' la
+  // stessa foto di pagina, solo un'altra porzione. Il primo tentativo di
+  // "allargare quel poco che serve" (vedi areaDaSalvare, e la prova sopra)
+  // ridisegnava l'immagine sorgente su TUTTA l'area allargata: dove quel
+  // margine cadeva davvero dentro un'altra vignetta, nello studio esportato
+  // compariva LEI, non uno sfondo pulito. Giovanni l'ha trovato il 16
+  // settembre 2026 su una fuga molto in alto: si vedeva ancora l'intera
+  // tavola, il contrario esatto del motivo per cui il tavolo esiste. Qui si
+  // costruisce un'immagine con una fascia di un colore acceso SOPRA la
+  // vignetta — la "vignetta accanto" — si manda la fuga a cadere proprio li',
+  // e si controlla che quel colore non finisca nello studio salvato.
+  const margineNeutro = await page.evaluate(async ()=>{
+    const c = document.createElement('canvas'); c.width = 900; c.height = 1200;
+    const x = c.getContext('2d');
+    x.fillStyle = '#e81030'; x.fillRect(0, 0, 900, 400);    // "l'altra vignetta", sopra
+    x.fillStyle = '#fff';    x.fillRect(0, 400, 900, 800);  // la vignetta che si studia
+    const im = new Image();
+    im.src = c.toDataURL('image/png');
+    await im.decode();
+    const P = window.P;
+    const preso = [];
+    P.chiudiProspettiva();
+    P.apriProspettiva(im, { salva: async d=>{ preso.push(d); } });
+    // La vignetta e' la meta' bassa, sotto il rosso.
+    P.__perLeProveRiquadro({ x:0, y:1/3, w:1, h:2/3 });
+    // Due linee che convergono ben SOPRA il riquadro: la fuga cade dentro la
+    // fascia rossa, non semplicemente fuori dall'immagine.
+    P.__perLeProveTraccia({ a:{x:0.15,y:0.60}, b:{x:0.50,y:0.05} });
+    P.__perLeProveTraccia({ a:{x:0.85,y:0.60}, b:{x:0.50,y:0.05} });
+    await new Promise(r=> setTimeout(r, 60));
+    const lettura = document.querySelector('.prosp-oriz').textContent;
+    document.querySelector('.prosp-salva').dispatchEvent(new MouseEvent('click',{bubbles:true}));
+    await new Promise(r=> setTimeout(r, 900));
+    const risultato = await new Promise(res=>{
+      const i = new Image(); i.onload = ()=> res(i); i.src = URL.createObjectURL(preso[0].blob); });
+    const cv = document.createElement('canvas');
+    cv.width = risultato.width; cv.height = risultato.height;
+    const cx = cv.getContext('2d'); cx.drawImage(risultato, 0, 0);
+    const d = cx.getImageData(0, 0, cv.width, cv.height).data;
+    let rosso = 0;
+    for(let i = 0; i < d.length; i += 4){
+      if(d[i] > 200 && d[i+1] < 60 && d[i+2] < 80) rosso++;
+    }
+    return { lettura, rosso, w: risultato.width, h: risultato.height };
+  });
+  ok('la fuga cade davvero sopra il riquadro, dentro la vignetta accanto',
+     /\(sopra\)/.test(margineNeutro.lettura), margineNeutro.lettura);
+  ok('e il colore della vignetta accanto non finisce nel margine dello studio salvato',
+     margineNeutro.rosso === 0, margineNeutro);
+
   sezione('e non dipende da come si sta guardando lo schermo quando si preme Salva');
   // IL CASO PRECISO DI GIOVANNI: si zooma stretti per tracciare con
   // precisione, e la vista resta cosi' finche' non si preme Salva. Il
