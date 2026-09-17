@@ -318,22 +318,48 @@ export function letturaOrizzonte(orizzonte, fuochi, riq){
   return testoOrizzonte(pct);
 }
 
-// E dove cade il punto di fuga rispetto alla vignetta: dentro o fuori, e di
-// quante sue larghezze (w). Fuori e' il caso che interessa — e' quello che
-// allunga le scene — e a schermo non si vedrebbe. Prima il fuori-alto/basso
-// non portava nessun numero, solo "fuori in alto": qui la stessa unita' vale
-// in tutte e quattro le direzioni, cosi' si puo' confrontare anche quello.
+// ── DI QUANTO LA FUGA E' FUORI, E RISPETTO A COSA ──
+//
+// Fuori e' il caso che interessa — e' quello che allunga le scene — e a
+// schermo non si vedrebbe: l'unico modo di dirlo e' a parole, con una
+// distanza. La distanza si conta IN VIGNETTE e non in pixel: "due larghezze"
+// vuol dire la stessa cosa su una vignetta grande e su una piccola, ed e'
+// l'unica misura con cui si possono confrontare due tavole diverse. In pixel
+// sarebbe un numero vero e inutile.
+//
+// PRIMA C'ERA SCRITTO SOLO "w", ED ERA SBAGLIATO IN DUE MODI. Giovanni ha
+// chiesto il 17 settembre 2026 rispetto a cosa fosse calcolato quel numero, e
+// la risposta era imbarazzante: di lato si contavano LARGHEZZE, sopra e sotto
+// si contavano ALTEZZE, e tutte e quattro si scrivevano "w" — la lettera
+// della larghezza. Il commento che stava qui arrivava perfino a vantarsi che
+// "la stessa unita' vale in tutte e quattro le direzioni": non era vero, ed
+// e' rimasto scritto per due giorni. Adesso l'unita' e' per esteso e dice di
+// cosa: sono due parole in piu' e una sigla in meno da decifrare.
+//
+// E LO ZERO NON SI SCRIVE. Con la fuga appena oltre il bordo l'arrotondamento
+// a un decimo dava "VP1 sotto 0w": un numero che dice zero mentre la frase
+// afferma che il punto e' fuori. E' il caso che Giovanni aveva davanti quando
+// ha chiesto — la lettura peggiore possibile, perche' sembra un errore.
+const LARGO = { uno:'larghezza', tanti:'larghezze' };
+const ALTO  = { uno:'altezza',   tanti:'altezze' };
+function scriviFuori(nome, quanto, unita, dove, sulBordo){
+  const n = Math.round(Math.abs(quanto) * 10) / 10;
+  if(n === 0) return nome + ' ' + sulBordo;
+  // La virgola, come si scrivono i decimali in italiano e come li scrive gia'
+  // il cronometro.
+  const q = n.toString().replace('.', ',');
+  return nome + ' ' + dove + ', ' + q + ' ' + (n === 1 ? unita.uno : unita.tanti) + ' di vignetta';
+}
 export function letturaFuoco(p, n, riq){
   const r = riq || { x:0, y:0, w:1, h:1 };
   const nome = 'VP' + n;
   const u = (p.x - r.x) / (r.w || 1);
   const v = (p.y - r.y) / (r.h || 1);
-  const q = x => Math.round(Math.abs(x) * 10) / 10;
-  if(u >= 0 && u <= 1 && v >= 0 && v <= 1) return nome;
-  if(u < 0) return nome + ' sinistra ' + q(u) + 'w';
-  if(u > 1) return nome + ' destra ' + q(u - 1) + 'w';
-  if(v < 0) return nome + ' sopra ' + q(v) + 'w';
-  return nome + ' sotto ' + q(v - 1) + 'w';
+  if(u >= 0 && u <= 1 && v >= 0 && v <= 1) return nome + ' dentro la vignetta';
+  if(u < 0) return scriviFuori(nome, u,     LARGO, 'a sinistra', 'appena fuori a sinistra');
+  if(u > 1) return scriviFuori(nome, u - 1, LARGO, 'a destra',   'appena fuori a destra');
+  if(v < 0) return scriviFuori(nome, v,     ALTO,  'sopra',      'appena sopra il bordo');
+  return scriviFuori(nome, v - 1, ALTO, 'sotto', 'appena sotto il bordo');
 }
 
 // ── IL FOGLIO ──
@@ -450,6 +476,11 @@ function costruisci(){
     else if(a === 'veduta'){ _vedutaLarga = !_vedutaLarga; adattaVeduta(_vedutaLarga); }
     else chiudiProspettiva();
   });
+  // L'ultima rete per il menu lungo-pressione: il CSS toglie il bersaglio
+  // (vedi .prosp-tavolo in prospettiva.css), questo toglie il menu anche
+  // dove un bersaglio ci fosse — e col mouse, dove il tasto destro qui
+  // dentro non ha niente da proporre.
+  ov.addEventListener('contextmenu', e=> e.preventDefault());
   agganciaTratto(ov.querySelector('.prosp-svg'));
   return ov;
 }
@@ -914,11 +945,24 @@ function strisciaDati(c, W, y, h, misure){
   c.font = '800 ' + fs + 'px system-ui, -apple-system, sans-serif';
   c.fillStyle = ORO;
   c.fillText(testoOrizzonte(misure.orizzonte), h * 0.34, y + h * 0.34);
-  c.font = '600 ' + Math.round(fs * 0.82) + 'px system-ui, -apple-system, sans-serif';
-  c.fillStyle = 'rgba(240,232,216,.72)';
-  c.fillText(misure.fughe.map((f, i)=> letturaFuoco(
+  const righe = misure.fughe.map((f, i)=> letturaFuoco(
     { x: cornice().x + f.x * cornice().w, y: cornice().y + f.y * cornice().h },
-    i + 1, cornice())).join('   ·   '), h * 0.34, y + h * 0.72);
+    i + 1, cornice())).join('   ·   ');
+  // IL TESTO SI STRINGE PER STARE DENTRO. Con due fughe e l'unita' scritta
+  // per esteso ("1,4 larghezze di vignetta") la riga puo' superare la
+  // larghezza della tela, e quello che esce dal bordo semplicemente non c'e'
+  // piu': di uno studio archiviato resterebbe mezza misura. Meglio due punti
+  // di corpo in meno e la frase intera.
+  const bordo = h * 0.34;
+  let fsq = Math.round(fs * 0.82);
+  const corpo = n => '600 ' + n + 'px system-ui, -apple-system, sans-serif';
+  c.font = corpo(fsq);
+  while(fsq > 9 && c.measureText(righe).width > W - bordo * 2){
+    fsq -= 1;
+    c.font = corpo(fsq);
+  }
+  c.fillStyle = 'rgba(240,232,216,.72)';
+  c.fillText(righe, bordo, y + h * 0.72);
 }
 
 function disegnaSuTela(){

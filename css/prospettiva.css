@@ -13,7 +13,17 @@
    barra e ci aggiungeva un margine di scorta — sbagliando quel margine la
    barra tornava a sedersi sopra l'immagine. Con una colonna flex lo spazio
    del palco finisce dove comincia la barra per costruzione, non per stima. */
+/* NIENTE MENU DEL BROWSER MENTRE IL DITO LAVORA. Correggendo una linea si
+   tiene premuto e si trascina: su Android quel gesto, se sotto c'e' qualcosa
+   che il browser considera un'immagine o del testo, apre il suo menu
+   ("Scarica immagine", "Cerca con Lens") e il tratto si perde a meta'.
+   Segnalato da Giovanni il 17 settembre 2026. touch-action:none da solo non
+   basta: il menu lungo-pressione e' un'altra cosa dallo scorrimento, e si
+   spegne togliendo la selezione, il callout e — soprattutto — facendo in
+   modo che sotto al dito non ci sia nessuna immagine da offrire (vedi
+   .prosp-tavolo). */
 .prosp{position:fixed;inset:0;z-index:9800;touch-action:none;-webkit-tap-highlight-color:transparent;
+  user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;
   display:flex;flex-direction:column}
 .prosp[hidden]{display:none}
 /* MENTRE SI SCEGLIE LA VIGNETTA non c'e' fondo: l'immagine sotto si deve
@@ -33,9 +43,13 @@ body.prosp-tavolo-aperto .prosp{background:#16120c}
 .prosp-palco{position:relative;flex:1 1 auto;min-height:0;overflow:hidden}
 /* Il ritaglio della vignetta: un buco grande quanto lei, con dentro
    l'immagine intera spostata perche' sia quel pezzo a caderci. */
-.prosp-tavolo{position:absolute;overflow:hidden;will-change:left,top,width,height}
+/* Il tavolo non riceve tocchi: li prende tutti l'SVG sopra di lui, che e' chi
+   sa cosa farne. Senza questo, il dito che tiene premuto per correggere una
+   linea trova sotto di se' un <img> vero, e Android offre di scaricarlo. */
+.prosp-tavolo{position:absolute;overflow:hidden;pointer-events:none;will-change:left,top,width,height}
 .prosp-tavolo[hidden]{display:none}
-.prosp-tavolo img{position:absolute;max-width:none;max-height:none;image-rendering:auto}
+.prosp-tavolo img{position:absolute;max-width:none;max-height:none;image-rendering:auto;
+  -webkit-user-drag:none;user-select:none;-webkit-user-select:none}
 .prosp-svg{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:crosshair}
 
 /* La barra sta in BASSO e non in alto: il pollice arriva li', e in alto

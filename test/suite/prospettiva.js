@@ -73,6 +73,14 @@ module.exports = () => suite("Prospettiva — il righello per leggere l'orizzont
       dentro: P.letturaFuoco({ x:0.4, y:0.3 }, 1),
       destra: P.letturaFuoco({ x:2.4, y:0.3 }, 1),
       sinistra: P.letturaFuoco({ x:-1.2, y:0.3 }, 2),
+      // Sopra e sotto si contano in ALTEZZE, non in larghezze: sono due
+      // misure diverse, e per due giorni si sono chiamate tutte e due "w".
+      sotto: P.letturaFuoco({ x:0.5, y:1.3 }, 1),
+      sopraFuori: P.letturaFuoco({ x:0.5, y:-0.4 }, 1),
+      // E la fuga appena oltre il bordo non deve dire "zero".
+      sulBordo: P.letturaFuoco({ x:0.5, y:1.02 }, 1),
+      // Una larghezza sola resta singolare.
+      una: P.letturaFuoco({ x:2, y:0.3 }, 1),
     };
   });
   ok('con una fuga sola l\'orizzonte e\' orizzontale', lettura.orizzontale, lettura);
@@ -96,12 +104,30 @@ module.exports = () => suite("Prospettiva — il righello per leggere l'orizzont
   // uguale dal centro: al centro fanno 40%.
   ok('e la sua altezza si legge al centro, non su un bordo',
      /^HL 40%$/.test(lettura.due), lettura.due);
-  ok('la fuga dentro la vignetta si riconosce', /^VP1$/.test(lettura.dentro), lettura.dentro);
+  ok('la fuga dentro la vignetta si riconosce',
+     /^VP1 dentro la vignetta$/.test(lettura.dentro), lettura.dentro);
   // Quante larghezze: e' la misura di quanto e' "lunga" la scena, ed e' la
   // ragione per cui la fuga fuori campo interessa.
   ok('e quella fuori dice da che parte e di quanto',
-     /VP1 destra 1\.4w/.test(lettura.destra), lettura.destra);
-  ok('anche a sinistra', /VP2 sinistra 1\.2w/.test(lettura.sinistra), lettura.sinistra);
+     /^VP1 a destra, 1,4 larghezze di vignetta$/.test(lettura.destra), lettura.destra);
+  ok('anche a sinistra',
+     /^VP2 a sinistra, 1,2 larghezze di vignetta$/.test(lettura.sinistra), lettura.sinistra);
+  // L'UNITA' E' SCRITTA, E DICE DI COSA. Fino al 17 settembre 2026 c'era solo
+  // "1.4w", e quella "w" era una bugia in due direzioni su quattro: sopra e
+  // sotto il numero erano ALTEZZE di vignetta, scritte con la lettera della
+  // larghezza. Giovanni ha chiesto rispetto a cosa fosse calcolato, e non
+  // c'era modo di saperlo leggendo.
+  ok('sopra e sotto si contano in altezze, e lo dicono',
+     /^VP1 sotto, 0,3 altezze di vignetta$/.test(lettura.sotto)
+     && /^VP1 sopra, 0,4 altezze di vignetta$/.test(lettura.sopraFuori), lettura);
+  ok('e nessuna delle due si chiama piu\' "w"',
+     !/\dw\b/.test(lettura.destra + lettura.sinistra + lettura.sotto + lettura.sopraFuori), lettura);
+  // "VP1 sotto 0w" era la lettura peggiore possibile: un numero che dice zero
+  // mentre la frase afferma che il punto e' fuori. Sembrava un errore.
+  ok('la fuga appena oltre il bordo non dice "zero"',
+     /^VP1 appena sotto il bordo$/.test(lettura.sulBordo), lettura.sulBordo);
+  ok('e una larghezza sola resta singolare',
+     /^VP1 a destra, 1 larghezza di vignetta$/.test(lettura.una), lettura.una);
 
   sezione('e la misura e\' sulla VIGNETTA, non sulla pagina');
   // E' la correzione piu' importante dopo la prima prova sul campo. Una pagina
@@ -132,7 +158,8 @@ module.exports = () => suite("Prospettiva — il righello per leggere l'orizzont
   ok('e per una vignetta di meta\' pagina cade sopra di lei',
      /^HL -50% \(sopra\)$/.test(relativo.bassa), relativo.bassa);
   ok('le larghezze di distanza si contano sulla vignetta, non sulla tavola',
-     /VP1 destra 0\.5w/.test(relativo.largaTutta) && /VP1 destra 2w/.test(relativo.largaMezza), relativo);
+     /^VP1 a destra, 0,5 larghezze di vignetta$/.test(relativo.largaTutta)
+     && /^VP1 a destra, 2 larghezze di vignetta$/.test(relativo.largaMezza), relativo);
 
   sezione('le linee si consumano a coppie: due linee, una fuga');
   const coppie = await page.evaluate(()=>{
@@ -571,6 +598,36 @@ module.exports = () => suite("Prospettiva — il righello per leggere l'orizzont
      struttura.posizioneBarra !== 'absolute', struttura);
   ok('e il palco del disegno finisce esattamente dove comincia la barra',
      struttura.palcoFinisceDoveIniziaLaBarra, struttura);
+
+  sezione('e tenendo premuto non salta fuori il menu del browser');
+  // SEGNALATO DA GIOVANNI IL 17 SETTEMBRE 2026, da telefono: correggendo una
+  // linea si tiene premuto e si trascina, e Android ci leggeva sopra il suo
+  // gesto di lungo-tocco su un'immagine — compariva "Scarica immagine /
+  // Cerca con Lens" in mezzo allo schermo e il tratto si perdeva. Il tavolo
+  // e' un <img> vero, ed era lui il bersaglio che il browser trovava sotto al
+  // dito: adesso non riceve tocchi (li prende tutti l'SVG, che e' chi sa cosa
+  // farne) e il menu e' bloccato comunque, come rete di sicurezza.
+  const senzaMenu = await page.evaluate(()=>{
+    const P = window.P;
+    P.chiudiProspettiva();
+    P.apriProspettiva(window.__img);
+    const ov = document.getElementById('prospettiva');
+    const ev = new MouseEvent('contextmenu', { bubbles:true, cancelable:true });
+    ov.querySelector('.prosp-svg').dispatchEvent(ev);
+    const st = getComputedStyle(ov.querySelector('.prosp-tavolo'));
+    return {
+      menuBloccato: ev.defaultPrevented,
+      tavoloNonToccabile: st.pointerEvents,
+      senzaSelezione: getComputedStyle(ov).userSelect || getComputedStyle(ov).webkitUserSelect,
+    };
+  });
+  ok('il menu del tasto destro non si apre sopra lo studio',
+     senzaMenu.menuBloccato, senzaMenu);
+  // E' la parte che conta davvero sul telefono: se sotto al dito non c'e'
+  // nessuna immagine, Android non ha niente da offrire.
+  ok('e il tavolo non e\' un bersaglio che il browser possa offrire',
+     senzaMenu.tavoloNonToccabile === 'none', senzaMenu);
+  ok('ne\' si seleziona niente trascinando', senzaMenu.senzaSelezione === 'none', senzaMenu);
 
   sezione('le linee gia\' tracciate si correggono, non solo si disfano');
   // PRIMA SI POTEVA SOLO DISFARE E RITRACCIARE DA CAPO. Giovanni l'ha
