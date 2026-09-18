@@ -2,23 +2,67 @@
    Due pezzi: il comando che avvia, in cima alla home, e la capsula che resta
    visibile mentre il cronometro gira. */
 
-/* IL COMANDO. Largo quanto la schermata e sotto la citazione del giorno: e' la
-   prima cosa che si tocca sedendosi al tavolo, e un bersaglio grande vale piu'
-   di un bottone elegante in un angolo. Tratteggiato da spento — come "Nuova
-   scena" e come la card fantasma: e' un invito a cominciare qualcosa. */
-.tempo-avvia{
-  width:100%;display:flex;align-items:center;justify-content:center;gap:9px;
-  background:rgba(255,255,255,.7);border:1.5px dashed var(--sand3);border-radius:14px;
-  padding:13px;margin:14px 0 4px;cursor:pointer;color:var(--ink2);
-  font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;
-  transition:border-color .18s,color .18s,transform .1s,background .18s;
+/* IL COMANDO, CHE E' UN QUADRANTE. Sotto la citazione del giorno, tondo e
+   centrato: e' la prima cosa che si tocca sedendosi al tavolo, ed e' l'unica
+   cosa grande della home che non sia un progetto.
+   PRIMA ERA UN RETTANGOLO TRATTEGGIATO largo tutta la colonna con dentro
+   "Comincio a disegnare". Funzionava, ma la scritta faceva tutto: diceva cosa
+   fare, e poi in che stato eri. L'oggetto non aveva una forma sua, e il
+   tratteggio — preso in prestito da "Nuova scena" e dalla card fantasma —
+   diceva "aggiungi qualcosa", che non e' quello che fa.
+   Il cerchio chiuso invece e' la forma del mestiere: un cronometro. */
+.tempo-posto{display:flex;flex-direction:column;align-items:center;gap:8px;margin:18px 0 6px}
+.tempo-quadrante{
+  width:120px;height:120px;border-radius:50%;flex-shrink:0;
+  position:relative;display:grid;place-items:center;
+  background:rgba(255,255,255,.7);border:0;padding:0;cursor:pointer;
+  transition:background .22s,box-shadow .22s,transform .1s;
 }
-.tempo-avvia:active{transform:scale(.985)}
-/* Acceso: pieno, non piu' un invito ma una cosa in corso. */
-.tempo-avvia.corre{
-  background:linear-gradient(135deg,#2a2018,#1a1410);border-style:solid;
-  border-color:transparent;color:var(--oro);
-  box-shadow:0 3px 12px rgba(26,20,16,.25);
+.tempo-quadrante:active{transform:scale(.97)}
+.tempo-disco{position:absolute;inset:0;width:100%;height:100%}
+.tempo-pista{fill:none;stroke:var(--sand3);stroke-width:1.5;transition:stroke .22s,stroke-width .22s}
+.tempo-tacche line{stroke:var(--sand3);stroke-width:1.9;stroke-linecap:round;transition:stroke .22s}
+/* L'ARCO. Parte da mezzogiorno (di qui il rotate nel markup) e cresce in senso
+   orario. La transizione e' lineare e lunga quanto il battito che lo aggiorna:
+   cosi' non scatta di secondo in secondo, scorre. */
+.tempo-arco{
+  fill:none;stroke:var(--oro);stroke-width:3.5;stroke-linecap:round;
+  transition:stroke-dasharray .9s linear,stroke .22s;
+}
+/* A cronometro spento l'arco non c'e' proprio, e va detto: con la punta
+   arrotondata un arco lungo zero non e' invisibile, e' un PUNTINO — e un
+   punto d'oro in cima al quadrante di carta sembra sporco sul vetro, non
+   "fermo". Da acceso invece quel puntino e' giusto: e' il tempo che parte. */
+.tempo-quadrante:not(.corre) .tempo-arco{display:none}
+.tempo-lancetta{width:42px;height:42px;color:var(--ink2);position:relative}
+.tempo-cifre{
+  display:none;position:relative;font-family:'Nunito',sans-serif;
+  font-size:25px;font-weight:800;letter-spacing:-.02em;color:var(--oro);
+  font-variant-numeric:tabular-nums;line-height:1;
+}
+
+/* ACCESO: la carta diventa inchiostro, l'orologino lascia il posto alle cifre
+   e la pista si ritira in secondo piano — deve saltare all'occhio l'arco, non
+   il cerchio su cui corre. */
+.tempo-quadrante.corre{
+  background:linear-gradient(135deg,#2a2018,#1a1410);
+  box-shadow:0 3px 14px rgba(26,20,16,.28);
+}
+.tempo-quadrante.corre .tempo-pista{stroke:rgba(232,224,208,.22);stroke-width:3.5}
+.tempo-quadrante.corre .tempo-tacche line{stroke:rgba(232,224,208,.35)}
+.tempo-quadrante.corre .tempo-lancetta{display:none}
+.tempo-quadrante.corre .tempo-cifre{display:block}
+/* IN PAUSA: tutto resta dov'e', ma smorzato. Il tempo non e' perso — e' fermo
+   — e un quadrante spento direbbe la cosa sbagliata. */
+.tempo-quadrante.ferma .tempo-pista{stroke:rgba(232,224,208,.16)}
+.tempo-quadrante.ferma .tempo-arco{stroke:rgba(217,164,23,.45)}
+.tempo-quadrante.ferma .tempo-cifre{color:rgba(217,164,23,.55)}
+
+/* La riga dell'esito: vuota quasi sempre, tiene comunque il suo posto perche'
+   la home non sobbalzi quando compare. Vedi il commento in index.html. */
+.tempo-esito{
+  min-height:17px;font-size:12px;font-weight:700;color:var(--ink3);
+  text-align:center;line-height:1.4;transition:color .2s;
 }
 
 /* LA CAPSULA. Sopra la barra-duna, centrata, degli stessi materiali: vetro

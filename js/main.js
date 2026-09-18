@@ -687,16 +687,35 @@ async function tempo(){
 function disegnaTempo(){
   const m = _tempoMod;
   const avvia = document.getElementById('tempo-avvia');
-  const testo = document.getElementById('tempo-avvia-testo');
   const caps = document.getElementById('tempo-capsula');
   if(!avvia || !caps) return;
   const corre = !!(m && m.acceso());
+  const ferma = corre && m.inPausa();
+  const secondi = corre ? m.secondiCorrenti() : 0;
   avvia.classList.toggle('corre', corre);
-  if(testo) testo.textContent = corre
-    ? (m.inPausa() ? 'In pausa — riprendi' : 'Sto disegnando')
-    : 'Comincio a disegnare';
+  avvia.classList.toggle('ferma', ferma);
+  // Senza piu' la scritta, quello che il bottone fa lo dicono l'etichetta per
+  // chi legge con la voce e il suggerimento per chi ha il mouse: il disegno
+  // parla agli occhi, non a loro due.
+  const dice = !corre ? 'Comincio a disegnare'
+             : ferma  ? 'In pausa — riprendi'
+             : 'Sto disegnando — metti in pausa';
+  avvia.setAttribute('aria-label', dice);
+  avvia.setAttribute('title', dice);
+  const cifre = document.getElementById('tempo-cifre');
+  if(cifre) cifre.textContent = corre ? m.scriviCorsa(secondi) : '';
+  // Quanto e' pieno il giro lo decide il cronometro, non chi lo disegna: la
+  // regola (due ore a giro, e non si ricomincia) sta in tempo.js insieme al
+  // perche'.
+  const arco = document.getElementById('tempo-arco');
+  if(arco) arco.style.strokeDasharray = (m ? m.giroQuadrante(secondi) : 0).toFixed(2) + ' 100';
+  // La riga dell'esito torna vuota ad ogni ridisegno: chi ci scrive dentro
+  // (tempoFerma, tempoScarta) lo fa DOPO aver chiamato di qui, e programma
+  // lui il ridisegno che poi la ripulisce.
+  const esito = document.getElementById('tempo-esito');
+  if(esito) esito.textContent = '';
   caps.hidden = !corre;
-  caps.classList.toggle('ferma', !!(m && m.inPausa()));
+  caps.classList.toggle('ferma', ferma);
   const corsa = document.getElementById('tempo-corsa');
   if(corsa && m) corsa.textContent = m.scriviCorsa(m.secondiCorrenti());
 }
@@ -730,14 +749,14 @@ window.tempoScarta = async ()=>{
   if(!si) return;
   m.scarta();
   disegnaTempo();
-  const s = document.getElementById('tempo-avvia-testo');
+  const s = document.getElementById('tempo-esito');
   if(s){ s.textContent = 'Buttata via'; setTimeout(disegnaTempo, 2500); }
 };
 window.tempoFerma = async ()=>{
   const m = await tempo();
   const secondi = await m.ferma();
   disegnaTempo();
-  const s = document.getElementById('tempo-avvia-testo');
+  const s = document.getElementById('tempo-esito');
   if(!s) return;
   s.textContent = secondi
     ? m.scriviBreve(secondi) + ' — segnati'

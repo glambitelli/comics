@@ -659,4 +659,74 @@ module.exports = () => suite("Il tempo al tavolo — le ore non si perdono",
   ok('venti minuti accendono comunque il giorno', corta.attivi >= 2, corta);
   ok('e un minuto e mezzo pure', corta.attivi >= 2, corta);
   ok('ma senza colorarli come una giornata piena', corta.scuri === 0, corta);
+
+  sezione('il quadrante sulla home: l\'arco cresce e non torna mai indietro');
+  // IL COMANDO SULLA HOME E' DIVENTATO UN QUADRANTE (18 settembre 2026): via
+  // la scritta "Comincio a disegnare", e lo stato lo dice la forma. L'arco
+  // d'oro e' il pezzo nuovo — dice quanto sei avanti senza farlo leggere — e
+  // qui si prova la regola che lo governa.
+  const giro = await page.evaluate(()=>{
+    const t = window.tempo;
+    return {
+      fermo:    t.giroQuadrante(0),
+      mezzOra:  t.giroQuadrante(30*60),
+      unOra:    t.giroQuadrante(3600),
+      dueOre:   t.giroQuadrante(2*3600),
+      treOre:   t.giroQuadrante(3*3600),
+      ottoOre:  t.giroQuadrante(8*3600),
+      niente:   t.giroQuadrante(undefined),
+    };
+  });
+  ok('da fermo il giro e\' vuoto', giro.fermo === 0, giro);
+  // Le quattro tacche del quadrante sono i quarti, e un quarto e' mezz'ora:
+  // se questo numero cambiasse, le tacche comincerebbero a mentire.
+  ok('mezz\'ora riempie esattamente un quarto, come dicono le tacche',
+     giro.mezzOra === 25, giro);
+  ok('un\'ora la meta\'', giro.unOra === 50, giro);
+  ok('due ore il giro intero', giro.dueOre === 100, giro);
+  // LA PARTE CHE CONTA. Con un giro all'ora, a un'ora e cinque l'arco sarebbe
+  // tornato a sembrare cinque minuti: a colpo d'occhio avrebbe detto il
+  // contrario della verita'. Si ferma pieno, e vuol dire "due ore o piu'".
+  ok('e oltre resta pieno, invece di ricominciare da capo',
+     giro.treOre === 100 && giro.ottoOre === 100, giro);
+  ok('senza mai tornare indietro',
+     giro.mezzOra < giro.unOra && giro.unOra < giro.dueOre
+     && giro.dueOre <= giro.treOre && giro.treOre <= giro.ottoOre, giro);
+  ok('e senza un cronometro acceso non si rompe', giro.niente === 0, giro);
+
+  sezione('e il quadrante ha di che dirlo, senza piu\' una parola scritta');
+  // Il markup qui e' quello vero, importato da index.html dal banco: se
+  // domani il quadrante cambia li', questa prova lo segue.
+  const quadrante = await page.evaluate(()=>{
+    const b = document.getElementById('tempo-avvia');
+    const arco = document.getElementById('tempo-arco');
+    return {
+      tondo: !!b && b.classList.contains('tempo-quadrante'),
+      // L'arco si comanda in centesimi di giro: senza pathLength il conto
+      // dipenderebbe dal diametro, e cambiarlo nel CSS lo sfaserebbe.
+      inCentesimi: arco && arco.getAttribute('pathLength') === '100',
+      parteDaMezzogiorno: arco && /rotate\(-90/.test(arco.getAttribute('transform') || ''),
+      tacche: document.querySelectorAll('#tempo-avvia .tempo-tacche line').length,
+      cifre: !!document.getElementById('tempo-cifre'),
+      // Senza la scritta, cosa fa il bottone lo devono dire l'etichetta e il
+      // suggerimento: sono l'unica voce rimasta per chi non guarda il disegno.
+      etichetta: b && b.getAttribute('aria-label'),
+      // E lo stop deve avere ancora un posto dove dire com'e' andata.
+      esito: !!document.getElementById('tempo-esito'),
+      nessunaScritta: !document.getElementById('tempo-avvia-testo'),
+    };
+  });
+  ok('il comando e\' un quadrante tondo', quadrante.tondo, quadrante);
+  ok('e la scritta "Comincio a disegnare" non c\'e\' piu\'',
+     quadrante.nessunaScritta, quadrante);
+  ok('l\'arco si misura in centesimi di giro e parte da mezzogiorno',
+     quadrante.inCentesimi && quadrante.parteDaMezzogiorno, quadrante);
+  ok('le quattro tacche dei quarti d\'ora ci sono', quadrante.tacche === 4, quadrante);
+  ok('c\'e\' dove scrivere il tempo che corre', quadrante.cifre, quadrante);
+  ok('il bottone dice comunque cosa fa, a voce', !!quadrante.etichetta, quadrante);
+  // E' la garanzia che togliendo il testo non si sia perso il messaggio dopo
+  // lo stop: quello era stato aggiunto apposta perche' fermare il cronometro
+  // sembrava non fare niente.
+  ok('e fermare il cronometro ha ancora dove dire com\'e\' andata',
+     quadrante.esito, quadrante);
 });

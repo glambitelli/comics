@@ -146,10 +146,51 @@
          Mentre gira, il tempo si vede anche da tutte le altre schermate, in una
          capsula sopra la barra (vedi #tempo-capsula): cosi' si puo' stare in
          References o nelle Scene mentre conta. -->
-    <button class="tempo-avvia" id="tempo-avvia" onclick="window.tempoTocca()" type="button">
-      <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><circle cx="12" cy="13" r="8" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 9v4.2l2.6 1.6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M9.5 2.6h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-      <span id="tempo-avvia-testo">Comincio a disegnare</span>
-    </button>
+    <!-- UN QUADRANTE, NON PIU' UNA RIGA SCRITTA. Era un rettangolo tratteggiato
+         largo tutta la colonna con dentro "Comincio a disegnare": la scritta
+         faceva tutto il lavoro — diceva anche in che stato eri ("Sto
+         disegnando", "In pausa") — e lasciava l'oggetto senza nessuna forma
+         propria. Adesso lo stato lo dice il disegno: da spento e' un cerchio
+         di carta con l'orologino, acceso si fa scuro e l'arco d'oro cresce
+         mentre passano i minuti. L'arco e' il pezzo che non c'era: dice
+         quanto sei avanti SENZA doverlo leggere, che davanti a un cronometro
+         e' la domanda vera.
+         LE QUATTRO TACCHE NON SONO UN ORNAMENTO: sono i quarti del giro, e
+         siccome un giro intero sono due ore, ognuna vale mezz'ora (vedi
+         GIRO_SECONDI in main.js). Servono anche da spento, a far capire che
+         quella cosa li' misura qualcosa. -->
+    <div class="tempo-posto" id="tempo-posto">
+      <button class="tempo-quadrante" id="tempo-avvia" onclick="window.tempoTocca()" type="button"
+              aria-label="Comincio a disegnare" title="Comincio a disegnare">
+        <svg class="tempo-disco" viewBox="0 0 100 100" aria-hidden="true">
+          <circle class="tempo-pista" cx="50" cy="50" r="46"/>
+          <g class="tempo-tacche">
+            <line x1="50" y1="3.4" x2="50" y2="8.6"/><line x1="96.6" y1="50" x2="91.4" y2="50"/>
+            <line x1="50" y1="96.6" x2="50" y2="91.4"/><line x1="3.4" y1="50" x2="8.6" y2="50"/>
+          </g>
+          <!-- pathLength="100" e' la riga che tiene il conto semplice: l'arco si
+               comanda in centesimi di giro e non in millimetri di
+               circonferenza, quindi cambiare il diametro nel CSS non obbliga a
+               rifare i conti in JS. -->
+          <circle class="tempo-arco" id="tempo-arco" cx="50" cy="50" r="46"
+                  pathLength="100" stroke-dasharray="0 100" transform="rotate(-90 50 50)"/>
+        </svg>
+        <svg class="tempo-lancetta" viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="13" r="8" fill="none" stroke="currentColor" stroke-width="1.6"/>
+          <path d="M12 9v4.2l2.6 1.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+          <path d="M9.5 2.6h5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+        </svg>
+        <span class="tempo-cifre" id="tempo-cifre"></span>
+      </button>
+      <!-- PREMERE STOP DEVE SEMPRE DIRE QUALCOSA, e prima lo diceva la scritta
+           dentro al bottone ("24 min — segnati", "Buttata via"). Tolta quella,
+           il messaggio senza questa riga non avrebbe piu' un posto dove andare
+           e fermare il cronometro tornerebbe a sembrare che non faccia niente:
+           e' il difetto che era gia' stato corretto una volta, e che togliere
+           il testo avrebbe fatto tornare. La riga resta alta anche da vuota,
+           se no la pagina sobbalza ogni volta che compare. -->
+      <div class="tempo-esito" id="tempo-esito" role="status"></div>
+    </div>
     <div style="height:1px;background:var(--sand2);margin:14px 4px 18px"></div>
     <!-- Attaccata alla lista che filtra, sotto la citazione: compare da sola
          quando i progetti sono tanti (vedi SOGLIA_CERCA in home.js). -->

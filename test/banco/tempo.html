@@ -18,7 +18,9 @@ const dom = new DOMParser().parseFromString(await (await fetch('/index.html')).t
 for(const sel of ['#tempo-capsula', '#screen-stats']){
   document.body.appendChild(document.importNode(dom.querySelector(sel), true));
 }
-document.body.appendChild(document.importNode(dom.querySelector('#tempo-avvia'), true));
+// Il quadrante e la riga dell'esito sono due pezzi dello stesso posto: si
+// importa il contenitore, se no fermare il cronometro non avrebbe dove dirlo.
+document.body.appendChild(document.importNode(dom.querySelector('#tempo-posto'), true));
 document.getElementById('screen-stats').classList.add('active');
 
 const tempo = await import('/js/tempo.js');

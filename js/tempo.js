@@ -446,6 +446,27 @@ export function scriviGrande(secondi){
   if(ore < 10) return { n: (Math.round(ore*10)/10).toString().replace('.', ','), u: 'ore' };
   return { n: Math.round(ore).toString(), u: 'ore' };
 }
+// ── QUANTO E' PIENO IL QUADRANTE DELLA HOME ──
+//
+// Restituisce 0..100, cioe' quanti centesimi di giro ha percorso l'arco d'oro.
+// UN GIRO INTERO SONO DUE ORE, e ogni tacca del quadrante e' un quarto, cioe'
+// mezz'ora.
+//
+// SI FERMA A GIRO PIENO invece di ricominciare, ed e' la decisione che conta.
+// Un giro all'ora sarebbe stato piu' naturale da spiegare, ma a un'ora e
+// cinque minuti l'arco sarebbe tornato indietro a sembrare cinque minuti: un
+// indicatore che a colpo d'occhio dice il contrario della verita' e' peggio
+// di nessun indicatore. Cosi' invece l'arco cresce e basta, e arrivato in
+// fondo resta pieno — vuol dire "due ore o piu'". Le cifre in mezzo
+// continuano a dire il numero vero, che e' il loro mestiere.
+//
+// Due ore perche' e' la seduta piena a cui si punta: mezz'ora riempie un
+// quarto, che e' una lettura onesta di com'e' andata.
+const GIRO_SECONDI = 2 * 3600;
+export function giroQuadrante(secondi){
+  return Math.max(0, Math.min(100, (secondi || 0) / GIRO_SECONDI * 100));
+}
+
 // Il cronometro acceso si legge come un cronometro: mm:ss finche' ci sta,
 // h:mm:ss quando passa l'ora.
 export function scriviCorsa(secondi){
