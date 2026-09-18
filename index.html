@@ -353,15 +353,6 @@
   <div id="refs-breadcrumb" class="refs-breadcrumb" onclick="window.refsBackToFolders()" style="display:none">
     <span class="refs-breadcrumb-back">‹</span>
     <span id="refs-breadcrumb-name">Cartelle</span>
-    <!-- SCEGLI TUTTE. Sta qui e non dentro la barra della scelta perche' la
-         barra compare solo quando qualcosa e' gia' scelto: per svuotare una
-         cartella si sarebbe dovuto prima tenere premuto su un'immagine a
-         caso, cioe' un gesto in piu' per la cosa piu' semplice da chiedere.
-         Prende quello che si sta guardando — dentro Tavole le tavole, dentro
-         Prospettiva gli studi — e ripremuto lascia tutto. -->
-    <button class="refs-sort-btn refs-crumb-tutte" id="refs-crumb-tutte" onclick="event.stopPropagation();window.scegliTutte()" type="button" aria-pressed="false" aria-label="Scegli tutte" title="Scegli tutte" hidden>
-      <svg viewBox="0 0 24 24" width="15" height="15"><rect x="3" y="3" width="11" height="11" rx="2" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M8 17v2.2a1.8 1.8 0 0 0 1.8 1.8H19a1.8 1.8 0 0 0 1.8-1.8V10a1.8 1.8 0 0 0-1.8-1.8h-2.2" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="m5.8 8.4 2.2 2.3 4-4.4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    </button>
     <button class="refs-sort-btn refs-crumb-sort" id="refs-crumb-sort" onclick="event.stopPropagation();window.refsGridSortMenu(this)" aria-label="Ordina immagini" title="Ordina">
       <svg viewBox="0 0 24 24" width="15" height="15"><path d="M7 15 L7 5 M7 5 L4 8 M7 5 L10 8" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M17 9 L17 19 M17 19 L14 16 M17 19 L20 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </button>
@@ -424,6 +415,19 @@
   </div>
   <div id="refs-scelta" class="refs-scelta">
     <span class="refs-scelta-conto" id="refs-scelta-conto">1 scelto</span>
+    <!-- SELEZIONA TUTTE. Stava in cima, nella riga del nome, ed era il posto
+         sbagliato: li' era un pulsante sempre acceso in mezzo a "Ordina",
+         cioe' una scorciatoia offerta anche a chi stava solo guardando.
+         Giovanni l'ha voluto qui il 18 settembre 2026 — "deve comparire a
+         fianco a quei pulsanti per cancellare una singola immagine, nel
+         momento in cui seleziono una singola immagine". E' giusto: e' il
+         gesto che ALLARGA una selezione gia' cominciata, quindi vive dove
+         vivono le altre cose che si fanno a una selezione.
+         Sta per PRIMO, lontano dal cestino: allargare e cancellare sono due
+         cose che non devono stare a un dito di distanza. -->
+    <button class="refs-scelta-btn" id="refs-scelta-tutte" onclick="window.scegliTutte()" type="button" aria-pressed="false" aria-label="Seleziona tutte" title="Seleziona tutte" hidden>
+      <svg viewBox="0 0 24 24" width="19" height="19"><rect x="3" y="3" width="11" height="11" rx="2" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M8 17v2.2a1.8 1.8 0 0 0 1.8 1.8H19a1.8 1.8 0 0 0 1.8-1.8V10a1.8 1.8 0 0 0-1.8-1.8h-2.2" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="m5.8 8.4 2.2 2.3 4-4.4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
     <button class="refs-scelta-btn" id="refs-scelta-rinomina" onclick="window.rinominaScelto()" type="button" aria-label="Rinomina" title="Rinomina">
       <svg viewBox="0 0 24 24" width="19" height="19"><path d="M4 20h16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M15.5 5.2a1.9 1.9 0 0 1 2.7 2.7L9.6 16.5l-3.6.9.9-3.6Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>
     </button>

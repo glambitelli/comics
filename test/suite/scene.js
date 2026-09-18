@@ -1078,7 +1078,7 @@ module.exports = () => suite("Scene — un riquadro per volta, cento caratteri",
   ok('tenendo premuta una miniatura si comincia a scegliere', scelte.durante === 1, scelte);
   ok('e resta scelta quando il dito si stacca', scelte.dopo === 1, scelte);
   ok('senza aprire la galleria sotto', !scelte.galleria, scelte);
-  ok('la barra dice quante ne hai prese', /1 scelta/.test(scelte.dove||''), scelte);
+  ok('la barra dice quante ne hai prese', /1 selezionata/.test(scelte.dove||''), scelte);
   ok('e il pulsante diventa il cestino', scelte.acceso && /^togli$/i.test(scelte.pulsante), scelte);
 
   const menoUna = await page.evaluate(async ()=>{

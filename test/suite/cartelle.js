@@ -474,7 +474,7 @@ module.exports = () => suite("References — artisti e menu contestuali", {"banc
     };
   });
   ok('la barra c\'e\' e l\'interruttore no', inScelta.barraVisibile && !inScelta.assiVisibili, inScelta);
-  ok('dice quanti ne hai presi', /1 scelto/.test(inScelta.conto), inScelta);
+  ok('dice quanti ne hai presi', /1 selezionato/.test(inScelta.conto), inScelta);
   ok('con uno solo, Rinomina si puo\' premere', !inScelta.rinominaSpento, inScelta);
   ok('e ogni riga si porta la sua spunta',
      inScelta.spunte === 3 && inScelta.prese === 1, inScelta);
@@ -496,7 +496,7 @@ module.exports = () => suite("References — artisti e menu contestuali", {"banc
   });
   ok('un tocco normale, mentre si sceglie, aggiunge invece di entrare',
      inDue.quanti === 2 && !inDue.galleria, inDue);
-  ok('il conto si aggiorna', /2 scelti/.test(inDue.conto), inDue);
+  ok('il conto si aggiorna', /2 selezionati/.test(inDue.conto), inDue);
   ok('e con due, Rinomina si spegne (due cartelle non hanno un nome solo)',
      inDue.rinominaSpento, inDue);
 
@@ -782,7 +782,7 @@ module.exports = () => suite("References — artisti e menu contestuali", {"banc
     };
   });
   ok('la barra delle azioni si accende', barra.accesa, barra);
-  ok('e dice quante ne hai scelte', /1 scelta/.test(barra.conto), barra);
+  ok('e dice quante ne hai selezionate', /1 selezionata/.test(barra.conto), barra);
   ok('coi tre puntini al posto di "Rinomina"', barra.menu && !barra.rinomina, barra);
 
   sezione('e da li\' in poi ogni tocco ne aggiunge un\'altra');
@@ -798,7 +798,7 @@ module.exports = () => suite("References — artisti e menu contestuali", {"banc
     };
   });
   ok('un tocco normale aggiunge invece di aprire', due.scelte === 2 && !due.lightbox, due);
-  ok('e il conto lo dice', /2 scelte/.test(due.conto), due);
+  ok('e il conto lo dice', /2 selezionate/.test(due.conto), due);
   ok('i tre puntini si spengono, perche\' valgono per una sola', due.menu, due);
 
   sezione('e le si butta via tutte insieme');

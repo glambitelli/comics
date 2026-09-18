@@ -694,7 +694,12 @@ async function disegnaScelta(){
     // il cestino: la stessa forma della barra di References, e per lo stesso
     // motivo — si sceglie, poi si agisce, che e' l'ordine in cui la cosa si
     // pensa.
-    if(dove) dove.textContent = n ? (n === 1 ? '1 scelta' : n + ' scelte') : 'Riferimenti';
+    // SELEZIONATA, non "scelta": "1 scelta" si legge come "una decisione"
+    // prima che come "una presa". Stesse parole della barra dell'archivio
+    // (vedi renderBarraScelta in refs.js) — e' la stessa cosa che si sta
+    // facendo, e sarebbe strano che la stessa cosa si chiamasse in due modi a
+    // due schermate di distanza.
+    if(dove) dove.textContent = n ? (n === 1 ? '1 selezionata' : n + ' selezionate') : 'Riferimenti';
     if(togli){
       togli.hidden = !n;
       togli.textContent = n === 1 ? 'Togli' : 'Togli ' + n;

@@ -1286,22 +1286,26 @@ export function scegliTutte(){
   haptic('done');
 }
 
-// Il pulsante nella riga del nome, accanto a "Ordina". Non compare dove non
-// avrebbe niente da prendere: nell'elenco delle cartelle, sullo scaffale degli
-// albi (che non sono immagini della griglia) e su uno scaffale vuoto.
+// Il pulsante nella barra della selezione, primo della fila. Compare solo
+// quando qualcosa e' gia' selezionato — e' la barra stessa a comparire solo
+// allora — perche' e' il gesto che ALLARGA una selezione, non uno che la
+// comincia: quello resta il tocco prolungato di sempre.
+// Non compare sulle cartelle: "tutte" li' vorrebbe dire tutti gli artisti
+// dell'archivio, e il tasto accanto e' il cestino.
 function aggiornaTastoTutte(){
-  const b = document.getElementById('refs-crumb-tutte');
+  const b = document.getElementById('refs-scelta-tutte');
   if(!b) return;
-  const suImmagini = _view !== 'folders' && _view !== 'tags'
-    && !(_view === 'folder' && _activeFolderId && folderHaTab(_activeFolderId) && _folderTab === 'albi');
+  const suImmagini = _view !== 'folders' && _view !== 'tags';
   const ids = suImmagini ? currentGridList().map(r=> r.id) : [];
-  b.hidden = !ids.length;
-  if(!ids.length) return;
+  // Con una sola immagine nello scaffale non c'e' niente da allargare: il
+  // tasto direbbe "prendi quella che hai gia' in mano".
+  b.hidden = ids.length < 2;
+  if(b.hidden) return;
   // Acceso vuol dire "le hai gia' tutte": da li' il tocco successivo le lascia.
   const tutte = ids.every(id=> _scelti.has(id));
   b.classList.toggle('acceso', tutte);
   b.setAttribute('aria-pressed', tutte ? 'true' : 'false');
-  const nome = tutte ? 'Lascia tutte' : `Scegli tutte (${ids.length})`;
+  const nome = tutte ? 'Deseleziona tutte' : `Seleziona tutte (${ids.length})`;
   b.setAttribute('aria-label', nome);
   b.title = nome;
 }
@@ -1524,7 +1528,6 @@ export function renderRefsScreen(){
     renderFolderTabs();
     renderRefsGrid();
   }
-  aggiornaTastoTutte();
 }
 
 // I tab hanno senso solo dentro una cartella vera: in "All" e in "senza
@@ -1960,12 +1963,15 @@ function renderBarraScelta(){
   if(assi) assi.classList.toggle('coperto', acceso && suCartelle);
   if(!acceso) return;
   const conto = document.getElementById('refs-scelta-conto');
-  // Il genere segue quello che si sta scegliendo: "1 scelto" per un artista,
-  // "1 scelta" per un'immagine. Sono due parole diverse e leggerle sbagliate,
-  // in una barra di tre parole, si nota.
+  // SELEZIONATA, non "scelta". "1 scelta" e' un sostantivo prima di essere un
+  // participio — si legge "una scelta", cioe' una decisione — e in una barra
+  // di due parole quell'inciampo si sente ad ogni apertura. Corretto su
+  // segnalazione di Giovanni, 18 settembre 2026.
+  // Il genere segue quello che si sta selezionando: un artista e' maschile,
+  // un'immagine femminile.
   if(conto) conto.textContent = suCartelle
-    ? (n === 1 ? '1 scelto' : `${n} scelti`)
-    : (n === 1 ? '1 scelta' : `${n} scelte`);
+    ? (n === 1 ? '1 selezionato' : `${n} selezionati`)
+    : (n === 1 ? '1 selezionata' : `${n} selezionate`);
   // Rinominare vale per le cartelle; per un'immagine sola la barra porta invece
   // i tre puntini col menu di sempre — tag, ritaglio, cambia cartella, segna
   // come tavola. Nessuna di quelle azioni si perde: cambia solo da dove si
@@ -1981,6 +1987,7 @@ function renderBarraScelta(){
   // sta dentro un'altra cartella.
   const sposta = document.getElementById('refs-scelta-sposta');
   if(sposta) sposta.hidden = suCartelle;
+  aggiornaTastoTutte();
 }
 
 // Tocco = entra · tocco prolungato (o tasto destro) = comincia a scegliere.
@@ -2242,7 +2249,6 @@ function montaSceltaGriglia(grid){
       for(const id of _sceltaGriglia.scelti()) _scelti.add(id);
       renderRefsGrid();
       renderBarraScelta();
-      aggiornaTastoTutte();
     },
   });
 }

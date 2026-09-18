@@ -473,14 +473,23 @@ module.exports = () => suite("References — Frammenti e Tavole dentro una carte
   sezione('scegliere tutte le immagini di uno scaffale, in un tocco');
   await apri(3, 3);
   const tasto = ()=> page.evaluate(()=>{
-    const b = document.getElementById('refs-crumb-tutte');
+    const b = document.getElementById('refs-scelta-tutte');
     if(!b) return null;
     return { visibile: getComputedStyle(b).display !== 'none',
              nome: b.getAttribute('aria-label'),
              acceso: b.classList.contains('acceso') };
   });
+  // La selezione si COMINCIA tenendo premuto su una miniatura, come sempre:
+  // il tasto "seleziona tutte" vive nella barra, e la barra c'e' solo da li'
+  // in poi. Nel banco si fa spuntando la prima (il bersaglio .refs-spunta e'
+  // lo stesso che il mouse usa nell'app).
+  const spuntaLaPrima = async ()=>{
+    await page.evaluate(()=> document.querySelector('.refs-thumb .refs-spunta')
+      .dispatchEvent(new MouseEvent('click',{bubbles:true})));
+    await page.waitForTimeout(250);
+  };
   const premiTutte = async ()=>{
-    await page.evaluate(()=> document.getElementById('refs-crumb-tutte')
+    await page.evaluate(()=> document.getElementById('refs-scelta-tutte')
       .dispatchEvent(new MouseEvent('click',{bubbles:true})));
     await page.waitForTimeout(250);
   };
@@ -499,17 +508,27 @@ module.exports = () => suite("References — Frammenti e Tavole dentro una carte
   });
   await tocca('tavole');
   let t = await tasto();
-  ok('il pulsante c\'e\', nella riga del nome', t && t.visibile, t);
+  // FINCHE' NON SI E' SELEZIONATO NIENTE IL TASTO NON C'E': la barra non c'e'.
+  // E' il punto della richiesta di Giovanni — non un pulsante sempre acceso in
+  // cima, ma uno che compare quando si sta gia' selezionando.
+  ok('a riposo il pulsante non c\'e\'', t && !t.visibile, t);
+  await spuntaLaPrima();
+  let sc = await scelta();
+  ok('spuntando una miniatura la barra si apre', sc.barra && sc.prese.length === 1, sc);
+  ok('e dice "1 selezionata", non "1 scelta"', /^1 selezionata$/.test((sc.conto||'').trim()), sc);
+  t = await tasto();
+  ok('e adesso il pulsante c\'e\', in fila con gli altri', t && t.visibile, t);
   ok('e dice quante ne prende', t && /3/.test(t.nome), t);
   await premiTutte();
-  let sc = await scelta();
+  sc = await scelta();
   ok('un tocco le prende tutte', sc.prese.length === 3, sc);
   // "TUTTE" E' QUELLO CHE SI STA GUARDANDO, non tutta la cartella: la cartella
   // ne contiene sei, tre frammenti e tre tavole. Se ne prendesse di piu' di
   // quelle a schermo, "elimina" cancellerebbe roba mai vista.
   ok('e sono le tavole dello scaffale aperto, non i frammenti',
      sc.prese.every(id=> id[0] === 't'), sc);
-  ok('la barra della scelta si accende e le conta', sc.barra && /3 scelte/.test(sc.conto), sc);
+  ok('e il conto va al plurale: "3 selezionate"',
+     sc.barra && /^3 selezionate$/.test((sc.conto||'').trim()), sc);
   // IL TASTO SPOSTA: eliminare gia' valeva per tutte, cambiare cartella stava
   // nei tre puntini, che si accendono con UNA scelta sola.
   ok('con dentro "Sposta" ed "Elimina"', sc.sposta && sc.elimina, sc);
@@ -522,10 +541,12 @@ module.exports = () => suite("References — Frammenti e Tavole dentro una carte
   ok('il pulsante resta acceso, a dire che le hai gia\' tutte', t && t.acceso, t);
   await premiTutte();
   sc = await scelta();
-  ok('ripremendolo le lascia tutte', sc.prese.length === 0 && !sc.barra, sc);
+  ok('ripremendolo le lascia tutte, e la barra si chiude',
+     sc.prese.length === 0 && !sc.barra, sc);
 
   sezione('e su un altro scaffale prende quelle di la\'');
   await tocca('ritagli');
+  await spuntaLaPrima();
   await premiTutte();
   sc = await scelta();
   ok('passando ai frammenti prende i frammenti',
@@ -537,6 +558,7 @@ module.exports = () => suite("References — Frammenti e Tavole dentro una carte
     window.refs.getFolders().push({ id:'F2', category:'Artists', name:'KON' });
   });
   await tocca('tavole');
+  await spuntaLaPrima();
   await premiTutte();
   const vociSposta = await page.evaluate(async ()=>{
     window.__scritture = [];
@@ -582,9 +604,23 @@ module.exports = () => suite("References — Frammenti e Tavole dentro una carte
      indietro.scritte.length === 3
      && indietro.scritte.every(x=> x.cartella === 'F1'), indietro);
 
-  sezione('ma nell\'elenco delle cartelle il pulsante non c\'e\'');
+  sezione('ma fra le cartelle il pulsante non compare');
+  // "Tutte" li' vorrebbe dire tutti gli artisti dell'archivio, e il tasto
+  // accanto e' il cestino: sono due cose che non devono stare a un dito di
+  // distanza. Le cartelle si scelgono una per una, come prima.
   await page.evaluate(()=>{ window.refsBackToFolders(); });
   await page.waitForTimeout(250);
+  const fraLeCartelle = await page.evaluate(()=>{
+    const riga = document.querySelector('.refs-folder-row .refs-spunta');
+    if(riga) riga.dispatchEvent(new MouseEvent('click',{bubbles:true}));
+    return !!riga;
+  });
+  await page.waitForTimeout(250);
   t = await tasto();
-  ok('li\' non ci sono immagini da prendere', t && !t.visibile, t);
+  ok('scegliendo una cartella la barra si apre lo stesso', fraLeCartelle, fraLeCartelle);
+  ok('ma il pulsante "tutte" li\' non c\'e\'', t && !t.visibile, t);
+  const contoCartelle = await page.evaluate(()=>
+    (document.getElementById('refs-scelta-conto')||{}).textContent);
+  ok('e il conto va al maschile: "1 selezionato"',
+     /^1 selezionato$/.test((contoCartelle||'').trim()), contoCartelle);
 });
