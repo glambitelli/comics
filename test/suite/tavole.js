@@ -423,9 +423,11 @@ module.exports = () => suite("References — Frammenti e Tavole dentro una carte
   const fughe = await page.evaluate(async ()=>{
     const arr = window.refs.getRefs();
     arr.push({ id:'f0', url:'data:image/png;base64,iVBORw0KGgo=', folderId:'F1',
-               tavola:true, prosp:{ orizzonte:23, fughe:[{x:1.4,y:0.23}] } });
+               tavola:true, prosp:{ punti:2, orizzonte:'terzo alto', inclinazione:0,
+                                    altezza:23, fughe:[{x:1.4,y:0.23}] } });
     arr.push({ id:'f1', url:'data:image/png;base64,iVBORw0KGgo=', folderId:'F1',
-               tavola:true, prosp:{ orizzonte:81, fughe:[{x:0.5,y:0.81}] } });
+               tavola:true, prosp:{ punti:1, orizzonte:'terzo basso', inclinazione:0,
+                                    altezza:81, fughe:[{x:0.5,y:0.81}] } });
     window.refs.renderRefsScreen();
     await new Promise(r=> setTimeout(r, 200));
     return null;
@@ -445,14 +447,16 @@ module.exports = () => suite("References — Frammenti e Tavole dentro una carte
   ok('ma stanno tutti nel loro scaffale',
      nelleFughe.inGriglia.includes('f0') && nelleFughe.inGriglia.includes('f1'), nelleFughe);
   ok('e il numero accanto al nome li conta', nelleFughe.fugheN === '2', nelleFughe);
-  // LA PERCENTUALE SCRITTA SOPRA: e' la ragione per cui hanno uno scaffale
-  // loro. Uno accanto all'altro, ognuno col suo numero, si vede a colpo
-  // d'occhio dove un autore mette l'orizzonte — aprirli uno per uno per
-  // leggere lo stesso numero sarebbe un archivio, non uno studio.
+  // IL BOLLO SCRITTO SOPRA: e' la ragione per cui hanno uno scaffale loro.
+  // Uno accanto all'altro si scorre il ritmo di un autore senza aprire
+  // niente. Dice i PUNTI DI FUGA: a misura di miniatura non ci sta una
+  // parola, e fra i tre campi e' quello che classifica. Prima c'era la
+  // percentuale dell'orizzonte, ma era il numero che non diceva niente —
+  // vedi cassaOrizzonte in prospettiva.js.
   const numeri = await page.evaluate(()=>
     Array.from(document.querySelectorAll('.refs-thumb-oriz')).map(e=> e.textContent));
-  ok('con la percentuale dell\'orizzonte scritta sopra',
-     numeri.includes('23%') && numeri.includes('81%'), numeri);
+  ok('col numero di punti di fuga scritto sopra',
+     numeri.includes('2P') && numeri.includes('1P'), numeri);
   // E si guardano interi, come le tavole: un quadrato ritagliato al centro
   // butterebbe via meta' della prospettiva, cioe' proprio quello che si era
   // andati a misurare.

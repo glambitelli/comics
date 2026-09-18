@@ -2118,8 +2118,13 @@ export function renderRefsGrid(){
     // e' la domanda con cui si e' aperto lo strumento la prima volta. Aprirli
     // uno per uno per leggere lo stesso numero non sarebbe uno studio, sarebbe
     // un archivio.
-    const misura = isProspettiva(r) && typeof r.prosp.orizzonte === 'number'
-      ? `<span class="refs-thumb-oriz">${r.prosp.orizzonte}%</span>` : '';
+    // A misura di miniatura non ci sta una parola, e da qui si guarda un
+    // autore tutto insieme: il bollo dice quanti punti di fuga, che e' la
+    // classificazione con cui si scorre uno scaffale. Prima c'era la
+    // percentuale dell'orizzonte, ma era il numero che non diceva niente —
+    // vedi cassaOrizzonte in prospettiva.js.
+    const misura = isProspettiva(r) && typeof r.prosp.punti === 'number'
+      ? `<span class="refs-thumb-oriz">${r.prosp.punti}P</span>` : '';
     return `
     <div class="refs-thumb${preso ? ' scelta' : ''}"${forma(r)} data-id="${r.id}">
       <img src="${cldResize(r.url, mostraTavole ? TAVOLA_W : THUMB_W)}" loading="lazy" decoding="async" alt=""/>

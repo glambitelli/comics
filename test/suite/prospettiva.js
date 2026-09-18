@@ -53,81 +53,150 @@ module.exports = () => suite("Prospettiva — il righello per leggere l'orizzont
   ok('e nemmeno due quasi-parallele, che sarebbero una fuga finta',
      conti.lontano === null, conti.lontano);
 
-  sezione('l\'orizzonte, e il numero per cui si e\' aperto lo strumento');
+  sezione('l\'orizzonte, e la cassa in cui finisce');
+  // IL NUMERO E' DIVENTATO UNA CASSA, il 18 settembre 2026. Per tre giorni a
+  // schermo c'e' stato scritto "HL 34%" e Giovanni ha ripetuto che non gli
+  // diceva niente: aveva ragione, e non perche' il numero fosse sbagliato.
+  // Una percentuale NON SI SOMMA CON NIENTE, e la domanda per cui si
+  // raccolgono questi studi non e' "quanto faceva" ma "quante volte
+  // l'orizzonte era fuori dalla vignetta". Il numero resta sotto, per
+  // ricalcolare; quello che si legge e si conta e' la cassa.
   const lettura = await page.evaluate(()=>{
     const P = window.P;
-    // Una fuga sola: l'orizzonte e' la retta ORIZZONTALE che ci passa. Qui la
-    // fuga sta al 20% dell'altezza.
+    const q = (fuochi, riq)=> P.altezzaOrizzonte(P.orizzonteDa(fuochi), riq);
+    const cassa = (fuochi, riq)=> P.cassaOrizzonte(q(fuochi, riq));
     const f1 = [{ x:0.5, y:0.2 }];
     const o1 = P.orizzonteDa(f1);
-    // Due fughe a altezze diverse: l'orizzonte le unisce ed e' inclinato.
+    // Due fughe ad altezze diverse: l'orizzonte le unisce ed e' inclinato.
     const f2 = [{ x:-0.5, y:0.3 }, { x:1.5, y:0.5 }];
     const o2 = P.orizzonteDa(f2);
     return {
-      unaSola: P.letturaOrizzonte(o1, f1),
       orizzontale: Math.abs(o1.a.y - o1.b.y) < 1e-9,
-      due: P.letturaOrizzonte(o2, f2),
       inclinato: Math.abs(o2.a.y - o2.b.y) > 0.01,
-      sopra: P.letturaOrizzonte(P.orizzonteDa([{x:0.5,y:-0.3}]), [{x:0.5,y:-0.3}]),
-      terra: P.letturaOrizzonte(P.orizzonteDa([{x:0.5,y:0.94}]), [{x:0.5,y:0.94}]),
-      dentro: P.letturaFuoco({ x:0.4, y:0.3 }, 1),
-      destra: P.letturaFuoco({ x:2.4, y:0.3 }, 1),
-      sinistra: P.letturaFuoco({ x:-1.2, y:0.3 }, 2),
-      // Sopra e sotto si contano in ALTEZZE, non in larghezze: sono due
-      // misure diverse, e per due giorni si sono chiamate tutte e due "w".
-      sotto: P.letturaFuoco({ x:0.5, y:1.3 }, 1),
-      sopraFuori: P.letturaFuoco({ x:0.5, y:-0.4 }, 1),
-      // E la fuga appena oltre il bordo non deve dire "zero".
-      sulBordo: P.letturaFuoco({ x:0.5, y:1.02 }, 1),
-      // Una larghezza sola resta singolare.
-      una: P.letturaFuoco({ x:2, y:0.3 }, 1),
+      alto:    cassa(f1),
+      centro:  cassa([{ x:0.5, y:0.5 }]),
+      basso:   cassa([{ x:0.5, y:0.8 }]),
+      sopra:   cassa([{ x:0.5, y:-0.3 }]),
+      sotto:   cassa([{ x:0.5, y:1.2 }]),
+      // L'altezza grezza resta, sotto i tre campi: e' da li' che si
+      // ricalcolera' qualunque misura inventata dopo.
+      numero:  q(f1),
+      // E si misura al CENTRO della vignetta: con l'orizzonte inclinato
+      // l'altezza su un bordo direbbe una cosa e sull'altro un'altra. Le due
+      // fughe stanno al 30% e al 50%, a distanza uguale dal centro.
+      alCentro: q(f2),
     };
   });
   ok('con una fuga sola l\'orizzonte e\' orizzontale', lettura.orizzontale, lettura);
-  ok('e dice la sua altezza in percentuale', /^HL 20%$/.test(lettura.unaSola), lettura.unaSola);
-  // NIENTE AGGETTIVI. La prima versione appiccicava al numero una parola —
-  // "altissimo", "a terra", "a meta' altezza" — e Giovanni le ha trovate
-  // sciocche, giustamente: davanti a una tavola di Otomo "20%" e' un dato,
-  // "altissimo" e' un giudizio che uno si fa da solo. Qui si misura e basta.
-  ok('senza aggettivi appiccicati sopra',
-     !/altissim|a terra|a metà|basso/i.test(lettura.unaSola + lettura.terra), lettura);
-  // IL CASO DI OTOMO: l'orizzonte fuori dalla vignetta. Il numero da solo
-  // (negativo, o sopra cento) lascerebbe il dubbio che sia un errore.
-  ok('e uno fuori dalla vignetta lo dice, col segno e da che parte',
-     /^HL -30% \(sopra\)$/.test(lettura.sopra), lettura.sopra);
-  ok('con due fughe l\'orizzonte si inclina, invece di restare dritto',
-     lettura.inclinato, lettura);
-  // E L'ALTEZZA SI MISURA AL CENTRO DELLA VIGNETTA. Con l'orizzonte inclinato
-  // "l'altezza" non e' un numero solo: misurata su un bordo direbbe una cosa,
-  // sull'altro un'altra, e nessuna delle due e' quella di cui si parla
-  // guardando una tavola. Le due fughe qui stanno al 30% e al 50%, a distanza
-  // uguale dal centro: al centro fanno 40%.
+  ok('con due si inclina, invece di restare dritto', lettura.inclinato, lettura);
   ok('e la sua altezza si legge al centro, non su un bordo',
-     /^HL 40%$/.test(lettura.due), lettura.due);
-  ok('la fuga dentro la vignetta si riconosce',
-     /^VP1 dentro la vignetta$/.test(lettura.dentro), lettura.dentro);
-  // Quante larghezze: e' la misura di quanto e' "lunga" la scena, ed e' la
-  // ragione per cui la fuga fuori campo interessa.
-  ok('e quella fuori dice da che parte e di quanto',
-     /^VP1 a destra, 1,4 larghezze di vignetta$/.test(lettura.destra), lettura.destra);
-  ok('anche a sinistra',
-     /^VP2 a sinistra, 1,2 larghezze di vignetta$/.test(lettura.sinistra), lettura.sinistra);
-  // L'UNITA' E' SCRITTA, E DICE DI COSA. Fino al 17 settembre 2026 c'era solo
-  // "1.4w", e quella "w" era una bugia in due direzioni su quattro: sopra e
-  // sotto il numero erano ALTEZZE di vignetta, scritte con la lettera della
-  // larghezza. Giovanni ha chiesto rispetto a cosa fosse calcolato, e non
-  // c'era modo di saperlo leggendo.
-  ok('sopra e sotto si contano in altezze, e lo dicono',
-     /^VP1 sotto, 0,3 altezze di vignetta$/.test(lettura.sotto)
-     && /^VP1 sopra, 0,4 altezze di vignetta$/.test(lettura.sopraFuori), lettura);
-  ok('e nessuna delle due si chiama piu\' "w"',
-     !/\dw\b/.test(lettura.destra + lettura.sinistra + lettura.sotto + lettura.sopraFuori), lettura);
-  // "VP1 sotto 0w" era la lettura peggiore possibile: un numero che dice zero
-  // mentre la frase afferma che il punto e' fuori. Sembrava un errore.
-  ok('la fuga appena oltre il bordo non dice "zero"',
-     /^VP1 appena sotto il bordo$/.test(lettura.sulBordo), lettura.sulBordo);
-  ok('e una larghezza sola resta singolare',
-     /^VP1 a destra, 1 larghezza di vignetta$/.test(lettura.una), lettura.una);
+     lettura.alCentro === 40, lettura.alCentro);
+  // LE CINQUE CASSE. Sono quelle che si contano, ed e' il motivo per cui
+  // esistono: cinquanta percentuali sciolte non rispondono a "quante volte",
+  // cinquanta casse si'.
+  ok('l\'orizzonte in cima cade nel terzo alto', lettura.alto === 'terzo alto', lettura);
+  ok('a meta\' nel terzo centrale', lettura.centro === 'terzo centrale', lettura);
+  ok('in fondo nel terzo basso', lettura.basso === 'terzo basso', lettura);
+  // IL CASO DI OTOMO, e la domanda da cui e' nato tutto: quante volte
+  // l'orizzonte e' proprio fuori dall'inquadratura.
+  ok('e fuori dalla vignetta lo dice, sopra',
+     lettura.sopra === 'sopra la vignetta', lettura);
+  ok('e sotto', lettura.sotto === 'sotto la vignetta', lettura);
+  // NIENTE AGGETTIVI, come il primo giorno: "terzo alto" e' dove cade, non un
+  // giudizio su quanto sia ardita l'inquadratura.
+  ok('senza aggettivi appiccicati sopra',
+     !/altissim|a terra|ardit|estrem/i.test(Object.values(lettura).join(' ')), lettura);
+  ok('e sotto le casse il numero grezzo resta, per ricalcolare',
+     lettura.numero === 20, lettura.numero);
+
+  sezione('quanti punti di fuga, e qual e\' la verticale');
+  // IL CAMPO PRINCIPALE DEL CATALOGO: una vignetta e' a 1, 2 o 3 punti, e non
+  // e' un'opinione — e' quante famiglie di parallele convergono.
+  //
+  // CON TRE FUGHE bisogna sapere quale e' la verticale, perche' l'orizzonte
+  // passa per le altre due. Prima si prendevano le prime due TRACCIATE:
+  // bastava cominciare dai verticali perche' la riga d'oro unisse una fuga
+  // orizzontale e una verticale, cioe' niente. L'ordine in cui uno traccia e'
+  // un'abitudine, non un dato.
+  const punti = await page.evaluate(()=>{
+    const P = window.P;
+    // Una tavola a tre punti: due fughe sull'orizzonte, lontanissime ai lati,
+    // e la terza — quella dei verticali — molto in alto.
+    const tre = [{ x:-3.2, y:0.42 }, { x:4.1, y:0.46 }, { x:0.4, y:-6.5 }];
+    // Le stesse tre, ma tracciate cominciando dai verticali: il risultato non
+    // puo' cambiare.
+    const treAlContrario = [tre[2], tre[0], tre[1]];
+    return {
+      uno:  P.classifica([{ x:0.5, y:0.3 }]).punti,
+      due:  P.classifica([{ x:-1, y:0.4 }, { x:2, y:0.4 }]).punti,
+      tre:  P.classifica(tre).punti,
+      verticale: P.classifica(tre).verticale,
+      verticaleAlContrario: P.classifica(treAlContrario).verticale,
+      // E l'orizzonte deve passare per le due laterali, non per la verticale:
+      // se ci passasse, l'altezza schizzerebbe fuori da qualunque vignetta.
+      altezza: P.altezzaOrizzonte(P.orizzonteDa(tre), { x:0, y:0, w:1, h:1 }),
+      altezzaAlContrario: P.altezzaOrizzonte(P.orizzonteDa(treAlContrario), { x:0, y:0, w:1, h:1 }),
+      nessuna: P.classifica([]).punti,
+      // DUE FAMIGLIE, MA UNA E' QUELLA DEI VERTICALI: succede tracciando gli
+      // spigoli in piedi di un palazzo e quelli in profondita', saltando la
+      // seconda famiglia orizzontale. Prima l'orizzonte veniva tirato fra le
+      // due comunque, e usciva una riga d'oro quasi verticale con
+      // "inclinazione 90°" sotto — un dato falso, che in un archivio da
+      // contare e' peggio di un dato mancante.
+      storta: P.classifica([{ x:0.48, y:0.45 }, { x:0.52, y:-7.0 }]),
+      storteIncl: P.inclinazioneDa(P.orizzonteDa([{ x:0.48, y:0.45 }, { x:0.52, y:-7.0 }])),
+      storteAltezza: P.altezzaOrizzonte(
+        P.orizzonteDa([{ x:0.48, y:0.45 }, { x:0.52, y:-7.0 }]), { x:0, y:0, w:1, h:1 }),
+    };
+  });
+  ok('una famiglia sola: un punto', punti.uno === 1, punti);
+  ok('due famiglie: due punti', punti.due === 2, punti);
+  ok('tre famiglie: tre punti', punti.tre === 3, punti);
+  ok('e la verticale e\' riconosciuta fra le tre',
+     punti.verticale && Math.abs(punti.verticale.y + 6.5) < 1e-9, punti.verticale);
+  // LA PARTE CHE CONTA: la geometria decide, non l'ordine delle dita.
+  ok('anche tracciando i verticali per primi, la verticale resta quella',
+     punti.verticaleAlContrario && Math.abs(punti.verticaleAlContrario.y + 6.5) < 1e-9,
+     punti.verticaleAlContrario);
+  ok('e l\'orizzonte passa per le altre due, in tutti e due i casi',
+     punti.altezza === punti.altezzaAlContrario && punti.altezza > 30 && punti.altezza < 60,
+     punti);
+  ok('senza fughe non ci sono punti', punti.nessuna === 0, punti);
+  ok('due famiglie di cui una verticale restano due punti',
+     punti.storta.punti === 2, punti.storta);
+  ok('ma la verticale non fa da orizzonte',
+     punti.storta.verticale && punti.storta.verticale.y === -7
+     && punti.storta.orizzontali.length === 1, punti.storta);
+  // Il difetto in una riga: l'orizzonte usciva verticale.
+  ok('e l\'orizzonte resta in piano invece di rizzarsi a 90°',
+     punti.storteIncl === 0, punti.storteIncl);
+  ok('con l\'altezza presa dalla fuga laterale, non da quella verticale',
+     punti.storteAltezza === 45, punti.storteAltezza);
+
+  sezione('e di quanto e\' storto l\'orizzonte');
+  // IL TERZO CAMPO. Una tavola piena di orizzonti storti e' un autore che
+  // decide una cosa precisa, e per contarlo serve un numero col segno.
+  const storto = await page.evaluate(()=>{
+    const P = window.P;
+    return {
+      unaSola: P.inclinazioneDa(P.orizzonteDa([{ x:0.5, y:0.4 }])),
+      piano:   P.inclinazioneDa(P.orizzonteDa([{ x:-1, y:0.4 }, { x:2, y:0.4 }])),
+      // Due fughe: una piu' in basso dell'altra di un decimo, a distanza uno.
+      giu:     P.inclinazioneDa(P.orizzonteDa([{ x:0, y:0.4 }, { x:1, y:0.5 }])),
+      su:      P.inclinazioneDa(P.orizzonteDa([{ x:0, y:0.5 }, { x:1, y:0.4 }])),
+      // La riga non ha un verso: le stesse due fughe, nominate al contrario,
+      // sono la stessa inclinazione e non il suo supplementare.
+      giuAlContrario: P.inclinazioneDa(P.orizzonteDa([{ x:1, y:0.5 }, { x:0, y:0.4 }])),
+      niente:  P.inclinazioneDa(null),
+    };
+  });
+  ok('con una fuga sola e\' zero per costruzione', storto.unaSola === 0, storto);
+  ok('e due fughe alla stessa altezza danno zero', storto.piano === 0, storto);
+  ok('che scende a destra ha segno positivo', storto.giu === 6, storto);
+  ok('e che sale a destra, negativo', storto.su === -6, storto);
+  ok('nominare le fughe al contrario non cambia l\'inclinazione',
+     storto.giuAlContrario === storto.giu, storto);
+  ok('e senza orizzonte non si rompe', storto.niente === 0, storto);
 
   sezione('e la misura e\' sulla VIGNETTA, non sulla pagina');
   // E' la correzione piu' importante dopo la prima prova sul campo. Una pagina
@@ -139,27 +208,23 @@ module.exports = () => suite("Prospettiva — il righello per leggere l'orizzont
     const P = window.P;
     const f = [{ x:0.5, y:0.25 }];            // la fuga sta al 25% della PAGINA
     const o = P.orizzonteDa(f);
+    const leggi = riq=> ({ n: P.altezzaOrizzonte(o, riq),
+                           cassa: P.cassaOrizzonte(P.altezzaOrizzonte(o, riq)) });
     return {
-      pagina:  P.letturaOrizzonte(o, f, { x:0, y:0, w:1, h:1 }),
+      pagina: leggi({ x:0, y:0, w:1, h:1 }),
       // Vignetta in cima alla pagina, alta un terzo: quel 25% della pagina,
       // dentro di lei, e' molto piu' in basso.
-      alta:    P.letturaOrizzonte(o, f, { x:0, y:0.05, w:1, h:0.30 }),
+      alta:   leggi({ x:0, y:0.05, w:1, h:0.30 }),
       // Vignetta a meta' pagina: la stessa fuga le cade SOPRA.
-      bassa:   P.letturaOrizzonte(o, f, { x:0, y:0.40, w:1, h:0.30 }),
-      // E le larghezze di distanza della fuga si contano sulla vignetta: in una
-      // vignetta stretta la stessa fuga e' molto piu' lontana.
-      largaTutta:  P.letturaFuoco({ x:1.5, y:0.3 }, 1, { x:0, y:0, w:1, h:1 }),
-      largaMezza:  P.letturaFuoco({ x:1.5, y:0.3 }, 1, { x:0, y:0, w:0.5, h:1 }),
+      bassa:  leggi({ x:0, y:0.40, w:1, h:0.30 }),
     };
   });
-  ok('sulla pagina intera legge il 25%', /^HL 25%$/.test(relativo.pagina), relativo.pagina);
-  ok('ma dentro una vignetta in cima e\' molto piu\' in basso',
-     /^HL 67%$/.test(relativo.alta), relativo.alta);
-  ok('e per una vignetta di meta\' pagina cade sopra di lei',
-     /^HL -50% \(sopra\)$/.test(relativo.bassa), relativo.bassa);
-  ok('le larghezze di distanza si contano sulla vignetta, non sulla tavola',
-     /^VP1 a destra, 0,5 larghezze di vignetta$/.test(relativo.largaTutta)
-     && /^VP1 a destra, 2 larghezze di vignetta$/.test(relativo.largaMezza), relativo);
+  ok('sulla pagina intera cade nel terzo alto',
+     relativo.pagina.n === 25 && relativo.pagina.cassa === 'terzo alto', relativo);
+  ok('ma dentro una vignetta in cima finisce nel terzo basso',
+     relativo.alta.n === 67 && relativo.alta.cassa === 'terzo basso', relativo);
+  ok('e per una vignetta di meta\' pagina cade proprio fuori, sopra',
+     relativo.bassa.cassa === 'sopra la vignetta', relativo);
 
   sezione('le linee si consumano a coppie: due linee, una fuga');
   const coppie = await page.evaluate(()=>{
@@ -196,7 +261,9 @@ module.exports = () => suite("Prospettiva — il righello per leggere l'orizzont
     return {
       aperto: P.prospettivaAperta(),
       lettura: ov.querySelector('.prosp-oriz').textContent,
-      fughe: ov.querySelector('.prosp-fughe').textContent,
+      campoPunti: ov.querySelector('.prosp-quanti').textContent,
+      inclinazione: ov.querySelector('.prosp-incl').textContent,
+      targaVisibile: !ov.querySelector('.prosp-targa').hidden,
       raggi: ov.querySelectorAll('.prosp-fascio line').length,
       punti: ov.querySelectorAll('.prosp-punti circle').length,
       orizzonteTagliato: ov.querySelector('.prosp-orizzonte').getAttribute('clip-path'),
@@ -209,7 +276,12 @@ module.exports = () => suite("Prospettiva — il righello per leggere l'orizzont
     };
   });
   ok('lo studio e\' aperto', schermo.aperto, schermo);
-  ok('e legge l\'orizzonte a meta\' altezza', /^HL 50%$/.test(schermo.lettura), schermo.lettura);
+  ok('e legge l\'orizzonte a meta\' altezza',
+     schermo.lettura === 'terzo centrale', schermo.lettura);
+  // I TRE CAMPI CI SONO TUTTI E TRE, sempre: e' la forma fissa a rendere
+  // confrontabili due studi presi a un mese di distanza.
+  ok('con accanto gli altri due campi, sempre gli stessi',
+     schermo.targaVisibile && schermo.campoPunti === '1' && schermo.inclinazione === '0°', schermo);
   ok('il fascio c\'e\'', schermo.raggi === 12, schermo);
   ok('e la fuga e\' segnata con un punto', schermo.punti === 2, schermo);
   // IL FASCIO SI TAGLIA, L'ORIZZONTE NO, e sono due decisioni diverse.
@@ -259,7 +331,7 @@ module.exports = () => suite("Prospettiva — il righello per leggere l'orizzont
       pointerId: 9, clientX: r.left + u*r.width, clientY: r.top + v*r.height,
       bubbles:true, cancelable:true }));
     const primaDelRiquadro = P.faseRiquadro();
-    const testoPrima = document.querySelector('.prosp-oriz').textContent;
+    const testoPrima = document.querySelector('.prosp-invito').textContent;
     // Un riquadro grande come un francobollo non e' una vignetta.
     tocco('pointerdown', 0.4, 0.4); tocco('pointermove', 0.42, 0.42); tocco('pointerup', 0.42, 0.42);
     const dopoIlFrancobollo = P.faseRiquadro();
@@ -271,7 +343,7 @@ module.exports = () => suite("Prospettiva — il righello per leggere l'orizzont
     tocco('pointerup', 0.9, 0.35);
     const riq = P.__perLeProve().riquadro;
     const dopo = P.faseRiquadro();
-    const testoDopo = document.querySelector('.prosp-oriz').textContent;
+    const testoDopo = document.querySelector('.prosp-invito').textContent;
     // E adesso lo stesso gesto traccia una linea, non un altro rettangolo.
     tocco('pointerdown', 0.2, 0.2); tocco('pointermove', 0.8, 0.28); tocco('pointerup', 0.8, 0.28);
     const linee = P.__perLeProve().linee.length;
@@ -456,10 +528,10 @@ module.exports = () => suite("Prospettiva — il righello per leggere l'orizzont
     await new Promise(r=> setTimeout(r, 80));
     const tornata = { vignetta: document.querySelector('.prosp-tavolo').getBoundingClientRect().width,
                       acceso: bottone.classList.contains('acceso') };
-    return { cEra, stretta, larga, tornata, lettura: document.querySelector('.prosp-fughe').textContent };
+    return { cEra, stretta, larga, tornata,
+             fuoriDaSola: dovE().left > window.innerWidth };
   });
-  ok('la fuga cade davvero fuori dalla vignetta',
-     /destra/.test(veduta.lettura), veduta.lettura);
+  ok('la fuga cade davvero fuori dalla vignetta', veduta.fuoriDaSola, veduta);
   ok('col tavolo stretto sta fuori dallo schermo',
      veduta.stretta.fuga > veduta.stretta.schermo, veduta.stretta);
   ok('il tasto per allargare c\'e\'', veduta.cEra, veduta);
@@ -508,7 +580,7 @@ module.exports = () => suite("Prospettiva — il righello per leggere l'orizzont
     premi('pulisci');
     const dopoPulisci = P.__perLeProve().linee.length;
     const senzaRiquadro = P.faseRiquadro();
-    const invito = ov.querySelector('.prosp-oriz').textContent;
+    const invito = ov.querySelector('.prosp-invito').textContent;
     premi('esci');
     await new Promise(r=> setTimeout(r, 50));
     return { dopoIndietro, dopoPulisci, senzaRiquadro, invito, aperto: P.prospettivaAperta(),
@@ -568,7 +640,8 @@ module.exports = () => suite("Prospettiva — il righello per leggere l'orizzont
   // coinciderebbero piu'.
   ok('e il ritaglio combacia con la vignetta sul tavolo',
      dalLettore.suQuellaTavola, dalLettore);
-  ok('con la lettura riferita a quella', /^HL 50%$/.test(dalLettore.lettura), dalLettore.lettura);
+  ok('con la lettura riferita a quella',
+     dalLettore.lettura === 'terzo centrale', dalLettore.lettura);
 
   sezione('la barra dei comandi vive nel suo spazio, non sopra il disegno');
   // LA STESSA GARANZIA DI PRIMA (vedi "lo strumento lavora su un tavolo suo"
@@ -794,9 +867,22 @@ module.exports = () => suite("Prospettiva — il righello per leggere l'orizzont
   // di uno studio archiviato bisognerebbe riaprirlo e rimisurarlo, e lo
   // scaffale Prospettiva non potrebbe scrivere la percentuale sotto ognuno.
   ok('con dentro la misura dell\'orizzonte, riferita alla vignetta',
-     salvato.misure && salvato.misure.orizzonte === 50, salvato.misure);
+     salvato.misure && salvato.misure.orizzonte === 'terzo centrale'
+     && salvato.misure.altezza === 50, salvato.misure);
   ok('e le fughe, anche loro in coordinate di vignetta',
      salvato.misure && salvato.misure.fughe.length === 1, salvato.misure);
+  // I TRE CAMPI VIAGGIANO COL DOCUMENTO, ed e' quello che permettera' di
+  // contare gli studi senza riaprirli uno per uno.
+  ok('coi tre campi del catalogo',
+     salvato.misure && salvato.misure.punti === 1
+     && typeof salvato.misure.orizzonte === 'string'
+     && typeof salvato.misure.inclinazione === 'number', salvato.misure);
+  // E SOTTO, LE LINEE TRACCIATE. Costano una manciata di decimali e sono
+  // l'unica differenza fra un archivio che fra sei mesi si puo' ancora
+  // interrogare in un modo nuovo e uno da rifare studio per studio.
+  ok('e con dentro le linee, per poter rimisurare senza rifare gli studi',
+     salvato.misure && salvato.misure.linee && salvato.misure.linee.length === 2
+     && typeof salvato.misure.linee[0].a.x === 'number', salvato.misure);
   // Chi salva ha finito di studiare QUESTA vignetta: restare davanti a un
   // foglio di linee su una cosa gia' archiviata farebbe del gesto successivo
   // sempre "chiudi".
@@ -869,7 +955,7 @@ module.exports = () => suite("Prospettiva — il righello per leggere l'orizzont
     };
   });
   ok('l\'orizzonte cade davvero sopra la vignetta',
-     /\(sopra\)/.test(fuoriCampo.lettura), fuoriCampo.lettura);
+     fuoriCampo.lettura === 'sopra la vignetta', fuoriCampo.lettura);
   // Senza premere ⤢, senza pizzicare, senza girare la rotella: la riga d'oro
   // c'e' comunque.
   ok('e senza toccare ⤢ ne\' zoom di nessun tipo, la riga d\'oro c\'e\' lo stesso',
@@ -922,7 +1008,7 @@ module.exports = () => suite("Prospettiva — il righello per leggere l'orizzont
     return { lettura, rosso, w: risultato.width, h: risultato.height };
   });
   ok('la fuga cade davvero sopra il riquadro, dentro la vignetta accanto',
-     /\(sopra\)/.test(margineNeutro.lettura), margineNeutro.lettura);
+     margineNeutro.lettura === 'sopra la vignetta', margineNeutro.lettura);
   ok('e il colore della vignetta accanto non finisce nel margine dello studio salvato',
      margineNeutro.rosso === 0, margineNeutro);
 

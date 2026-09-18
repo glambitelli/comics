@@ -274,92 +274,131 @@ export function fuochiDa(linee){
   return f;
 }
 
+// ── QUANTI PUNTI DI FUGA, E QUALE E' LA VERTICALE ──
+//
+// Il numero di punti non e' un'opinione: e' quante FAMIGLIE di rette parallele
+// convergono. Una: un punto. Due: due punti. Tre — e la terza e' quella degli
+// spigoli verticali, che convergono solo quando la macchina guarda in su o in
+// giu' — tre punti.
+//
+// CON TRE FUGHE BISOGNA SAPERE QUALE E' LA VERTICALE, perche' l'orizzonte
+// passa per le altre due. Prima si prendevano semplicemente le prime due
+// tracciate: bastava cominciare dai verticali perche' la riga d'oro unisse una
+// fuga orizzontale e una verticale, cioe' niente. E l'ordine in cui uno traccia
+// non e' un dato, e' un'abitudine.
+//
+// Si guarda invece la GEOMETRIA: delle tre coppie possibili, l'orizzonte e'
+// quella la cui congiungente e' piu' vicina all'orizzontale. La fuga dei
+// verticali, per come nasce, sta sempre molto sopra o molto sotto le altre
+// due, quindi qualunque coppia che la contenga da' una congiungente ripida.
+// Resta vero comunque sia stata inclinata la macchina.
+// Oltre questa pendenza una congiungente non e' un orizzonte: e' la riga fra
+// una fuga laterale e una verticale, e non vuol dire niente.
+const RIPIDA = Math.tan(60 * Math.PI / 180);
+// E una fuga cosi' lontana in verticale dalla vignetta puo' essere solo
+// quella dei verticali: l'orizzonte, per quanto alto o basso, resta nei
+// dintorni dell'inquadratura.
+const LONTANA = 2;
+function pendenza(p, q){ return Math.abs((q.y - p.y) / ((q.x - p.x) || 1e-9)); }
+
+export function classifica(fuochi){
+  if(!fuochi.length) return { punti:0, orizzontali:[], verticale:null };
+  if(fuochi.length === 1) return { punti:1, orizzontali:fuochi.slice(), verticale:null };
+  if(fuochi.length === 2){
+    const [p, q] = fuochi;
+    // DUE FAMIGLIE, MA UNA PUO' ESSERE QUELLA DEI VERTICALI. Succede
+    // tracciando gli spigoli in piedi di un palazzo e quelli che vanno in
+    // profondita', senza la seconda famiglia orizzontale. Prima l'orizzonte
+    // veniva tirato fra le due comunque, e usciva una riga d'oro quasi
+    // verticale con "inclinazione 90°" scritto sotto: un dato falso, e in un
+    // archivio da contare un dato falso e' peggio di un dato mancante.
+    if(pendenza(p, q) > RIPIDA){
+      const lontano = Math.abs(p.y - 0.5) > Math.abs(q.y - 0.5) ? p : q;
+      const altro = lontano === p ? q : p;
+      if(Math.abs(lontano.y - 0.5) > LONTANA){
+        return { punti:2, orizzontali:[altro], verticale:lontano };
+      }
+    }
+    return { punti:2, orizzontali:fuochi.slice(), verticale:null };
+  }
+  const f = fuochi.slice(0, 3);
+  let meglio = null;
+  for(let i = 0; i < 3; i++){
+    for(let j = i + 1; j < 3; j++){
+      const pend = pendenza(f[i], f[j]);
+      if(!meglio || pend < meglio.pend) meglio = { pend, i, j };
+    }
+  }
+  const terzo = [0,1,2].find(k=> k !== meglio.i && k !== meglio.j);
+  return { punti:3, orizzontali:[f[meglio.i], f[meglio.j]], verticale:f[terzo] };
+}
+
 // L'orizzonte. Con una fuga sola e' la retta ORIZZONTALE che ci passa: una
 // fuga sola vuol dire che si guarda dritti davanti, e allora l'altezza della
-// fuga E' l'altezza dell'occhio. Con due fughe non si indovina piu' niente —
-// la retta che le unisce e' l'orizzonte, inclinato quanto e' inclinata la
-// macchina da presa.
+// fuga E' l'altezza dell'occhio. Con due o tre non si indovina piu' niente —
+// la retta che unisce le due fughe ORIZZONTALI (vedi classifica) e'
+// l'orizzonte, inclinato quanto e' inclinata la macchina da presa.
 export function orizzonteDa(fuochi){
   if(!fuochi.length) return null;
-  if(fuochi.length === 1) return { a:{x:-10, y:fuochi[0].y}, b:{x:10, y:fuochi[0].y} };
-  const [p, q] = fuochi;
+  const o = classifica(fuochi).orizzontali;
+  if(o.length === 1) return { a:{x:-10, y:o[0].y}, b:{x:10, y:o[0].y} };
+  const [p, q] = o;
   const dx = q.x - p.x, dy = q.y - p.y;
   const n = Math.hypot(dx, dy) || 1;
   return { a:{ x:p.x - dx/n*20, y:p.y - dy/n*20 }, b:{ x:q.x + dx/n*20, y:q.y + dy/n*20 } };
 }
 
-// La posizione dell'orizzonte, misurata SULLA VIGNETTA. E' l'informazione per
-// cui lo strumento esiste, ed e' un numero: la percentuale dell'altezza a cui
-// cade, contata dall'alto.
+// A che altezza cade l'orizzonte SULLA VIGNETTA, in centesimi contati
+// dall'alto. E' il numero da cui esce tutto il resto, ma non e' piu' quello
+// che si legge a schermo: vedi cassaOrizzonte.
 //
-// SI CHIAMA HL, come nel gergo del disegno (horizon line), e i punti di fuga
-// VP (vanishing point) — vedi letturaFuoco. Prima erano "Orizzonte" e "Fuga
-// N" per esteso, con frasi come "Fuga 1 fuori in alto": lette una accanto
-// all'altra, dieci volte per confrontare dieci tavole, sono lunghe da leggere
-// e non e' cosi' che si parla di prospettiva. Restano un dato, non un
-// racconto — niente aggettivi ("altissimo", "a terra") appiccicati al numero:
-// davanti a una tavola di Otomo "23%" e' un dato, "altissimo" e' un giudizio
-// che uno si fa da solo.
-function testoOrizzonte(pct){
-  if(pct < 0)   return 'HL ' + pct + '% (sopra)';
-  if(pct > 100) return 'HL ' + pct + '% (sotto)';
-  return 'HL ' + pct + '%';
-}
-export function letturaOrizzonte(orizzonte, fuochi, riq){
-  if(!orizzonte) return '';
+// Si misura al centro della vignetta, perche' con l'orizzonte inclinato
+// "l'altezza" da sola non vorrebbe dire niente — misurata su un bordo direbbe
+// una cosa, sull'altro un'altra — e il centro e' il punto di cui si parla
+// guardando un'inquadratura.
+export function altezzaOrizzonte(orizzonte, riq){
+  if(!orizzonte) return null;
   const r = riq || { x:0, y:0, w:1, h:1 };
-  // Si misura al centro della vignetta: con l'orizzonte inclinato "l'altezza"
-  // da sola non vorrebbe dire niente, e il centro e' il punto di cui si parla
-  // guardando un'inquadratura.
   const cx = r.x + r.w / 2;
   const t = (cx - orizzonte.a.x) / ((orizzonte.b.x - orizzonte.a.x) || 1);
   const y = orizzonte.a.y + t * (orizzonte.b.y - orizzonte.a.y);
-  const pct = Math.round((y - r.y) / (r.h || 1) * 100);
-  return testoOrizzonte(pct);
+  return Math.round((y - r.y) / (r.h || 1) * 100);
 }
 
-// ── DI QUANTO LA FUGA E' FUORI, E RISPETTO A COSA ──
+// ── E QUI IL NUMERO DIVENTA UNA CASSA ──
 //
-// Fuori e' il caso che interessa — e' quello che allunga le scene — e a
-// schermo non si vedrebbe: l'unico modo di dirlo e' a parole, con una
-// distanza. La distanza si conta IN VIGNETTE e non in pixel: "due larghezze"
-// vuol dire la stessa cosa su una vignetta grande e su una piccola, ed e'
-// l'unica misura con cui si possono confrontare due tavole diverse. In pixel
-// sarebbe un numero vero e inutile.
+// Per due giorni a schermo c'e' stato scritto "HL 34%", e Giovanni ha detto
+// tre volte che non gli diceva niente. Aveva ragione, e il motivo non e' che
+// il numero fosse sbagliato: e' che UNA PERCENTUALE NON SI SOMMA CON NIENTE.
+// La domanda per cui si raccolgono questi studi non e' "quanto faceva", e'
+// "quante volte l'orizzonte era fuori dalla vignetta" — e cinquanta
+// percentuali sciolte non rispondono, cinquanta casse si'.
 //
-// PRIMA C'ERA SCRITTO SOLO "w", ED ERA SBAGLIATO IN DUE MODI. Giovanni ha
-// chiesto il 17 settembre 2026 rispetto a cosa fosse calcolato quel numero, e
-// la risposta era imbarazzante: di lato si contavano LARGHEZZE, sopra e sotto
-// si contavano ALTEZZE, e tutte e quattro si scrivevano "w" — la lettera
-// della larghezza. Il commento che stava qui arrivava perfino a vantarsi che
-// "la stessa unita' vale in tutte e quattro le direzioni": non era vero, ed
-// e' rimasto scritto per due giorni. Adesso l'unita' e' per esteso e dice di
-// cosa: sono due parole in piu' e una sigla in meno da decifrare.
-//
-// E LO ZERO NON SI SCRIVE. Con la fuga appena oltre il bordo l'arrotondamento
-// a un decimo dava "VP1 sotto 0w": un numero che dice zero mentre la frase
-// afferma che il punto e' fuori. E' il caso che Giovanni aveva davanti quando
-// ha chiesto — la lettura peggiore possibile, perche' sembra un errore.
-const LARGO = { uno:'larghezza', tanti:'larghezze' };
-const ALTO  = { uno:'altezza',   tanti:'altezze' };
-function scriviFuori(nome, quanto, unita, dove, sulBordo){
-  const n = Math.round(Math.abs(quanto) * 10) / 10;
-  if(n === 0) return nome + ' ' + sulBordo;
-  // La virgola, come si scrivono i decimali in italiano e come li scrive gia'
-  // il cronometro.
-  const q = n.toString().replace('.', ',');
-  return nome + ' ' + dove + ', ' + q + ' ' + (n === 1 ? unita.uno : unita.tanti) + ' di vignetta';
+// I terzi non sono un'invenzione: e' il modo in cui si parla di
+// un'inquadratura da sempre. E il nome della cassa risolve da solo
+// l'equivoco su cui si e' perso tempo — "terzo alto" si capisce, "20%
+// contato dall'alto" voleva dire orizzonte in alto e sembrava il contrario.
+export function cassaOrizzonte(pct){
+  if(pct === null) return '';
+  if(pct < 0)    return 'sopra la vignetta';
+  if(pct > 100)  return 'sotto la vignetta';
+  if(pct <= 33)  return 'terzo alto';
+  if(pct <= 66)  return 'terzo centrale';
+  return 'terzo basso';
 }
-export function letturaFuoco(p, n, riq){
-  const r = riq || { x:0, y:0, w:1, h:1 };
-  const nome = 'VP' + n;
-  const u = (p.x - r.x) / (r.w || 1);
-  const v = (p.y - r.y) / (r.h || 1);
-  if(u >= 0 && u <= 1 && v >= 0 && v <= 1) return nome + ' dentro la vignetta';
-  if(u < 0) return scriviFuori(nome, u,     LARGO, 'a sinistra', 'appena fuori a sinistra');
-  if(u > 1) return scriviFuori(nome, u - 1, LARGO, 'a destra',   'appena fuori a destra');
-  if(v < 0) return scriviFuori(nome, v,     ALTO,  'sopra',      'appena sopra il bordo');
-  return scriviFuori(nome, v - 1, ALTO, 'sotto', 'appena sotto il bordo');
+
+// Di quanto e' storto l'orizzonte, in gradi, col segno: positivo scende verso
+// destra. Zero vuol dire macchina in piano — e con una fuga sola e' zero per
+// costruzione, perche' li' l'orizzonte e' orizzontale per definizione.
+// E' il terzo campo perche' e' una scelta di regia che si conta: una tavola
+// piena di orizzonti storti e' un autore che decide una cosa precisa.
+export function inclinazioneDa(orizzonte){
+  if(!orizzonte) return 0;
+  let a = Math.atan2(orizzonte.b.y - orizzonte.a.y, orizzonte.b.x - orizzonte.a.x) * 180 / Math.PI;
+  // La riga non ha un verso: 173 gradi e -7 sono la stessa inclinazione.
+  if(a > 90) a -= 180;
+  if(a <= -90) a += 180;
+  return Math.round(a);
 }
 
 // ── IL FOGLIO ──
@@ -423,9 +462,20 @@ function costruisci(){
       </svg>
     </div>
     <div class="prosp-barra">
+      <!-- TRE CAMPI, SEMPRE GLI STESSI, SEMPRE IN QUEST'ORDINE. Prima qui
+           c'era una frase, e cambiava forma ad ogni studio: "VP1 dentro la
+           vignetta", "VP1 a destra, 1,4 larghezze", "VP1 appena sotto il
+           bordo". Va bene per leggerla una volta, non per confrontare
+           cinquanta vignette — ed e' per confrontarle che si raccolgono.
+           L'invito sopra parla solo finche' non c'e' ancora niente da
+           misurare, poi lascia il posto alla targhetta. -->
       <div class="prosp-lettura">
-        <b class="prosp-oriz"></b>
-        <span class="prosp-fughe"></span>
+        <b class="prosp-invito"></b>
+        <div class="prosp-targa" hidden>
+          <span><i>Punti</i><b class="prosp-quanti"></b></span>
+          <span><i>Orizzonte</i><b class="prosp-oriz"></b></span>
+          <span><i>Inclinaz.</i><b class="prosp-incl"></b></span>
+        </div>
       </div>
       <!-- DUE ICONE E UNA PAROLA. "Togli l'ultima" e "Chiudi" scritti per
            esteso occupavano mezza barra per dire due cose che una freccia e
@@ -873,16 +923,20 @@ function scriviBarra(linee, fuochi, orizzonte){
   ved.hidden = !fuochi.length;
   ved.classList.toggle('acceso', _vedutaLarga);
 
-  if(riq){
-    oriz.textContent = 'Riquadra la vignetta';
-    _ov.querySelector('.prosp-fughe').textContent = '';
-    return;
+  const invito = _ov.querySelector('.prosp-invito');
+  const targa = _ov.querySelector('.prosp-targa');
+  const dillo = t =>{ invito.textContent = t; targa.hidden = true; };
+
+  if(riq) return dillo('Riquadra la vignetta');
+  if(!fuochi.length){
+    if(linee.length >= 2 && !_bozza) return dillo('Linee parallele: nessuna fuga');
+    return dillo(linee.length === 1 ? 'Ancora una linea' : 'Traccia due linee in profondità');
   }
-  if(fuochi.length) oriz.textContent = letturaOrizzonte(orizzonte, fuochi, cornice());
-  else if(linee.length >= 2 && !_bozza) oriz.textContent = 'Linee parallele: nessuna fuga';
-  else oriz.textContent = linee.length === 1 ? 'Ancora una linea' : 'Traccia due linee in profondità';
-  _ov.querySelector('.prosp-fughe').textContent =
-    fuochi.map((f, i)=> letturaFuoco(f, i + 1, cornice())).join(' · ');
+  invito.textContent = '';
+  targa.hidden = false;
+  _ov.querySelector('.prosp-quanti').textContent = classifica(fuochi).punti;
+  oriz.textContent = cassaOrizzonte(altezzaOrizzonte(orizzonte, cornice()));
+  _ov.querySelector('.prosp-incl').textContent = inclinazioneDa(orizzonte) + '°';
 }
 
 // ── SALVARE LO STUDIO ──
@@ -937,32 +991,40 @@ function areaDaSalvare(){
 // La striscia coi numeri sotto l'immagine. Non e' una didascalia carina: e'
 // l'unica forma in cui uno studio con la fuga a undici larghezze puo' dire
 // qualcosa, e fra un mese e' quello che si va a leggere.
+// LA STRISCIA PORTA GLI STESSI TRE CAMPI DELLA BARRA, nello stesso ordine.
+// Uno studio esportato e messo accanto a un altro si legge per colonne, e due
+// studi che scrivono le stesse cose negli stessi posti si confrontano con un
+// colpo d'occhio: e' tutto il motivo per cui i campi sono fissi.
 function strisciaDati(c, W, y, h, misure){
   c.fillStyle = 'rgba(12,9,5,.96)';
   c.fillRect(0, y, W, h);
-  const fs = Math.max(11, Math.round(h * 0.34));
   c.textBaseline = 'middle';
-  c.font = '800 ' + fs + 'px system-ui, -apple-system, sans-serif';
-  c.fillStyle = ORO;
-  c.fillText(testoOrizzonte(misure.orizzonte), h * 0.34, y + h * 0.34);
-  const righe = misure.fughe.map((f, i)=> letturaFuoco(
-    { x: cornice().x + f.x * cornice().w, y: cornice().y + f.y * cornice().h },
-    i + 1, cornice())).join('   ·   ');
-  // IL TESTO SI STRINGE PER STARE DENTRO. Con due fughe e l'unita' scritta
-  // per esteso ("1,4 larghezze di vignetta") la riga puo' superare la
-  // larghezza della tela, e quello che esce dal bordo semplicemente non c'e'
-  // piu': di uno studio archiviato resterebbe mezza misura. Meglio due punti
-  // di corpo in meno e la frase intera.
-  const bordo = h * 0.34;
-  let fsq = Math.round(fs * 0.82);
-  const corpo = n => '600 ' + n + 'px system-ui, -apple-system, sans-serif';
-  c.font = corpo(fsq);
-  while(fsq > 9 && c.measureText(righe).width > W - bordo * 2){
-    fsq -= 1;
-    c.font = corpo(fsq);
+  const bordo = h * 0.3;
+  const campi = [
+    ['PUNTI', String(misure.punti), false],
+    ['ORIZZONTE', misure.orizzonte, true],
+    ['INCLINAZ.', misure.inclinazione + '°', false],
+  ];
+  // Le tre colonne si spartiscono la striscia. Il corpo scende finche' il
+  // campo piu' largo non ci sta nella sua: quello che esce dal bordo non si
+  // legge piu', e di uno studio archiviato resterebbe mezza misura.
+  const largo = (W - bordo * 2) / 3;
+  let fs = Math.max(10, Math.round(h * 0.3));
+  const corpo = n => '800 ' + n + 'px system-ui, -apple-system, sans-serif';
+  c.font = corpo(fs);
+  while(fs > 8 && campi.some(([, v])=> c.measureText(v).width > largo - bordo * 0.5)){
+    fs -= 1;
+    c.font = corpo(fs);
   }
-  c.fillStyle = 'rgba(240,232,216,.72)';
-  c.fillText(righe, bordo, y + h * 0.72);
+  campi.forEach(([et, valore, acceso], i)=>{
+    const x = bordo + largo * i;
+    c.font = '700 ' + Math.max(7, Math.round(fs * 0.62)) + 'px system-ui, -apple-system, sans-serif';
+    c.fillStyle = 'rgba(240,232,216,.42)';
+    c.fillText(et, x, y + h * 0.33);
+    c.font = corpo(fs);
+    c.fillStyle = acceso ? ORO : 'rgba(240,232,216,.88)';
+    c.fillText(valore, x, y + h * 0.7);
+  });
 }
 
 function disegnaSuTela(){
@@ -1080,15 +1142,22 @@ export function misureStudio(){
   const fuochi = fuochiDa(_linee);
   if(!fuochi.length) return null;
   const orizzonte = orizzonteDa(fuochi);
-  const cx = r.x + r.w / 2;
-  const t = (cx - orizzonte.a.x) / ((orizzonte.b.x - orizzonte.a.x) || 1);
-  const y = orizzonte.a.y + t * (orizzonte.b.y - orizzonte.a.y);
+  const pct = altezzaOrizzonte(orizzonte, r);
+  const g = n => Math.round(n * 1000) / 1000;
+  const rel = p => ({ x: g((p.x - r.x) / (r.w || 1)), y: g((p.y - r.y) / (r.h || 1)) });
   return {
-    orizzonte: Math.round((y - r.y) / (r.h || 1) * 100),
-    fughe: fuochi.map(f=> ({
-      x: Math.round((f.x - r.x) / (r.w || 1) * 1000) / 1000,
-      y: Math.round((f.y - r.y) / (r.h || 1) * 1000) / 1000,
-    })),
+    // I TRE CAMPI, che sono quelli che si leggono e si contano.
+    punti: classifica(fuochi).punti,
+    orizzonte: cassaOrizzonte(pct),
+    inclinazione: inclinazioneDa(orizzonte),
+    // SOTTO, QUELLO DA CUI SI RICALCOLA. I campi qui sopra rispondono alle
+    // domande di oggi; questi permettono di rispondere a quelle di domani
+    // senza riaprire cinquanta studi e rifare le misure a mano. Sono una
+    // manciata di decimali: costano meno di niente, e sono l'unica differenza
+    // fra un archivio che si puo' interrogare ancora e uno da rifare.
+    altezza: pct,
+    fughe: fuochi.map(rel),
+    linee: _linee.map(l=> ({ a: rel(l.a), b: rel(l.b) })),
   };
 }
 
