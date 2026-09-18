@@ -167,7 +167,7 @@ export async function chiudiSchizzoUI(){
   if(_salvando) return;
   if(_alSalva && (_tratti.length || _sfondo)){
     _salvando = true;
-    messaggio('Salvo…');
+    messaggio('Salvataggio…');
     try{
       await _alSalva(await esporta());
     }catch(e){
@@ -175,7 +175,7 @@ export async function chiudiSchizzoUI(){
       // rapido di non fidarsi piu' di questa schermata. Si resta qui, si dice
       // cos'e' andato storto, e la freccia riprova.
       _salvando = false;
-      messaggio('Non sono riuscito a salvare il disegno. Riprova.');
+      messaggio('Salvataggio non riuscito. Riprova.');
       return;
     }
     _salvando = false;

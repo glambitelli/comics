@@ -735,22 +735,22 @@ window.tempoPausa = async ()=>{
 // PREMERE STOP DEVE SEMPRE DIRE QUALCOSA. Prima parlava solo sopra il minuto:
 // sotto, il cronometro spariva e sulla home non cambiava niente — e la lettura
 // giusta, dal divano, era che il timer non funzionasse. Adesso una sessione
-// registrata dice quanto vale, e una scartata dice che e' stata scartata.
-// BUTTARE VIA CHIEDE PRIMA. Fermare per sbaglio non costa niente — il tempo
-// finisce comunque in archivio — ma buttare via si': quei minuti non tornano.
+// registrata dice quanto vale, e una eliminata dice che e' stata eliminata.
+// ELIMINARE CHIEDE PRIMA. Fermare per sbaglio non costa niente — il tempo
+// finisce comunque in archivio — ma eliminare si': quei minuti non tornano.
 window.tempoScarta = async ()=>{
   const m = await tempo();
   if(!m.acceso()) return;
   const quanto = m.scriviBreve(m.secondiCorrenti());
   const { confirmModal } = await import('./dialogs.js');
   const si = await confirmModal(
-    'Butto via ' + quanto + '? Non finiscono in archivio e non si recuperano.',
-    { title: 'Buttare via la sessione', confirmLabel: 'Butta via' });
+    'Eliminare la sessione di ' + quanto + '? Non verrà registrata in archivio e non è recuperabile.',
+    { title: 'Elimina sessione', confirmLabel: 'Elimina' });
   if(!si) return;
   m.scarta();
   disegnaTempo();
   const s = document.getElementById('tempo-esito');
-  if(s){ s.textContent = 'Buttata via'; setTimeout(disegnaTempo, 2500); }
+  if(s){ s.textContent = 'Sessione eliminata'; setTimeout(disegnaTempo, 2500); }
 };
 window.tempoFerma = async ()=>{
   const m = await tempo();
@@ -759,8 +759,8 @@ window.tempoFerma = async ()=>{
   const s = document.getElementById('tempo-esito');
   if(!s) return;
   s.textContent = secondi
-    ? m.scriviBreve(secondi) + ' — segnati'
-    : 'Neanche un secondo — niente da segnare';
+    ? m.scriviBreve(secondi) + ' registrati'
+    : 'Sessione troppo breve: non registrata';
   setTimeout(disegnaTempo, 3000);
 };
 // Una sessione lasciata accesa riprende da sola all'avvio dell'app.

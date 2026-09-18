@@ -155,7 +155,8 @@ module.exports = () => suite("Backup — l'archivio esce da qui, e ci rientra", 
      domanda && /1 progetti|1 progetto/.test(domanda.testo) && /2 immagini/.test(domanda.testo), domanda);
   // Chi ripristina ha spesso lavorato DOPO l'ultimo backup: se il ripristino
   // cancellasse, quel lavoro sparirebbe senza che nessuno l'abbia chiesto.
-  ok('e promette che non cancella niente', /niente viene cancellato/i.test(domanda.testo||''), domanda);
+  ok('e promette che non cancella niente',
+     /nessun dato viene eliminato/i.test(domanda.testo||''), domanda);
   await page.evaluate(()=> document.querySelector('.modal-overlay.open #ink-confirm-ok').click());
   await page.waitForTimeout(600);
 

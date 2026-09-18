@@ -190,7 +190,7 @@
         <span class="tempo-vetro" aria-hidden="true"></span>
       </button>
       <!-- PREMERE STOP DEVE SEMPRE DIRE QUALCOSA, e prima lo diceva la scritta
-           dentro al bottone ("24 min — segnati", "Buttata via"). Tolta quella,
+           dentro al bottone ("24 min registrati", "Sessione eliminata"). Tolta quella,
            il messaggio senza questa riga non avrebbe piu' un posto dove andare
            e fermare il cronometro tornerebbe a sembrare che non faccia niente:
            e' il difetto che era gia' stato corretto una volta, e che togliere
@@ -1310,10 +1310,10 @@
   <span class="tempo-punto" id="tempo-punto" aria-hidden="true"></span>
   <span class="tempo-corsa" id="tempo-corsa">00:00</span>
   <button class="tempo-btn" id="tempo-pausa" onclick="window.tempoPausa()" type="button" aria-label="Pausa"></button>
-  <!-- BUTTARE VIA non e' fermare: fermare mette in archivio, questo no. Serve
+  <!-- ELIMINARE non e' fermare: fermare mette in archivio, questo no. Serve
        per il cronometro dimenticato acceso a cena o partito in tasca. Sta in
        mezzo, scarico di colore, perche' e' il meno frequente dei tre. -->
-  <button class="tempo-btn tempo-scarta" id="tempo-scarta" onclick="window.tempoScarta()" type="button" aria-label="Butta via">
+  <button class="tempo-btn tempo-scarta" id="tempo-scarta" onclick="window.tempoScarta()" type="button" aria-label="Elimina sessione">
     <svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true"><path d="M6.5 6.5 17.5 17.5M17.5 6.5 6.5 17.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
   </button>
   <button class="tempo-btn tempo-stop" id="tempo-stop" onclick="window.tempoFerma()" type="button" aria-label="Fine">

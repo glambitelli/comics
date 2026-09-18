@@ -431,7 +431,7 @@ async function extractPagesForFile(file){
   // di MB su un volume grosso, ed è proprio ciò che faceva morire la scheda.
   let head;
   try{ head = new Uint8Array(await file.slice(0, 8).arrayBuffer()); }
-  catch(e){ throw new Error('Non riesco a leggere il file.'); }
+  catch(e){ throw new Error('File non leggibile.'); }
 
   const isZip = head[0] === 0x50 && head[1] === 0x4B;
   const isRar = head[0] === 0x52 && head[1] === 0x61 && head[2] === 0x72 && head[3] === 0x21;

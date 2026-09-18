@@ -1027,7 +1027,7 @@ async function daDispositivo(files){
   if(!scelti.length) return;
   const dove = document.getElementById('sceltarif-dove');
   const prima = dove ? dove.textContent : '';
-  if(dove) dove.textContent = scelti.length === 1 ? 'Carico…' : 'Carico ' + scelti.length + '…';
+  if(dove) dove.textContent = scelti.length === 1 ? 'Caricamento…' : 'Caricamento di ' + scelti.length + '…';
   const r = await import('./refs.js');
   const cartella = _cartellaRif && _cartellaRif !== '__sciolte' ? _cartellaRif : null;
   let messe = 0;
@@ -1037,7 +1037,7 @@ async function daDispositivo(files){
       if(esito && esito.url){ tocca(esito.id, esito.url); messe++; }
     }catch(e){ console.warn('caricamento dal dispositivo fallito:', e); }
   }
-  if(dove) dove.textContent = messe ? prima : 'Non sono riuscito a caricarla';
+  if(dove) dove.textContent = messe ? prima : 'Caricamento non riuscito';
   disegnaScelta();
 }
 

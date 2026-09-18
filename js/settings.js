@@ -44,7 +44,7 @@ const ULTIMO_BACKUP = 'inkflow_ultimo_backup';
 export async function exportBackup(){
   const btn = document.querySelector('.settings-action.backup-esporta');
   const testo = btn ? btn.textContent : '';
-  if(btn){ btn.disabled = true; btn.textContent = 'Leggo…'; }
+  if(btn){ btn.disabled = true; btn.textContent = 'Lettura…'; }
   try{
     const collezioni = {};
     for(const c of COLLEZIONI){
@@ -87,7 +87,7 @@ export async function exportBackup(){
       `Salvato un file con ${righe}. Tienilo dove tieni le cose che non vuoi perdere: da qui si rimette tutto com'era.`,
       { title:'Archivio esportato' });
   }catch(e){
-    await infoModal('Non sono riuscito a leggere l\'archivio: ' + (e && e.message ? e.message : e) +
+    await infoModal('Lettura dell\'archivio non riuscita: ' + (e && e.message ? e.message : e) +
       '\nSe sei senza rete riprova quando torna.', { title:'Esportazione non riuscita' });
   }finally{
     if(btn){ btn.disabled = false; btn.textContent = testo; }
@@ -116,8 +116,8 @@ export function importBackup(){
       // sostituisse l'archivio sarebbe il modo più veloce di perdere il lavoro
       // fatto dopo l'ultimo backup.
       const ok = await confirmModal(
-        `Il file è del ${quando} e contiene ${conto.join(', ')}. Rimetto queste cose nell'archivio: ` +
-        `quelle che ci sono già vengono riscritte com'erano nel file, le altre si aggiungono. Niente viene cancellato.`,
+        `Il file è del ${quando} e contiene ${conto.join(', ')}. Ripristinare questi dati nell'archivio? ` +
+        `Gli elementi già presenti vengono sovrascritti con la versione contenuta nel file, gli altri vengono aggiunti. Nessun dato viene eliminato.`,
         { title:'Ripristina archivio', confirmLabel:'Ripristina', safe:true });
       if(!ok) return;
       let scritti = 0;
@@ -138,7 +138,7 @@ export function importBackup(){
       await infoModal(`Rimessi ${scritti} elementi. L'archivio si aggiorna da solo, senza riavviare.`,
         { title:'Archivio ripristinato' });
     }catch(err){
-      await infoModal('Non sono riuscito a leggere il file: ' + (err && err.message ? err.message : err),
+      await infoModal('Lettura del file non riuscita: ' + (err && err.message ? err.message : err),
         { title:'Ripristino non riuscito' });
     }
   };
@@ -276,7 +276,7 @@ export async function copiaRegistro(){
 }
 
 export async function svuotaRegistroUI(){
-  const ok = await confirmModal('Cancello l\'elenco degli errori registrati su questo telefono? Non tocca nient\'altro.',
+  const ok = await confirmModal('Svuotare il registro degli errori di questo dispositivo? Nessun altro dato viene modificato.',
     { title:'Svuota il registro', confirmLabel:'Svuota' });
   if(!ok) return;
   svuotaRegistro();
@@ -447,7 +447,7 @@ export function driveTocca(){
   // collegato" — cioe' esattamente quello che dice quando non e' successo
   // niente.
   const stato = document.getElementById('drive-mail');
-  if(stato) stato.textContent = 'Apro Google…';
+  if(stato) stato.textContent = 'Apertura di Google…';
   _driveMod.connectDrive()
     .then(()=> disegnaDrive())
     .catch(e=>{
@@ -512,7 +512,7 @@ function spiegaErroreAccesso(e){
            'È un errore di configurazione, non tuo: il client OAuth della porta ' +
            'd\'ingresso deve stare nel progetto Firebase (vedi CLIENT_ID_ACCESSO ' +
            'in js/gis.js). Segnalalo e nel frattempo riprova più tardi.';
-  return 'Non sono riuscito a entrare: ' + ((e && e.message) ? e.message : e);
+  return 'Accesso non riuscito: ' + ((e && e.message) ? e.message : e);
 }
 // Le prove leggono le spiegazioni senza dover far fallire Google davvero.
 export const __perLeProve_spiega = spiegaErroreAccesso;
@@ -711,10 +711,10 @@ export async function azzeraTempoConferma(){
   const { confirmModal, infoModal } = await import('./dialogs.js');
   const m = await import('./tempo.js');
   const quanto = m.secondiTotali();
-  if(!quanto){ infoModal('Non c\'e\' ancora niente da azzerare.', { title:'Tempo al tavolo' }); return; }
+  if(!quanto){ infoModal('Non risulta ancora nessuna ora registrata.', { title:'Tempo al tavolo' }); return; }
   const si = await confirmModal(
-    'Cancello ' + m.scriviBreve(quanto) + ' di lavoro, giorno per giorno. Non si torna indietro.',
-    { title:'Azzerare le ore', confirmLabel:'Azzera' });
+    'Eliminare ' + m.scriviBreve(quanto) + ' di lavoro registrato, giorno per giorno? L\'operazione non è reversibile.',
+    { title:'Azzera le ore', confirmLabel:'Azzera' });
   if(!si) return;
   await m.azzeraTutto();
   const el = document.getElementById('settings-tempo-totale');

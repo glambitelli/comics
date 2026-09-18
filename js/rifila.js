@@ -190,7 +190,7 @@ export async function confermaRifila(){
   // la miniatura nell'archivio e' gia' cambiata).
   const restaPoco = (cw * ch) < (img.naturalWidth * img.naturalHeight) * 0.04;
   if(restaPoco){
-    const ok = await confirmModal('Del frammento resterebbe meno di un ventesimo. Vado avanti?',
+    const ok = await confirmModal('Del frammento resterebbe meno di un ventesimo. Procedere?',
       { title:'Ritaglio molto stretto', confirmLabel:'Ritaglia', safe:true });
     if(!ok) return;
   }
@@ -213,7 +213,7 @@ export async function confermaRifila(){
     const bloccata = /tainted|SecurityError|insecure/i.test((e && (e.name + ' ' + e.message)) || '');
     await infoModal(bloccata
       ? 'Questa immagine non si lascia ritagliare: e\' stata salvata prima che l\'app chiedesse il permesso di leggerne i pixel. Risalvala e riprova.'
-      : 'Non sono riuscito a ritagliare: ' + ((e && e.message) ? e.message : e),
+      : 'Ritaglio non riuscito: ' + ((e && e.message) ? e.message : e),
       { title:'Ritaglio non riuscito' });
   }finally{
     if(btn){ btn.disabled = false; btn.textContent = 'Ritaglia'; }

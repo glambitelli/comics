@@ -832,7 +832,7 @@ function esitoDrive(testo, errore){
 
 export async function connectDriveAndSync(){
   try{
-    esitoDrive('Apro Google…');
+    esitoDrive('Apertura di Google…');
     await connectDrive();
     haptic('done');
     esitoDrive('');

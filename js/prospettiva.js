@@ -1100,7 +1100,7 @@ async function salva(){
   if(!misure || !fatto) return;
   _salvando = true;
   const btn = _ov.querySelector('.prosp-salva');
-  btn.disabled = true; btn.textContent = 'Salvo…';
+  btn.disabled = true; btn.textContent = 'Salvataggio…';
   try{
     const blob = await new Promise(res=> fatto.tela.toBlob(res, 'image/webp', 0.9));
     await _salvataggio({ blob, w: fatto.W, h: fatto.H, misure });

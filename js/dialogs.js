@@ -3,6 +3,30 @@
 // fuori palette) con modali coerenti col resto di Inkflow. Creati una sola
 // volta e riusati; risolvono una Promise, si usano con await esattamente
 // come le controparti native.
+//
+// ── COME SI SCRIVE QUELLO CHE C'E' DENTRO ──
+//
+// L'APP NON PARLA IN PRIMA PERSONA. Per mesi qua dentro c'e' stato scritto
+// "Butto via 5 sec?", "Cancello l'elenco?", "Rimetto queste cose
+// nell'archivio", e altrove "Salvo…", "Leggo…", "Non sono riuscito a
+// leggere il file". Letto tutto insieme era un programma che fa domande come
+// un ragazzino che chiede il permesso — e fa sembrare incerto anche uno
+// strumento che funziona. Segnalato da Giovanni il 18 settembre 2026.
+//
+// La forma, che in parte c'era gia' (vedi gli avvisi di refs.js) e che da qui
+// in poi vale per tutti e tre i pezzi di un dialogo:
+//
+//   TITOLO     un'etichetta all'imperativo, corta: "Elimina sessione",
+//              "Svuota il registro", "Ripristina archivio".
+//   TESTO      la domanda all'infinito, e SUBITO DOPO la conseguenza:
+//              "Eliminare la sessione di 5 sec? Non verra' registrata in
+//              archivio e non e' recuperabile."
+//   PULSANTE   il verbo dell'azione, uno: "Elimina", "Svuota", "Riduci".
+//
+// E fuori dai dialoghi, la stessa regola: le attese sono sostantivi
+// ("Salvataggio…", "Lettura…", "Caricamento…"), gli errori dicono cosa non e'
+// riuscito ("Ritaglio non riuscito", "File non leggibile"), mai chi non c'e'
+// riuscito.
 
 // ── LA TASTIERA NON DEVE COPRIRE QUELLO CHE SI STA SCRIVENDO ──
 // Sul telefono la tastiera non rimpicciolisce la pagina: le si siede sopra. La
