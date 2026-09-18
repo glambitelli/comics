@@ -482,14 +482,33 @@ function costruisci(){
           <span><i>Inclinaz.</i><b class="prosp-incl"></b></span>
         </div>
       </div>
-      <!-- DUE ICONE E UNA PAROLA. "Togli l'ultima" e "Chiudi" scritti per
-           esteso occupavano mezza barra per dire due cose che una freccia e
-           una croce dicono meglio: sono i due gesti piu' universali che
-           esistano. Resta scritto solo quello che un simbolo non direbbe. -->
-      <div class="prosp-comandi">
+      <!-- DUE PIANI: PRIMA LE DECISIONI, POI GLI ATTREZZI.
+           Scelto da Giovanni il 18 settembre 2026, contro una barra in cui
+           targa e tasti erano due blocchi che si ignoravano — la targa
+           schiacciata a sinistra, i tasti a destra, e in mezzo un vuoto che
+           cambiava forma ad ogni fase, perche' i tasti compaiono e
+           spariscono (due mentre si riquadra, cinque mentre si legge).
+           Qualunque allineamento "a destra" era destinato a ballare.
+           Adesso ogni riga ha un mestiere solo: le AZIONI che lasciano un
+           segno prendono tutta la larghezza, divisa in parti uguali, dove
+           arriva il pollice; gli ATTREZZI stanno sotto, piccoli e centrati.
+           Sono due cose diverse e adesso si vede. -->
+      <div class="prosp-azioni">
         <button class="prosp-btn prosp-tutta" data-act="tutta" type="button">Tutta l'immagine</button>
+        <button class="prosp-btn" data-act="pulisci" type="button">Pulisci</button>
+        <button class="prosp-btn prosp-salva" data-act="salva" type="button">Salva</button>
+      </div>
+      <!-- GLI ATTREZZI, TUTTI E TRE A ICONA. "Torna indietro" e "Chiudi"
+           scritti per esteso occupavano mezza barra per dire due cose che una
+           freccia e una croce dicono meglio: sono i due gesti piu' universali
+           che esistano.
+           LA CROCE STA SEMPRE QUI, anche quando e' l'unica rimasta e resta da
+           sola in mezzo alla riga: preferibile a farla saltare da una fase
+           all'altra. Chiudere e' il gesto che si cerca quando si e' persi, e
+           lo si cerca sempre nello stesso punto. -->
+      <div class="prosp-attrezzi">
         <button class="prosp-btn prosp-ico" data-act="indietro" type="button" aria-label="Torna indietro" title="Torna indietro">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9h11a4.5 4.5 0 0 1 0 9H9"/><path d="M8 5 4 9l4 4"/></svg>
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9h11a4.5 4.5 0 0 1 0 9H9"/><path d="M8 5 4 9l4 4"/></svg>
         </button>
         <!-- ALLARGA LA VEDUTA. Quando la fuga cade due larghezze fuori dalla
              vignetta — il caso interessante — a schermo non c'e' modo di
@@ -498,12 +517,10 @@ function costruisci(){
              vignetta sola. Compare solo quando c'e' una fuga da andare a
              cercare. -->
         <button class="prosp-btn prosp-ico prosp-veduta" data-act="veduta" type="button" aria-label="Allarga la veduta" title="Allarga la veduta">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3H4.5A1.5 1.5 0 0 0 3 4.5V9"/><path d="M15 3h4.5A1.5 1.5 0 0 1 21 4.5V9"/><path d="M21 15v4.5a1.5 1.5 0 0 1-1.5 1.5H15"/><path d="M3 15v4.5A1.5 1.5 0 0 0 4.5 21H9"/></svg>
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3H4.5A1.5 1.5 0 0 0 3 4.5V9"/><path d="M15 3h4.5A1.5 1.5 0 0 1 21 4.5V9"/><path d="M21 15v4.5a1.5 1.5 0 0 1-1.5 1.5H15"/><path d="M3 15v4.5A1.5 1.5 0 0 0 4.5 21H9"/></svg>
         </button>
-        <button class="prosp-btn" data-act="pulisci" type="button">Clean</button>
-        <button class="prosp-btn prosp-salva" data-act="salva" type="button">Salva</button>
         <button class="prosp-btn prosp-ico prosp-esci" data-act="esci" type="button" aria-label="Chiudi" title="Chiudi">
-          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" aria-hidden="true"><path d="M6.5 6.5 17.5 17.5 M17.5 6.5 6.5 17.5"/></svg>
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" aria-hidden="true"><path d="M6.5 6.5 17.5 17.5 M17.5 6.5 6.5 17.5"/></svg>
         </button>
       </div>
     </div>`;

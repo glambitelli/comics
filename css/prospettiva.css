@@ -80,15 +80,30 @@ body.prosp-tavolo-aperto .prosp{background:#16120c}
 }
 .prosp-lettura{display:flex;flex-direction:column;gap:3px;min-width:0}
 /* L'invito parla solo finche' non c'e' niente da misurare, poi sparisce e
-   lascia il posto alla targhetta. */
-.prosp-invito{font-size:15px;font-weight:800;color:var(--oro);line-height:1.25}
+   lascia il posto alla targhetta. Centrato come lei: e' la stessa riga del
+   layout, e vederla saltare da sinistra al centro a seconda della fase era
+   meta' del disordine che si e' venuti a togliere. */
+.prosp-invito{font-size:15px;font-weight:800;color:var(--oro);line-height:1.25;text-align:center}
 .prosp-invito:empty{display:none}
-/* LA TARGHETTA: tre campi, sempre gli stessi, sempre in quest'ordine. Su uno
-   schermo stretto vanno a capo, ma restano nell'ordine — e' la forma fissa a
-   rendere confrontabili due studi, non l'allineamento. */
-.prosp-targa{display:flex;gap:16px;flex-wrap:wrap;min-width:0}
+/* LA TARGHETTA E' UNA LASTRA A SE': fondo suo, angoli suoi, e tre campi
+   separati da un filo. Prima era una riga di testo qualunque appoggiata
+   sopra i tasti, e si leggeva come un'etichetta; adesso si legge come uno
+   strumento che MISURA, che e' quello che fa.
+   LE COLONNE NON SONO TRE TERZI. "sopra la vignetta" e' lungo diciassette
+   caratteri, "1" e "0°" uno o due: a terzi uguali la colonna di mezzo
+   misurava 119px e la frase andava a capo, alzando tutta la riga di un piano
+   — si vede nel mockup B del 18 settembre 2026. 1fr 1.6fr 1fr le da' 159px,
+   che bastano, e le due colonne esterne restano identiche fra loro: la
+   lastra continua a leggersi simmetrica rispetto al suo centro. */
+.prosp-targa{
+  display:grid;grid-template-columns:1fr 1.6fr 1fr;
+  background:rgba(255,248,232,.05);border-radius:11px;
+  padding:7px 4px;text-align:center;min-width:0;
+}
 .prosp-targa[hidden]{display:none}
-.prosp-targa span{display:flex;flex-direction:column;gap:1px;min-width:0}
+.prosp-targa span{display:flex;flex-direction:column;gap:2px;min-width:0;
+  border-left:1px solid rgba(232,200,120,.14)}
+.prosp-targa span:first-child{border-left:0}
 .prosp-targa i{
   font-style:normal;font-size:8.5px;font-weight:800;letter-spacing:.1em;
   text-transform:uppercase;color:rgba(240,232,216,.45);
@@ -97,24 +112,35 @@ body.prosp-tavolo-aperto .prosp{background:#16120c}
 /* L'orizzonte prende l'oro: fra i tre campi e' la domanda per cui lo
    strumento e' stato aperto. */
 .prosp-targa .prosp-oriz{color:var(--oro)}
-.prosp-comandi{display:flex;gap:8px;align-items:center;min-width:0}
-/* I tasti scritti cedono per primi quando lo spazio manca: meglio "Clean"
-   stretto che una fila che esce dalla barra. */
-.prosp-btn{min-width:0}
+/* LE AZIONI: quelle che lasciano un segno. Prendono tutta la larghezza
+   divisa in parti uguali — due a meta' barra quando ci sono "Pulisci" e
+   "Salva", una sola per intero quando c'e' solo "Tutta l'immagine". Si
+   ridistribuiscono da sole al cambio di fase, ed e' questo che toglie il
+   vuoto ballerino di prima: non c'e' piu' spazio avanzato da lasciare a
+   sinistra o a destra, perche' non ne avanza. */
+.prosp-azioni{display:flex;gap:8px}
+.prosp-azioni .prosp-btn{flex:1 1 0;height:42px;font-size:13.5px}
+/* GLI ATTREZZI: centrati, piu' bassi e col fondo quasi spento. Non e'
+   decorazione, e' gerarchia — disfare, allargare la veduta e chiudere sono
+   cose che si fanno per tornare al lavoro, non il lavoro. */
+.prosp-attrezzi{display:flex;justify-content:center;gap:10px}
+.prosp-attrezzi .prosp-btn{
+  flex:0 0 46px;width:46px;height:34px;padding:0;
+  background:rgba(255,248,232,.05);border-color:rgba(255,248,232,.13);
+}
+/* Il rame della croce e il verderame della veduta accesa valgono anche qui:
+   il fondo spento della riga e' il tono di riposo, non un divieto. */
+.prosp-attrezzi .prosp-esci{background:rgba(154,90,52,.22);border-color:rgba(194,150,100,.36)}
+.prosp-attrezzi .prosp-veduta.acceso{background:rgba(87,171,151,.26);border-color:rgba(87,171,151,.55)}
 .prosp-btn{
-  flex:1;background:rgba(255,248,232,.1);border:1px solid rgba(255,248,232,.16);
+  background:rgba(255,248,232,.1);border:1px solid rgba(255,248,232,.16);
   color:#f0e8d8;font-family:inherit;font-size:12.5px;font-weight:700;
-  border-radius:10px;padding:9px 6px;cursor:pointer;-webkit-tap-highlight-color:transparent;
+  border-radius:10px;padding:9px 6px;cursor:pointer;min-width:0;
+  display:flex;align-items:center;justify-content:center;
+  -webkit-tap-highlight-color:transparent;
 }
 .prosp-btn[hidden]{display:none}
 .prosp-btn:active{transform:scale(.97);background:rgba(255,248,232,.18)}
-/* I due tasti a icona non si allargano: una freccia e una croce larghe come
-   mezza barra sembrerebbero due cose importanti, e non lo sono — sono il
-   "torna indietro" e il "chiudi" che ci sono ovunque. Quadrati e piccoli. */
-.prosp-ico{
-  flex:0 0 auto;width:42px;height:38px;padding:0;
-  display:flex;align-items:center;justify-content:center;
-}
 /* La croce prende il rame, che nell'app e' il colore dell'"attenzione senza
    rosso squillante": chiude e basta, non e' un allarme. */
 .prosp-esci{background:rgba(154,90,52,.26);border-color:rgba(194,150,100,.4);color:#f3ddc6}
@@ -147,11 +173,11 @@ body.prosp-aperta .refs-lightbox-nav{display:none !important}
      align-self la centra nella colonna invece del vecchio left:50%+transform,
      che serviva a centrarla da position:absolute e qui non c'e' piu'. */
   .prosp-barra{align-self:center;width:min(560px, calc(100% - 32px))}
-  .prosp-comandi{justify-content:flex-end}
-  /* IL min-width VALE SOLO PER I TASTI SCRITTI, e il :not() non e' pignoleria:
-     senza, quel 118px si applicava anche alla freccia e alla croce — che il
-     loro 42px ce l'hanno scritto sopra, ma perdevano — e da cinque tasti in su
-     la fila usciva dal bordo arrotondato della barra. E' il difetto visto il
-     15 settembre 2026, comparso appena e' arrivato il quinto tasto. */
-  .prosp-btn:not(.prosp-ico){flex:0 0 auto;min-width:112px}
+  /* E BASTA COSI'. Qui c'erano due regole — i comandi spinti a destra e un
+     min-width di 112px sui tasti scritti — che servivano quando tutto stava
+     su una riga sola: senza, col mouse i tasti si stiravano per mezzo metro.
+     Con i due piani non servono piu' e anzi facevano danno: la fila spinta a
+     destra era proprio l'asimmetria da cui si e' partiti. La barra qui e'
+     gia' larga al massimo 560px, e le azioni a parti uguali dentro 560px
+     hanno la misura giusta da sole. */
 }
