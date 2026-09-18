@@ -80,10 +80,18 @@ body.prosp-tavolo-aperto .prosp{background:#16120c}
 }
 .prosp-lettura{display:flex;flex-direction:column;gap:3px;min-width:0}
 /* L'invito parla solo finche' non c'e' niente da misurare, poi sparisce e
-   lascia il posto alla targhetta. Centrato come lei: e' la stessa riga del
-   layout, e vederla saltare da sinistra al centro a seconda della fase era
-   meta' del disordine che si e' venuti a togliere. */
-.prosp-invito{font-size:15px;font-weight:800;color:var(--oro);line-height:1.25;text-align:center}
+   lascia il posto alla targhetta. Centrato come lei: vederlo saltare da
+   sinistra al centro a seconda della fase era meta' del disordine che si e'
+   venuti a togliere.
+   ED E' UNA MICRO-SCRITTA, non un titolo. Era 15px in oro pieno, cioe' la
+   cosa piu' forte di tutta la striscia per dire una riga di istruzioni che
+   si legge una volta sola — alla seconda vignetta e' gia' rumore. A 9,5px
+   maiuscoletto costa tredici pixel di altezza e resta li' per chi riapre lo
+   strumento dopo un mese. */
+.prosp-invito{
+  font-size:9.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;
+  color:rgba(240,232,216,.4);line-height:1.3;text-align:center;
+}
 .prosp-invito:empty{display:none}
 /* LA TARGHETTA E' UNA LASTRA A SE': fondo suo, angoli suoi, e tre campi
    separati da un filo. Prima era una riga di testo qualunque appoggiata
@@ -112,26 +120,35 @@ body.prosp-tavolo-aperto .prosp{background:#16120c}
 /* L'orizzonte prende l'oro: fra i tre campi e' la domanda per cui lo
    strumento e' stato aperto. */
 .prosp-targa .prosp-oriz{color:var(--oro)}
-/* LE AZIONI: quelle che lasciano un segno. Prendono tutta la larghezza
-   divisa in parti uguali — due a meta' barra quando ci sono "Pulisci" e
-   "Salva", una sola per intero quando c'e' solo "Tutta l'immagine". Si
-   ridistribuiscono da sole al cambio di fase, ed e' questo che toglie il
-   vuoto ballerino di prima: non c'e' piu' spazio avanzato da lasciare a
-   sinistra o a destra, perche' non ne avanza. */
-.prosp-azioni{display:flex;gap:8px}
-.prosp-azioni .prosp-btn{flex:1 1 0;height:42px;font-size:13.5px}
-/* GLI ATTREZZI: centrati, piu' bassi e col fondo quasi spento. Non e'
-   decorazione, e' gerarchia — disfare, allargare la veduta e chiudere sono
-   cose che si fanno per tornare al lavoro, non il lavoro. */
-.prosp-attrezzi{display:flex;justify-content:center;gap:10px}
-.prosp-attrezzi .prosp-btn{
-  flex:0 0 46px;width:46px;height:34px;padding:0;
-  background:rgba(255,248,232,.05);border-color:rgba(255,248,232,.13);
-}
-/* Il rame della croce e il verderame della veduta accesa valgono anche qui:
-   il fondo spento della riga e' il tono di riposo, non un divieto. */
-.prosp-attrezzi .prosp-esci{background:rgba(154,90,52,.22);border-color:rgba(194,150,100,.36)}
-.prosp-attrezzi .prosp-veduta.acceso{background:rgba(87,171,151,.26);border-color:rgba(87,171,151,.55)}
+/* UNA FILA SOLA, TUTTA A SEGNI. Prima qui c'erano due righe: le azioni
+   scritte a parti uguali, e sotto gli attrezzi a icona. Tre parole —
+   "Pulisci", "Salva", "Tutta l'immagine" — costavano una riga intera della
+   striscia, e ogni riga della striscia e' altezza tolta al disegno. Tolte
+   quelle, resta una fila centrata e la barra cala di una quarantina di
+   pixel.
+   CENTRATA E NON A PARTI UGUALI: i tasti vanno e vengono con la fase (due
+   mentre si riquadra, cinque mentre si legge), e stirarli per riempire la
+   riga vorrebbe dire una croce larga mezza barra quando resta sola. Tutti
+   della stessa misura, in mezzo: la fila cresce e cala dal centro. */
+.prosp-fila{display:flex;justify-content:center;gap:9px;flex-wrap:wrap}
+.prosp-fila .prosp-ico{flex:0 0 46px;width:46px;height:38px;padding:0}
+/* Il fondo di riposo e' piu' spento di prima: senza parole sopra, sei
+   rettangoli pieni sarebbero sei macchie chiare in fondo allo schermo. */
+.prosp-fila .prosp-btn{background:rgba(255,248,232,.07);border-color:rgba(255,248,232,.14)}
+/* Restano i colori a dire il peso, ed e' l'unica cosa che lo dice adesso che
+   nessuno ha piu' un nome scritto: oro quello che lascia un segno, rame
+   quello che chiude, verderame la veduta quando e' accesa. */
+.prosp-fila .prosp-salva{background:rgba(217,164,23,.2);border-color:rgba(217,164,23,.5)}
+.prosp-fila .prosp-esci{background:rgba(154,90,52,.24);border-color:rgba(194,150,100,.38)}
+.prosp-fila .prosp-veduta.acceso{background:rgba(87,171,151,.26);border-color:rgba(87,171,151,.55)}
+/* Salvato e non riuscito: due colori che l'app gia' usa per quelle due cose.
+   La spunta prende il verderame, il triangolo il rame. Durano un attimo —
+   dopo un salvataggio riuscito lo strumento si chiude da solo — ma sono
+   l'unica risposta che resta da quando non c'e' piu' una parola da cambiare. */
+.prosp-fila .prosp-salva.prosp-fatto{background:rgba(87,171,151,.3);border-color:rgba(87,171,151,.6);color:#cdeee4}
+.prosp-fila .prosp-salva.prosp-guaio{background:rgba(154,90,52,.32);border-color:rgba(194,150,100,.5);color:#f3ddc6}
+/* Il tasto spento durante l'attesa resta leggibile: mezzo velo, non sparito. */
+.prosp-fila .prosp-salva:disabled{opacity:.5}
 .prosp-btn{
   background:rgba(255,248,232,.1);border:1px solid rgba(255,248,232,.16);
   color:#f0e8d8;font-family:inherit;font-size:12.5px;font-weight:700;

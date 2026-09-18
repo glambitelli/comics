@@ -598,16 +598,15 @@ module.exports = () => suite("Prospettiva — il righello per leggere l'orizzont
   ok('"Chiudi" chiude davvero', !comandi.aperto, comandi);
   ok('e restituisce i comandi alle schermate sotto', !comandi.classe, comandi);
 
-  sezione('la striscia sta su due piani: prima le decisioni, poi gli attrezzi');
-  // SEGNALATO DA GIOVANNI IL 18 SETTEMBRE 2026: "organizziamo meglio i bottoni
-  // e le info in modo piu' armonioso e simmetrico". Il difetto non era la
-  // spaziatura: targa a sinistra e tasti a destra erano due blocchi che si
-  // ignoravano, e in mezzo restava un vuoto che cambiava forma ad ogni fase,
-  // perche' i tasti compaiono e spariscono — due mentre si riquadra, cinque
-  // mentre si legge. Con le azioni a parti uguali di tutta la larghezza non
-  // avanza piu' spazio da lasciare da una parte o dall'altra, e quel vuoto
-  // non puo' piu' esistere.
-  const piani = await page.evaluate(async ()=>{
+  sezione('la striscia non parla piu\': e\' una fila di segni');
+  // SEGNALATO DA GIOVANNI IL 18 SETTEMBRE 2026: "ste frasi riquadra la
+  // vignetta o tutta l'immagine o pulisci fanno cacare e richiedono tanto
+  // spazio sulla barra". Il conto e' semplice: tre parole scritte costavano
+  // una riga intera della striscia, e ogni riga della striscia e' altezza
+  // tolta al disegno \u2014 che e' l'unica cosa per cui lo strumento si apre.
+  // Adesso nessun tasto ha testo, "Salva" compreso: restano i colori a dire
+  // il peso, e gli aria-label a dire i nomi per chi non vede e per il mouse.
+  const muta = await page.evaluate(async ()=>{
     const P = window.P;
     const ov = document.getElementById('prospettiva');
     const box = s=>{ const e = ov.querySelector(s); if(!e) return null;
@@ -615,87 +614,139 @@ module.exports = () => suite("Prospettiva — il righello per leggere l'orizzont
       return { sx:Math.round(b.left), dx:Math.round(b.right), w:Math.round(b.width), h:Math.round(b.height) }; };
     // "Visibile" davvero: i tasti spenti hanno l'attributo hidden e il CSS li
     // toglie dal flusso, quindi offsetParent e' l'unica risposta onesta.
-    const vivi = s=> [...ov.querySelectorAll(s)].filter(b=> b.offsetParent !== null);
-    const nomi = s=> vivi(s).map(b=> b.textContent.trim()).filter(t=> t);
-    const larghi = s=> vivi(s).map(b=> Math.round(b.getBoundingClientRect().width));
+    const vivi = ()=> [...ov.querySelectorAll('.prosp-fila .prosp-btn')].filter(b=> b.offsetParent !== null);
     P.chiudiProspettiva();
     P.apriProspettiva(window.__img, { salva: async ()=>{} });
     await new Promise(z=> setTimeout(z, 80));
-    const barra = box('.prosp-barra');
-    const centroBarra = (barra.sx + barra.dx) / 2;
-    const centroAttrezzi = ()=>{
-      const b = vivi('.prosp-attrezzi .prosp-btn');
-      if(!b.length) return null;
-      return (b[0].getBoundingClientRect().left
-            + b[b.length-1].getBoundingClientRect().right) / 2;
+    const barraBox = box('.prosp-barra');
+    const centroBarra = (barraBox.sx + barraBox.dx) / 2;
+    const foto = ()=>{
+      const b = vivi();
+      const r = b.map(x=> x.getBoundingClientRect());
+      return {
+        nomi: b.map(x=> x.getAttribute('aria-label')),
+        // Quello che si LEGGE addosso al tasto: deve essere vuoto per tutti.
+        scritte: b.map(x=> x.textContent.trim()).filter(t=> t),
+        larghezze: r.map(x=> Math.round(x.width)),
+        altezze: r.map(x=> Math.round(x.height)),
+        centro: r.length ? (r[0].left + r[r.length-1].right) / 2 : null,
+        righe: new Set(r.map(x=> Math.round(x.top))).size,
+        barra: box('.prosp-barra'),
+        fila: box('.prosp-fila'),
+      };
     };
-    // FASE UNO — si riquadra: una sola azione, e la croce.
-    const riquadra = { azioni: nomi('.prosp-azioni .prosp-btn'),
-                       larghezze: larghi('.prosp-azioni .prosp-btn'),
-                       rigaAzioni: box('.prosp-azioni'),
-                       attrezzi: vivi('.prosp-attrezzi .prosp-btn').length,
-                       centroAttrezzi: centroAttrezzi(),
-                       crociFraLeAzioni: ov.querySelectorAll('.prosp-azioni .prosp-esci').length };
-    // FASE DUE — si legge: due azioni, tre attrezzi, e la targa scritta.
-    // Le due linee si incontrano a y=0.306, e il riquadro comincia piu' in
-    // basso: cosi' l'orizzonte cade SOPRA la vignetta, che e' il caso col
-    // testo piu' lungo da far stare su una riga.
+    const riquadra = foto();
+    riquadra.invito = { testo: ov.querySelector('.prosp-invito').textContent,
+      corpo: Math.round(parseFloat(getComputedStyle(ov.querySelector('.prosp-invito')).fontSize)),
+      maiuscolo: getComputedStyle(ov.querySelector('.prosp-invito')).textTransform };
+    // La fuga cade a y=0.306, e il riquadro comincia piu' in basso: cosi'
+    // l'orizzonte e' "sopra la vignetta", il testo piu' lungo dei tre campi.
     P.__perLeProveRiquadro({ x:0.1, y:0.35, w:0.8, h:0.55 });
     P.__perLeProveTraccia({ a:{x:0.15,y:0.75}, b:{x:0.55,y:0.35} });
     P.__perLeProveTraccia({ a:{x:0.85,y:0.75}, b:{x:0.62,y:0.35} });
     await new Promise(z=> setTimeout(z, 80));
-    const legge = { azioni: nomi('.prosp-azioni .prosp-btn'),
-                    larghezze: larghi('.prosp-azioni .prosp-btn'),
-                    rigaAzioni: box('.prosp-azioni'),
-                    rigaAttrezzi: box('.prosp-attrezzi'),
-                    attrezzi: vivi('.prosp-attrezzi .prosp-btn').length,
-                    centroAttrezzi: centroAttrezzi(),
-                    crociFraLeAzioni: ov.querySelectorAll('.prosp-azioni .prosp-esci').length,
-                    targa: box('.prosp-targa'),
-                    orizzonte: box('.prosp-oriz'),
-                    testoOrizzonte: ov.querySelector('.prosp-oriz').textContent,
-                    fondoTarga: getComputedStyle(ov.querySelector('.prosp-targa')).backgroundColor };
-    return { barra, centroBarra, riquadra, legge };
+    const legge = foto();
+    legge.targa = box('.prosp-targa');
+    legge.orizzonte = box('.prosp-oriz');
+    legge.testoOrizzonte = ov.querySelector('.prosp-oriz').textContent;
+    legge.fondoTarga = getComputedStyle(ov.querySelector('.prosp-targa')).backgroundColor;
+    return { centroBarra, riquadra, legge };
   });
-  ok('il tasto si chiama "Pulisci", non "Clean"',
-     piani.legge.azioni.includes('Pulisci'), piani.legge.azioni);
-  ok('e mentre si legge le due azioni sono Pulisci e Salva',
-     piani.legge.azioni.length === 2 && piani.legge.azioni.includes('Salva'), piani.legge.azioni);
-  // IL CUORE DELLA FACCENDA: parti uguali, e nessuno spazio che avanza.
-  ok('le due azioni si dividono la barra in parti uguali',
-     Math.abs(piani.legge.larghezze[0] - piani.legge.larghezze[1]) <= 1, piani.legge);
-  ok('e insieme la riempiono, senza vuoti ballerini',
-     piani.legge.larghezze[0] + piani.legge.larghezze[1] >= piani.legge.rigaAzioni.w - 10,
-     piani.legge);
-  ok('quando l\'azione e\' una sola se la prende tutta',
-     piani.riquadra.larghezze.length === 1
-     && piani.riquadra.larghezze[0] >= piani.riquadra.rigaAzioni.w - 1, piani.riquadra);
-  // LA CROCE NON SALTA DI RIGA. Anche quando e' l'unico attrezzo rimasto e
-  // resta da sola in mezzo: chiudere e' il gesto che si cerca quando si e'
-  // persi, e lo si cerca sempre nello stesso posto.
-  ok('la croce non finisce mai fra le azioni',
-     piani.riquadra.crociFraLeAzioni === 0 && piani.legge.crociFraLeAzioni === 0, piani);
-  ok('e la fila degli attrezzi e\' centrata nella barra, in tutte e due le fasi',
-     Math.abs(piani.riquadra.centroAttrezzi - piani.centroBarra) < 2
-     && Math.abs(piani.legge.centroAttrezzi - piani.centroBarra) < 2, piani);
-  ok('mentre si riquadra l\'unico attrezzo e\' la croce', piani.riquadra.attrezzi === 1, piani.riquadra);
-  ok('e leggendo sono tre: disfa, veduta, chiudi', piani.legge.attrezzi === 3, piani.legge);
-  // LA TARGA E' UNA LASTRA, e sta su UNA riga. A terzi uguali "sopra la
-  // vignetta" andava a capo e alzava tutta la striscia di un piano: le
-  // colonne sono 1fr 1.6fr 1fr proprio per questo (vedi prospettiva.css).
-  ok('la targa ha un fondo suo, non e\' testo appoggiato sui tasti',
-     piani.legge.fondoTarga !== 'rgba(0, 0, 0, 0)' && piani.legge.fondoTarga !== 'transparent',
-     piani.legge.fondoTarga);
-  ok('e l\'orizzonte ci sta su una riga sola, senza andare a capo',
-     piani.legge.orizzonte.h < 22, piani.legge);
-  ok('col caso piu\' lungo, "sopra la vignetta"',
-     /sopra la vignetta/.test(piani.legge.testoOrizzonte), piani.legge.testoOrizzonte);
-  // E NIENTE SBORDA: e' la prova che manco al difetto del 15 settembre 2026,
-  // quando il quinto tasto usciva dal bordo arrotondato della barra.
-  ok('nessuna riga esce dalla barra',
-     piani.legge.rigaAzioni.dx <= piani.barra.dx
-     && piani.legge.rigaAttrezzi.dx <= piani.barra.dx
-     && piani.legge.targa.dx <= piani.barra.dx, piani);
+  ok('nessun tasto della striscia ha piu\' una parola scritta addosso',
+     muta.riquadra.scritte.length === 0 && muta.legge.scritte.length === 0,
+     { riquadra: muta.riquadra.scritte, legge: muta.legge.scritte });
+  // MA I NOMI NON SI PERDONO: restano negli aria-label, che sono anche il
+  // suggerimento che esce col mouse. Un'icona senza nome e' un enigma.
+  ok('ma ognuno tiene il suo nome per chi non vede e per il mouse',
+     muta.legge.nomi.every(n=> n && n.length > 2), muta.legge.nomi);
+  ok('e mentre si legge sono cinque: disfa, veduta, pulisci, salva, chiudi',
+     muta.legge.nomi.join('|') === "Torna indietro|Allarga la veduta|Pulisci|Salva|Chiudi",
+     muta.legge.nomi);
+  ok('mentre si riquadra sono due: tutta l\'immagine e chiudi',
+     muta.riquadra.nomi.join('|') === "Tutta l'immagine|Chiudi", muta.riquadra.nomi);
+  // TUTTI DELLA STESSA MISURA, E SU UNA RIGA SOLA. Stirarli a parti uguali
+  // vorrebbe dire una croce larga mezza barra quando resta sola.
+  ok('sono tutti della stessa misura',
+     new Set(muta.legge.larghezze).size === 1 && new Set(muta.legge.altezze).size === 1,
+     muta.legge);
+  ok('e stanno su una riga sola, senza andare a capo',
+     muta.legge.righe === 1 && muta.riquadra.righe === 1, muta.legge);
+  ok('la fila e\' centrata nella barra, e lo resta al cambio di fase',
+     Math.abs(muta.riquadra.centro - muta.centroBarra) < 2
+     && Math.abs(muta.legge.centro - muta.centroBarra) < 2, muta);
+  // IL GUADAGNO VERO: la striscia si abbassa, e quell'altezza torna al
+  // disegno. Prima erano tre piani e 137px; adesso due piani bassi.
+  ok('e la striscia e\' scesa sotto i 120px di altezza',
+     muta.legge.barra.h < 120, muta.legge.barra);
+  ok('e mentre si riquadra sta sotto i 90px',
+     muta.riquadra.barra.h < 90, muta.riquadra.barra);
+  // L'INVITO RESTA, MA COME MICRO-SCRITTA: si legge una volta sola, e alla
+  // seconda vignetta un titolo in oro pieno e' gia' rumore.
+  ok('l\'invito c\'e\' ancora, ma piccolo e maiuscoletto',
+     /riquadra/i.test(muta.riquadra.invito.testo)
+     && muta.riquadra.invito.corpo <= 10
+     && muta.riquadra.invito.maiuscolo === 'uppercase', muta.riquadra.invito);
+  // LA TARGA NON SI TOCCA: e' l'unica cosa che si LEGGE, ed e' il motivo per
+  // cui lo strumento esiste.
+  ok('la targa dei numeri resta, con un fondo suo',
+     muta.legge.fondoTarga !== 'rgba(0, 0, 0, 0)' && muta.legge.fondoTarga !== 'transparent',
+     muta.legge.fondoTarga);
+  ok('e l\'orizzonte ci sta su una riga sola, nel caso piu\' lungo',
+     muta.legge.orizzonte.h < 22 && /sopra la vignetta/.test(muta.legge.testoOrizzonte),
+     muta.legge);
+  ok('e niente esce dalla barra',
+     muta.legge.fila.dx <= muta.legge.barra.dx
+     && muta.legge.targa.dx <= muta.legge.barra.dx, muta.legge);
+
+  sezione('e salvando il tasto cambia faccia, non diventa una parola');
+  // IL GUAIO CHE LE SCRITTE NASCONDEVANO. Finche' "Salva" era una parola,
+  // salva() raccontava lo stato con btn.textContent \u2014 "Salvataggio\u2026",
+  // "Salvato", "Non riuscito" \u2014 e chiudiProspettiva rimetteva "Salva".
+  // Assegnare testo a un bottone che contiene un <svg> CANCELLA IL DISEGNO:
+  // tolte le scritte, bastava salvare una volta perche' il tasto restasse la
+  // parola "Salva" per tutta la sessione, unico superstite in una fila di
+  // segni. Adesso cambia il SEGNO e cambia aria-label, e il disegno resta.
+  const facciaSalva = await page.evaluate(async ()=>{
+    const P = window.P;
+    const ov = document.getElementById('prospettiva');
+    const attesa = ms=> new Promise(r=> setTimeout(r, ms));
+    const btn = ()=> ov.querySelector('.prosp-salva');
+    const foto = ()=>({ segni: btn().querySelectorAll('svg').length,
+                        testo: btn().textContent.trim(),
+                        nome: btn().getAttribute('aria-label') });
+    const studio = ()=>{
+      P.apriProspettiva(window.__img, { salva: async ()=>{} });
+      P.__perLeProveRiquadro({ x:0.1, y:0.35, w:0.8, h:0.55 });
+      P.__perLeProveTraccia({ a:{x:0.15,y:0.75}, b:{x:0.55,y:0.35} });
+      P.__perLeProveTraccia({ a:{x:0.85,y:0.75}, b:{x:0.62,y:0.35} });
+    };
+    P.chiudiProspettiva();
+    studio();
+    await attesa(80);
+    const prima = foto();
+    btn().dispatchEvent(new MouseEvent('click',{bubbles:true}));
+    await attesa(450);
+    const appenaSalvato = foto();
+    // Dopo un salvataggio riuscito lo strumento si chiude da solo: e' li' che
+    // il vecchio codice rimetteva la PAROLA dentro il bottone.
+    await attesa(700);
+    const chiuso = P.prospettivaAperta();
+    studio();
+    await attesa(80);
+    const riaperto = foto();
+    P.chiudiProspettiva();
+    return { prima, appenaSalvato, chiuso, riaperto };
+  });
+  ok('prima di salvare il tasto e\' un segno, senza parole',
+     facciaSalva.prima.segni === 1 && facciaSalva.prima.testo === '', facciaSalva.prima);
+  ok('appena salvato diventa una spunta, e si chiama "Salvato"',
+     facciaSalva.appenaSalvato.segni === 1 && facciaSalva.appenaSalvato.testo === ''
+     && facciaSalva.appenaSalvato.nome === 'Salvato', facciaSalva.appenaSalvato);
+  ok('lo strumento si chiude da solo, come prima', facciaSalva.chiuso === false, facciaSalva);
+  ok('e riaprendolo il tasto e\' tornato un segno, non la parola "Salva"',
+     facciaSalva.riaperto.segni === 1 && facciaSalva.riaperto.testo === ''
+     && facciaSalva.riaperto.nome === 'Salva', facciaSalva.riaperto);
+
 
   sezione('e dal lettore ci si arriva col pulsante, sulla tavola che si sta guardando');
   // Fin qui lo strumento e' stato aperto a mano. Qui si apre come lo apre

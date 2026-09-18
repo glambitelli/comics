@@ -66,6 +66,33 @@
 const ORO       = '#d9a417';  // --oro: l'orizzonte, e il numero che lo accompagna
 const VERDERAME = '#57ab97';  // le linee tracciate, il fascio e il punto di fuga
 const SABBIA    = '#c2a869';  // --oro-sabbia: il bordo della vignetta riquadrata
+
+// ── I TRE VOLTI DEL TASTO SALVA ──
+//
+// Da quando la striscia non ha piu' parole (18 settembre 2026), lo stato del
+// salvataggio non si puo' piu' scrivere: "Salvataggio…", "Salvato" e "Non
+// riuscito" finivano in btn.textContent, e assegnare testo a un bottone che
+// contiene un <svg> CANCELLA IL DISEGNO. Il tasto sarebbe rimasto la parola
+// "Salva" per il resto della sessione — e chiudiProspettiva lo rimetteva a
+// testo ad ogni chiusura, quindi bastava salvare una volta.
+// Adesso lo stato lo dice il SEGNO, e il nome lo dice aria-label: la freccia
+// nel cassetto mentre si aspetta, la spunta quando e' andata, il triangolo
+// quando no.
+const SEGNO_SALVA = {
+  salva: '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5v10.5"/><path d="m7.8 10 4.2 4.2 4.2-4.2"/><path d="M4.5 16.5v2.2a1.8 1.8 0 0 0 1.8 1.8h11.4a1.8 1.8 0 0 0 1.8-1.8v-2.2"/></svg>',
+  fatto: '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.6 4.6L19 7.5"/></svg>',
+  no:    '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4.6 21 20H3Z"/><path d="M12 10.4v4"/><path d="M12 17.2h.01"/></svg>',
+};
+// Cambiare faccia e nome insieme: separarli vorrebbe dire una spunta che per
+// chi non vede continua a chiamarsi "Salva".
+function vestiSalva(btn, quale, nome){
+  if(!btn) return;
+  btn.innerHTML = SEGNO_SALVA[quale];
+  btn.setAttribute('aria-label', nome);
+  btn.title = nome;
+  btn.classList.toggle('prosp-fatto', quale === 'fatto');
+  btn.classList.toggle('prosp-guaio', quale === 'no');
+}
 const RAGGI = 12;            // quante linee nel fascio: abbastanza da leggere la fuga, non tante da coprire il disegno
 // Un gesto piu' corto di cosi' — in pixel di SCHERMO, non in frazioni
 // d'immagine — e' un tocco andato storto, non una linea ne' una vignetta.
@@ -482,31 +509,26 @@ function costruisci(){
           <span><i>Inclinaz.</i><b class="prosp-incl"></b></span>
         </div>
       </div>
-      <!-- DUE PIANI: PRIMA LE DECISIONI, POI GLI ATTREZZI.
-           Scelto da Giovanni il 18 settembre 2026, contro una barra in cui
-           targa e tasti erano due blocchi che si ignoravano — la targa
-           schiacciata a sinistra, i tasti a destra, e in mezzo un vuoto che
-           cambiava forma ad ogni fase, perche' i tasti compaiono e
-           spariscono (due mentre si riquadra, cinque mentre si legge).
-           Qualunque allineamento "a destra" era destinato a ballare.
-           Adesso ogni riga ha un mestiere solo: le AZIONI che lasciano un
-           segno prendono tutta la larghezza, divisa in parti uguali, dove
-           arriva il pollice; gli ATTREZZI stanno sotto, piccoli e centrati.
-           Sono due cose diverse e adesso si vede. -->
-      <div class="prosp-azioni">
-        <button class="prosp-btn prosp-tutta" data-act="tutta" type="button">Tutta l'immagine</button>
-        <button class="prosp-btn" data-act="pulisci" type="button">Pulisci</button>
-        <button class="prosp-btn prosp-salva" data-act="salva" type="button">Salva</button>
-      </div>
-      <!-- GLI ATTREZZI, TUTTI E TRE A ICONA. "Torna indietro" e "Chiudi"
-           scritti per esteso occupavano mezza barra per dire due cose che una
-           freccia e una croce dicono meglio: sono i due gesti piu' universali
-           che esistano.
-           LA CROCE STA SEMPRE QUI, anche quando e' l'unica rimasta e resta da
-           sola in mezzo alla riga: preferibile a farla saltare da una fase
-           all'altra. Chiudere e' il gesto che si cerca quando si e' persi, e
-           lo si cerca sempre nello stesso punto. -->
-      <div class="prosp-attrezzi">
+      <!-- UNA FILA DI SEGNI, E BASTA.
+           Scelto da Giovanni il 18 settembre 2026: "ste frasi riquadra la
+           vignetta o tutta l'immagine o pulisci fanno cacare e richiedono
+           tanto spazio sulla barra". Aveva ragione sul conto: tre parole
+           scritte costavano due righe intere della striscia, e ogni riga
+           della striscia e' altezza tolta al disegno — che e' l'unica cosa
+           per cui si e' aperto lo strumento.
+           Adesso nessun tasto ha testo, "Salva" compreso. Restano i colori a
+           dire il peso: oro quello che lascia un segno, rame quello che
+           chiude, verderame la veduta quando e' accesa.
+           NIENTE SI PERDE PER CHI NON VEDE: ogni tasto tiene il suo
+           aria-label, che e' anche il suggerimento che esce col mouse.
+           E LE DUE CORNICI NON SI CONFONDONO, anche se sono due rettangoli:
+           "tutta l'immagine" vive solo mentre si riquadra, "allarga la
+           veduta" solo quando c'e' gia' una fuga da inseguire. Non sono mai
+           in barra nello stesso momento. -->
+      <div class="prosp-fila">
+        <button class="prosp-btn prosp-ico prosp-tutta" data-act="tutta" type="button" aria-label="Tutta l'immagine" title="Tutta l'immagine">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><rect x="2.6" y="4.4" width="18.8" height="15.2" rx="1.8" stroke-dasharray="3.2 2.6"/><rect x="5.6" y="7.4" width="12.8" height="9.2" rx="1" fill="currentColor" stroke="none" opacity=".62"/></svg>
+        </button>
         <button class="prosp-btn prosp-ico" data-act="indietro" type="button" aria-label="Torna indietro" title="Torna indietro">
           <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9h11a4.5 4.5 0 0 1 0 9H9"/><path d="M8 5 4 9l4 4"/></svg>
         </button>
@@ -519,6 +541,14 @@ function costruisci(){
         <button class="prosp-btn prosp-ico prosp-veduta" data-act="veduta" type="button" aria-label="Allarga la veduta" title="Allarga la veduta">
           <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3H4.5A1.5 1.5 0 0 0 3 4.5V9"/><path d="M15 3h4.5A1.5 1.5 0 0 1 21 4.5V9"/><path d="M21 15v4.5a1.5 1.5 0 0 1-1.5 1.5H15"/><path d="M3 15v4.5A1.5 1.5 0 0 0 4.5 21H9"/></svg>
         </button>
+        <!-- LA GOMMA cancella TUTTO, la freccia qui accanto solo l'ultimo
+             tratto. Sono due gesti vicini e vale la pena saperlo: se in uso
+             si confondono, la gomma diventa un cestino, che dice "via tutto"
+             in modo piu' netto. -->
+        <button class="prosp-btn prosp-ico" data-act="pulisci" type="button" aria-label="Pulisci" title="Pulisci: via linee e riquadro">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.5 4.8 19.2 10.5a1.6 1.6 0 0 1 0 2.3l-5.4 5.4H9.6l-4.3-4.3a1.6 1.6 0 0 1 0-2.3l6-6a1.6 1.6 0 0 1 2.2 0Z"/><path d="M8.4 8.4 15 15"/><path d="M6 20.4h13.5"/></svg>
+        </button>
+        <button class="prosp-btn prosp-ico prosp-salva" data-act="salva" type="button" aria-label="Salva" title="Salva">${SEGNO_SALVA.salva}</button>
         <button class="prosp-btn prosp-ico prosp-esci" data-act="esci" type="button" aria-label="Chiudi" title="Chiudi">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" aria-hidden="true"><path d="M6.5 6.5 17.5 17.5 M17.5 6.5 6.5 17.5"/></svg>
         </button>
@@ -1273,18 +1303,18 @@ async function salva(){
   if(!misure || !fatto) return;
   _salvando = true;
   const btn = _ov.querySelector('.prosp-salva');
-  btn.disabled = true; btn.textContent = 'Salvataggio…';
+  btn.disabled = true; vestiSalva(btn, 'salva', 'Salvataggio…');
   try{
     const blob = await new Promise(res=> fatto.tela.toBlob(res, 'image/webp', 0.9));
     await _salvataggio({ blob, w: fatto.W, h: fatto.H, misure });
-    btn.textContent = 'Salvato';
+    vestiSalva(btn, 'fatto', 'Salvato');
     // Chi salva ha finito di studiare QUESTA vignetta: si chiude da solo dopo
     // un attimo, se no resta un foglio di linee su una cosa gia' archiviata e
     // il gesto successivo e' sempre "chiudi".
     setTimeout(()=>{ if(prospettivaAperta()) chiudiProspettiva(); }, 700);
   }catch(e){
-    btn.textContent = 'Non riuscito';
-    setTimeout(()=>{ btn.textContent = 'Salva'; btn.disabled = false; }, 2200);
+    vestiSalva(btn, 'no', 'Non riuscito');
+    setTimeout(()=>{ vestiSalva(btn, 'salva', 'Salva'); btn.disabled = false; }, 2200);
   }finally{ _salvando = false; }
 }
 
@@ -1325,7 +1355,7 @@ export function chiudiProspettiva(){
   lasciaIlTavolo();
   _salvataggio = null; _salvando = false;
   const b = _ov.querySelector('.prosp-salva');
-  if(b){ b.disabled = false; b.textContent = 'Salva'; }
+  if(b){ b.disabled = false; vestiSalva(b, 'salva', 'Salva'); }
   document.body.classList.remove('prosp-aperta');
   window.removeEventListener('resize', riadatta);
   window.removeEventListener('orientationchange', riadatta);
