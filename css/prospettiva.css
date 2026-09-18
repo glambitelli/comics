@@ -50,6 +50,18 @@ body.prosp-tavolo-aperto .prosp{background:#16120c}
 .prosp-tavolo[hidden]{display:none}
 .prosp-tavolo img{position:absolute;max-width:none;max-height:none;image-rendering:auto;
   -webkit-user-drag:none;user-select:none;-webkit-user-select:none}
+/* LA CARTA DA LUCIDO. Un velo chiaro fra il disegno e lo schema: l'inchiostro
+   arretra di mezzo passo e le linee vengono avanti da sole, senza dover
+   alzare la voce sui colori. Il perche' per esteso — e perche' CHIARO e non
+   scuro, e perche' proprio il 18% — sta su LUCIDO in prospettiva.js: se
+   cambia li', va cambiato qui.
+   COMPARE SOLO A VIGNETTA SCELTA: mentre si sceglie, il tavolo mostra la
+   pagina intera e velarla vorrebbe dire rendere piu' difficile proprio il
+   gesto che si sta facendo, cioe' trovare la vignetta. */
+.prosp-lucido .prosp-tavolo::after{
+  content:'';position:absolute;inset:0;pointer-events:none;
+  background:#f5efe0;opacity:.18;
+}
 .prosp-svg{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:crosshair}
 
 /* La barra sta in BASSO e non in alto: il pollice arriva li', e in alto

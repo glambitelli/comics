@@ -779,6 +779,9 @@ export function disegna(){
   const palco = _ov.querySelector('.prosp-palco');
   const pr = palco.getBoundingClientRect();
   svg.setAttribute('viewBox', '0 0 ' + pr.width + ' ' + pr.height);
+  // La carta da lucido si stende solo quando c'e' una vignetta su cui
+  // lavorare: vedi .prosp-lucido in prospettiva.css.
+  _ov.classList.toggle('prosp-lucido', !faseRiquadro());
   sistemaIlTavolo(t);
 
   // La cornice a schermo: quella scelta, o quella che il dito sta trascinando
@@ -954,6 +957,27 @@ function scriviBarra(linee, fuochi, orizzonte){
 const LATO_MAX = 1600;       // oltre, il file cresce senza che si veda di piu'
 const FONDO = '#16120c';     // il fondo del tavolo, dove la pagina non arriva
 
+// ── LA CARTA DA LUCIDO ──
+//
+// Un velo chiaro fra il disegno e lo schema: e' il gesto fisico che si fa da
+// sempre, appoggiare un foglio di lucido sopra la tavola e tracciarci sopra.
+// Il nero dell'inchiostro arretra di mezzo passo, lo schema viene avanti da
+// solo — senza dover alzare la voce sui colori, che era l'altra strada e
+// avrebbe voluto dire tinte sempre piu' accese finche' lo studio non sembrava
+// di un'altra applicazione.
+//
+// CHIARO, NON SCURO, ed e' la parte che va detta: la tavola sotto e' un manga
+// in bianco e nero, quindi un velo scuro impasterebbe le campiture nere col
+// velo e mangerebbe proprio il disegno che si sta studiando. Un velo chiaro
+// alza i neri e lascia i bianchi dove sono.
+//
+// Il 18% e' misurato, non scelto a occhio: sotto il 12% non si vede, sopra il
+// 30% la tavola comincia a sbiadire e di Otomo resta un'ombra. Se cambia qui,
+// va cambiato anche in prospettiva.css — a schermo lo stesso velo lo mette il
+// CSS sopra al tavolo.
+const LUCIDO = '#f5efe0';
+const LUCIDO_OP = 0.18;
+
 // CHE PEZZO DI MONDO FINISCE NELL'IMMAGINE SALVATA.
 //
 // Prima era sempre e solo la vignetta, e il 15 settembre 2026 si e' visto il
@@ -1010,7 +1034,12 @@ function strisciaDati(c, W, y, h, misure){
   // legge piu', e di uno studio archiviato resterebbe mezza misura.
   const largo = (W - bordo * 2) / 3;
   let fs = Math.max(10, Math.round(h * 0.3));
-  const corpo = n => '800 ' + n + 'px system-ui, -apple-system, sans-serif';
+  // NUNITO, cioe' il carattere dell'app. Prima qui c'era system-ui: sul
+  // telefono vuol dire Roboto, e uno studio esportato usciva scritto col
+  // carattere di Android invece che con quello di Inkflow — l'unico posto in
+  // tutta l'app dove succedeva. Non era una scelta tipografica, era
+  // l'assenza di una scelta, e si vedeva.
+  const corpo = n => '800 ' + n + 'px Nunito, system-ui, sans-serif';
   c.font = corpo(fs);
   while(fs > 8 && campi.some(([, v])=> c.measureText(v).width > largo - bordo * 0.5)){
     fs -= 1;
@@ -1018,7 +1047,7 @@ function strisciaDati(c, W, y, h, misure){
   }
   campi.forEach(([et, valore, acceso], i)=>{
     const x = bordo + largo * i;
-    c.font = '700 ' + Math.max(7, Math.round(fs * 0.62)) + 'px system-ui, -apple-system, sans-serif';
+    c.font = '700 ' + Math.max(7, Math.round(fs * 0.62)) + 'px Nunito, system-ui, sans-serif';
     c.fillStyle = 'rgba(240,232,216,.42)';
     c.fillText(et, x, y + h * 0.33);
     c.font = corpo(fs);
@@ -1060,8 +1089,15 @@ function disegnaSuTela(){
   const sx0 = Math.max(0, rx), sy0 = Math.max(0, ry);
   const sx1 = Math.min(NW, rx + rw), sy1 = Math.min(NH, ry + rh);
   if(sx1 > sx0 && sy1 > sy0){
-    c.drawImage(_img, sx0, sy0, sx1 - sx0, sy1 - sy0,
-                (sx0 - ax) * k, (sy0 - ay) * k, (sx1 - sx0) * k, (sy1 - sy0) * k);
+    const dx = (sx0 - ax) * k, dy = (sy0 - ay) * k;
+    const dw = (sx1 - sx0) * k, dh = (sy1 - sy0) * k;
+    c.drawImage(_img, sx0, sy0, sx1 - sx0, sy1 - sy0, dx, dy, dw, dh);
+    // LA CARTA DA LUCIDO, e va SOLO sopra il disegno — non sul fondo del
+    // tavolo intorno, che non ha niente da mandare indietro.
+    c.globalAlpha = LUCIDO_OP;
+    c.fillStyle = LUCIDO;
+    c.fillRect(dx, dy, dw, dh);
+    c.globalAlpha = 1;
   }
 
   // Dalle coordinate dell'IMMAGINE a quelle della tela.
@@ -1164,6 +1200,11 @@ export function misureStudio(){
 let _salvando = false;
 async function salva(){
   if(_salvando || !_salvataggio) return;
+  // IL CARATTERE SI ASPETTA PRIMA DI DISEGNARE. Su una tela, un carattere non
+  // ancora arrivato non fa attendere: ripiega in silenzio su quello di
+  // sistema, e lo studio esce scritto in Roboto senza che nessuno se ne
+  // accorga fino a quando non lo si riapre fra un mese.
+  try{ await document.fonts.load('800 40px Nunito'); }catch(e){}
   const misure = misureStudio();
   const fatto = disegnaSuTela();
   if(!misure || !fatto) return;

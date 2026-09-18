@@ -672,6 +672,78 @@ module.exports = () => suite("Prospettiva — il righello per leggere l'orizzont
   ok('e il palco del disegno finisce esattamente dove comincia la barra',
      struttura.palcoFinisceDoveIniziaLaBarra, struttura);
 
+  sezione('la carta da lucido: il disegno arretra, lo schema viene avanti');
+  // L'IDEA E' DI GIOVANNI (18 settembre 2026) ed e' il gesto fisico che si fa
+  // da sempre: appoggiare un foglio di lucido sopra la tavola e tracciarci
+  // sopra. L'alternativa era alzare la voce sui colori, e voleva dire tinte
+  // sempre piu' accese finche' lo studio non sembrava di un'altra
+  // applicazione.
+  const lucido = await page.evaluate(async ()=>{
+    const P = window.P;
+    P.chiudiProspettiva();
+    P.apriProspettiva(window.__img);
+    await new Promise(r=> setTimeout(r, 50));
+    const ov = document.getElementById('prospettiva');
+    // MENTRE SI SCEGLIE non c'e' velo: il tavolo mostra la pagina intera, e
+    // velarla renderebbe piu' difficile proprio il gesto in corso.
+    const scegliendo = ov.classList.contains('prosp-lucido');
+    P.__perLeProveRiquadro({ x:0, y:0, w:1, h:0.5 });
+    await new Promise(r=> setTimeout(r, 50));
+    const scelta = ov.classList.contains('prosp-lucido');
+    const velo = getComputedStyle(ov.querySelector('.prosp-tavolo'), '::after');
+    return { scegliendo, scelta, opacita: velo.opacity, tinta: velo.backgroundColor,
+             passaIlDito: velo.pointerEvents };
+  });
+  ok('mentre si sceglie la vignetta non c\'e\' nessun velo', !lucido.scegliendo, lucido);
+  ok('a vignetta scelta il lucido si stende', lucido.scelta, lucido);
+  ok('ed e\' un velo leggero, non una mano di vernice',
+     parseFloat(lucido.opacita) > 0.1 && parseFloat(lucido.opacita) < 0.3, lucido);
+  // CHIARO, NON SCURO: la tavola sotto e' un manga in bianco e nero, e un
+  // velo scuro impasterebbe le campiture nere invece di mandarle indietro.
+  ok('e chiaro, che e\' il punto: un velo scuro mangerebbe i neri',
+     (()=>{ const m = (lucido.tinta||'').match(/\d+/g);
+            return m && (+m[0] + +m[1] + +m[2]) / 3 > 200; })(), lucido.tinta);
+  ok('e non ruba i tocchi al dito che traccia', lucido.passaIlDito === 'none', lucido);
+
+  sezione('e il lucido finisce anche nello studio salvato');
+  // A schermo e nell'immagine esportata deve essere LO STESSO studio: se il
+  // velo restasse solo a schermo, quello che si archivia non sarebbe quello
+  // che si e' guardato mentre si misurava.
+  const lucidoSalvato = await page.evaluate(async ()=>{
+    // Una vignetta di nero pieno: e' il caso in cui il velo si misura meglio,
+    // perche' un velo chiaro ALZA i neri e li lascia comunque scuri.
+    const cv = document.createElement('canvas'); cv.width = 600; cv.height = 900;
+    const x = cv.getContext('2d');
+    x.fillStyle = '#000'; x.fillRect(0, 0, 600, 900);
+    const im = new Image(); im.src = cv.toDataURL('image/png');
+    await im.decode();
+    const P = window.P;
+    const preso = [];
+    P.chiudiProspettiva();
+    P.apriProspettiva(im, { salva: async d=>{ preso.push(d); } });
+    P.__perLeProveRiquadro({ x:0, y:0, w:1, h:0.5 });
+    P.__perLeProveTraccia({ a:{x:0.05,y:0.05}, b:{x:0.95,y:0.45} });
+    P.__perLeProveTraccia({ a:{x:0.05,y:0.45}, b:{x:0.95,y:0.05} });
+    await new Promise(r=> setTimeout(r, 60));
+    document.querySelector('.prosp-salva').dispatchEvent(new MouseEvent('click',{bubbles:true}));
+    await new Promise(r=> setTimeout(r, 900));
+    const res = await new Promise(ok2=>{
+      const i = new Image(); i.onload = ()=> ok2(i); i.src = URL.createObjectURL(preso[0].blob); });
+    const t = document.createElement('canvas'); t.width = res.width; t.height = res.height;
+    const tx = t.getContext('2d'); tx.drawImage(res, 0, 0);
+    // Un angolo della vignetta, lontano dalle linee e dalla striscia.
+    const d = tx.getImageData(6, 6, 10, 10).data;
+    let somma = 0, n = 0;
+    for(let i = 0; i < d.length; i += 4){ somma += (d[i] + d[i+1] + d[i+2]) / 3; n++; }
+    return { grigio: Math.round(somma / n) };
+  });
+  // Il nero pieno non e' piu' nero pieno: il velo l'ha alzato. Ma resta scuro,
+  // se no la tavola sbiadirebbe e di Otomo resterebbe un'ombra.
+  ok('il nero della tavola si alza, segno che il velo c\'e\'',
+     lucidoSalvato.grigio > 20, lucidoSalvato);
+  ok('ma resta nero, non diventa grigio slavato',
+     lucidoSalvato.grigio < 75, lucidoSalvato);
+
   sezione('e tenendo premuto non salta fuori il menu del browser');
   // SEGNALATO DA GIOVANNI IL 17 SETTEMBRE 2026, da telefono: correggendo una
   // linea si tiene premuto e si trascina, e Android ci leggeva sopra il suo
