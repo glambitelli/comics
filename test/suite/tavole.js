@@ -463,4 +463,128 @@ module.exports = () => suite("References — Frammenti e Tavole dentro una carte
   const interi = await page.evaluate(()=>
     document.querySelector('.refs-grid').classList.contains('tavole'));
   ok('e si vedono per intero, non ritagliati in un quadrato', interi, interi);
+
+  // ── PRENDERLE TUTTE ──
+  // CHIESTO DA GIOVANNI IL 18 SETTEMBRE 2026: "nelle gallerie c'e' bisogno di
+  // un pulsante per selezionare tutte le immagini appartenenti ad essa per
+  // eliminare o spostare tutte le immagini di quella cartella". Prima l'unica
+  // strada era tenere premuto e poi toccare le altre a una a una: su uno
+  // scaffale da quaranta studi sono quaranta tocchi per una cosa sola.
+  sezione('scegliere tutte le immagini di uno scaffale, in un tocco');
+  await apri(3, 3);
+  const tasto = ()=> page.evaluate(()=>{
+    const b = document.getElementById('refs-crumb-tutte');
+    if(!b) return null;
+    return { visibile: getComputedStyle(b).display !== 'none',
+             nome: b.getAttribute('aria-label'),
+             acceso: b.classList.contains('acceso') };
+  });
+  const premiTutte = async ()=>{
+    await page.evaluate(()=> document.getElementById('refs-crumb-tutte')
+      .dispatchEvent(new MouseEvent('click',{bubbles:true})));
+    await page.waitForTimeout(250);
+  };
+  const scelta = ()=> page.evaluate(()=>{
+    const vede = id=>{ const e = document.getElementById(id);
+      return !!e && getComputedStyle(e).display !== 'none'; };
+    return {
+      prese: Array.from(document.querySelectorAll('.refs-thumb.scelta')).map(e=> e.dataset.id),
+      inGriglia: Array.from(document.querySelectorAll('.refs-thumb')).map(e=> e.dataset.id),
+      barra: document.getElementById('refs-scelta').classList.contains('show'),
+      conto: (document.getElementById('refs-scelta-conto')||{}).textContent,
+      sposta: vede('refs-scelta-sposta'),
+      elimina: vede('refs-scelta-elimina'),
+      rinomina: vede('refs-scelta-rinomina'),
+    };
+  });
+  await tocca('tavole');
+  let t = await tasto();
+  ok('il pulsante c\'e\', nella riga del nome', t && t.visibile, t);
+  ok('e dice quante ne prende', t && /3/.test(t.nome), t);
+  await premiTutte();
+  let sc = await scelta();
+  ok('un tocco le prende tutte', sc.prese.length === 3, sc);
+  // "TUTTE" E' QUELLO CHE SI STA GUARDANDO, non tutta la cartella: la cartella
+  // ne contiene sei, tre frammenti e tre tavole. Se ne prendesse di piu' di
+  // quelle a schermo, "elimina" cancellerebbe roba mai vista.
+  ok('e sono le tavole dello scaffale aperto, non i frammenti',
+     sc.prese.every(id=> id[0] === 't'), sc);
+  ok('la barra della scelta si accende e le conta', sc.barra && /3 scelte/.test(sc.conto), sc);
+  // IL TASTO SPOSTA: eliminare gia' valeva per tutte, cambiare cartella stava
+  // nei tre puntini, che si accendono con UNA scelta sola.
+  ok('con dentro "Sposta" ed "Elimina"', sc.sposta && sc.elimina, sc);
+  // E SENZA "RINOMINA": vale per le cartelle, e due immagini non hanno un nome
+  // solo. E' la stessa barra che serve tutti e due i casi, quindi vale la pena
+  // fissare per iscritto che i tasti sbagliati restino spenti \u2014 adesso che
+  // ce n'e' uno in piu' a decidere, e' l'unica riga che se ne accorge.
+  ok('e senza "Rinomina", che qui non vuol dire niente', !sc.rinomina, sc);
+  t = await tasto();
+  ok('il pulsante resta acceso, a dire che le hai gia\' tutte', t && t.acceso, t);
+  await premiTutte();
+  sc = await scelta();
+  ok('ripremendolo le lascia tutte', sc.prese.length === 0 && !sc.barra, sc);
+
+  sezione('e su un altro scaffale prende quelle di la\'');
+  await tocca('ritagli');
+  await premiTutte();
+  sc = await scelta();
+  ok('passando ai frammenti prende i frammenti',
+     sc.prese.length === 3 && sc.prese.every(id=> id[0] === 'r'), sc);
+  await premiTutte();
+
+  sezione('e spostarle tutte in un\'altra cartella, in un colpo solo');
+  await page.evaluate(()=>{
+    window.refs.getFolders().push({ id:'F2', category:'Artists', name:'KON' });
+  });
+  await tocca('tavole');
+  await premiTutte();
+  const vociSposta = await page.evaluate(async ()=>{
+    window.__scritture = [];
+    await window.spostaScelte(document.getElementById('refs-scelta-sposta'));
+    await new Promise(r=> setTimeout(r, 150));
+    return window.vociMenu();
+  });
+  ok('"Sposta" apre l\'elenco delle cartelle',
+     vociSposta.some(v=> /KON/.test(v)), vociSposta);
+  ok('e in fondo c\'e\' anche "Nessuna cartella"',
+     vociSposta.some(v=> /Nessuna cartella/.test(v)), vociSposta);
+  const spostate = await page.evaluate(async ()=>{
+    Array.from(document.querySelectorAll('.ink-action-menu button'))
+      .find(b=> /KON/.test(b.textContent))
+      .dispatchEvent(new MouseEvent('click',{bubbles:true}));
+    await new Promise(r=> setTimeout(r, 250));
+    return { scritte: (window.__scritture||[]).map(s=>({ id:s.id, cartella:s.data && s.data.folderId })),
+             barra: document.getElementById('refs-scelta').classList.contains('show') };
+  });
+  ok('tutte e tre cambiano cartella', spostate.scritte.length === 3
+     && spostate.scritte.every(x=> x.cartella === 'F2'), spostate);
+  ok('e sono proprio le tre tavole',
+     spostate.scritte.every(x=> x.id[0] === 't'), spostate);
+  ok('e la scelta si chiude da sola, a cosa fatta', !spostate.barra, spostate);
+  // SI TORNA INDIETRO. Spostarne quaranta con un tocco vuol dire anche
+  // sbagliare cartella con un tocco: l'annulla e' obbligatorio, e deve
+  // riportare ognuna DA DOVE VENIVA — in "All" si sceglie attraverso le
+  // cartelle, quindi un gruppo non ha una provenienza sola.
+  const indietro = await page.evaluate(async ()=>{
+    window.__scritture = [];
+    // Nel banco il toast e' finto e tiene la funzione di annulla in
+    // window.__undo (vedi test/finti/state.js): si chiama quella, che e'
+    // esattamente quella che il pulsante vero chiamerebbe.
+    const u = window.__undo;
+    if(u && u.fn) await u.fn();
+    await new Promise(r=> setTimeout(r, 200));
+    return { trovato: !!(u && u.fn), etichetta: u && u.label,
+             scritte: (window.__scritture||[]).map(s=>({ id:s.id, cartella:s.data && s.data.folderId })) };
+  });
+  ok('l\'annulla c\'e\', e dice quante ne sposta',
+     indietro.trovato && /3 immagini spostate/.test(indietro.etichetta||''), indietro);
+  ok('e riporta ognuna dov\'era',
+     indietro.scritte.length === 3
+     && indietro.scritte.every(x=> x.cartella === 'F1'), indietro);
+
+  sezione('ma nell\'elenco delle cartelle il pulsante non c\'e\'');
+  await page.evaluate(()=>{ window.refsBackToFolders(); });
+  await page.waitForTimeout(250);
+  t = await tasto();
+  ok('li\' non ci sono immagini da prendere', t && !t.visibile, t);
 });

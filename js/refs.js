@@ -1257,6 +1257,55 @@ export function annullaScelta(){
 }
 export function scelti(){ return Array.from(_scelti); }
 
+// ── PRENDERLE TUTTE ──
+//
+// CHIESTO DA GIOVANNI IL 18 SETTEMBRE 2026: "nelle gallerie c'e' bisogno di un
+// pulsante per selezionare tutte le immagini appartenenti ad essa per
+// eliminare o spostare tutte le immagini di quella cartella". Finora l'unico
+// modo era tenere premuto e poi toccare le altre una per una: su uno scaffale
+// da quaranta studi e' quaranta tocchi per una cosa sola.
+//
+// "TUTTE" VUOL DIRE QUELLO CHE SI STA GUARDANDO, non tutto l'archivio:
+// currentGridList e' esattamente l'elenco disegnato a schermo, quindi dentro
+// Tavole prende le tavole e dentro Prospettiva gli studi. Se prendesse di piu'
+// di quello che si vede, "elimina" cancellerebbe roba che non era in vista.
+//
+// E RIPREMENDOLO SI LASCIA TUTTO. Un pulsante che accende e non spegne
+// costringe a uscire dalla scelta e rientrarci per cambiare idea.
+export function scegliTutte(){
+  if(_view === 'folders' || _view === 'tags') return;
+  const ids = currentGridList().map(r=> r.id);
+  if(!ids.length) return;
+  if(ids.every(id=> _scelti.has(id))){ annullaScelta(); haptic('tap'); return; }
+  const grid = document.getElementById('refs-grid');
+  if(grid) montaSceltaGriglia(grid);
+  if(!_sceltaGriglia) return;
+  // Il suo "cambiato" riempie _scelti, ridisegna la griglia e accende la
+  // barra: qui non si tocca niente a mano.
+  _sceltaGriglia.accendi(ids);
+  haptic('done');
+}
+
+// Il pulsante nella riga del nome, accanto a "Ordina". Non compare dove non
+// avrebbe niente da prendere: nell'elenco delle cartelle, sullo scaffale degli
+// albi (che non sono immagini della griglia) e su uno scaffale vuoto.
+function aggiornaTastoTutte(){
+  const b = document.getElementById('refs-crumb-tutte');
+  if(!b) return;
+  const suImmagini = _view !== 'folders' && _view !== 'tags'
+    && !(_view === 'folder' && _activeFolderId && folderHaTab(_activeFolderId) && _folderTab === 'albi');
+  const ids = suImmagini ? currentGridList().map(r=> r.id) : [];
+  b.hidden = !ids.length;
+  if(!ids.length) return;
+  // Acceso vuol dire "le hai gia' tutte": da li' il tocco successivo le lascia.
+  const tutte = ids.every(id=> _scelti.has(id));
+  b.classList.toggle('acceso', tutte);
+  b.setAttribute('aria-pressed', tutte ? 'true' : 'false');
+  const nome = tutte ? 'Lascia tutte' : `Scegli tutte (${ids.length})`;
+  b.setAttribute('aria-label', nome);
+  b.title = nome;
+}
+
 // Rinominare vale per UNO. Due cartelle non hanno un nome solo, e un modulo che
 // chiede "il nuovo nome" per cinque artisti non vuol dire niente: il pulsante
 // resta spento finche' la scelta non e' una sola.
@@ -1475,6 +1524,7 @@ export function renderRefsScreen(){
     renderFolderTabs();
     renderRefsGrid();
   }
+  aggiornaTastoTutte();
 }
 
 // I tab hanno senso solo dentro una cartella vera: in "All" e in "senza
@@ -1924,6 +1974,13 @@ function renderBarraScelta(){
   if(rin){ rin.hidden = !suCartelle; rin.disabled = n !== 1; }
   const menu = document.getElementById('refs-scelta-menu');
   if(menu){ menu.hidden = suCartelle; menu.disabled = n !== 1; }
+  // SPOSTARE E' L'UNICA AZIONE DI MASSA CHE MANCAVA. Eliminare gia' valeva per
+  // tutte; cambiare cartella stava nel menu dei tre puntini, che si accende
+  // solo con UNA scelta — quindi svuotare una cartella in un'altra voleva dire
+  // aprire il menu quaranta volte. Non vale sulle cartelle: una cartella non
+  // sta dentro un'altra cartella.
+  const sposta = document.getElementById('refs-scelta-sposta');
+  if(sposta) sposta.hidden = suCartelle;
 }
 
 // Tocco = entra · tocco prolungato (o tasto destro) = comincia a scegliere.
@@ -2185,6 +2242,7 @@ function montaSceltaGriglia(grid){
       for(const id of _sceltaGriglia.scelti()) _scelti.add(id);
       renderRefsGrid();
       renderBarraScelta();
+      aggiornaTastoTutte();
     },
   });
 }
@@ -2357,17 +2415,52 @@ export function promptTagImage(id, anchorEl){
   actionMenu(anchorEl, actions);
 }
 
-function promptMoveImage(id, anchorEl){
+// SPOSTARE VALE PER UNA COME PER QUARANTA, ed e' lo stesso identico elenco di
+// destinazioni: tenerne due copie avrebbe voluto dire due elenchi che si
+// disallineano al primo ritocco. Il menu dei tre puntini di una miniatura
+// chiama questa con un id solo.
+function promptMoveImage(id, anchorEl){ promptMoveImages([id], anchorEl); }
+
+function promptMoveImages(ids, anchorEl){
+  if(!ids.length) return;
   const cats = foldersByCategory();
   const actions = [];
   cats.forEach((folders, category)=>{
     folders.forEach(f=>{
-      actions.push({ label: category+' › '+f.name, onSelect:()=>{ assignRefToFolder(id, f.id); haptic('tap'); } });
+      actions.push({ label: category+' › '+f.name, icon:'cartella',
+        onSelect:()=> muoviImmagini(ids, f.id) });
     });
   });
-  actions.push({ label:'Nessuna cartella', onSelect:()=>{ assignRefToFolder(id, null); haptic('tap'); } });
+  actions.push({ label:'Nessuna cartella', onSelect:()=> muoviImmagini(ids, null) });
   if(!actions.length) return;
   actionMenu(anchorEl, actions);
+}
+
+// DA DOVE VENIVA OGNUNA, non "da dove veniva il gruppo". In "All" si sceglie
+// attraverso le cartelle, quindi una selezione mista non ha una provenienza
+// sola: tenerne una per tutte vorrebbe dire che annullare le raccoglie tutte
+// nella cartella della prima — un danno peggiore dello spostamento sbagliato
+// che si stava annullando.
+async function muoviImmagini(ids, folderId){
+  const prima = ids.map(id=>{
+    const r = _refs.find(x=> x.id === id);
+    return r ? { id, folderId: r.folderId || null } : null;
+  }).filter(Boolean);
+  if(!prima.length) return;
+  azzeraScelte();
+  renderRefsScreen();
+  for(const p of prima) assignRefToFolder(p.id, folderId);
+  haptic('done');
+  showUndoToast(prima.length === 1 ? 'Immagine spostata' : `${prima.length} immagini spostate`, ()=>{
+    for(const p of prima) assignRefToFolder(p.id, p.folderId);
+  });
+}
+
+// Il pulsante "Sposta" della barra della scelta: la stessa cosa del menu di una
+// miniatura, ma su tutto quello che si e' preso.
+export function spostaScelte(ancoraEl){
+  if(_view === 'folders' || !_scelti.size) return;
+  promptMoveImages(Array.from(_scelti), ancoraEl);
 }
 
 // ── COLLEGAMENTO AI PROGETTI ────────────────────────────────────────────────

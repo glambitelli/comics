@@ -49,7 +49,8 @@ window.dialogs = await import('/js/dialogs.js');
 // Gli onclick inline dei tab chiamano un globale: nell'app lo mette main.js.
 ['setFolderTab','refsBackToFolders','refsImageMenu','openFolder','openAllGrid','openTag','openTagList','setArchivio','promptTagImage',
  'openRefLightbox','closeRefLightbox','deleteRefImageWithUndo',
- 'toggleScelta','annullaScelta','rinominaScelto','eliminaScelti',
+ 'toggleScelta','annullaScelta','rinominaScelto','eliminaScelti','menuScelto',
+ 'scegliTutte','spostaScelte','refsGridSortMenu',
  'promptNewFolder','promptLinkProjectFromLightbox',
  'connectDriveAndSync'].forEach(n=>{
   window[n] = (...a)=> Promise.resolve(refs).then(m=> m[n] && m[n](...a));

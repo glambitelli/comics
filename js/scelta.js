@@ -119,6 +119,19 @@ export function montaScelta(contenitore, opzioni = {}){
     ha(id){ return _scelti.has(id); },
     quante(){ return _scelti.size; },
     azzera(){ if(!_scelti.size) return false; _scelti.clear(); cambia(); return true; },
+    // TUTTE IN UN COLPO SOLO. Passa di qui e non dall'insieme di chi disegna
+    // perche' la verita' su chi e' scelto e' questa, e scriverla dall'altra
+    // parte vorrebbe dire due insiemi che si contraddicono al primo tocco
+    // successivo — e' lo stesso motivo per cui azzeraScelte, in refs.js,
+    // deve azzerarli tutti e due.
+    // Un giro solo di "cambiato" anche per cinquanta elementi: ridisegnare la
+    // griglia una volta per ognuno sarebbe cinquanta ricostruzioni di HTML.
+    accendi(ids){
+      let mosso = false;
+      for(const id of ids) if(id != null && !_scelti.has(id)){ _scelti.add(id); mosso = true; }
+      if(mosso) cambia();
+      return mosso;
+    },
     // Toglie dalla selezione quello che non esiste piu' (dopo una
     // cancellazione, o cambiando cartella).
     pota(esiste){

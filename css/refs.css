@@ -14,6 +14,14 @@
 .refs-breadcrumb #refs-breadcrumb-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .refs-crumb-sort{margin:-4px 0}
 .refs-crumb-sort[hidden]{display:none}
+/* SCEGLI TUTTE, accanto a Ordina. Stesso tondo degli altri due, e ACCESO
+   quando le hai gia' prese tutte: e' l'unica cosa che distingue "premilo e le
+   prendo" da "ripremilo e le lascio", e senza, il secondo tocco sembrerebbe
+   non aver fatto niente. Prende l'oro, che nell'app e' il colore di quello che
+   e' attivo adesso. */
+.refs-crumb-tutte{margin:-4px 0}
+.refs-crumb-tutte[hidden]{display:none}
+.refs-crumb-tutte.acceso{background:#fdf3da;border-color:var(--oro);color:#8a6a10}
 .refs-breadcrumb-back{font-size:18px;font-weight:700;color:#8a7248;line-height:1}
 
 /* Albi / Frammenti / Tavole / Prospettiva — visibili solo dentro una cartella vera.
