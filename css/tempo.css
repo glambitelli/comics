@@ -13,9 +13,25 @@
    Il cerchio chiuso invece e' la forma del mestiere: un cronometro. */
 .tempo-posto{display:flex;flex-direction:column;align-items:center;gap:8px;margin:18px 0 6px}
 .tempo-quadrante{
-  width:120px;height:120px;border-radius:50%;flex-shrink:0;
+  /* Un numero solo comanda tutto il resto: lancetta, cifre e spessore del
+     castone sono frazioni di questo, quindi il quadrante si ridimensiona
+     cambiando una riga invece di rincorrerne cinque. */
+  --q:108px;
+  width:var(--q);height:var(--q);border-radius:50%;flex-shrink:0;
   position:relative;display:grid;place-items:center;
-  background:rgba(255,255,255,.7);border:0;padding:0;cursor:pointer;
+  border:0;padding:0;cursor:pointer;
+  /* IL CORPO. Non piu' un bianco piatto ma una sfumatura di sabbia, e serve:
+     il riflesso del vetro (vedi .tempo-vetro) e' bianco, e su una faccia
+     bianca un riflesso bianco non esiste — per forte che lo si faccia. Con
+     un fondo appena piu' caldo la luce ha su cosa posarsi, e da spento il
+     quadrante e' una pallina di vetro appoggiata sulla carta invece di un
+     disco. */
+  background:radial-gradient(ellipse 104% 104% at 34% 30%,
+             #fffdf8 0%, #f4eee2 42%, #e4dac6 78%, #d9cdb4 100%);
+  /* IL CASTONE, il filo scuro che drawGem mette sul bordo di ogni sfera: e'
+     quello che la incastona e le da' un peso da oggetto invece che da
+     disegno. */
+  box-shadow:inset 0 0 0 calc(var(--q) * .037) rgba(0,0,0,.42);
   transition:background .22s,box-shadow .22s,transform .1s;
 }
 .tempo-quadrante:active{transform:scale(.97)}
@@ -34,11 +50,30 @@
    punto d'oro in cima al quadrante di carta sembra sporco sul vetro, non
    "fermo". Da acceso invece quel puntino e' giusto: e' il tempo che parte. */
 .tempo-quadrante:not(.corre) .tempo-arco{display:none}
-.tempo-lancetta{width:42px;height:42px;color:var(--ink2);position:relative}
+.tempo-lancetta{width:calc(var(--q) * .35);height:calc(var(--q) * .35);color:var(--ink2);position:relative}
 .tempo-cifre{
   display:none;position:relative;font-family:'Nunito',sans-serif;
-  font-size:25px;font-weight:800;letter-spacing:-.02em;color:var(--oro);
+  font-size:calc(var(--q) * .208);font-weight:800;letter-spacing:-.02em;color:var(--oro);
   font-variant-numeric:tabular-nums;line-height:1;
+}
+/* ── IL VETRO ──
+   I due riflessi di drawGem, tradotti da canvas a CSS. Nel canvas la luce
+   grande e' createRadialGradient(cx−.22gr, cy−.28gr, 0, cx−.10gr, cy−.14gr,
+   .52gr) con le fermate .82 / .45 / .10 / 0, e il puntino in basso a destra
+   e' .22gr a (cx+.28gr, cy+.26gr) da .35 a 0. Qui la sfera e' tutto il
+   bottone, quindi gr vale meta' larghezza e le stesse frazioni diventano
+   centro 45%/43% raggio 26%, e centro 64%/63% raggio 11%.
+   Le percentuali per il raggio vogliono "ellipse": su un elemento quadrato
+   e' un cerchio lo stesso, e "circle" accetterebbe solo lunghezze fisse —
+   che qui vorrebbe dire rompere il legame col diametro. */
+.tempo-vetro{
+  position:absolute;inset:0;border-radius:50%;pointer-events:none;
+  background-image:
+    radial-gradient(ellipse 11% 11% at 64% 63%,
+      rgba(255,255,255,.35) 0%, rgba(255,255,255,0) 100%),
+    radial-gradient(ellipse 26% 26% at 45% 43%,
+      rgba(255,255,255,.82) 0%, rgba(255,255,255,.45) 25%,
+      rgba(255,255,255,.10) 60%, rgba(255,255,255,0) 100%);
 }
 
 /* ACCESO: la carta diventa inchiostro, l'orologino lascia il posto alle cifre
@@ -46,7 +81,8 @@
    il cerchio su cui corre. */
 .tempo-quadrante.corre{
   background:linear-gradient(135deg,#2a2018,#1a1410);
-  box-shadow:0 3px 14px rgba(26,20,16,.28);
+  box-shadow:inset 0 0 0 calc(var(--q) * .037) rgba(0,0,0,.42),
+             0 3px 14px rgba(26,20,16,.28);
 }
 .tempo-quadrante.corre .tempo-pista{stroke:rgba(232,224,208,.22);stroke-width:3.5}
 .tempo-quadrante.corre .tempo-tacche line{stroke:rgba(232,224,208,.35)}

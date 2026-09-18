@@ -708,6 +708,20 @@ module.exports = () => suite("Il tempo al tavolo — le ore non si perdono",
       parteDaMezzogiorno: arco && /rotate\(-90/.test(arco.getAttribute('transform') || ''),
       tacche: document.querySelectorAll('#tempo-avvia .tempo-tacche line').length,
       cifre: !!document.getElementById('tempo-cifre'),
+      // IL VETRO DEVE STARE PER ULTIMO. Se finisse prima delle cifre o del
+      // disco la luce ci passerebbe dietro invece che davanti, e non
+      // sbiancherebbe piu' niente: sarebbe di nuovo il primo tentativo,
+      // quello scartato perche' troppo timido.
+      vetroPerUltimo: (()=>{
+        const b = document.getElementById('tempo-avvia');
+        const ultimo = b && b.lastElementChild;
+        return !!(ultimo && ultimo.classList.contains('tempo-vetro'));
+      })(),
+      // E non deve rubare i tocchi: copre tutto il bottone.
+      vetroTrasparenteAlDito: (()=>{
+        const v = document.querySelector('#tempo-avvia .tempo-vetro');
+        return v ? getComputedStyle(v).pointerEvents : null;
+      })(),
       // Senza la scritta, cosa fa il bottone lo devono dire l'etichetta e il
       // suggerimento: sono l'unica voce rimasta per chi non guarda il disegno.
       etichetta: b && b.getAttribute('aria-label'),
@@ -723,6 +737,10 @@ module.exports = () => suite("Il tempo al tavolo — le ore non si perdono",
      quadrante.inCentesimi && quadrante.parteDaMezzogiorno, quadrante);
   ok('le quattro tacche dei quarti d\'ora ci sono', quadrante.tacche === 4, quadrante);
   ok('c\'e\' dove scrivere il tempo che corre', quadrante.cifre, quadrante);
+  ok('il vetro passa davanti ai segni, non dietro',
+     quadrante.vetroPerUltimo, quadrante);
+  ok('e non ruba i tocchi al bottone che copre',
+     quadrante.vetroTrasparenteAlDito === 'none', quadrante);
   ok('il bottone dice comunque cosa fa, a voce', !!quadrante.etichetta, quadrante);
   // E' la garanzia che togliendo il testo non si sia perso il messaggio dopo
   // lo stop: quello era stato aggiunto apposta perche' fermare il cronometro

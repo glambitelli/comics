@@ -181,6 +181,13 @@
           <path d="M9.5 2.6h5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
         </svg>
         <span class="tempo-cifre" id="tempo-cifre"></span>
+        <!-- IL VETRO, E STA PER ULTIMO APPOSTA: la luce deve passare DAVANTI
+             ai segni e alle cifre, non dietro. E' quello che sbianca in parte
+             l'orologino ed e' tutto il senso dell'effetto — messo sotto, come
+             al primo tentativo, resta una macchia chiara che non tocca
+             niente. Sono i due riflessi che drawGem disegna sulle sfere dei
+             progetti (vedi js/canvas.js), senza il corpo colorato sotto. -->
+        <span class="tempo-vetro" aria-hidden="true"></span>
       </button>
       <!-- PREMERE STOP DEVE SEMPRE DIRE QUALCOSA, e prima lo diceva la scritta
            dentro al bottone ("24 min — segnati", "Buttata via"). Tolta quella,
