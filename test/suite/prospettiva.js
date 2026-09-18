@@ -831,12 +831,13 @@ module.exports = () => suite("Prospettiva — il righello per leggere l'orizzont
     const r = document.querySelector('.prosp-tavolo').getBoundingClientRect();
     const tocco = (tipo, cx, cy)=> svg.dispatchEvent(new PointerEvent(tipo, {
       pointerId: 12, clientX: cx, clientY: cy, bubbles:true, cancelable:true }));
-    // L'angolo in basso a destra del riquadro coincide col bordo del tavolo
-    // (il riquadro e' 0.1..0.6 su entrambi gli assi): lo si trascina un po'
-    // oltre, per allargarlo.
-    tocco('pointerdown', r.left + r.width, r.top + r.height);
-    tocco('pointermove', r.left + r.width * 1.3, r.top + r.height * 1.3);
-    tocco('pointerup', r.left + r.width * 1.3, r.top + r.height * 1.3);
+    // L'angolo in basso a destra: la maniglia sta 24px FUORI dal bordo del
+    // tavolo (vedi FUORI in prospettiva.js), che e' quello che impedisce di
+    // afferrarla mentre si voleva tracciare. Di li' la si trascina un po'
+    // oltre, per allargare il riquadro.
+    tocco('pointerdown', r.left + r.width + 24, r.top + r.height + 24);
+    tocco('pointermove', r.left + r.width * 1.3 + 24, r.top + r.height * 1.3 + 24);
+    tocco('pointerup', r.left + r.width * 1.3 + 24, r.top + r.height * 1.3 + 24);
     await new Promise(res=> setTimeout(res, 60));
     return P.corniceAttiva();
   });
@@ -845,6 +846,80 @@ module.exports = () => suite("Prospettiva — il righello per leggere l'orizzont
      modificaRiquadro);
   ok('e l\'angolo trascinato porta il riquadro dove il dito l\'ha lasciato',
      modificaRiquadro.w > 0.55 && modificaRiquadro.h > 0.55, modificaRiquadro);
+
+  sezione('e tracciare vicino al bordo non ridimensiona piu\' la vignetta');
+  // SEGNALATO DA GIOVANNI IL 18 SETTEMBRE 2026: "capita troppo spesso che la
+  // mia intenzione e' applicare una linea e invece per sbaglio clicco uno di
+  // questi quadrati". Le maniglie stavano SUL bordo, cioe' esattamente dove
+  // si comincia a tracciare — lo spigolo di un palazzo che corre verso
+  // l'angolo parte di li'. Due intenzioni nello stesso posto.
+  //
+  // La cura non e' stringere il raggio di presa (coperta corta: piu' difficile
+  // prenderle quando le si vuole, e il fraintendimento resta) ma separare i
+  // due gesti nello SPAZIO: le maniglie vivono fuori dal riquadro, nel
+  // margine scuro dove non c'e' disegno da seguire.
+  const vicinoAlBordo = await page.evaluate(async ()=>{
+    const P = window.P;
+    const svg = document.querySelector('.prosp-svg');
+    P.chiudiProspettiva();
+    P.apriProspettiva(window.__img);
+    P.__perLeProveRiquadro({ x:0.1, y:0.1, w:0.6, h:0.6 });
+    await new Promise(r=> setTimeout(r, 60));
+    const r = document.querySelector('.prosp-tavolo').getBoundingClientRect();
+    const copia = ()=> ({ ...P.corniceAttiva() });
+    const prima = copia();
+    const tocco = (tipo, cx, cy, id)=> svg.dispatchEvent(new PointerEvent(tipo, {
+      pointerId: id, clientX: cx, clientY: cy, bubbles:true, cancelable:true }));
+    // Una linea che parte a due pixel DENTRO l'angolo in alto a sinistra —
+    // il posto piu' pericoloso di tutti — e corre in diagonale.
+    tocco('pointerdown', r.left + 2, r.top + 2, 31);
+    tocco('pointermove', r.left + r.width*0.5, r.top + r.height*0.5, 31);
+    tocco('pointerup',   r.left + r.width*0.5, r.top + r.height*0.5, 31);
+    const dopoAngolo = { linee: P.__perLeProve().linee.length, riq: copia() };
+    // E una che parte sul bordo sinistro, a meta' altezza: l'altra insidia.
+    tocco('pointerdown', r.left + 2, r.top + r.height*0.5, 32);
+    tocco('pointermove', r.left + r.width*0.6, r.top + r.height*0.3, 32);
+    tocco('pointerup',   r.left + r.width*0.6, r.top + r.height*0.3, 32);
+    const dopoLato = { linee: P.__perLeProve().linee.length, riq: copia() };
+    return { prima, dopoAngolo, dopoLato };
+  });
+  ok('partendo dentro l\'angolo si traccia una linea',
+     vicinoAlBordo.dopoAngolo.linee === 1, vicinoAlBordo);
+  ok('e la vignetta non si e\' mossa di un capello',
+     Math.abs(vicinoAlBordo.dopoAngolo.riq.w - vicinoAlBordo.prima.w) < 1e-9
+     && Math.abs(vicinoAlBordo.dopoAngolo.riq.x - vicinoAlBordo.prima.x) < 1e-9, vicinoAlBordo);
+  ok('lo stesso partendo dal bordo di lato',
+     vicinoAlBordo.dopoLato.linee === 2
+     && Math.abs(vicinoAlBordo.dopoLato.riq.h - vicinoAlBordo.prima.h) < 1e-9, vicinoAlBordo);
+
+  sezione('ma le maniglie restano afferrabili, appena fuori dal bordo');
+  const fuoriDalBordo = await page.evaluate(async ()=>{
+    const P = window.P;
+    const svg = document.querySelector('.prosp-svg');
+    P.chiudiProspettiva();
+    P.apriProspettiva(window.__img);
+    P.__perLeProveRiquadro({ x:0.2, y:0.2, w:0.5, h:0.5 });
+    await new Promise(r=> setTimeout(r, 60));
+    const r = document.querySelector('.prosp-tavolo').getBoundingClientRect();
+    const prima = { ...P.corniceAttiva() };
+    const tocco = (tipo, cx, cy)=> svg.dispatchEvent(new PointerEvent(tipo, {
+      pointerId: 33, clientX: cx, clientY: cy, bubbles:true, cancelable:true }));
+    // Il punto di mezzo del lato sinistro, preso 24px OLTRE il bordo: e'
+    // li' che adesso sta disegnata la maniglia, e li' che va afferrata.
+    tocco('pointerdown', r.left - 24, r.top + r.height/2);
+    tocco('pointermove', r.left - 24 + r.width*0.2, r.top + r.height/2);
+    tocco('pointerup',   r.left - 24 + r.width*0.2, r.top + r.height/2);
+    await new Promise(res=> setTimeout(res, 60));
+    return { prima, dopo: { ...P.corniceAttiva() }, linee: P.__perLeProve().linee.length };
+  });
+  ok('presa da fuori, la maniglia stringe il lato', fuoriDalBordo.dopo.x > fuoriDalBordo.prima.x + 0.05,
+     fuoriDalBordo);
+  ok('senza lasciare per strada una linea', fuoriDalBordo.linee === 0, fuoriDalBordo);
+  // E il bordo non SALTA sotto al dito quando la si afferra: la maniglia sta
+  // fuori, e senza tenere lo scarto il lato scatterebbe di quei pixel.
+  ok('e il lato opposto non si e\' mosso',
+     Math.abs((fuoriDalBordo.dopo.x + fuoriDalBordo.dopo.w)
+            - (fuoriDalBordo.prima.x + fuoriDalBordo.prima.w)) < 1e-9, fuoriDalBordo);
 
   sezione('e un lato solo si stringe senza toccare gli altri tre, gia\' giusti');
   // IL CASO PRECISO SEGNALATO DA GIOVANNI IL 16 SETTEMBRE 2026: un riquadro
@@ -863,11 +938,12 @@ module.exports = () => suite("Prospettiva — il righello per leggere l'orizzont
     const r = document.querySelector('.prosp-tavolo').getBoundingClientRect();
     const tocco = (tipo, cx, cy)=> svg.dispatchEvent(new PointerEvent(tipo, {
       pointerId: 13, clientX: cx, clientY: cy, bubbles:true, cancelable:true }));
-    // Il punto di mezzo del lato sinistro: lo si trascina verso destra, per
-    // togliere una fetta che apparteneva alla vignetta accanto.
-    tocco('pointerdown', r.left, r.top + r.height/2);
-    tocco('pointermove', r.left + r.width * 0.2, r.top + r.height/2);
-    tocco('pointerup', r.left + r.width * 0.2, r.top + r.height/2);
+    // Il punto di mezzo del lato sinistro, preso da fuori: lo si trascina
+    // verso destra, per togliere una fetta che apparteneva alla vignetta
+    // accanto.
+    tocco('pointerdown', r.left - 24, r.top + r.height/2);
+    tocco('pointermove', r.left - 24 + r.width * 0.2, r.top + r.height/2);
+    tocco('pointerup', r.left - 24 + r.width * 0.2, r.top + r.height/2);
     await new Promise(res=> setTimeout(res, 60));
     return P.corniceAttiva();
   });

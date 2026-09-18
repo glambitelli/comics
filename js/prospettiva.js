@@ -167,7 +167,12 @@ function spazioLibero(){
   const palco = _ov && _ov.querySelector('.prosp-palco');
   if(!palco) return { x: 14, y: 14, w: window.innerWidth - 28, h: Math.max(80, window.innerHeight - 138) };
   const r = palco.getBoundingClientRect();
-  return { x: 14, y: 14, w: Math.max(80, r.width - 28), h: Math.max(80, r.height - 28) };
+  // L'ARIA INTORNO SERVE ALLE MANIGLIE. Stanno fuori dal riquadro (vedi
+  // FUORI), quindi se il tavolo si stendesse fino al bordo del palco
+  // finirebbero mezze fuori dallo schermo — visibili sullo schema, ma non
+  // afferrabili col dito.
+  const aria = 14 + FUORI;
+  return { x: aria, y: aria, w: Math.max(80, r.width - aria*2), h: Math.max(80, r.height - aria*2) };
 }
 
 // Porta dentro lo spazio libero un rettangolo dato in coordinate 0..1
@@ -563,22 +568,56 @@ function trovaEstremo(cx, cy, t){
 // coordinata resta FERMA (fx/fy, null se quel lato non e' vincolato su
 // quell'asse) e quale si muove (mx/my): il conto vero e' in _trascinaRiq piu'
 // sotto.
+// ── LE MANIGLIE STANNO FUORI DALLA VIGNETTA ──
+//
+// Di quanti pixel di schermo, verso l'esterno. NON e' un dettaglio estetico:
+// e' la riga che fa smettere lo strumento di fraintendere il dito.
+//
+// Prima stavano SUL bordo, ed e' esattamente dove si comincia a tracciare —
+// lo spigolo di un palazzo che corre verso l'angolo, il bordo di un
+// marciapiede che parte dal lato. Due intenzioni diverse nello stesso posto:
+// Giovanni ha segnalato il 18 settembre 2026 che gli capitava "troppo
+// spesso" di ridimensionare la vignetta mentre voleva tracciare una linea.
+//
+// La strada facile sarebbe stata stringere il raggio di presa, ma e' una
+// coperta corta: piu' stretto vuol dire piu' difficile prenderle quando le si
+// vuole davvero, e il fraintendimento resta possibile. Meglio separare i due
+// gesti nello SPAZIO. Le linee si tracciano sul disegno, che sta dentro il
+// riquadro; le maniglie vivono nel margine scuro intorno, dove non c'e'
+// niente da seguire e quindi nessuno tira righe. A quel punto il raggio di
+// presa puo' restare largo — anzi, deve.
+// Lo scostamento e' un filo PIU' GRANDE del raggio di presa qui sotto, e non
+// per caso: cosi' la zona in cui il dito afferra una maniglia comincia appena
+// fuori dal bordo e non rientra MAI dentro la vignetta. Col primo tentativo
+// (17px di scostamento e 26 di raggio) la zona arrivava ancora nove pixel
+// dentro il riquadro, e il fraintendimento restava esattamente dov'era.
+const FUORI = 24;
+// Il raggio di presa delle maniglie del riquadro, piu' piccolo di quello dei
+// capi di linea: quelle si prendono da fuori, dove non c'e' concorrenza, e
+// allargarlo vorrebbe solo dire farlo rientrare nel disegno.
+const RAGGIO_RIQ = 22;
+function manigliaRiq(r){
+  return [
+    { punto:{x:r.x,       y:r.y      }, fx:r.x+r.w, fy:r.y+r.h, mx:true,  my:true,  dx:-1, dy:-1 },
+    { punto:{x:r.x+r.w,   y:r.y      }, fx:r.x,     fy:r.y+r.h, mx:true,  my:true,  dx: 1, dy:-1 },
+    { punto:{x:r.x,       y:r.y+r.h  }, fx:r.x+r.w, fy:r.y,     mx:true,  my:true,  dx:-1, dy: 1 },
+    { punto:{x:r.x+r.w,   y:r.y+r.h  }, fx:r.x,     fy:r.y,     mx:true,  my:true,  dx: 1, dy: 1 },
+    { punto:{x:r.x,       y:r.y+r.h/2}, fx:r.x+r.w, fy:null,    mx:true,  my:false, dx:-1, dy: 0 },
+    { punto:{x:r.x+r.w,   y:r.y+r.h/2}, fx:r.x,     fy:null,    mx:true,  my:false, dx: 1, dy: 0 },
+    { punto:{x:r.x+r.w/2, y:r.y      }, fx:null,    fy:r.y+r.h, mx:false, my:true,  dx: 0, dy:-1 },
+    { punto:{x:r.x+r.w/2, y:r.y+r.h  }, fx:null,    fy:r.y,     mx:false, my:true,  dx: 0, dy: 1 },
+  ];
+}
+// Dove sta a schermo una maniglia: il suo punto sul bordo, spostato in fuori.
+function aSchermoManiglia(cand, t){
+  const p = aSchermo(cand.punto, t);
+  return { x: p.x + cand.dx * FUORI, y: p.y + cand.dy * FUORI };
+}
 function trovaManigliaRiq(cx, cy, t){
   if(!_riquadro) return null;
-  const r = _riquadro;
-  const candidati = [
-    { punto:{x:r.x,       y:r.y      }, fx:r.x+r.w, fy:r.y+r.h, mx:true,  my:true  },
-    { punto:{x:r.x+r.w,   y:r.y      }, fx:r.x,     fy:r.y+r.h, mx:true,  my:true  },
-    { punto:{x:r.x,       y:r.y+r.h  }, fx:r.x+r.w, fy:r.y,     mx:true,  my:true  },
-    { punto:{x:r.x+r.w,   y:r.y+r.h  }, fx:r.x,     fy:r.y,     mx:true,  my:true  },
-    { punto:{x:r.x,       y:r.y+r.h/2}, fx:r.x+r.w, fy:null,    mx:true,  my:false },
-    { punto:{x:r.x+r.w,   y:r.y+r.h/2}, fx:r.x,     fy:null,    mx:true,  my:false },
-    { punto:{x:r.x+r.w/2, y:r.y      }, fx:null,    fy:r.y+r.h, mx:false, my:true  },
-    { punto:{x:r.x+r.w/2, y:r.y+r.h  }, fx:null,    fy:r.y,     mx:false, my:true  },
-  ];
-  let migliore = null, meglioDist = RAGGIO_MANIGLIA;
-  for(const cand of candidati){
-    const p = aSchermo(cand.punto, t);
+  let migliore = null, meglioDist = RAGGIO_RIQ;
+  for(const cand of manigliaRiq(_riquadro)){
+    const p = aSchermoManiglia(cand, t);
     const d = Math.hypot(p.x - cx, p.y - cy);
     if(d < meglioDist){ meglioDist = d; migliore = cand; }
   }
@@ -632,7 +671,16 @@ function agganciaTratto(svg){
       const est = trovaEstremo(e.clientX, e.clientY, t);
       if(est){ _trascinaEstremo = est; return; }
       const man = trovaManigliaRiq(e.clientX, e.clientY, t);
-      if(man){ _trascinaRiq = man; return; }
+      if(man){
+        // Lo SCARTO fra il dito e il bordo vero, tenuto per tutto il
+        // trascinamento: la maniglia sta fuori dal riquadro, e senza questo
+        // il bordo salterebbe di quei pixel nell'istante in cui la si
+        // afferra — un salto piccolo ma che si vede, e che fa sbagliare
+        // proprio la regolazione fine per cui le maniglie esistono.
+        const p = aImmagine(e.clientX, e.clientY, t);
+        _trascinaRiq = { ...man, sx: p.x - man.punto.x, sy: p.y - man.punto.y };
+        return;
+      }
     }
     const p = aImmagine(e.clientX, e.clientY, t);
     if(faseRiquadro()) _bozzaRiq = { a:p, b:p };
@@ -670,13 +718,14 @@ function agganciaTratto(svg){
       // anteprima seguita da un salto, che serve per allineare il bordo a un
       // lato di vignetta storto.
       const p = aImmagine(e.clientX, e.clientY, t);
+      const px = p.x - _trascinaRiq.sx, py = p.y - _trascinaRiq.sy;
       if(_trascinaRiq.mx){
-        const nx = versoIlFermo(p.x, _trascinaRiq.fx, RIQ_MIN);
+        const nx = versoIlFermo(px, _trascinaRiq.fx, RIQ_MIN);
         _riquadro.x = Math.min(nx, _trascinaRiq.fx);
         _riquadro.w = Math.abs(nx - _trascinaRiq.fx);
       }
       if(_trascinaRiq.my){
-        const ny = versoIlFermo(p.y, _trascinaRiq.fy, RIQ_MIN);
+        const ny = versoIlFermo(py, _trascinaRiq.fy, RIQ_MIN);
         _riquadro.y = Math.min(ny, _trascinaRiq.fy);
         _riquadro.h = Math.abs(ny - _trascinaRiq.fy);
       }
@@ -892,15 +941,12 @@ export function disegna(){
   if(_riquadro){
     // Angoli E meta' dei lati: un angolo sposta due bordi insieme, un punto
     // di mezzo lato ne stringe uno solo — serve proprio quando il riquadro e'
-    // giusto ovunque tranne che su UN lato (vedi trovaManigliaRiq).
-    const otto = [
-      {x:q.x,       y:q.y      }, {x:q.x+q.w,   y:q.y      },
-      {x:q.x,       y:q.y+q.h  }, {x:q.x+q.w,   y:q.y+q.h  },
-      {x:q.x+q.w/2, y:q.y      }, {x:q.x+q.w/2, y:q.y+q.h  },
-      {x:q.x,       y:q.y+q.h/2}, {x:q.x+q.w,   y:q.y+q.h/2},
-    ];
-    for(const p of otto){
-      maniglie += `<rect x="${p.x-6}" y="${p.y-6}" width="12" height="12" fill="rgba(0,0,0,.4)" stroke="${SABBIA}" stroke-width="1.6" opacity=".85"/>`;
+    // giusto ovunque tranne che su UN lato. E stanno tutte FUORI dal bordo,
+    // nel margine scuro: vedi FUORI sopra trovaManigliaRiq, e' quello che
+    // impedisce di ridimensionare la vignetta mentre si voleva tracciare.
+    for(const cand of manigliaRiq(cornice())){
+      const p = aSchermoManiglia(cand, t);
+      maniglie += `<rect x="${p.x-6}" y="${p.y-6}" width="12" height="12" rx="2" fill="rgba(0,0,0,.5)" stroke="${SABBIA}" stroke-width="1.6" opacity=".9"/>`;
     }
   }
   _ov.querySelector('.prosp-maniglie').innerHTML = maniglie;
