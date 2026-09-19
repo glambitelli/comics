@@ -557,10 +557,11 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
       ricerca: !!sc.querySelector('#search-bar'),
       citazione: !!cit,
       quadrante: !!q && q.getBoundingClientRect().height > 40,
-      // Quanto spazio resta SOPRA il primo pezzo di contenuto. Appeso in alto
-      // sarebbe l'imbottitura e basta (una ventina di pixel); centrato, e'
-      // mezzo schermo.
-      sopra: Math.round(cit.getBoundingClientRect().top - r.top),
+      // LA CITAZIONE STA IN CIMA e il QUADRANTE in mezzo: sono due posizioni
+      // diverse e volute. Centrando tutto il blocco la frase del giorno
+      // scendeva a mezzo schermo e non si leggeva piu' entrando.
+      citazioneSopra: Math.round(cit.getBoundingClientRect().top - r.top),
+      quadranteSopra: Math.round(q.getBoundingClientRect().top - r.top),
       alta: Math.round(r.height),
     };
   });
@@ -569,11 +570,13 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
   ok('ne\' il "+" per crearne uno', !casa.piu, casa);
   ok('ne\' il campo di ricerca', !casa.ricerca, casa);
   ok('restano la citazione e il cronometro', casa.citazione && casa.quadrante, casa);
+  ok('la citazione sta in cima, subito sotto l\'intestazione',
+     casa.citazioneSopra < 40, casa);
   // Era una cosa gia' chiesta quando il cronometro e' diventato il marchio
   // ("piu' grande e centrale"), e finche' sotto c'erano le schede non si
   // poteva fare.
-  ok('e il cronometro sta al centro, non appeso in alto',
-     casa.sopra > casa.alta * 0.22, casa);
+  ok('e il cronometro sta al centro, non appeso sotto la frase',
+     casa.quadranteSopra > casa.alta * 0.25, casa);
 
   const daImpostazioni = await page.evaluate(()=>{
     const b = Array.from(document.querySelectorAll('.settings-vai'));

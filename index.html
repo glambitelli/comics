@@ -253,8 +253,14 @@
   <div class="projects-tabs">
     <div class="seg-vasca" id="projects-vasca">
       <span class="seg-cursore" aria-hidden="true"></span>
-      <button class="seg-tab" id="projects-tab-progetti" onclick="setScaffaleProgetti('progetti')" type="button">Progetti <span class="projects-tab-n" id="projects-n-progetti">0</span></button>
-      <button class="seg-tab" id="projects-tab-scene" onclick="setScaffaleProgetti('scene')" type="button">Scene <span class="projects-tab-n" id="projects-n-scene">0</span></button>
+      <!-- SOLO I NOMI, niente conteggi. Accanto a "Progetti" c'era il numero
+           di quanti ce ne sono, come sui quattro scaffali dell'archivio: li'
+           serve — dice se in quella cartella ci sono tavole prima di andarle
+           a cercare — qui no. Gli scaffali sono due e ci si passa comunque:
+           sapere che sono tre non fa prendere nessuna decisione. Tolto su
+           richiesta di Giovanni, 19 settembre 2026. -->
+      <button class="seg-tab" id="projects-tab-progetti" onclick="setScaffaleProgetti('progetti')" type="button">Progetti</button>
+      <button class="seg-tab" id="projects-tab-scene" onclick="setScaffaleProgetti('scene')" type="button">Scene</button>
     </div>
   </div>
   <div class="projects-scroll" id="projects-scroll">

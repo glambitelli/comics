@@ -38,10 +38,6 @@ body.is-touch .projects-scroll{padding-bottom:calc(110px + var(--safe-bot))}
    — gli scaffali sono sempre due — quindi niente classe .show. */
 .projects-tabs{background:var(--fondo-carta);flex-shrink:0;padding:2px 16px 14px}
 .projects-tabs .seg-vasca{--n:2}
-/* Il numero accanto al nome e' un contorno, non un'etichetta: dice quanto e'
-   pieno lo scaffale senza rubare l'occhio alla parola. Stesso trattamento dei
-   numeri sui quattro scaffali dell'archivio. */
-.projects-tab-n{font-weight:700;opacity:.45;margin-left:2px}
 /* Uno scaffale per volta. hidden da solo non basterebbe: questi due non sono
    .prosp-btn e nessuna regola d'autore gli mette display, quindi il
    display:none del browser vale — ma scriverlo qui lo rende una scelta

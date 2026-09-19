@@ -45,11 +45,6 @@ export function getScriptment(p){
 // dire toccare dieci punti fra main.js e le prove per cambiare una parola.
 export function renderHome(){
   aggiornaRicerca();
-  // Il numero accanto al nome dello scaffale: lo scrive chi disegna l'elenco,
-  // come fa renderScene per le scene. Sta prima del ritorno qui sotto perche'
-  // anche "0" e' una risposta.
-  const conto = document.getElementById('projects-n-progetti');
-  if(conto) conto.textContent = projects.length;
   const scroll = document.getElementById('projects-pane-progetti');
   if(!scroll) return;
   scroll.querySelectorAll('.project-card').forEach(c => c.remove());
