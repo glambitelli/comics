@@ -706,8 +706,35 @@ module.exports = () => suite("Il tempo al tavolo — le ore non si perdono",
       // dipenderebbe dal diametro, e cambiarlo nel CSS lo sfaserebbe.
       inCentesimi: arco && arco.getAttribute('pathLength') === '100',
       parteDaMezzogiorno: arco && /rotate\(-90/.test(arco.getAttribute('transform') || ''),
-      tacche: document.querySelectorAll('#tempo-avvia .tempo-tacche line').length,
+      // LE TRE CORONE. Si contano i segmenti dentro ogni <path>: sono scritti
+      // come "M x yL x y" ripetuti, quindi le M sono le tacche.
+      segni: (()=>{
+        const conta = sel=>{
+          const e = document.querySelector('#tempo-avvia ' + sel);
+          return e ? (e.getAttribute('d').match(/M/g) || []).length : 0;
+        };
+        return { fini: conta('.tempo-fini'), medi: conta('.tempo-medi'), forti: conta('.tempo-forti') };
+      })(),
       cifre: !!document.getElementById('tempo-cifre'),
+      // A cronometro spento le cifre dicono gia' 00:00: sta nel markup, perche'
+      // da fermo disegnaTempo non gira nemmeno una volta.
+      cifreDaFermo: (document.getElementById('tempo-cifre')||{}).textContent,
+      // LA LANCETTA: da ferma punta a mezzogiorno, cioe' non ha nessuna
+      // rotazione addosso.
+      lancetta: !!document.getElementById('tempo-lancetta'),
+      lancettaFerma: (()=>{
+        const g = document.getElementById('tempo-lancetta');
+        const t = g && g.getAttribute('transform');
+        return !t || /rotate\(0(\.0+)? /.test(t);
+      })(),
+      // E ha un contrappeso: la punta sta sopra il centro, la coda sotto.
+      contrappeso: (()=>{
+        const l = document.querySelector('#tempo-avvia .tempo-ago');
+        if(!l) return null;
+        return +l.getAttribute('y1') > 50 && +l.getAttribute('y2') < 50;
+      })(),
+      // E niente piu' orologino disegnato al centro.
+      senzaOrologino: !document.querySelector('#tempo-avvia svg.tempo-lancetta'),
       // IL VETRO DEVE STARE PER ULTIMO. Se finisse prima delle cifre o del
       // disco la luce ci passerebbe dietro invece che davanti, e non
       // sbiancherebbe piu' niente: sarebbe di nuovo il primo tentativo,
@@ -735,8 +762,21 @@ module.exports = () => suite("Il tempo al tavolo — le ore non si perdono",
      quadrante.nessunaScritta, quadrante);
   ok('l\'arco si misura in centesimi di giro e parte da mezzogiorno',
      quadrante.inCentesimi && quadrante.parteDaMezzogiorno, quadrante);
-  ok('le quattro tacche dei quarti d\'ora ci sono', quadrante.tacche === 4, quadrante);
+  // SCELTO DA GIOVANNI IL 19 SETTEMBRE 2026, mockup "C · Lancetta". Prima
+  // c'erano quattro tacche in croce e un orologino disegnato al centro: il
+  // quadrante era un disco con sopra un'icona, e da spento non c'era niente da
+  // guardare. Adesso i segni stanno tutti sul bordo, come su un orologio vero,
+  // e il centro e' libero per la lancetta.
+  ok('le tacche sono tre corone: sessanta fini, dodici medie, quattro forti',
+     quadrante.segni.fini === 60 && quadrante.segni.medi === 12
+     && quadrante.segni.forti === 4, quadrante.segni);
+  ok('l\'orologino al centro non c\'e\' piu\'', quadrante.senzaOrologino, quadrante);
+  ok('al suo posto c\'e\' una lancetta', quadrante.lancetta, quadrante);
+  ok('che da ferma punta a mezzogiorno', quadrante.lancettaFerma, quadrante);
+  ok('e ha la coda dall\'altra parte del perno', quadrante.contrappeso === true, quadrante);
   ok('c\'e\' dove scrivere il tempo che corre', quadrante.cifre, quadrante);
+  ok('e da fermo ci si legge gia\' 00:00, non il vuoto',
+     quadrante.cifreDaFermo === '00:00', quadrante);
   ok('il vetro passa davanti ai segni, non dietro',
      quadrante.vetroPerUltimo, quadrante);
   ok('e non ruba i tocchi al bottone che copre',

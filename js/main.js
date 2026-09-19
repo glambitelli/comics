@@ -755,13 +755,26 @@ function disegnaTempo(){
              : 'Sto disegnando — metti in pausa';
   avvia.setAttribute('aria-label', dice);
   avvia.setAttribute('title', dice);
+  // LE CIFRE CI SONO SEMPRE, anche da fermo, dove dicono 00:00: un quadrante
+  // che non scrive niente finche' non lo premi e', da fermo, un quadrante che
+  // non risponde. Il 00:00 di partenza sta nel markup — qui non si arriva
+  // finche' il cronometro non viene toccato — e scriviCorsa(0) da' esattamente
+  // la stessa stringa, quindi fermandolo si torna a quella senza scriverla a
+  // mano una seconda volta.
   const cifre = document.getElementById('tempo-cifre');
-  if(cifre) cifre.textContent = corre ? m.scriviCorsa(secondi) : '';
+  if(cifre) cifre.textContent = m ? m.scriviCorsa(secondi) : '00:00';
   // Quanto e' pieno il giro lo decide il cronometro, non chi lo disegna: la
   // regola (due ore a giro, e non si ricomincia) sta in tempo.js insieme al
   // perche'.
+  const giro = m ? m.giroQuadrante(secondi) : 0;
   const arco = document.getElementById('tempo-arco');
-  if(arco) arco.style.strokeDasharray = (m ? m.giroQuadrante(secondi) : 0).toFixed(2) + ' 100';
+  if(arco) arco.style.strokeDasharray = giro.toFixed(2) + ' 100';
+  // LA LANCETTA GIRA COL GIRO: cento centesimi sono trecentosessanta gradi.
+  // Si scrive l'attributo e non una transizione CSS perche' su due ore di
+  // corsa il passo e' di cinque centesimi di grado al secondo — scorre da
+  // solo, e un'animazione sopra non avrebbe niente da ammorbidire.
+  const lanc = document.getElementById('tempo-lancetta');
+  if(lanc) lanc.setAttribute('transform', 'rotate(' + (giro * 3.6).toFixed(2) + ' 50 50)');
   // La riga dell'esito torna vuota ad ogni ridisegno: chi ci scrive dentro
   // (tempoFerma, tempoScarta) lo fa DOPO aver chiamato di qui, e programma
   // lui il ridisegno che poi la ripulisce.

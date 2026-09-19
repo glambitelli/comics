@@ -163,29 +163,50 @@
       <button class="tempo-quadrante" id="tempo-avvia" onclick="window.tempoTocca()" type="button"
               aria-label="Comincio a disegnare" title="Comincio a disegnare">
         <svg class="tempo-disco" viewBox="0 0 100 100" aria-hidden="true">
-          <circle class="tempo-pista" cx="50" cy="50" r="46"/>
-          <g class="tempo-tacche">
-            <line x1="50" y1="3.4" x2="50" y2="8.6"/><line x1="96.6" y1="50" x2="91.4" y2="50"/>
-            <line x1="50" y1="96.6" x2="50" y2="91.4"/><line x1="3.4" y1="50" x2="8.6" y2="50"/>
-          </g>
+          <!-- TRE CORONE DI TACCHE, e sono un disegno solo per corona: sessanta
+               linee come sessanta elementi sarebbero sessanta nodi nel DOM per
+               una cosa che non si tocca e non cambia mai. Un <path> con dentro
+               tutti i segmenti costa un nodo e si colora con una regola sola.
+               Le misure sono in centesimi del quadrante (viewBox 0..100), come
+               tutto il resto qui dentro: cambiare --q nel CSS non le sfasa.
+               FINI: una ogni due minuti (sessanta su un giro di due ore).
+               MEDIE: una ogni dieci minuti. FORTI: i quarti di giro, cioe' le
+               mezz'ore, che sono quelle con cui si legge "a che punto sono". -->
+          <path class="tempo-fini"  d="M50.00 3.50L50.00 6.20M54.86 3.75L54.58 6.44M59.67 4.52L59.11 7.16M64.37 5.78L63.53 8.34M68.91 7.52L67.82 9.99M73.25 9.73L71.90 12.07M77.33 12.38L75.74 14.57M81.11 15.44L79.31 17.45M84.56 18.89L82.55 20.69M87.62 22.67L85.43 24.26M90.27 26.75L87.93 28.10M92.48 31.09L90.01 32.18M94.22 35.63L91.66 36.47M95.48 40.33L92.84 40.89M96.25 45.14L93.56 45.42M96.50 50.00L93.80 50.00M96.25 54.86L93.56 54.58M95.48 59.67L92.84 59.11M94.22 64.37L91.66 63.53M92.48 68.91L90.01 67.82M90.27 73.25L87.93 71.90M87.62 77.33L85.43 75.74M84.56 81.11L82.55 79.31M81.11 84.56L79.31 82.55M77.33 87.62L75.74 85.43M73.25 90.27L71.90 87.93M68.91 92.48L67.82 90.01M64.37 94.22L63.53 91.66M59.67 95.48L59.11 92.84M54.86 96.25L54.58 93.56M50.00 96.50L50.00 93.80M45.14 96.25L45.42 93.56M40.33 95.48L40.89 92.84M35.63 94.22L36.47 91.66M31.09 92.48L32.18 90.01M26.75 90.27L28.10 87.93M22.67 87.62L24.26 85.43M18.89 84.56L20.69 82.55M15.44 81.11L17.45 79.31M12.38 77.33L14.57 75.74M9.73 73.25L12.07 71.90M7.52 68.91L9.99 67.82M5.78 64.37L8.34 63.53M4.52 59.67L7.16 59.11M3.75 54.86L6.44 54.58M3.50 50.00L6.20 50.00M3.75 45.14L6.44 45.42M4.52 40.33L7.16 40.89M5.78 35.63L8.34 36.47M7.52 31.09L9.99 32.18M9.73 26.75L12.07 28.10M12.38 22.67L14.57 24.26M15.44 18.89L17.45 20.69M18.89 15.44L20.69 17.45M22.67 12.38L24.26 14.57M26.75 9.73L28.10 12.07M31.09 7.52L32.18 9.99M35.63 5.78L36.47 8.34M40.33 4.52L40.89 7.16M45.14 3.75L45.42 6.44"/>
+          <path class="tempo-medi"  d="M50.00 3.00L50.00 8.40M73.50 9.30L70.80 13.97M90.70 26.50L86.03 29.20M97.00 50.00L91.60 50.00M90.70 73.50L86.03 70.80M73.50 90.70L70.80 86.03M50.00 97.00L50.00 91.60M26.50 90.70L29.20 86.03M9.30 73.50L13.97 70.80M3.00 50.00L8.40 50.00M9.30 26.50L13.97 29.20M26.50 9.30L29.20 13.97"/>
+          <path class="tempo-forti" d="M50.00 2.60L50.00 11.20M97.40 50.00L88.80 50.00M50.00 97.40L50.00 88.80M2.60 50.00L11.20 50.00"/>
           <!-- pathLength="100" e' la riga che tiene il conto semplice: l'arco si
                comanda in centesimi di giro e non in millimetri di
                circonferenza, quindi cambiare il diametro nel CSS non obbliga a
                rifare i conti in JS. -->
-          <circle class="tempo-arco" id="tempo-arco" cx="50" cy="50" r="46"
+          <circle class="tempo-arco" id="tempo-arco" cx="50" cy="50" r="41"
                   pathLength="100" stroke-dasharray="0 100" transform="rotate(-90 50 50)"/>
+          <!-- LA LANCETTA. Da spenta sta su mezzogiorno, ferma, e quella
+               immobilita' dice "non sto contando" meglio di qualunque scritta.
+               Gira col giro: la punta arriva a 36 centesimi dal centro, la coda
+               sporge di 7 dall'altra parte — e' il contrappeso, quello che a
+               occhio fa sembrare la lancetta imperniata invece che appiccicata.
+               La ruota disegnaTempo (main.js) scrivendo l'attributo transform:
+               sul giro di due ore la punta si sposta di cinque centesimi di
+               grado al secondo, quindi non serve nessuna animazione per farla
+               scorrere invece che scattare. -->
+          <g class="tempo-lancetta" id="tempo-lancetta">
+            <line class="tempo-ago" x1="50" y1="57" x2="50" y2="14"/>
+            <circle class="tempo-perno" cx="50" cy="50" r="2.6"/>
+          </g>
         </svg>
-        <svg class="tempo-lancetta" viewBox="0 0 24 24" aria-hidden="true">
-          <circle cx="12" cy="13" r="8" fill="none" stroke="currentColor" stroke-width="1.6"/>
-          <path d="M12 9v4.2l2.6 1.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-          <path d="M9.5 2.6h5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-        </svg>
-        <span class="tempo-cifre" id="tempo-cifre"></span>
+        <!-- 00:00 E' SCRITTO QUI, non messo da JS al primo disegno: a
+             cronometro spento disegnaTempo non gira affatto (parte solo
+             quando si tocca, o all'avvio se c'era una sessione da
+             riprendere), e il quadrante resterebbe senza cifre fino al primo
+             tocco. E' anche quello che si vede al primo colpo d'occhio,
+             prima che i moduli finiscano di caricarsi. -->
+        <span class="tempo-cifre" id="tempo-cifre">00:00</span>
         <!-- IL VETRO, E STA PER ULTIMO APPOSTA: la luce deve passare DAVANTI
              ai segni e alle cifre, non dietro. E' quello che sbianca in parte
-             l'orologino ed e' tutto il senso dell'effetto — messo sotto, come
-             al primo tentativo, resta una macchia chiara che non tocca
-             niente. Sono i due riflessi che drawGem disegna sulle sfere dei
+             le tacche e la lancetta ed e' tutto il senso dell'effetto — messo
+             sotto, come al primo tentativo, resta una macchia chiara che non
+             tocca niente. Sono i due riflessi che drawGem disegna sulle sfere dei
              progetti (vedi js/canvas.js), senza il corpo colorato sotto. -->
         <span class="tempo-vetro" aria-hidden="true"></span>
       </button>

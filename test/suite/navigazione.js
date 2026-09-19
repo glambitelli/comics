@@ -578,6 +578,41 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
   ok('e il cronometro sta al centro, non appeso sotto la frase',
      casa.quadranteSopra > casa.alta * 0.25, casa);
 
+  // ── LA LANCETTA SEGUE L'ARCO ──
+  // E' il punto della variante scelta il 19 settembre 2026: l'arco dice quanto
+  // hai fatto, la lancetta dice DOVE sei arrivato, e se i due non coincidono
+  // il quadrante mente. Il conto sta in disegnaTempo (main.js), che vive solo
+  // nell'app vera: nel banco del cronometro non c'e', ed e' per questo che
+  // questa prova sta qui e non in tempo.js.
+  const lancetta = await page.evaluate(async ()=>{
+    await window.tempoTocca();                 // parte
+    await new Promise(r=> setTimeout(r, 1300));
+    const arco = document.getElementById('tempo-arco');
+    const g = document.getElementById('tempo-lancetta');
+    const giro = parseFloat((arco.style.strokeDasharray || '0').split(/[\s,]+/)[0]) || 0;
+    const gradi = parseFloat((g.getAttribute('transform') || 'rotate(0').replace('rotate(', '')) || 0;
+    const acceso = document.getElementById('tempo-avvia').classList.contains('corre');
+    const cifre = document.getElementById('tempo-cifre').textContent;
+    // SCARTARE CHIEDE CONFERMA, e qui non c'e' nessuno a premere: la promessa
+    // di confirmModal non si risolverebbe mai e la prova resterebbe appesa
+    // (successo davvero, scrivendola). Si lancia senza aspettarla e si preme
+    // "Elimina" a mano, che e' poi quello che fa Giovanni.
+    window.tempoScarta();
+    await new Promise(r=> setTimeout(r, 400));
+    const ok = document.getElementById('ink-confirm-ok');
+    if(ok) ok.click();
+    await new Promise(r=> setTimeout(r, 400));
+    return { giro, gradi, acceso, cifre,
+             dopo: document.getElementById('tempo-avvia').classList.contains('corre') };
+  });
+  ok('toccando il quadrante il cronometro parte', lancetta.acceso, lancetta);
+  ok('e le cifre contano', /^00:0[0-9]$/.test(lancetta.cifre), lancetta);
+  // Cento centesimi di giro sono trecentosessanta gradi: la lancetta e la
+  // coda dell'arco devono indicare lo stesso punto del quadrante.
+  ok('la lancetta punta dove finisce l\'arco',
+     Math.abs(lancetta.gradi - lancetta.giro * 3.6) < 0.05, lancetta);
+  ok('e scartando la sessione il quadrante si spegne', !lancetta.dopo, lancetta);
+
   const daImpostazioni = await page.evaluate(()=>{
     const b = Array.from(document.querySelectorAll('.settings-vai'));
     return b.map(x=> x.textContent.replace(/[›\s]+/g,' ').trim());
