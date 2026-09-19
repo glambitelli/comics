@@ -22,11 +22,18 @@ const dom = new DOMParser().parseFromString(await (await fetch('/index.html')).t
 // La schermata References non si monta come schermata, ma scene.js importa
 // refs.js per leggere l'archivio: senza i suoi contenitori il modulo si
 // lamenterebbe disegnandosi addosso al nulla. Si prendono anche quelli.
-for(const sel of ['#screen-scene', '#scena', '#sceltarif', '#schizzo',
+for(const sel of ['#screen-projects', '#scena', '#sceltarif', '#schizzo',
                   '#screen-refs', '#refs-lightbox', '#ref-panel', '#rifila']){
   document.body.appendChild(document.importNode(dom.querySelector(sel), true));
 }
-document.getElementById('screen-scene').classList.add('active');
+document.getElementById('screen-projects').classList.add('active');
+// LO SCAFFALE GIUSTO. Dal 19 settembre 2026 le scene sono uno dei due scaffali
+// di Projects, e a riposo il markup apre sui progetti: nell'app e'
+// mostraScaffale (in main.js) a girare l'interruttore, e qui main.js non c'e'.
+// Senza queste due righe l'elenco delle scene esisterebbe ma resterebbe
+// nascosto, e ogni misura di posizione o visibilita' leggerebbe zero.
+document.getElementById('projects-pane-progetti').hidden = true;
+document.getElementById('projects-pane-scene').hidden = false;
 
 const scene = await import('/js/scene.js');
 window.scene = scene;

@@ -198,14 +198,6 @@
            se no la pagina sobbalza ogni volta che compare. -->
       <div class="tempo-esito" id="tempo-esito" role="status"></div>
     </div>
-    <div style="height:1px;background:var(--sand2);margin:14px 4px 18px"></div>
-    <!-- Attaccata alla lista che filtra, sotto la citazione: compare da sola
-         quando i progetti sono tanti (vedi SOGLIA_CERCA in home.js). -->
-    <div id="search-bar" class="home-search" style="display:none">
-      <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M15.2 15.2 20 20" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
-      <input id="search-input" type="text" oninput="filterProjects(this.value)" aria-label="Cerca progetto"/>
-    </div>
-    <button class="home-new-add" onclick="openNewModal()" aria-label="Nuovo progetto">+</button>
   </div>
 </div>
 
@@ -239,21 +231,58 @@
 </div>
 
 <!-- SCENE -->
-<div class="screen" id="screen-scene">
-  <div class="scene-header">
+<!-- PROJECTS — I LAVORI, TUTTI NELLO STESSO POSTO.
+     Chiesto da Giovanni il 19 settembre 2026. Prima i progetti stavano nella
+     HOME e le scene avevano una schermata loro sul quarto tondo: due porte
+     nella barra per la stessa domanda ("a cosa sto lavorando"), e una home che
+     faceva due mestieri insieme — "mi siedo e comincio" (citazione e
+     cronometro) e "dove sono i miei lavori". Adesso la home fa il primo e
+     questa schermata fa il secondo.
+     DUE SCAFFALI, NON UN ELENCO SOLO. Un progetto e una scena non sono la
+     stessa cosa e non devono avere la stessa tessera: le Scene sono nate
+     APPOSTA senza fasi, scadenze e percentuali (il perche' per esteso sta in
+     testa a js/scene.js), e mescolarle in colonna sotto una barra di
+     avanzamento le farebbe sembrare progetti non partiti. L'interruttore e'
+     quello di Artists/References e dei quattro scaffali dell'archivio: la
+     stessa meccanica, non una somigliante. -->
+<div class="screen" id="screen-projects">
+  <div class="projects-header">
     <div class="section-title" onclick="goHomeFromLogo()" style="cursor:pointer" role="button" tabindex="0" aria-label="Torna alla home">Inkflow <span style="font-size:.6em;color:#f0c020;vertical-align:.14em;font-weight:400">✦</span></div>
-    <div class="section-sub">scenes</div>
+    <div class="section-sub">projects</div>
   </div>
-  <div class="scene-scroll">
-    <!-- UN SOLO PULSANTE, e fa nascere la scena E la apre nello stesso tocco.
-         Chiedere prima un titolo — o anche solo mostrare una scheda nuova
-         nell'elenco da toccare a parte — sarebbe una domanda in mezzo fra
-         l'idea e il posto dove buttarla giu'. -->
-    <button class="scene-nuova" id="scene-nuova" type="button">
-      <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M12 5.5v13M5.5 12h13" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"/></svg>
-      <span>Nuova scena</span>
-    </button>
-    <div id="scene-lista"></div>
+  <div class="projects-tabs">
+    <div class="seg-vasca" id="projects-vasca">
+      <span class="seg-cursore" aria-hidden="true"></span>
+      <button class="seg-tab" id="projects-tab-progetti" onclick="setScaffaleProgetti('progetti')" type="button">Progetti <span class="projects-tab-n" id="projects-n-progetti">0</span></button>
+      <button class="seg-tab" id="projects-tab-scene" onclick="setScaffaleProgetti('scene')" type="button">Scene <span class="projects-tab-n" id="projects-n-scene">0</span></button>
+    </div>
+  </div>
+  <div class="projects-scroll" id="projects-scroll">
+    <!-- LO SCAFFALE DEI PROGETTI. Le schede le disegna renderHome (in
+         home.js): si chiama ancora cosi' perche' la home e' il posto da cui
+         vengono, e rinominarla avrebbe voluto dire toccare dieci punti per
+         cambiare una parola. -->
+    <div id="projects-pane-progetti">
+      <!-- Attaccata alla lista che filtra: compare da sola quando i progetti
+           sono tanti (vedi SOGLIA_CERCA in home.js). -->
+      <div id="search-bar" class="home-search" style="display:none">
+        <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M15.2 15.2 20 20" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+        <input id="search-input" type="text" oninput="filterProjects(this.value)" aria-label="Cerca progetto"/>
+      </div>
+      <button class="home-new-add" onclick="openNewModal()" aria-label="Nuovo progetto">+</button>
+    </div>
+    <!-- LO SCAFFALE DELLE SCENE. -->
+    <div id="projects-pane-scene" hidden>
+      <!-- UN SOLO PULSANTE, e fa nascere la scena E la apre nello stesso tocco.
+           Chiedere prima un titolo — o anche solo mostrare una scheda nuova
+           nell'elenco da toccare a parte — sarebbe una domanda in mezzo fra
+           l'idea e il posto dove buttarla giu'. -->
+      <button class="scene-nuova" id="scene-nuova" type="button">
+        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M12 5.5v13M5.5 12h13" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"/></svg>
+        <span>Nuova scena</span>
+      </button>
+      <div id="scene-lista"></div>
+    </div>
   </div>
 </div>
 
@@ -1354,12 +1383,13 @@
       <svg width="20" height="20" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="8" cy="9.5" r="1.6" fill="currentColor"/><path d="M4 16 L9 11 L13 15 L16 12 L20 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </button>
     <!-- QUESTA FILA E' LA BARRA-DUNA DEL MOUSE, e deve dire le stesse cose:
-         sera, References, Scene, Impostazioni. Era rimasta indietro — teneva
-         ancora le Statistiche e non aveva le Scene — e dal browser la sezione
-         nuova semplicemente non esisteva. Le Statistiche si aprono dalle
-         Impostazioni, come sul telefono. -->
-    <button id="btn-scene" onclick="openScene()" class="home-fab" aria-label="scenes" title="scenes">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"><rect x="3.5" y="3.5" width="17" height="17" rx="2.2"/><path d="M3.5 11h17"/><path d="M12 11v9.5"/></svg>
+         sera, References, Projects, Impostazioni. Era rimasta indietro —
+         teneva ancora le Statistiche — e dal browser le sezioni nuove
+         semplicemente non esistevano. Le Statistiche si aprono dalle
+         Impostazioni, come sul telefono. Il glifo e' lo stesso della
+         barra-duna: due fogli sovrapposti. -->
+    <button id="btn-projects" onclick="openProjects()" class="home-fab" aria-label="projects" title="projects">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"><rect x="3.2" y="6.5" width="13.5" height="14" rx="2.2"/><path d="M7.4 3.5h11.4a2 2 0 0 1 2 2v11"/></svg>
     </button>
     <button id="btn-settings" onclick="openSettings()" class="home-fab" aria-label="impostazioni" title="impostazioni"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
   </div>
@@ -1397,20 +1427,19 @@
     <button class="dune-btn dune-btn-light dune-btn-home" onclick="goHome()" aria-label="home" title="home">
       <svg class="dune-home-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3L2 11h2.3v9a1 1 0 0 0 1 1H10v-6h4v6h4.7a1 1 0 0 0 1-1v-9H22L12 3Z" fill="currentColor"/></svg>
     </button>
-    <!-- IL QUARTO TONDO E' DELLE SCENE, ed era delle Idee. Le due schermate si
-         somigliano — si scrive in tutte e due — ma non si usano allo stesso
-         modo: il taccuino si apre quando passa un pensiero, cioe' di rado e da
-         fermi, mentre una scena si apre per lavorarci. Le Idee sono scese in
-         Impostazioni, dove sono gia' andate le Statistiche per la stessa
-         ragione. -->
-    <!-- IL GLIFO E' UNA TAVOLA, non quattro quadratini. I quattro quadratini
-         erano l'icona "griglia" che mettono tutti, e non dicevano niente: nella
-         barra c'e' gia' un rettangolo con dentro un disegno (References), e due
-         rettangoli generici accanto si scambiano. Questa invece e' una gabbia
-         da fumetto — una vignetta larga in cima, due sotto — che e' la cosa che
-         si sta costruendo qui dentro. -->
-    <button class="dune-btn dune-btn-light" onclick="openScene()" aria-label="scenes" title="scenes">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"><rect x="3.5" y="3.5" width="17" height="17" rx="2.2"/><path d="M3.5 11h17"/><path d="M12 11v9.5"/></svg>
+    <!-- IL QUARTO TONDO E' DEI LAVORI, ed e' stato delle Idee e poi delle
+         Scene. Le Idee sono scese in Impostazioni — il taccuino si apre
+         quando passa un pensiero, di rado e da fermi — e le Scene non sono
+         piu' una sezione a parte: sono uno dei due scaffali qui dentro (vedi
+         #screen-projects). Prima i progetti stavano nella home e le scene
+         avevano il tondo: due porte per la stessa domanda.
+         IL GLIFO SONO DUE FOGLI SOVRAPPOSTI, e non la gabbia da fumetto di
+         prima: quella diceva "una tavola", cioe' una cosa sola, e qui dentro
+         ci sono i lavori al plurale — opere lunghe e scene brevi. Nella barra
+         c'e' gia' un rettangolo con dentro un disegno (References): due fogli
+         staccati non si confondono con quello, una gabbia si'. -->
+    <button class="dune-btn dune-btn-light" onclick="openProjects()" aria-label="projects" title="projects">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"><rect x="3.2" y="6.5" width="13.5" height="14" rx="2.2"/><path d="M7.4 3.5h11.4a2 2 0 0 1 2 2v11"/></svg>
     </button>
     <button class="dune-btn dune-btn-light" onclick="toggleSettings()" aria-label="impostazioni" title="impostazioni"><span class="dune-g-gear">⚙</span></button>
   </div>

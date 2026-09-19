@@ -1,15 +1,21 @@
-// Home — la ricerca progetti compare quando serve, e non prima
+// Projects — la ricerca progetti compare quando serve, e non prima
 //
 // Gira sull'APP VERA (come navigazione.js): la soglia dipende da quanti
 // progetti ci sono davvero in state.js e da renderHome che li disegna. Un
-// banco che rimontasse i due a mano proverebbe una home che non esiste.
+// banco che rimontasse i due a mano proverebbe una schermata che non esiste.
+//
+// DAL 19 SETTEMBRE 2026 LE SCHEDE NON STANNO PIU' NELLA HOME, ma nello
+// scaffale "Progetti" della schermata Projects: la funzione che le disegna si
+// chiama ancora renderHome (da li' vengono), e le prove qui sotto aprono
+// quella schermata prima di misurare — a schermata chiusa ogni larghezza e'
+// zero e i controlli di ritaglio direbbero il falso.
 const fs = require('fs');
 const path = require('path');
 const { suite } = require('../motore.js');
 
 const SDK_FINTO = fs.readFileSync(path.join(__dirname, '..', 'finti', 'firebase-sdk.js'), 'utf8');
 
-module.exports = () => suite("Home — la ricerca progetti compare quando serve", {
+module.exports = () => suite("Projects — la ricerca progetti compare quando serve", {
   banco: '/index.html',
   pronto: ()=> !!document.querySelector('#screen-home'),
   prima: async (page)=>{
@@ -21,6 +27,10 @@ module.exports = () => suite("Home — la ricerca progetti compare quando serve"
 }, async ({ page, ok, sezione }) => {
 
   await page.waitForTimeout(1800);          // i moduli finiscono di montarsi
+  // Le schede vivono in Projects: senza aprirla si misurerebbe una schermata
+  // spenta, dove tutto e' alto e largo zero.
+  await page.evaluate(()=> window.openProjects());
+  await page.waitForTimeout(500);
 
   // I moduli si prendono con un import dinamico DALLA PAGINA: stesso URL,
   // quindi stessa istanza già caricata dall'app — non una copia.

@@ -6,12 +6,12 @@
    se un giorno cambiano la', vanno cambiate anche qui: due pixel di differenza
    non si notano fermi, ma passando da una schermata all'altra il marchio
    "Inkflow" scatta di lato. */
-.scene-header{
+.projects-header{
   background:var(--white);padding:calc(24px + var(--safe-top)) 24px 10px;
   position:relative;overflow:hidden;flex-shrink:0;
   border-radius:0 0 28px 28px;border-bottom:3px solid var(--sky);z-index:1;
 }
-.scene-header::before{
+.projects-header::before{
   content:'';position:absolute;top:0;left:0;right:0;height:5px;
   background:linear-gradient(90deg,var(--coral),var(--gold),var(--green),var(--sky));
 }
@@ -24,12 +24,29 @@
    a leggere, che e' esattamente quello che non deve fare.
    SVG e non un'immagine: pesa duecento byte, non fa una richiesta di rete, e non
    sgrana sugli schermi ad alta densita'. */
-.scene-scroll{
+.projects-scroll{
   flex:1;overflow-y:auto;
   background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='linear' slope='0.05'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23g)'/%3E%3C/svg%3E"), var(--fondo-carta);
   padding:14px 14px calc(20px + var(--safe-bot));
 }
-body.is-touch .scene-scroll{padding-bottom:calc(110px + var(--safe-bot))}
+body.is-touch .projects-scroll{padding-bottom:calc(110px + var(--safe-bot))}
+
+/* ── L'INTERRUTTORE DEI DUE SCAFFALI ──
+   Stessa fascia e stesse misure di .refs-axis: le due schermate si alternano
+   nella barra in fondo, e due interruttori di altezza diversa si vedono
+   scattare passando dall'una all'altra. Qui non ha nessuno stato "nascosto"
+   — gli scaffali sono sempre due — quindi niente classe .show. */
+.projects-tabs{background:var(--fondo-carta);flex-shrink:0;padding:2px 16px 14px}
+.projects-tabs .seg-vasca{--n:2}
+/* Il numero accanto al nome e' un contorno, non un'etichetta: dice quanto e'
+   pieno lo scaffale senza rubare l'occhio alla parola. Stesso trattamento dei
+   numeri sui quattro scaffali dell'archivio. */
+.projects-tab-n{font-weight:700;opacity:.45;margin-left:2px}
+/* Uno scaffale per volta. hidden da solo non basterebbe: questi due non sono
+   .prosp-btn e nessuna regola d'autore gli mette display, quindi il
+   display:none del browser vale — ma scriverlo qui lo rende una scelta
+   leggibile invece di un effetto collaterale. */
+#projects-pane-progetti[hidden],#projects-pane-scene[hidden]{display:none}
 
 /* ── NUOVA SCENA ──
    Largo quanto la schermata e in cima, come la casella del taccuino: il valore

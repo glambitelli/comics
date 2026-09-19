@@ -157,7 +157,7 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
   // schermata: il titolo scattava di lato. Qui si misurano tutte insieme.
   const testate = await page.evaluate(()=>{
     const quali = { home:'.home-header', refs:'.refs-header', idee:'.idee-header',
-                    stats:'.stats-header', scene:'.scene-header',
+                    stats:'.stats-header', projects:'.projects-header',
                     progetto:'.proj-header' };
     const esito = {};
     for(const [nome, sel] of Object.entries(quali)){
@@ -181,7 +181,7 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
     });
     return esito;
   });
-  const chiavi = ['home','refs','idee','stats','scene','progetto'].filter(k=> testate[k]);
+  const chiavi = ['home','refs','idee','stats','projects','progetto'].filter(k=> testate[k]);
   const uguali = campo => new Set(chiavi.map(k=> testate[k][campo])).size === 1;
   ok('stessa imbottitura su tutte', uguali('imbottitura'), testate);
   ok('stessi angoli in basso', uguali('angoli'), testate);
@@ -286,19 +286,19 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
       // E dove la sezione ha un nome scritto, il tooltip e' quello.
       refs: bottoni.filter(b=> /openRefsScreen/.test(b.getAttribute('onclick')||''))
                    .map(b=> b.getAttribute('title')),
-      scene: bottoni.filter(b=> /openScene/.test(b.getAttribute('onclick')||''))
+      projects: bottoni.filter(b=> /openProjects/.test(b.getAttribute('onclick')||''))
                     .map(b=> b.getAttribute('title')),
-      nomeRefs: sub('screen-refs'), nomeScene: sub('screen-scene'),
+      nomeRefs: sub('screen-refs'), nomeProjects: sub('screen-projects'),
     };
   });
   ok('ogni pulsante ha un tooltip', nomi.senzaTitle.length === 0, nomi);
   ok('References si chiama come la sua sezione',
      nomi.refs.length === 2 && nomi.refs.every(t=> t === nomi.nomeRefs), nomi);
-  ok('e le Scene pure',
-     nomi.scene.length === 2 && nomi.scene.every(t=> t === nomi.nomeScene), nomi);
+  ok('e Projects pure',
+     nomi.projects.length === 2 && nomi.projects.every(t=> t === nomi.nomeProjects), nomi);
 
   console.log('\n── e col mouse i pulsanti si vedono da ogni schermata ──');
-  // Stavano dentro #screen-home: da References o dalle Scene, col mouse, non
+  // Stavano dentro #screen-home: da References o da Projects, col mouse, non
   // c'era piu' un modo di spostarsi che non fosse il tasto Indietro.
   // Il resto della suite gira a misura di telefono, dove comanda la barra-duna:
   // qui serve una finestra da mouse, e il rilevamento del tocco si ricalcola
@@ -307,7 +307,7 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
   await page.waitForTimeout(400);
   const dovunque = [];
   for(const [nome, id] of [['home','screen-home'], ['references','screen-refs'],
-                           ['scene','screen-scene'], ['progetto','screen-project']]){
+                           ['projects','screen-projects'], ['progetto','screen-project']]){
     dovunque.push(await page.evaluate((arg)=>{
       document.querySelectorAll('.screen').forEach(s=> s.classList.remove('active'));
       document.getElementById(arg.id).classList.add('active');
@@ -399,8 +399,8 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
   // il fondo del body — sabbia chiara — invece di quello della schermata: due
   // tacche piu' chiare ai lati, che si notano proprio perche' stanno ai bordi.
   const fondi = await page.evaluate(()=>{
-    const quali = ['screen-scene','screen-idee','screen-refs','screen-stats','screen-project'];
-    const scroll = { 'screen-scene':'.scene-scroll', 'screen-idee':'.idee-scroll',
+    const quali = ['screen-projects','screen-idee','screen-refs','screen-stats','screen-project'];
+    const scroll = { 'screen-projects':'.projects-scroll', 'screen-idee':'.idee-scroll',
                      'screen-refs':'.refs-scroll', 'screen-stats':'.stats-scroll',
                      'screen-project':'.proj-scroll' };
     return quali.map(id=>{
@@ -436,26 +436,30 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
   ok('e nessuna resta trasparente sul body',
      fondi.every(f=> f.schermata && !/rgba\(0, 0, 0, 0\)/.test(f.schermata)), fondi);
 
-  console.log('\n── il quarto tondo porta alle Scene, e il taccuino e\' sceso in Impostazioni ──');
+  console.log('\n── il quarto tondo porta a Projects, e il taccuino e\' sceso in Impostazioni ──');
   // I cinque tondi sono per quello che si tocca ogni volta che si apre l'app.
   // Il taccuino si apre quando passa un pensiero — di rado, e da fermi — e per
-  // questo e' sceso dov'erano gia' andate le Statistiche.
+  // questo e' sceso dov'erano gia' andate le Statistiche. Le Scene invece non
+  // hanno perso il tondo: se lo dividono coi progetti, che dal 19 settembre
+  // 2026 non stanno piu' nella home.
   const quarto = await page.evaluate(()=>{
     const b = Array.from(document.querySelectorAll('.dune-btn'));
     return {
       etichette: b.map(x=> x.getAttribute('aria-label')),
+      projects: b.some(x=> x.getAttribute('aria-label') === 'projects'),
       scene: b.some(x=> x.getAttribute('aria-label') === 'scenes'),
       idee: b.some(x=> x.getAttribute('aria-label') === 'ideas'),
       quanti: b.length,
     };
   });
-  ok('nella barra c\'e\' Scene', quarto.scene, quarto);
-  // IL GLIFO E' UNA TAVOLA, non l'icona "griglia" che mettono tutti: nella
-  // barra c'e' gia' un rettangolo con dentro un disegno (References), e due
-  // rettangoli generici accanto si scambiano. Una gabbia da fumetto invece dice
-  // di cosa parla la sezione — ed e' quello che la Board mostra.
+  ok('nella barra c\'e\' Projects', quarto.projects, quarto);
+  ok('e le Scene non hanno piu\' un tondo loro', !quarto.scene, quarto);
+  // IL GLIFO SONO DUE FOGLI SOVRAPPOSTI, e non la gabbia da fumetto di prima:
+  // quella diceva "una tavola", cioe' una cosa sola, e qui dentro ci sono i
+  // lavori al plurale. Nella barra c'e' gia' un rettangolo con dentro un
+  // disegno (References): due fogli staccati non si confondono con quello.
   const glifo = await page.evaluate(()=>{
-    const b = document.querySelector('.dune-btn[aria-label="scenes"]');
+    const b = document.querySelector('.dune-btn[aria-label="projects"]');
     const svg = b.querySelector('svg');
     return {
       rettangoli: svg.querySelectorAll('rect').length,
@@ -464,17 +468,16 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
       lato: svg.getAttribute('width'),
     };
   });
-  ok('il glifo e\' una gabbia: una cornice e due divisioni',
-     glifo.rettangoli === 1 && glifo.divisioni === 2, glifo);
-  ok('e non quattro quadratini staccati', glifo.rettangoli < 4, glifo);
+  ok('il glifo sono due fogli: un rettangolo davanti e uno accennato dietro',
+     glifo.rettangoli === 1 && glifo.divisioni === 1, glifo);
   ok('grande come gli altri', glifo.lato === '18', glifo);
   ok('e Idee non c\'e\' piu\'', !quarto.idee, quarto);
   ok('i tondi restano cinque', quarto.quanti === 5, quarto);
 
   // LA FILA DEL MOUSE DEVE DIRE LE STESSE COSE. La barra-duna e' solo touch:
   // col mouse la navigazione sono i tondi in cima alla home, ed erano rimasti
-  // indietro — tenevano ancora le Statistiche e non avevano le Scene. Dal
-  // browser la sezione nuova semplicemente non esisteva.
+  // indietro — tenevano ancora le Statistiche. Dal browser le sezioni nuove
+  // semplicemente non esistevano.
   const colMouse = await page.evaluate(()=>{
     const b = Array.from(document.querySelectorAll('.home-fab-row .home-fab'));
     // Sta FUORI dalle schermate, come la barra-duna: dentro #screen-home
@@ -482,12 +485,12 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
     const fuori = !document.getElementById('screen-home').contains(document.querySelector('.home-fab-row'));
     return {
       etichette: b.map(x=> x.getAttribute('aria-label')),
-      scene: b.some(x=> x.getAttribute('aria-label') === 'scenes'),
+      projects: b.some(x=> x.getAttribute('aria-label') === 'projects'),
       stats: b.some(x=> x.getAttribute('aria-label') === 'stats'),
       fuori,
     };
   });
-  ok('col mouse le Scene ci sono', colMouse.scene, colMouse);
+  ok('col mouse Projects c\'e\'', colMouse.projects, colMouse);
   ok('e la fila vive fuori dalla home, come la barra-duna', colMouse.fuori, colMouse);
   // Le Statistiche si guardano ogni tanto, non ogni giorno: stanno in cima
   // alle Impostazioni, sul telefono come col mouse.
@@ -499,15 +502,78 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
        === quarto.etichette.filter(x=> x !== 'home').join(' | '),
      { colMouse: colMouse.etichette, barra: quarto.etichette });
 
-  await page.evaluate(()=> document.querySelector('.dune-btn[aria-label="scenes"]').click());
-  await page.waitForTimeout(600);
-  const suScene = await page.evaluate(()=>({
-    attiva: document.getElementById('screen-scene').classList.contains('active'),
-    // Un tap dalla home e si e' gia' davanti al pulsante per cominciare.
-    comincia: !!document.getElementById('scene-nuova'),
+  await page.evaluate(()=> document.querySelector('.dune-btn[aria-label="projects"]').click());
+  await page.waitForTimeout(900);
+  const suProjects = await page.evaluate(()=>({
+    attiva: document.getElementById('screen-projects').classList.contains('active'),
+    // Si atterra sui progetti, che sono la cosa per cui si torna qui ogni
+    // giorno; le scene stanno sull'altro scaffale, a un tocco.
+    scaffale: document.getElementById('projects-tab-progetti').classList.contains('active'),
+    progettiVisti: !document.getElementById('projects-pane-progetti').hidden,
+    sceneNascoste: document.getElementById('projects-pane-scene').hidden,
+    // I due scaffali si chiamano per nome, col loro conto accanto.
+    nomi: Array.from(document.querySelectorAll('#projects-vasca .seg-tab'))
+            .map(b=> b.textContent.replace(/\s+/g,' ').trim()),
   }));
-  ok('un tocco solo e si e\' nelle Scene', suScene.attiva, suScene);
+  ok('un tocco solo e si e\' in Projects', suProjects.attiva, suProjects);
+  ok('si atterra sullo scaffale dei progetti',
+     suProjects.scaffale && suProjects.progettiVisti && suProjects.sceneNascoste, suProjects);
+  ok('e i due scaffali si chiamano Progetti e Scene',
+     /^Progetti/.test(suProjects.nomi[0]) && /^Scene/.test(suProjects.nomi[1]), suProjects.nomi);
+
+  // L'INTERRUTTORE. Un tocco e si passa alle scene, col modo di cominciarne
+  // una gia' a schermo: e' il gesto per cui la sezione esiste.
+  const suScene = await page.evaluate(async ()=>{
+    document.getElementById('projects-tab-scene').click();
+    await new Promise(r=> setTimeout(r, 400));
+    return {
+      scene: !document.getElementById('projects-pane-scene').hidden,
+      progetti: document.getElementById('projects-pane-progetti').hidden,
+      comincia: !!document.getElementById('scene-nuova'),
+      // Il cursore bianco si sposta sul secondo posto.
+      cursore: document.getElementById('projects-vasca').style.getPropertyValue('--i'),
+    };
+  });
+  ok('l\'interruttore porta alle Scene', suScene.scene && suScene.progetti, suScene);
   ok('col modo di cominciare gia\' a schermo', suScene.comincia, suScene);
+  ok('e il cursore si sposta sul secondo scaffale', suScene.cursore === '1', suScene);
+
+  console.log('\n── e la home e\' rimasta in due: la citazione e il cronometro ──');
+  // IL CUORE DEL RIASSETTO CHIESTO DA GIOVANNI IL 19 SETTEMBRE 2026. La home
+  // faceva due mestieri nello stesso schermo — "mi siedo e comincio" e "dove
+  // sono i miei lavori" — e sono due momenti diversi. Adesso fa il primo, e i
+  // progetti stanno in Projects insieme alle scene.
+  const casa = await page.evaluate(async ()=>{
+    document.querySelector('.dune-btn[aria-label="home"]').click();
+    await new Promise(r=> setTimeout(r, 400));
+    const sc = document.getElementById('home-scroll');
+    const cit = document.getElementById('home-quote');
+    const q = document.getElementById('tempo-posto');
+    const r = sc.getBoundingClientRect();
+    return {
+      attiva: document.getElementById('screen-home').classList.contains('active'),
+      schede: sc.querySelectorAll('.project-card').length,
+      piu: !!sc.querySelector('.home-new-add'),
+      ricerca: !!sc.querySelector('#search-bar'),
+      citazione: !!cit,
+      quadrante: !!q && q.getBoundingClientRect().height > 40,
+      // Quanto spazio resta SOPRA il primo pezzo di contenuto. Appeso in alto
+      // sarebbe l'imbottitura e basta (una ventina di pixel); centrato, e'
+      // mezzo schermo.
+      sopra: Math.round(cit.getBoundingClientRect().top - r.top),
+      alta: Math.round(r.height),
+    };
+  });
+  ok('la home e\' attiva', casa.attiva, casa);
+  ok('e non porta piu\' nessuna scheda di progetto', casa.schede === 0, casa);
+  ok('ne\' il "+" per crearne uno', !casa.piu, casa);
+  ok('ne\' il campo di ricerca', !casa.ricerca, casa);
+  ok('restano la citazione e il cronometro', casa.citazione && casa.quadrante, casa);
+  // Era una cosa gia' chiesta quando il cronometro e' diventato il marchio
+  // ("piu' grande e centrale"), e finche' sotto c'erano le schede non si
+  // poteva fare.
+  ok('e il cronometro sta al centro, non appeso in alto',
+     casa.sopra > casa.alta * 0.22, casa);
 
   const daImpostazioni = await page.evaluate(()=>{
     const b = Array.from(document.querySelectorAll('.settings-vai'));

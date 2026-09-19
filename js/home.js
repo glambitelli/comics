@@ -38,9 +38,20 @@ export function getScriptment(p){
   return p.scriptment;
 }
 
+// LE SCHEDE NON STANNO PIU' NELLA HOME, ma nello scaffale "Progetti" della
+// schermata Projects (19 settembre 2026): la home fa "mi siedo e comincio" e
+// tiene solo la citazione e il cronometro. Il nome di questa funzione non e'
+// cambiato apposta — le schede da qui vengono, e rinominarla avrebbe voluto
+// dire toccare dieci punti fra main.js e le prove per cambiare una parola.
 export function renderHome(){
   aggiornaRicerca();
-  const scroll = document.getElementById('home-scroll');
+  // Il numero accanto al nome dello scaffale: lo scrive chi disegna l'elenco,
+  // come fa renderScene per le scene. Sta prima del ritorno qui sotto perche'
+  // anche "0" e' una risposta.
+  const conto = document.getElementById('projects-n-progetti');
+  if(conto) conto.textContent = projects.length;
+  const scroll = document.getElementById('projects-pane-progetti');
+  if(!scroll) return;
   scroll.querySelectorAll('.project-card').forEach(c => c.remove());
   const newBtn = scroll.querySelector('.home-new-add');
   projects.forEach(p => {
@@ -259,7 +270,8 @@ export function filterProjects(query){
 }
 
 export function attachCardDrag(){
-  const scroll = document.getElementById('home-scroll');
+  const scroll = document.getElementById('projects-pane-progetti');
+  if(!scroll) return;
   let dragCard=null;
 
   scroll.querySelectorAll('.project-card').forEach((card,i)=>{

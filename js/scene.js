@@ -213,6 +213,13 @@ export async function eliminaScena(id){
 // La prima immagine invece dice di che scena si tratta, che e' l'unica cosa che
 // serve per riconoscerla nell'elenco.
 export function renderScene(){
+  // IL NUMERO ACCANTO AL NOME DELLO SCAFFALE lo scrive chi disegna l'elenco, e
+  // non chi cambia scaffale: le scene arrivano da Firestore quando vogliono
+  // loro, e un conto calcolato solo all'ingresso resterebbe fermo all'ultima
+  // volta che si e' toccato l'interruttore. Sta prima del ritorno qui sotto
+  // perche' vale anche a elenco vuoto: "0" e' una risposta.
+  const conto = document.getElementById('projects-n-scene');
+  if(conto) conto.textContent = _scene.length;
   const lista = document.getElementById('scene-lista');
   if(!lista) return;
 

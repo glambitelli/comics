@@ -49,7 +49,7 @@
    bordi.
    Il colore e' --fondo-carta, lo stesso dei quattro *-scroll: un nome solo,
    cosi' non puo' piu' restare indietro in un file e non nell'altro. */
-#screen-scene,#screen-idee,#screen-refs,#screen-stats,#screen-project{background:var(--fondo-carta)}
+#screen-projects,#screen-idee,#screen-refs,#screen-stats,#screen-project{background:var(--fondo-carta)}
 
 /* ── BARRA-DUNA MOBILE (solo dispositivi touch) ── */
 .dune-nav{display:none}
@@ -214,7 +214,7 @@ body:not(.is-touch):not(.evening-mode) .home-scroll,
 body:not(.is-touch):not(.evening-mode) .proj-scroll,
 body:not(.is-touch):not(.evening-mode) .refs-scroll,
 body:not(.is-touch):not(.evening-mode) .stats-scroll,
-body:not(.is-touch):not(.evening-mode) .scene-scroll,
+body:not(.is-touch):not(.evening-mode) .projects-scroll,
 body:not(.is-touch):not(.evening-mode) .idee-scroll{padding-bottom:calc(85px + var(--safe-bot))}
 
 /* ── UNDO TOAST ── */

@@ -135,7 +135,7 @@ function hideAllScreens(){
   // Elimina" di una cartella di References appoggiato sopra le schede della
   // home, ancora funzionante e riferito a una cosa non piu' a schermo.
   closeActionMenu();
-  ['screen-home','screen-project','screen-stats','screen-evening','screen-refs','screen-idee','screen-scene'].forEach(id=>{
+  ['screen-home','screen-project','screen-stats','screen-evening','screen-refs','screen-idee','screen-projects'].forEach(id=>{
     const el = document.getElementById(id);
     if(el) el.classList.remove('active');
   });
@@ -176,16 +176,63 @@ async function openIdee(){
   m.initIdee();
 }
 
-// Le Scene. Stessa forma del taccuino: la schermata compare subito e il modulo
-// arriva un istante dopo. Qui conta doppio — si entra con una scena in testa, e
-// mezzo secondo di schermo fermo basta a perderla.
-async function openScene(){
+// ── PROJECTS: I LAVORI, DUE SCAFFALI ──
+//
+// Dal 19 settembre 2026 il quarto tondo porta qui, e i progetti non stanno
+// piu' nella home (vedi #screen-projects in index.html). Dentro ci sono due
+// scaffali: le opere lunghe e le scene brevi. Sono cose diverse con tessere
+// diverse — il perche' sta nel commento del markup — e questo pezzo si occupa
+// solo di quale dei due e' a schermo.
+//
+// LO SCAFFALE E' UNO STATO DI MODULO, non un pezzo di URL: tornandoci si
+// ritrova quello da cui si era usciti, che e' quello che ci si aspetta da un
+// interruttore. Il tasto Indietro invece distingue i due ingressi (vedi
+// __navSync qui sotto), perche' quelli sono due POSTI diversi da cui si e'
+// arrivati.
+let _scaffaleProgetti = 'progetti';
+
+async function openProjects(quale){
   hideAllScreens();
-  document.getElementById('screen-scene').classList.add('active');
-  if(window.__navSync) window.__navSync('scene');
+  document.getElementById('screen-projects').classList.add('active');
+  const dove = (quale === 'scene' || quale === 'progetti') ? quale : _scaffaleProgetti;
+  if(window.__navSync) window.__navSync(dove === 'scene' ? 'scene' : 'projects');
+  await mostraScaffale(dove);
+}
+// "scene" RESTA UN INGRESSO SUO, e non e' pignoleria: nella cronologia del
+// telefono possono esserci stati 'scene' registrati prima di questo
+// riassetto, e showScreen deve continuare a saperli riaprire. Da fuori e'
+// anche il modo di dire "portami alle scene" in un colpo solo.
+async function openScene(){ return openProjects('scene'); }
+
+// La schermata e' gia' a video quando si arriva qui: si cambia solo scaffale.
+// Il modulo delle scene si carica alla PRIMA apertura di Projects, non al
+// primo tocco su "Scene": il numero accanto al nome dello scaffale deve
+// essere vero anche stando sui progetti, e senza il listener acceso sarebbe
+// uno zero per finta.
+async function mostraScaffale(quale){
+  _scaffaleProgetti = (quale === 'scene') ? 'scene' : 'progetti';
+  const suScene = _scaffaleProgetti === 'scene';
+  const pp = document.getElementById('projects-pane-progetti');
+  const ps = document.getElementById('projects-pane-scene');
+  if(pp) pp.hidden = suScene;
+  if(ps) ps.hidden = !suScene;
+  // Il cursore bianco scorre sullo scaffale scelto: un numero, e il resto lo
+  // fa il CSS (stessa meccanica dei quattro scaffali dell'archivio).
+  const vasca = document.getElementById('projects-vasca');
+  if(vasca) vasca.style.setProperty('--i', suScene ? 1 : 0);
+  const tp = document.getElementById('projects-tab-progetti');
+  const ts = document.getElementById('projects-tab-scene');
+  if(tp) tp.classList.toggle('active', !suScene);
+  if(ts) ts.classList.toggle('active', suScene);
+  // Le schede si ridisegnano ad ogni ingresso: un progetto puo' essere
+  // cambiato da un'altra schermata (rinominato, cancellato, avanzato di una
+  // tavola) mentre questa stava ferma sotto.
+  renderHome(); attachCardDrag();
   const m = await trackResolved('./scene.js');
   m.initScene();
 }
+// L'interruttore in cima alla schermata.
+window.setScaffaleProgetti = quale=>{ mostraScaffale(quale); };
 
 // Preparazione comune della schermata References, condivisa da tutti i punti
 // d'ingresso (elenco cartelle, una cartella specifica, "All"): apre lo schermo
@@ -326,7 +373,7 @@ window.toggleEvening=toggleEvening;
   function wireScrollHide(){
     const nav = document.getElementById('dune-nav');
     if(!nav) return;
-    const containers = document.querySelectorAll('.home-scroll,.proj-scroll,.evening-scroll,.stats-scroll');
+    const containers = document.querySelectorAll('.home-scroll,.proj-scroll,.projects-scroll,.evening-scroll,.stats-scroll');
     containers.forEach(el=>{
       if(el.dataset.duneWired) return;
       el.dataset.duneWired = '1';
@@ -435,10 +482,13 @@ onSnapshot(collection(db, COL), snapshot => {
 
 window.openNewModal=openNewModal; window.closeModal=closeModal; window.createProject=createProject;
 
+// LA HOME NON DISEGNA PIU' L'ELENCO. Le schede stanno nello scaffale
+// "Progetti" di #screen-projects, e le ridisegna mostraScaffale ad ogni
+// ingresso: farlo anche qui vorrebbe dire ricostruire l'HTML di tutte le
+// schede ad ogni visita alla home, per una cosa che la home non mostra.
 const goHomeImpl=()=>{
   hideAllScreens();
   document.getElementById('screen-home').classList.add('active');
-  renderHome(); attachCardDrag();
   if(window._resumeSand) window._resumeSand();
 };
 window.togglePhase=togglePhase;
@@ -503,6 +553,7 @@ async function showScreen(view, id){
     if(view === 'project' && id && getProject(id)){ openProject(id); }
     else if(view === 'stats'){ await openStats(); }
     else if(view === 'idee'){ await openIdee(); }
+    else if(view === 'projects'){ await openProjects('progetti'); }
     else if(view === 'scene'){ await openScene(); }
     else if(view === 'refs'){ await openRefsScreen(); }
     else if(view === 'refs-folder' && id){ await openRefsScreenAtFolder(id); }
@@ -592,6 +643,7 @@ window.openProject = openProject;
 window.openStats = openStats;
 window.openIdee = openIdee;
 window.openScene = openScene;
+window.openProjects = openProjects;
 window.enterEveningMode = entraInSera;
 // Azioni "indietro" — passano dalla cronologia, così il back del browser resta coerente.
 // Stats e sera si aprono sempre direttamente sopra la Home (un solo livello),

@@ -2,7 +2,7 @@
    Era l'unica schermata con un'intestazione tutta sua — sabbia, filo d'oro,
    angoli piu' stretti — e passando da References a un progetto il marchio
    cambiava misura e colore di fondo sotto gli occhi. Adesso e' identica a
-   .refs-header, .scene-header, .idee-header e .stats-header: se un giorno
+   .refs-header, .projects-header, .idee-header e .stats-header: se un giorno
    cambiano la', va cambiata anche qui. */
 /* STA FUORI DALLO SCROLL, come .refs-header e le altre: e' l'intestazione che
    RESTA mentre si scorre. Per un po' era finita dentro lo scroll, cosi' il

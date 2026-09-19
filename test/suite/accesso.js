@@ -94,7 +94,7 @@ module.exports = () => suite("Accesso — l'archivio si apre solo a chi e' entra
     // E nessuna di quelle schermate e' stata aperta: si scaldano i DATI, non
     // le stanze.
     archivioAperto: document.getElementById('screen-refs').classList.contains('active'),
-    sceneAperte: document.getElementById('screen-scene').classList.contains('active'),
+    sceneAperte: document.getElementById('screen-projects').classList.contains('active'),
   }));
   ok('l\'archivio e\' gia\' in ascolto', scaldati.ascolti.includes('refs'), scaldati.ascolti);
   // Le cartelle vanno insieme alle immagini: un'immagine sa in che cartella

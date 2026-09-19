@@ -272,7 +272,7 @@ module.exports = () => suite("Scene — un riquadro per volta, cento caratteri",
   // tono della sezione, ed e' facile perderla aggiungendo una funzione alla
   // volta: qui si guarda tutto il testo a schermo in una volta sola.
   const parole = await page.evaluate(()=>{
-    const t = [document.getElementById('screen-scene'), document.getElementById('scena')]
+    const t = [document.getElementById('screen-projects'), document.getElementById('scena')]
       .map(e=> e.textContent + ' ' + Array.from(e.querySelectorAll('[placeholder]')).map(x=>x.placeholder).join(' '))
       .join(' ');
     return t.toLowerCase();
@@ -283,7 +283,7 @@ module.exports = () => suite("Scene — un riquadro per volta, cento caratteri",
 
   sezione('nessuna barra, nessuna soglia');
   const misure = await page.evaluate(()=>({
-    barre: document.querySelectorAll('#screen-scene progress, #scena progress, #scena .barra, #scena [role="progressbar"]').length,
+    barre: document.querySelectorAll('#screen-projects progress, #scena progress, #scena .barra, #scena [role="progressbar"]').length,
   }));
   ok('non c\'e\' nessuna barra di completamento', misure.barre === 0, misure);
 
