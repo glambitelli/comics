@@ -159,6 +159,21 @@
            la mappa luminosa come se avesse luce propria. L'interruttore
            resta fuori di qui, ed e' il punto. -->
       <div class="scriv-tavolo">
+        <!-- IL NASTRO DI CARTA e LA MATITA. Non sono dati: sono le due cose che
+             fanno leggere il foglio come APPOGGIATO su un piano invece che
+             disegnato sulla pagina. Il nastro e' storto di angoli diversi ai
+             due capi, perche' nessuno attacca due pezzi di scotch paralleli.
+             Idea di Giovanni sulla scrivania di Jill Valentine (21 settembre
+             2026): sul suo tavolo la mappa e' fissata, non incollata. -->
+        <span class="scriv-nastro a" aria-hidden="true"></span>
+        <span class="scriv-nastro b" aria-hidden="true"></span>
+        <span class="scriv-matita" aria-hidden="true"></span>
+        <!-- LA FOTO DELL'ULTIMO STUDIO, col fermaglio. Questa invece E' un
+             dato: e' l'ultima immagine entrata nell'archivio (getRefs()[0]),
+             e toccandola si apre l'archivio. Se l'archivio e' vuoto la foto
+             non c'e' — una cornice grigia che dice "qui non c'e' niente"
+             sarebbe l'unica cosa finta del tavolo. -->
+        <button class="scriv-foto" id="scriv-foto" type="button" hidden></button>
         <div class="scriv-foglio">
           <div class="scriv-mappa" id="scriv-mappa" role="img"></div>
           <!-- LA LEGENDA sul margine del foglio, sotto la mappa: e' la striscia
@@ -233,27 +248,26 @@
       </div>
         </div>
       </div>
-      <!-- LA LAMPADA sopra il tavolo, in basso a destra, sul bordo vicino a
-           chi siede. Ha girato: nell'angolo in alto, sovrapposta al foglio,
-           su uno schermo stretto copriva la mappa; poi sopra la mappa, dove
-           era al sicuro ma lontana dalla mano. Qui ci torna perche' la
-           capsula del cronometro non compare piu' sulla home (il quadrante e'
-           gia' li'), e quindi l'angolo in basso a destra e' libero.
-           STA FUORI DA .scriv-tavolo, ed e' la ragione per cui esiste quel
-           contenitore: a luce spenta tutto quello che sta sul tavolo si
-           smorza, e l'interruttore e' l'unica cosa che al buio devi riuscire
-           a trovare. -->
-      <div class="scriv-fondo">
-        <button class="scriv-luce" id="scriv-luce" type="button" aria-pressed="true" aria-label="Spegni la lampada" title="Spegni la lampada">
-          <span class="vite a"></span><span class="vite b"></span>
-          <span class="vite c"></span><span class="vite d"></span>
-          <span class="bil"><s></s></span>
-          <span class="spia"></span>
-          <u>LUCE</u>
-        </button>
-      </div>
     </div>
   </div>
+  <!-- LA LAMPADA. Ha girato parecchio: nell'angolo in alto sopra il foglio
+       (copriva la mappa), poi sopra la mappa (al sicuro ma lontana dalla
+       mano), poi in fondo al banco. Da browser pero' il banco finisce in
+       mezzo allo schermo, e l'interruttore restava li' a mezz'aria:
+       segnalato da Giovanni il 21 settembre 2026, "mettiamolo proprio in
+       basso a destra di TUTTA la pagina".
+       Adesso e' avvitato all'angolo dello schermo e ci resta: sta FUORI
+       dal contenitore che scorre e fuori da .scriv-tavolo — ed e' la
+       ragione per cui quel contenitore esiste. A luce spenta tutto quello
+       che sta sul tavolo si smorza, e l'interruttore e' l'unica cosa che al
+       buio devi riuscire a trovare. -->
+  <button class="scriv-luce" id="scriv-luce" type="button" aria-pressed="true" aria-label="Spegni la lampada" title="Spegni la lampada">
+    <span class="vite a"></span><span class="vite b"></span>
+    <span class="vite c"></span><span class="vite d"></span>
+    <span class="bil"><s></s></span>
+    <span class="spia"></span>
+    <u>LUCE</u>
+  </button>
 </div>
 
 <!-- IDEE -->
@@ -1442,6 +1456,16 @@
     <button id="btn-evening" onclick="enterEveningMode()" class="home-fab home-fab-dark" aria-label="modalità sera" title="modalità sera">🌙</button>
     <button id="btn-refs" onclick="openRefsScreen()" class="home-fab" aria-label="visual archive" title="visual archive">
       <svg width="20" height="20" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="8" cy="9.5" r="1.6" fill="currentColor"/><path d="M4 16 L9 11 L13 15 L16 12 L20 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <!-- IL TASTO CASA, che col mouse non c'era. Sulla barra-duna del telefono
+         sta al CENTRO, ed e' il tasto piu' usato che ci sia: da una scheda
+         aperta, da una galleria, da mezzo lavoro, e' come si torna al tavolo.
+         Col mouse quel gesto non esisteva — restava il tasto Indietro del
+         browser, che pero' esce di un livello alla volta. Stesso posto e
+         stesso glifo della barra-duna: le due barre devono dire le stesse
+         cose nello stesso ordine, e adesso sono cinque per parte. -->
+    <button id="btn-home" onclick="goHome()" class="home-fab" aria-label="home" title="home">
+      <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3L2 11h2.3v9a1 1 0 0 0 1 1H10v-6h4v6h4.7a1 1 0 0 0 1-1v-9H22L12 3Z" fill="currentColor"/></svg>
     </button>
     <!-- QUESTA FILA E' LA BARRA-DUNA DEL MOUSE, e deve dire le stesse cose:
          sera, References, Projects, Impostazioni. Era rimasta indietro —

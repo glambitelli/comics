@@ -334,7 +334,11 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
     }, { nome, id }));
   }
   ok('la fila si vede su tutte le schermate', dovunque.every(d=> d.visibile), dovunque);
-  ok('con tutti e quattro i tondi', dovunque.every(d=> d.tondi === 4), dovunque);
+  // CINQUE, non piu' quattro: dal 21 settembre 2026 c'e' anche la casa, al
+  // centro come sulla barra-duna. Prima col mouse si tornava a casa solo dal
+  // marchio in cima — che nessuno sa di poter premere — o col tasto Indietro
+  // del browser, che pero' esce di un livello alla volta.
+  ok('con tutti e cinque i tondi', dovunque.every(d=> d.tondi === 5), dovunque);
   ok('e sempre centrata in fondo', dovunque.every(d=> d.centrata), dovunque);
 
   // E I TONDI STANNO SU UN PIANO D'APPOGGIO. Col mouse galleggiavano nel vuoto
@@ -508,11 +512,13 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
   // Le Statistiche si guardano ogni tanto, non ogni giorno: stanno in cima
   // alle Impostazioni, sul telefono come col mouse.
   ok('e le Statistiche sono uscite anche da li\'', !colMouse.stats, colMouse);
-  // Le stesse quattro destinazioni, nello stesso ordine. La barra-duna ha in
-  // piu' la casa al centro, che col mouse e' il marchio in cima.
+  // LE STESSE CINQUE DESTINAZIONI, NELLO STESSO ORDINE — casa compresa.
+  // Fino al 21 settembre 2026 la casa era solo sulla barra-duna, e questo
+  // controllo la toglieva dal confronto: col mouse il modo di tornare al
+  // tavolo era il marchio in cima, che non sembra un pulsante. Adesso le due
+  // barre sono la stessa barra detta in due modi, e il confronto e' secco.
   ok('e le due navigazioni portano nelle stesse stanze',
-     colMouse.etichette.join(' | ')
-       === quarto.etichette.filter(x=> x !== 'home').join(' | '),
+     colMouse.etichette.join(' | ') === quarto.etichette.join(' | '),
      { colMouse: colMouse.etichette, barra: quarto.etichette });
 
   await page.evaluate(()=> document.querySelector('.dune-btn[aria-label="projects"]').click());
@@ -752,6 +758,54 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
      lampada);
   ok('ma l\'interruttore no: al buio devi poterlo trovare',
      lampada.interruttoreFuori, lampada);
+
+  // E STA ALL'ANGOLO DELLO SCHERMO, non appeso al banco. Il banco e' largo al
+  // massimo 860px e sta in mezzo alla pagina: col mouse l'interruttore gli
+  // restava attaccato in fondo, cioe' a mezz'aria in mezzo al legno
+  // (Giovanni, 21 settembre 2026: "mettiamolo proprio in basso a destra di
+  // TUTTA la pagina"). Fisso vuol dire due cose insieme — che non scorre col
+  // contenuto, e che lo trovi sempre nello stesso posto.
+  const angolo = await page.evaluate(()=>{
+    const b = document.getElementById('scriv-luce');
+    const r = b.getBoundingClientRect();
+    const st = getComputedStyle(b);
+    const dune = document.querySelector('.dune-nav');
+    const dr = dune ? dune.getBoundingClientRect() : null;
+    return {
+      fisso: st.position === 'fixed',
+      daDestra: Math.round(window.innerWidth - r.right),
+      daSotto: Math.round(window.innerHeight - r.bottom),
+      // E NON SI SIEDE SULLA BARRA-DUNA: col dito quella occupa gli 88px in
+      // fondo, e due cose nello stesso punto sono una sola cosa sbagliata.
+      tocco: document.body.classList.contains('is-touch'),
+      sullaDuna: !!(dr && getComputedStyle(dune).display !== 'none'
+                    && r.bottom > dr.top + 4),
+    };
+  });
+  ok('l\'interruttore e\' fisso all\'angolo in basso a destra della pagina',
+     angolo.fisso && angolo.daDestra >= 8 && angolo.daDestra <= 40
+     && angolo.daSotto >= 8, angolo);
+  ok('e non si siede sopra la barra-duna', !angolo.sullaDuna, angolo);
+
+  // NIENTE TANGENTI. Il biglietto di stasera aveva il bordo sinistro a quattro
+  // pixel da quello del foglio della mappa: due bordi QUASI allineati sono
+  // peggio di due allineati — si legge come un errore di un pixel invece che
+  // come una scelta (Giovanni, 21 settembre 2026). O combaciano, o si vede che
+  // stanno a distanza.
+  const tangente = await page.evaluate(async ()=>{
+    const st = await import('/js/state.js');
+    const home = await import('/js/home.js');
+    const p = home.newProjectObj('Kara', 24); p.id='pk'; p.microtask='Chiudere gli sfondi';
+    st.setProjects([p]);
+    await window.__aggiornaScrivania();
+    await new Promise(r=> setTimeout(r, 250));
+    const f = document.querySelector('.scriv-foglio').getBoundingClientRect();
+    const b = document.getElementById('scriv-biglietto').getBoundingClientRect();
+    return { foglio: Math.round(f.left), biglietto: Math.round(b.left),
+             scarto: Math.round(b.left - f.left) };
+  });
+  ok('il biglietto non e\' a filo col bordo del foglio',
+     tangente.scarto > 18, tangente);
 
   const daImpostazioni = await page.evaluate(()=>{
     const b = Array.from(document.querySelectorAll('.settings-vai'));
