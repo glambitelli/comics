@@ -693,8 +693,13 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
      /Chiudere gli sfondi della tavola 7/.test(tavolo.biglietto || '')
      && /KARA/.test(tavolo.biglietto || ''), tavolo);
 
-  // SENZA UN TASK SCRITTO IL BIGLIETTO NON C'E'. Un foglietto che dice "non hai
-  // scritto niente" e' un rimprovero appeso al tavolo.
+  // SENZA UN TASK SCRITTO IL FOGLIO RESTA, con la sua riga da riempire — ma
+  // senza niente scritto dentro. Spariva, e il tavolo perdeva l'oggetto
+  // piccolo: restavano la mappa e il cronometro, cioe' due cose grandi e
+  // nient'altro, e la gerarchia su cui la scrivania e' stata disegnata
+  // (Giovanni, 21 settembre 2026) si sfasciava. Un foglietto che dicesse "non
+  // hai ancora scritto il task" sarebbe pero' un rimprovero appeso al tavolo:
+  // la riga vuota si capisce da sola.
   const senzaTask = await page.evaluate(async ()=>{
     const st = await import('/js/state.js');
     const home = await import('/js/home.js');
@@ -703,24 +708,50 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
     await window.__aggiornaScrivania();
     await new Promise(r=> setTimeout(r, 200));
     const b = document.getElementById('scriv-biglietto');
-    return { nascosto: b.hidden };
+    const conProgetti = { c1: !b.hidden, riga: !!b.querySelector('.riga-vuota'),
+                          testo: b.textContent.replace(/\s+/g,' ').trim() };
+    // Senza nemmeno un progetto non c'e' niente da scrivere stasera: il foglio
+    // sparisce. E' il tavolo di chi apre l'app la prima volta.
+    st.setProjects([]);
+    await window.__aggiornaScrivania();
+    await new Promise(r=> setTimeout(r, 200));
+    return Object.assign(conProgetti, { senzaNiente: b.hidden });
   });
-  ok('senza un task scritto il biglietto non compare', senzaTask.nascosto, senzaTask);
+  ok('senza un task scritto il foglio resta sul tavolo', senzaTask.c1, senzaTask);
+  ok('con la riga da riempire, e niente scritto dentro',
+     senzaTask.riga && senzaTask.testo === 'STASERA', senzaTask);
+  ok('ma senza nemmeno un progetto il foglio non c\'e\'', senzaTask.senzaNiente, senzaTask);
 
   // LA LAMPADA. Accende e spegne il tavolo, e la scelta resta: chi disegna di
   // notte non vuole rifarlo ad ogni apertura.
   const lampada = await page.evaluate(async ()=>{
     const b = document.getElementById('scriv-luce');
+    const tavolo = document.querySelector('.scriv-tavolo');
+    const filtro = ()=> getComputedStyle(tavolo).filter;
     const prima = document.body.classList.contains('luce-spenta');
-    b.click(); await new Promise(r=> setTimeout(r, 120));
+    const filtroAcceso = filtro();
+    b.click(); await new Promise(r=> setTimeout(r, 600));
     const dopo = document.body.classList.contains('luce-spenta');
+    const filtroSpento = filtro();
     const salvato = localStorage.getItem('inkflow_scrivania_luce');
-    b.click(); await new Promise(r=> setTimeout(r, 120));
-    return { prima, dopo, salvato, tornata: document.body.classList.contains('luce-spenta') };
+    // L'INTERRUTTORE NON SI SPEGNE CON IL RESTO: al buio e' l'unica cosa che
+    // devi riuscire a trovare, quindi sta fuori dal contenitore che si smorza.
+    const interruttoreFuori = !tavolo.contains(b);
+    b.click(); await new Promise(r=> setTimeout(r, 200));
+    return { prima, dopo, salvato, filtroAcceso, filtroSpento, interruttoreFuori,
+             tornata: document.body.classList.contains('luce-spenta') };
   });
   ok('la lampada si spegne', lampada.prima === false && lampada.dopo === true, lampada);
   ok('e la scelta si ricorda', lampada.salvato === 'spenta', lampada);
   ok('e si riaccende', lampada.tornata === false, lampada);
+  // SPEGNE ANCHE LE COSE SUL TAVOLO, non solo il fondo. Prima la mappa restava
+  // luminosa come se avesse luce propria, e un foglio di carta illuminato in
+  // una stanza buia non esiste (Giovanni, 21 settembre 2026).
+  ok('e al buio si smorza anche quello che sta sul tavolo',
+     /none/i.test(lampada.filtroAcceso) && /brightness\(0?\.[0-5]/.test(lampada.filtroSpento),
+     lampada);
+  ok('ma l\'interruttore no: al buio devi poterlo trovare',
+     lampada.interruttoreFuori, lampada);
 
   const daImpostazioni = await page.evaluate(()=>{
     const b = Array.from(document.querySelectorAll('.settings-vai'));
@@ -741,19 +772,54 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
   // Impostazioni — che a finestra bassa arriva proprio in fondo: misurato a
   // 1100x760, capsula 448-652 orizzontale e 694-740 verticale, tondi 430-670 e
   // 688-736. Sovrapposti in pieno, coi pulsanti sotto irraggiungibili.
-  // Si torna alla home: i tondi sono suoi, e le prove qui sopra hanno lasciato
-  // aperta un'altra schermata.
-  await page.evaluate(()=> window.goHome());
-  await page.waitForTimeout(500);
+  // ── LA CAPSULA DEL CRONOMETRO ──
+  // Mentre il cronometro gira, in basso a destra compare una capsula col tempo
+  // che scorre. SULLA HOME NON SI VEDE, dal 21 settembre 2026: li' c'e' il
+  // quadrante, che mostra lo stesso numero piu' grande — la capsula sarebbe
+  // una seconda lettura della stessa cosa a dieci centimetri, e sul tavolo
+  // sarebbe anche un oggetto che non c'entra con gli altri.
+  // Sulle ALTRE schermate invece c'e', e li' non deve sedersi sopra niente che
+  // si tocchi: un tasto coperto da un altro e' un tasto che non si puo'
+  // premere. E' quello che questa prova guarda, ed e' il caso vero — prima
+  // guardava la home, dove la capsula non compare piu'.
+  const suHome = await page.evaluate(async ()=>{
+    window.goHome();
+    await new Promise(r=> setTimeout(r, 300));
+    await window.tempoTocca();
+    await new Promise(r=> setTimeout(r, 400));
+    const caps = document.getElementById('tempo-capsula');
+    const corre = document.getElementById('tempo-avvia').classList.contains('corre');
+    const nascosta = caps.hidden;
+    // e sulle altre schermate invece si vede
+    await window.openProjects();
+    await new Promise(r=> setTimeout(r, 500));
+    const altrove = !caps.hidden;
+    window.goHome();
+    await new Promise(r=> setTimeout(r, 300));
+    window.tempoScarta();
+    await new Promise(r=> setTimeout(r, 400));
+    const ok = document.getElementById('ink-confirm-ok');
+    if(ok) ok.click();
+    await new Promise(r=> setTimeout(r, 400));
+    return { corre, nascosta, altrove };
+  });
+  ok('il cronometro parte davvero', suHome.corre, suHome);
+  ok('sulla home la capsula non si vede: il quadrante e\' gia\' li\'',
+     suHome.nascosta, suHome);
+  ok('ma dalle altre schermate si vede', suHome.altrove, suHome);
+
   const sovrapposizioni = [];
   for(const vp of [{width:1100,height:760},{width:900,height:640},{width:1400,height:900}]){
     await page.setViewportSize(vp);
     await page.waitForTimeout(350);         // il rilevamento del tocco si ricalcola
     const r = await page.evaluate((misura)=>{
+      // Si misura su una schermata in cui la capsula compare DAVVERO.
+      document.querySelectorAll('.screen.active').forEach(x=> x.classList.remove('active'));
+      document.getElementById('screen-projects').classList.add('active');
       const caps = document.getElementById('tempo-capsula');
       caps.hidden = false;
       const c = caps.getBoundingClientRect();
-      const coperti = Array.from(document.querySelectorAll('.home-fab, .home-new-add, button, a'))
+      const coperti = Array.from(document.querySelectorAll('.home-fab, .dune-btn, .seg-tab, button, a'))
         .filter(x=> !caps.contains(x))
         .filter(x=>{
           const q = x.getBoundingClientRect();
@@ -776,7 +842,7 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
     sovrapposizioni.push(r);
   }
   ok('col mouse la capsula non copre nessun comando',
-     sovrapposizioni.every(r=> r.coperti.length === 0), sovrapposizioni);
+     sovrapposizioni.every(x=> x.coperti.length === 0), sovrapposizioni);
   ok('e resta dentro la finestra a ogni misura',
      sovrapposizioni.every(r=> r.dentro), sovrapposizioni);
 

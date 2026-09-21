@@ -366,7 +366,15 @@ window.toggleEvening=toggleEvening;
   (function riappariSuCambioSchermata(){
     const nav = document.getElementById('dune-nav');
     if(!nav || !window.MutationObserver) return;
-    const occhio = new MutationObserver(()=> nav.classList.remove('dune-hidden'));
+    // LO STESSO OCCHIO SERVE ALLA CAPSULA DEL CRONOMETRO. Si mostra su tutte
+    // le schermate tranne la home (dove c'e' gia' il quadrante), e prima quel
+    // conto lo rifaceva solo il battito al secondo: uscendo dalla home la
+    // capsula compariva con un ritardo fino a un secondo, cioe' un buco visibile
+    // proprio nel momento in cui si cambia schermata.
+    const occhio = new MutationObserver(()=>{
+      nav.classList.remove('dune-hidden');
+      disegnaTempo();
+    });
     document.querySelectorAll('.screen').forEach(sc=>
       occhio.observe(sc, { attributes:true, attributeFilter:['class'] }));
   })();
@@ -506,7 +514,7 @@ async function aggiornaScrivania(){
   const casa = document.getElementById('screen-home');
   if(!casa || !casa.classList.contains('active')) return;
   montaLaLuce();
-  disegnaBiglietto(openProject);
+  disegnaBiglietto(openProject, ()=> openProjects('progetti'));
   travasaLaFrase();
   // Il registro delle ore arriva da Firestore e si accende solo quando qualcuno
   // guarda i numeri: adesso la home E' uno di quelli. ascoltaSessioni non apre

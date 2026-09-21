@@ -39,12 +39,13 @@
    faceva sembrare il tavolo una fotografia invece che una superficie.
    Il legno sta sulla SCHERMATA e non sul contenitore che scorre, cosi' la
    pozza di luce copre anche la fascia dell'intestazione. */
-#screen-home{
-  background-color:#3d2c1e;
-  background-image:
-    repeating-linear-gradient(91deg,rgba(0,0,0,.055) 0 1px,transparent 1px 7px),
-    repeating-linear-gradient(88deg,rgba(255,255,255,.03) 0 1px,transparent 1px 23px);
-}
+/* TINTA PIATTA, NIENTE VENATURE. C'erano due righe finissime ripetute ogni 7 e
+   ogni 23 pixel, per dare al legno una grana. Nei mockup non si vedevano — li
+   disegnavo a doppia risoluzione e rimpicciolendoli sparivano — ma sullo
+   schermo vero, a un pixel per pixel, diventano righe verticali marcate su
+   tutta la pagina. Segnalato da Giovanni il 21 settembre 2026: il fondo deve
+   essere uniforme. La profondita' la da' la luce qui sotto, non la grana. */
+#screen-home{background-color:#3d2c1e}
 /* LA POZZA DI LUCE. Larga e in alto, come la fa una lampada da tavolo: una
    macchia piccola al centro sembrava un faretto da museo. Sta sopra il legno e
    sotto gli oggetti (z-index), e non riceve tocchi. */
@@ -58,6 +59,14 @@
 body.luce-spenta #screen-home::after{
   background:radial-gradient(ellipse 120% 100% at 50% 42%,rgba(0,0,0,.30) 0%,rgba(0,0,0,.74) 100%);
 }
+/* E SI SPENGONO ANCHE LE COSE SUL TAVOLO. Prima la lampada scuriva solo il
+   fondo e la mappa restava luminosa come se avesse luce propria: un foglio di
+   carta illuminato in una stanza buia non esiste. Adesso il tavolo si smorza
+   tutto insieme.
+   L'INTERRUTTORE RESTA FUORI dal filtro (sta in .scriv-fondo, non in
+   .scriv-tavolo): e' l'unica cosa che al buio devi riuscire a trovare. */
+.scriv-tavolo{transition:filter .45s ease}
+body.luce-spenta .scriv-tavolo{filter:brightness(.4) saturate(.82)}
 /* L'intestazione e la barra in fondo stanno SOPRA la luce. */
 #screen-home .home-header,#screen-home .home-scroll{position:relative;z-index:2}
 /* Sul legno il marchio nero non si legge. */
@@ -129,13 +138,25 @@ body.luce-spenta #screen-home::after{
    smette di essere un quarto oggetto che compete con gli altri tre e diventa
    una didascalia del foglio. Battuta a macchina, perche' e' l'unica cosa qui
    dentro che non hai scritto tu. */
+/* LARGA AL MASSIMO TRE QUARTI, e la firma va a sinistra: l'angolo in basso a
+   destra del foglio e' dove il cronometro ci si appoggia sopra, e li' sotto
+   ogni parola sparisce. */
 .scriv-legenda{
-  position:absolute;right:9px;top:9px;width:min(250px,52%);
-  background:rgba(247,242,228,.93);border:1px solid rgba(90,70,40,.25);
-  padding:7px 9px;
+  margin-top:7px;padding:8px 4px 2px;max-width:74%;
+  border-top:1px solid rgba(90,70,40,.22);
+  display:flex;flex-direction:column;gap:2px;
 }
-.scriv-legenda .cit{font-family:'Courier Prime',monospace;font-size:9px;line-height:1.55;color:#3a332a}
-.scriv-legenda .aut{font-family:'Pennarello',cursive;font-size:9px;color:#8d4a32;margin-top:4px;text-align:right}
+.scriv-legenda[hidden]{display:none}
+/* A 9px era un francobollo illeggibile: la frase e' l'unica cosa qui dentro
+   che si LEGGE, non si guarda. Cresce col foglio ma non scende sotto gli 11. */
+.scriv-legenda .cit{
+  font-family:'Courier Prime',monospace;color:#3a332a;line-height:1.6;
+  font-size:clamp(11px, 1.15vw, 13px);
+}
+.scriv-legenda .aut{
+  font-family:'Pennarello',cursive;color:#8d4a32;margin-top:5px;text-align:left;
+  font-size:clamp(10px, 1vw, 12px);
+}
 
 /* ── LA RIGA SOTTO ──
    Il cronometro sale a cavallo dell'angolo della mappa: e' quello che lo fa
@@ -167,6 +188,12 @@ body.luce-spenta #screen-home::after{
   display:block;font-family:'Penna',cursive;font-size:18px;font-weight:400;
   color:#1d1a17;line-height:1.28;
 }
+/* La riga da riempire, quando il task di stasera non c'e' ancora: un filo di
+   matita, alto quanto una riga di scrittura. */
+.scriv-biglietto .riga-vuota{
+  display:block;height:22px;margin-top:4px;
+  border-bottom:1.5px solid rgba(60,48,30,.22);
+}
 .scriv-biglietto em{
   font-style:normal;display:inline-block;margin-top:8px;font-family:'Penna',cursive;
   font-size:10px;color:#fff;background:#a8352c;padding:2px 8px;transform:rotate(-1deg);
@@ -177,11 +204,11 @@ body.luce-spenta #screen-home::after{
    modalita' sera dell'app (quella e' una schermata sua, con le stelle e i
    task): qui accende e spegne la lampada sopra QUESTO tavolo, e basta. La
    scelta resta fra un'apertura e l'altra. */
-.scriv-cima{display:flex;justify-content:flex-end;padding:0 4px;margin-bottom:10px}
+.scriv-fondo{display:flex;justify-content:flex-end;padding:0 4px;margin-top:14px}
 .scriv-luce{
   position:relative;z-index:3;
-  width:50px;height:70px;border-radius:7px;border:0;cursor:pointer;
-  background:#3a332c;padding:6px 7px;
+  width:46px;height:62px;border-radius:7px;border:0;cursor:pointer;
+  background:#3a332c;padding:5px 6px;
   display:flex;flex-direction:column;align-items:center;gap:5px;
   box-shadow:0 2px 4px rgba(0,0,0,.5),0 10px 22px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.12);
 }
@@ -190,7 +217,7 @@ body.luce-spenta #screen-home::after{
   background:#211c18;box-shadow:inset 0 1px 0 rgba(255,255,255,.18)}
 .scriv-luce .vite.a{left:5px;top:5px}   .scriv-luce .vite.b{right:5px;top:5px}
 .scriv-luce .vite.c{left:5px;bottom:5px}.scriv-luce .vite.d{right:5px;bottom:5px}
-.scriv-luce .bil{width:28px;height:36px;border-radius:4px;background:#171310;
+.scriv-luce .bil{width:26px;height:31px;border-radius:4px;background:#171310;
   box-shadow:inset 0 0 0 1px rgba(0,0,0,.6);position:relative;overflow:hidden}
 .scriv-luce .bil s{position:absolute;left:0;right:0;height:50%;top:0;text-decoration:none;
   border-radius:3px;background:linear-gradient(180deg,#d8d0c2,#a89e8c);

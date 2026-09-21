@@ -111,11 +111,11 @@ export function disegnaMappa(perGiorno, secondiMese, scriviBreve){
   + `<svg viewBox="0 0 ${L} ${H}" aria-hidden="true">${svg}</svg>`
   + `<span class="scriv-oggi" style="left:${(q0.x-bw/2).toFixed(0)}px;top:${(q0.y-bh/2).toFixed(0)}px;width:${bw.toFixed(0)}px;height:${bh.toFixed(0)}px"></span>`
   + `<span class="scriv-nota" style="left:${(q0.x-bw/2-4).toFixed(0)}px;top:${(q0.y-bh/2-17).toFixed(0)}px;font-size:11px;color:#8d4a32">oggi</span>`
-  + (ore ? `<span class="scriv-nota" style="left:${(L*0.28).toFixed(0)}px;top:${(H-26).toFixed(0)}px;font-size:12px">${esc(ore)} questo mese</span>` : '')
-  + `<div class="scriv-legenda" id="scriv-legenda"></div>`;
+  + (ore ? `<span class="scriv-nota" style="left:${(L*0.28).toFixed(0)}px;top:${(H-26).toFixed(0)}px;font-size:12px">${esc(ore)} questo mese</span>` : '');
 
   // La frase del giorno la scrive main.js dentro #home-quote: qui si porta il
-  // suo contenuto nella legenda, cosi' resta una sola sorgente per la frase.
+  // suo contenuto nella legenda, che sta sul MARGINE del foglio sotto la mappa
+  // e non piu' dentro il disegno — li' copriva i giorni della prima riga.
   travasaLaFrase();
   el.setAttribute('aria-label',
     'Mappa del mese: il percorso azzurro sono i giorni in cui hai disegnato');
@@ -143,16 +143,31 @@ export function travasaLaFrase(){
 // piu' d'uno si prende il primo, perche' un tavolo con tre foglietti uguali
 // non aiuta a cominciare — e gli altri stanno nella scheda del progetto, dove
 // li hai scritti. Toccandolo si apre quel progetto.
-export function disegnaBiglietto(apriProgetto){
+export function disegnaBiglietto(apriProgetto, apriIProgetti){
   const el = document.getElementById('scriv-biglietto');
   if(!el) return;
-  const p = projects.find(x => x && x.microtask && x.microtask.trim());
-  if(!p){ el.hidden = true; return; }
+  // SENZA NEMMENO UN PROGETTO non c'e' niente da scrivere stasera, e il foglio
+  // sparisce: e' il caso di chi apre l'app la prima volta.
+  if(!projects.length){ el.hidden = true; return; }
   el.hidden = false;
-  el.innerHTML = `<span class="nastro"></span><i>STASERA</i>`
-               + `<b>${esc(p.microtask.trim())}</b>`
-               + `<em>${esc((p.title || '').toUpperCase())}</em>`;
-  el.onclick = ()=> apriProgetto && apriProgetto(p.id);
+  const p = projects.find(x => x && x.microtask && x.microtask.trim());
+  if(p){
+    el.innerHTML = `<span class="nastro"></span><i>STASERA</i>`
+                 + `<b>${esc(p.microtask.trim())}</b>`
+                 + `<em>${esc((p.title || '').toUpperCase())}</em>`;
+    el.onclick = ()=> apriProgetto && apriProgetto(p.id);
+    return;
+  }
+  // IL FOGLIO RESTA ANCHE DA VUOTO, con la sua riga da riempire. Prima
+  // spariva, e il tavolo perdeva l'oggetto piccolo: restavano la mappa e il
+  // cronometro, cioe' due cose grandi e nient'altro — la gerarchia su cui la
+  // scrivania e' stata disegnata (Giovanni, 21 settembre 2026).
+  // E NON C'E' SCRITTO NIENTE DENTRO: una riga vuota si capisce da sola, e un
+  // foglietto che dicesse "non hai ancora scritto il task di stasera" sarebbe
+  // un rimprovero appeso al tavolo. Toccandolo si va ai progetti, che e' dove
+  // il task si scrive.
+  el.innerHTML = `<span class="nastro"></span><i>STASERA</i><span class="riga-vuota"></span>`;
+  el.onclick = ()=> apriIProgetti && apriIProgetti();
 }
 
 // ── LA LUCE ──
