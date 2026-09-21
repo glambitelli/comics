@@ -22,6 +22,7 @@ import {
 // collegati a un ritaglio. Le AZIONI sulle immagini (menu, tag, elimina)
 // restano di la' e ci arrivano da window, come le chiama l'HTML.
 import { refsCache, currentGridList, getFolderName, projectIdsOf } from './refs.js';
+import { accostaFrecce } from './frecce.js';
 
 // La lightbox usa l'URL ORIGINALE, senza trasformazioni. Ci avevo messo
 // q_auto/f_auto per risparmiare byte, ma ogni immagine così diventava una
@@ -62,6 +63,30 @@ function ensureLbCells(){
 }
 
 function curImg(){ return _lbCells && _lbCells[1] && _lbCells[1].img; }
+
+// ── LE FRECCE STANNO ACCANTO ALLA FOTO ──
+// Erano inchiodate ai bordi della finestra: su una tavola verticale, che col
+// mouse occupa una striscia in mezzo allo schermo, per cambiare immagine si
+// attraversava mezzo monitor (Giovanni, 21 settembre 2026). La regola e' la
+// stessa del lettore degli albi e vive in un posto solo (vedi frecce.js).
+// L'OSSERVATORE STA SU TUTTE E TRE LE CELLE, non solo sulla centrale: le
+// celle si riciclano — dopo uno sfoglio la centrale e' un'altra immagine —
+// e osservare "quella di adesso" vorrebbe dire ricollegare l'osservatore ad
+// ogni pagina. Il conto invece si rifa' sempre sulla cella di mezzo, chiunque
+// essa sia in quel momento.
+let _occhioFrecce = null;
+function sistemaLeFrecce(){
+  const img = curImg();
+  const prev = document.getElementById('refs-lightbox-prev');
+  const next = document.getElementById('refs-lightbox-next');
+  if(img && prev && next) accostaFrecce(img, prev, next);
+}
+function montaLOcchioDelleFrecce(){
+  if(_occhioFrecce || !_lbCells || typeof ResizeObserver !== 'function') return;
+  _occhioFrecce = new ResizeObserver(sistemaLeFrecce);
+  _lbCells.forEach(c => c.img && _occhioFrecce.observe(c.img));
+  addEventListener('resize', sistemaLeFrecce);
+}
 
 // Carica UNA cella con l'immagine dell'indice dato. `hideUntilReady` nasconde
 // la cella (visibility, il layout a fisarmonica resta invariato) finché
@@ -180,6 +205,8 @@ function updateLightboxChrome(item, index){
   }
   if(prevBtn) prevBtn.style.visibility = index>0 ? 'visible' : 'hidden';
   if(nextBtn) nextBtn.style.visibility = index<_lightboxList.length-1 ? 'visible' : 'hidden';
+  montaLOcchioDelleFrecce();
+  sistemaLeFrecce();
   refreshLightboxLinkBtn(item);
   ov.classList.add('open');
 }

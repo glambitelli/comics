@@ -805,6 +805,56 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
      && angolo.daSotto >= 8, angolo);
   ok('e non si siede sopra la barra-duna', !angolo.sullaDuna, angolo);
 
+  // ── DALLA HOME SI FANNO TUTTE E QUATTRO LE COSE ──
+  // IL DIFETTO: il quadrante sulla home faceva partire e metteva in pausa, ma
+  // per CHIUDERE una sessione o per BUTTARLA VIA bisognava andarsene su
+  // un'altra schermata, dove compare la capsula del cronometro. Cioe' per
+  // eliminare un cronometro partito in tasca si doveva prima aprire un'altra
+  // pagina e cercare una X (Giovanni, 21 settembre 2026).
+  const comandiHome = await page.evaluate(async ()=>{
+    const m = await import('/js/tempo.js');
+    const comandi = document.getElementById('tempo-comandi');
+    // Se la fila non c'e' proprio, si dice invece di schiantarsi: una prova
+    // che muore con "Cannot read properties of null" non racconta niente a
+    // chi la legge sei mesi dopo.
+    if(!comandi) return { manca: true };
+    const daFermo = comandi.hidden;
+    await window.tempoTocca();                       // parte
+    await new Promise(r=> setTimeout(r, 150));
+    const correndo = {
+      visti: !comandi.hidden,
+      fine: !!document.getElementById('tempo-stop-home'),
+      elimina: !!document.getElementById('tempo-scarta-home'),
+      // I due tondi devono essere PREMIBILI: nascosti sotto qualcosa non
+      // servirebbero a niente, ed e' l'errore da cui si viene.
+      // E HANNO UNA MISURA: un pulsante largo zero c'e' nel DOM e non
+      // esiste per il pollice. Che nessuno ci si sieda sopra lo prova gia'
+      // la sezione sulla capsula, piu' giu'.
+      misure: ['tempo-stop-home','tempo-scarta-home'].map(id=>{
+        const r = document.getElementById(id).getBoundingClientRect();
+        return { id, l: Math.round(r.width), a: Math.round(r.height) };
+      }),
+    };
+    // ELIMINA CHIEDE PRIMA e poi butta via: la sessione non finisce in
+    // archivio. Il modale non si aspetta con await — resterebbe appeso.
+    window.tempoScarta();
+    await new Promise(r=> setTimeout(r, 300));
+    const chiede = !!document.getElementById('ink-confirm-ok');
+    if(chiede) document.getElementById('ink-confirm-ok').click();
+    await new Promise(r=> setTimeout(r, 400));
+    return Object.assign(correndo, { daFermo, chiede,
+      spento: !m.acceso(), tornatiNascosti: comandi.hidden });
+  });
+  ok('da fermo sotto il quadrante non c\'e\' niente',
+     !comandiHome.manca && comandiHome.daFermo, comandiHome);
+  ok('mentre corre ci sono Fine ed Elimina, e si possono premere',
+     !comandiHome.manca && comandiHome.visti && comandiHome.fine && comandiHome.elimina
+     && comandiHome.misure.every(x=> x.l >= 28 && x.a >= 28), comandiHome);
+  ok('Elimina chiede prima di buttare via i minuti',
+     !comandiHome.manca && comandiHome.chiede, comandiHome);
+  ok('e poi spegne il cronometro dalla home',
+     !comandiHome.manca && comandiHome.spento && comandiHome.tornatiNascosti, comandiHome);
+
   // NIENTE TANGENTI. Il biglietto di stasera aveva il bordo sinistro a quattro
   // pixel da quello del foglio della mappa: due bordi QUASI allineati sono
   // peggio di due allineati — si legge come un errore di un pixel invece che

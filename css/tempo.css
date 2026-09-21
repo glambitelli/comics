@@ -126,6 +126,26 @@
 
 /* La riga dell'esito: vuota quasi sempre, tiene comunque il suo posto perche'
    la home non sobbalzi quando compare. Vedi il commento in index.html. */
+/* ── FINE ED ELIMINA, SOTTO IL QUADRANTE ──
+   Gli stessi due tondi della capsula, stesso ordine e stesso peso: e' la
+   stessa coppia di comandi detta in un altro posto, e due coppie che si
+   somigliano solo per meta' si leggono come due cose diverse. Lo stop tiene
+   il suo rame pieno, identico a quello della capsula.
+   L'ELIMINA INVECE VA VESTITO. Nella capsula e' senza fondo e di un oro al
+   45%, perche' li' sotto c'e' il vetro scuro; qui sotto c'e' il legno del
+   tavolo, e un oro scarico su un marrone scuro sparisce. Prende un corpo
+   scuro suo e resta comunque il piu' scarico dei due: fa la cosa piu' grave —
+   quei minuti non tornano — e non deve attirare il pollice. */
+.tempo-comandi{display:flex;gap:12px;justify-content:center;margin-top:2px}
+.tempo-comandi .tempo-btn{width:32px;height:32px}
+.tempo-comandi .tempo-scarta{
+  width:30px;height:30px;
+  background:rgba(28,22,16,.55);border-color:rgba(232,200,120,.28);
+  color:rgba(240,232,216,.6);
+  backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);
+}
+.tempo-comandi .tempo-scarta:active{background:rgba(28,22,16,.82);color:var(--oro)}
+
 .tempo-esito{
   min-height:17px;font-size:12px;font-weight:700;color:var(--ink3);
   text-align:center;line-height:1.4;transition:color .2s;

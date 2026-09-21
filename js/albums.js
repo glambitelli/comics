@@ -38,6 +38,7 @@ import { openRemoteZipSource, openBlobZipSource } from './zipremote.js';
 import { haptic } from './state.js';
 import { escAttr } from './testo.js';
 import { actionMenu, promptModal } from './dialogs.js';
+import { accostaFrecce } from './frecce.js';
 import {
   ZOOM_IN, ZOOM_MAX, panGain, edgeSpring, EDGE_COMMIT, EDGE_HANDOFF,
   panLimits as limitiPan, clampTo, ZOOM_TRANSITION, EDGE_COMMIT_ZOOM,
@@ -1315,6 +1316,24 @@ function ensureArCells(){
   return _arCells;
 }
 
+// ── LE FRECCE ACCANTO ALLA TAVOLA ──
+// L'osservatore sta su tutte e tre le celle, non solo sulla centrale: le celle
+// si riciclano — dopo uno sfoglio la centrale e' un'altra — e osservare
+// "quella di adesso" vorrebbe dire ricollegarlo ad ogni pagina. Il conto si
+// rifa' sempre sulla cella di mezzo, chiunque essa sia in quel momento.
+let _occhioFrecce = null;
+function sistemaLeFrecce(){
+  if(!_reader || !_arCells) return;
+  accostaFrecce(_arCells[1] && _arCells[1].img,
+                _reader.querySelector('.ar-prev'), _reader.querySelector('.ar-next'));
+}
+function montaLOcchioDelleFrecce(){
+  if(_occhioFrecce || !_arCells || typeof ResizeObserver !== 'function') return;
+  _occhioFrecce = new ResizeObserver(sistemaLeFrecce);
+  _arCells.forEach(c => c.img && _occhioFrecce.observe(c.img));
+  addEventListener('resize', sistemaLeFrecce);
+}
+
 // Riporta il nastro a riposo senza animazione: cella centrale al centro.
 // Quanto il nastro è spostato, in px, rispetto alla sua posizione di riposo.
 // Serve a dosare la durata dell'animazione su quanto resta DAVVERO da
@@ -1410,6 +1429,13 @@ function updateReaderChrome(){
   _reader.querySelector('.ar-counter').textContent = String(idx + 1).padStart(pad, '0') + ' / ' + _pages.length;
   _reader.querySelector('.ar-prev').style.visibility = idx > 0 ? 'visible' : 'hidden';
   _reader.querySelector('.ar-next').style.visibility = idx < _pages.length - 1 ? 'visible' : 'hidden';
+  // E LE FRECCE SI ACCOSTANO ALLA TAVOLA. Stavano ai bordi della finestra: su
+  // una tavola verticale, che col mouse occupa una striscia in mezzo allo
+  // schermo, per cambiare pagina si attraversava mezzo monitor (Giovanni, 21
+  // settembre 2026). Stessa regola della galleria dei riferimenti, e sta in
+  // un posto solo — vedi frecce.js.
+  montaLOcchioDelleFrecce();
+  sistemaLeFrecce();
   const seek = _reader.querySelector('.ar-seek');
   if(seek && !seek._dragging){
     seek.max = String(Math.max(0, _pages.length - 1));

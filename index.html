@@ -244,6 +244,26 @@
              e' il difetto che era gia' stato corretto una volta, e che togliere
              il testo avrebbe fatto tornare. La riga resta alta anche da vuota,
              se no la pagina sobbalza ogni volta che compare. -->
+        <!-- FINE ED ELIMINA, SOTTO IL QUADRANTE. Il quadrante da solo sa fare
+             due cose — parte e va in pausa — e per le altre due bisognava
+             andarsene da un'altra schermata, dove compare la capsula del
+             cronometro: cioe' per buttare via una sessione partita in tasca
+             si doveva prima aprire un'altra pagina (Giovanni, 21 settembre
+             2026). Adesso i quattro comandi stanno dove sta il cronometro.
+             SI VEDONO SOLO MENTRE CORRE: da fermo non c'e' niente da
+             chiudere e niente da buttare, e due tondi spenti sotto il
+             quadrante sarebbero due tondi da capire ogni volta.
+             ELIMINA STA A SINISTRA e scarico di colore, Fine a destra e
+             pieno: e' l'ordine e il peso che hanno nella capsula, e sono la
+             stessa coppia di comandi. -->
+        <div class="tempo-comandi" id="tempo-comandi" hidden>
+          <button class="tempo-btn tempo-scarta" id="tempo-scarta-home" onclick="window.tempoScarta()" type="button" aria-label="Elimina sessione" title="Elimina sessione">
+            <svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true"><path d="M6.5 6.5 17.5 17.5M17.5 6.5 6.5 17.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+          </button>
+          <button class="tempo-btn tempo-stop" id="tempo-stop-home" onclick="window.tempoFerma()" type="button" aria-label="Fine" title="Fine">
+            <svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true"><rect x="7" y="7" width="10" height="10" rx="1.6" fill="currentColor"/></svg>
+          </button>
+        </div>
         <div class="tempo-esito" id="tempo-esito" role="status"></div>
       </div>
         </div>

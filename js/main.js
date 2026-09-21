@@ -804,6 +804,12 @@ function disegnaTempo(){
              : 'Sto disegnando — metti in pausa';
   avvia.setAttribute('aria-label', dice);
   avvia.setAttribute('title', dice);
+  // FINE ED ELIMINA compaiono solo mentre il cronometro corre: da fermo non
+  // c'e' niente da chiudere e niente da buttare. Stanno sotto il quadrante
+  // sulla home, dove prima si poteva solo partire e mettere in pausa — per le
+  // altre due si doveva andare su un'altra schermata a cercare la capsula.
+  const comandi = document.getElementById('tempo-comandi');
+  if(comandi) comandi.hidden = !corre;
   // LE CIFRE CI SONO SEMPRE, anche da fermo, dove dicono 00:00: un quadrante
   // che non scrive niente finche' non lo premi e', da fermo, un quadrante che
   // non risponde. Il 00:00 di partenza sta nel markup — qui non si arriva

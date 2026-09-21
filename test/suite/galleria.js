@@ -59,6 +59,36 @@ module.exports = () => suite("Galleria References — nastro e gesti", {"banco":
   ok('il contatore lo dice', s.counter === '3 / 10', s.counter);
   const tids0 = s.tids.slice().sort().join();
 
+  console.log('\n── le frecce stanno accanto alla foto ──');
+  // IL DIFETTO: le frecce erano inchiodate ai bordi della finestra
+  // (left:2px / right:2px). Col dito non si vedono nemmeno — li' si sfoglia
+  // trascinando — ma col mouse, su uno schermo largo, una tavola verticale
+  // occupa una striscia in mezzo: per cambiare pagina si attraversava mezzo
+  // monitor (Giovanni, 21 settembre 2026).
+  // Qui le foto finte sono larghe pochi pixel, quindi la distanza fra il
+  // bordo della foto e il bordo della finestra e' enorme: se la freccia
+  // fosse ancora al bordo si vedrebbe subito.
+  const accanto = await page.evaluate(()=>{
+    const img = document.querySelectorAll('.refs-lightbox-cell')[1].querySelector('img');
+    const prev = document.getElementById('refs-lightbox-prev');
+    const next = document.getElementById('refs-lightbox-next');
+    const i = img.getBoundingClientRect(), a = prev.getBoundingClientRect(), b = next.getBoundingClientRect();
+    return {
+      // Quanto resta di vuoto fra la freccia e la foto, da una parte e
+      // dall'altra: deve essere un'aria, non mezzo schermo.
+      ariaSinistra: Math.round(i.left - a.right),
+      ariaDestra: Math.round(b.left - i.right),
+      // E devono restare dentro la finestra.
+      dentro: a.left >= 0 && b.right <= innerWidth,
+      fotoLarga: Math.round(i.width), finestra: innerWidth,
+    };
+  });
+  ok('la freccia indietro sta accanto alla foto, non al bordo dello schermo',
+     accanto.ariaSinistra >= 0 && accanto.ariaSinistra <= 30, accanto);
+  ok('e quella avanti dall\'altra parte',
+     accanto.ariaDestra >= 0 && accanto.ariaDestra <= 30, accanto);
+  ok('e tutte e due restano dentro la finestra', accanto.dentro, accanto);
+
   console.log('\n── il dito muove il nastro ──');
   await page.evaluate(() => G.touch('touchstart', 300, 400));
   ok('il livello di composizione è già pronto al touchstart',
