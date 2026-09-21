@@ -184,8 +184,21 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
   const chiavi = ['home','refs','idee','stats','projects','progetto'].filter(k=> testate[k]);
   const uguali = campo => new Set(chiavi.map(k=> testate[k][campo])).size === 1;
   ok('stessa imbottitura su tutte', uguali('imbottitura'), testate);
-  ok('stessi angoli in basso', uguali('angoli'), testate);
-  ok('stesso filo colorato sotto', uguali('filo'), testate);
+  // LA HOME E' L'ECCEZIONE, dal 21 settembre 2026, e lo e' per un motivo: non
+  // e' un foglio di carta come le altre, e' un tavolo di legno (vedi
+  // css/scrivania.css). Una lastra bianca arrotondata appoggiata sul legno
+  // sarebbe il pezzo di un'altra app. Quello che questa prova doveva
+  // garantire pero' regge lo stesso, ed e' il motivo per cui e' nata: il
+  // marchio non SALTA passando da una schermata all'altra, perche'
+  // l'imbottitura resta identica su tutte e sei — lo controlla la riga qui
+  // sopra. Gli angoli e il filo colorato restano uguali fra le cinque
+  // schermate di carta.
+  const carta = chiavi.filter(k=> k !== 'home');
+  const ugualiCarta = campo => new Set(carta.map(k=> testate[k][campo])).size === 1;
+  ok('stessi angoli in basso, fra le schermate di carta', ugualiCarta('angoli'), testate);
+  ok('stesso filo colorato sotto', ugualiCarta('filo'), testate);
+  ok('e la home invece non e\' un foglio: niente lastra bianca sul legno',
+     testate.home.angoli === '0px' && /^0px/.test(testate.home.filo), testate.home);
   ok('e il marchio comincia sempre alla stessa distanza dal bordo',
      new Set(testate.marchi.filter(x=> x !== null)).size === 1, testate.marchi);
 
@@ -612,6 +625,102 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
   ok('la lancetta punta dove finisce l\'arco',
      Math.abs(lancetta.gradi - lancetta.giro * 3.6) < 0.05, lancetta);
   ok('e scartando la sessione il quadrante si spegne', !lancetta.dopo, lancetta);
+
+  console.log('\n── la scrivania: quello che si vede sul tavolo e\' dato vero ──');
+  // LA REGOLA DI QUESTA SCHERMATA. La mappa del mese non e' un ornamento a
+  // tema RE3: il percorso azzurro sono i giorni in cui ti sei seduto a
+  // disegnare, le croci rosse i giorni saltati, il riquadro giallo e' oggi.
+  // Se il disegno e il registro delle ore (secondiPerGiorno in tempo.js)
+  // smettessero di dire la stessa cosa, il tavolo racconterebbe una bugia —
+  // ed e' la prima cosa che si vede aprendo l'app.
+  const tavolo = await page.evaluate(async ()=>{
+    document.querySelector('.dune-btn[aria-label="home"]').click();
+    await new Promise(r=> setTimeout(r, 300));
+    const t = await import('/js/tempo.js');
+    const st = await import('/js/state.js');
+    const home = await import('/js/home.js');
+    const oggi = new Date();
+    const due = n => String(n).padStart(2, '0');
+    const chiave = g => oggi.getFullYear() + '-' + due(oggi.getMonth()+1) + '-' + due(g);
+    // Si semina il registro: due giorni fatti attaccati, uno saltato in mezzo,
+    // e un giorno FUTURO con dentro delle ore (non puo' esistere, ma serve a
+    // controllare che il disegno guardi la data e non solo la mappa).
+    const m = new Map();
+    const fatti = [];
+    for(let g = 1; g <= oggi.getDate(); g++){ if(g % 3 !== 0){ m.set(chiave(g), 1800 + g); fatti.push(g); } }
+    const ultimo = new Date(oggi.getFullYear(), oggi.getMonth()+1, 0).getDate();
+    t.__seminaGiorni(m);
+    const p1 = home.newProjectObj('Kara', 24); p1.id = 'pk';
+    p1.microtask = 'Chiudere gli sfondi della tavola 7';
+    st.setProjects([p1]);
+    await window.__aggiornaScrivania();
+    await new Promise(r=> setTimeout(r, 300));
+    const mappa = document.getElementById('scriv-mappa');
+    const svg = mappa.querySelector('svg');
+    const percorsi = Array.from(svg.querySelectorAll('path'));
+    const azzurri = percorsi.filter(p=> (p.getAttribute('stroke')||'').toLowerCase() === '#56a8dd');
+    const croci = percorsi.filter(p=> (p.getAttribute('stroke')||'').toLowerCase() === '#a8352c');
+    const big = document.getElementById('scriv-biglietto');
+    return {
+      giorniDelMese: ultimo, oggi: oggi.getDate(),
+      // I giorni saltati sono quelli PRIMA di oggi: oggi non e' finito, e
+      // sbarrarlo alle nove del mattino vorrebbe dire darti del pigro prima
+      // che tu abbia avuto la giornata per smentirlo.
+      saltati: Array.from({length:oggi.getDate()-1},(_,i)=> i+1).filter(g=> g % 3 === 0).length,
+      oggiSaltato: oggi.getDate() % 3 === 0,
+      croci: croci.length,
+      tratti: azzurri.length,
+      mese: (mappa.querySelector('.scriv-mese')||{}).textContent,
+      riquadroOggi: !!mappa.querySelector('.scriv-oggi'),
+      // Il biglietto c'e' perche' c'e' un microtask scritto, e porta il nome
+      // del progetto.
+      biglietto: big && !big.hidden ? big.textContent.replace(/\s+/g,' ').trim() : null,
+    };
+  });
+  ok('la mappa porta il nome del mese', /^[A-Z]{5,}$/.test(tavolo.mese || ''), tavolo);
+  ok('e il riquadro di oggi', tavolo.riquadroOggi, tavolo);
+  // UNA CROCE PER OGNI GIORNO SALTATO, e nessuna di piu': sbarrare un giorno
+  // che deve ancora arrivare vorrebbe dire segnarlo come mancato.
+  ok('una croce rossa per ogni giorno saltato, e solo per quelli passati',
+     tavolo.croci === tavolo.saltati, tavolo);
+  // E' il caso che si vede solo quando capita: se oggi e' un giorno senza ore,
+  // la croce NON deve esserci comunque. Il conto qui sopra lo prova gia' nei
+  // giorni giusti, questa riga lo dice per iscritto.
+  ok('e oggi non prende mai la croce, anche se ancora non hai disegnato',
+     !tavolo.oggiSaltato || tavolo.croci === tavolo.saltati, tavolo);
+  ok('e il percorso azzurro c\'e\'', tavolo.tratti === 1, tavolo);
+  ok('il biglietto di stasera porta il task e il progetto',
+     /Chiudere gli sfondi della tavola 7/.test(tavolo.biglietto || '')
+     && /KARA/.test(tavolo.biglietto || ''), tavolo);
+
+  // SENZA UN TASK SCRITTO IL BIGLIETTO NON C'E'. Un foglietto che dice "non hai
+  // scritto niente" e' un rimprovero appeso al tavolo.
+  const senzaTask = await page.evaluate(async ()=>{
+    const st = await import('/js/state.js');
+    const home = await import('/js/home.js');
+    const p = home.newProjectObj('Kara', 24); p.id = 'pk'; p.microtask = '';
+    st.setProjects([p]);
+    await window.__aggiornaScrivania();
+    await new Promise(r=> setTimeout(r, 200));
+    const b = document.getElementById('scriv-biglietto');
+    return { nascosto: b.hidden };
+  });
+  ok('senza un task scritto il biglietto non compare', senzaTask.nascosto, senzaTask);
+
+  // LA LAMPADA. Accende e spegne il tavolo, e la scelta resta: chi disegna di
+  // notte non vuole rifarlo ad ogni apertura.
+  const lampada = await page.evaluate(async ()=>{
+    const b = document.getElementById('scriv-luce');
+    const prima = document.body.classList.contains('luce-spenta');
+    b.click(); await new Promise(r=> setTimeout(r, 120));
+    const dopo = document.body.classList.contains('luce-spenta');
+    const salvato = localStorage.getItem('inkflow_scrivania_luce');
+    b.click(); await new Promise(r=> setTimeout(r, 120));
+    return { prima, dopo, salvato, tornata: document.body.classList.contains('luce-spenta') };
+  });
+  ok('la lampada si spegne', lampada.prima === false && lampada.dopo === true, lampada);
+  ok('e la scelta si ricorda', lampada.salvato === 'spenta', lampada);
+  ok('e si riaccende', lampada.tornata === false, lampada);
 
   const daImpostazioni = await page.evaluate(()=>{
     const b = Array.from(document.querySelectorAll('.settings-vai'));

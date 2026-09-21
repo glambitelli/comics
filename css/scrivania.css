@@ -1,0 +1,220 @@
+/* ── LA SCRIVANIA ───────────────────────────────────────────────────────────
+   La home non e' un pannello di controllo: e' il piano su cui si lavora.
+   L'idea e' di Giovanni, 21 settembre 2026, e il riferimento e' preciso: la
+   mappa di Raccoon City annotata a pennarello da Jill Valentine in RE3, e la
+   sua scrivania — foglietti, calendario, la lampada che fa la pozza di luce.
+   Da li' vengono i colori (la carta tabacco delle strade, il verde dei parchi,
+   l'azzurro del fiume, il rosso ruggine) e le due grafie a mano.
+
+   QUELLO CHE SI VEDE E' TUTTO DATO VERO, nessuna decorazione che finge:
+   il percorso azzurro sono i giorni in cui ti sei seduto a disegnare, le croci
+   rosse i giorni saltati, il riquadro giallo e' oggi. E' il registro delle ore
+   (vedi secondiPerGiorno in tempo.js) disegnato come una mappa invece che come
+   un grafico a barre — perche' un grafico a barre lo guardi una volta, una
+   mappa annotata la leggi. */
+
+/* ── LE DUE MANI ──
+   Una penna e un pennarello, e sono due strumenti diversi come su un tavolo
+   vero. Matter Guts e' la penna: sottile, corsiva, giusta per il biglietto di
+   stasera. A 11px pero' sparisce, quindi sulla mappa — dove le scritte sono
+   piccole e devono reggere sopra il disegno — si usa Komika Jam, che e' un
+   pennarello grosso.
+   LICENZE, e vanno tenute d'occhio: Matter Guts e' "Demo, solo uso personale"
+   (vedi font/matter-guts-LICENZA.txt) — va bene per un'app che Giovanni usa e
+   non vende, servirebbe la licenza a pagamento per pubblicarla. Komika e'
+   freeware senza limiti (font/komika-LICENZA.txt). */
+@font-face{
+  font-family:'Penna';
+  src:url('../font/matter-guts.ttf') format('truetype');
+  font-display:swap;
+}
+@font-face{
+  font-family:'Pennarello';
+  src:url('../font/komika-jam.ttf') format('truetype');
+  font-display:swap;
+}
+
+/* ── IL PIANO ──
+   Tinta piatta e due venature finissime, niente sfumatura verticale: quella
+   faceva sembrare il tavolo una fotografia invece che una superficie.
+   Il legno sta sulla SCHERMATA e non sul contenitore che scorre, cosi' la
+   pozza di luce copre anche la fascia dell'intestazione. */
+#screen-home{
+  background-color:#3d2c1e;
+  background-image:
+    repeating-linear-gradient(91deg,rgba(0,0,0,.055) 0 1px,transparent 1px 7px),
+    repeating-linear-gradient(88deg,rgba(255,255,255,.03) 0 1px,transparent 1px 23px);
+}
+/* LA POZZA DI LUCE. Larga e in alto, come la fa una lampada da tavolo: una
+   macchia piccola al centro sembrava un faretto da museo. Sta sopra il legno e
+   sotto gli oggetti (z-index), e non riceve tocchi. */
+#screen-home::after{
+  content:'';position:absolute;inset:0;pointer-events:none;z-index:0;
+  transition:background .45s ease;
+  background:
+    radial-gradient(ellipse 66% 74% at 48% 30%,rgba(255,226,170,.30) 0%,rgba(255,220,160,.12) 38%,rgba(0,0,0,0) 72%),
+    radial-gradient(ellipse 120% 100% at 50% 40%,rgba(0,0,0,0) 40%,rgba(0,0,0,.55) 100%);
+}
+body.luce-spenta #screen-home::after{
+  background:radial-gradient(ellipse 120% 100% at 50% 42%,rgba(0,0,0,.30) 0%,rgba(0,0,0,.74) 100%);
+}
+/* L'intestazione e la barra in fondo stanno SOPRA la luce. */
+#screen-home .home-header,#screen-home .home-scroll{position:relative;z-index:2}
+/* Sul legno il marchio nero non si legge. */
+#screen-home .home-header{background:transparent;border:0;border-radius:0}
+#screen-home .home-header::before{display:none}
+#screen-home .home-title{color:#f4ecd8}
+#screen-home .home-sub{color:rgba(240,232,216,.42)}
+/* La tempesta di sabbia era un effetto per il fondo chiaro: su un tavolo di
+   legno e' neve. */
+#home-sand{display:none}
+
+/* ── IL BANCO ──
+   Gli oggetti stanno in una colonna larga al massimo 860px: su uno schermo da
+   computer, senza un tetto, si allontanavano fino a sembrare tre cose diverse
+   in tre angoli. */
+.scriv{width:100%;max-width:860px;margin:0 auto;position:relative}
+/* IL TAVOLO RESTA SOPRA LA CAPSULA. Mentre il cronometro gira, in basso a
+   destra compare una capsula col tempo che scorre (#tempo-capsula): se il
+   tavolo arriva fin li', il quadrante finisce sotto e non si puo' piu'
+   premere per mettere in pausa. Questo spazio in fondo e' quello che tiene
+   fuori dalla sua fascia tutto quello che si tocca. */
+#screen-home .home-scroll{padding-bottom:calc(158px + var(--safe-bot))}
+/* IL TAVOLO STA IN MEZZO allo spazio che avanza: appoggiato in cima lasciava
+   mezzo schermo di legno vuoto sotto, che e' il difetto da cui si era partiti.
+   Vale lo stesso avvertimento di .home-scroll: se un giorno qui dentro
+   arrivasse un contenuto piu' alto dello schermo, questi margini vanno tolti. */
+.home-scroll > .scriv{margin-top:auto;margin-bottom:auto}
+
+/* ── IL FOGLIO DELLA MAPPA ──
+   Una mappa piegata e appoggiata: il foglio ha un margine di carta piu' chiaro
+   intorno al disegno, e sta storto di mezzo grado. Storto di piu' sembrerebbe
+   un errore; dritto sembrerebbe stampato sulla pagina. */
+.scriv-foglio{
+  background:#efe7d2;padding:7px;transform:rotate(-.5deg);
+  box-shadow:0 1px 2px rgba(0,0,0,.3),0 14px 30px rgba(0,0,0,.35);
+}
+.scriv-mappa{
+  position:relative;overflow:hidden;
+  /* L'ALTEZZA CRESCE COL FOGLIO ma non oltre: il mese ha cinque righe di
+     isolati, e sotto i 170px si impastano; sopra i 300 la mappa diventa il
+     tavolo invece che una cosa appoggiata sopra. Il disegno dentro e' in pixel
+     veri (lo compone scrivania.js leggendo la misura a schermo), quindi ad
+     ogni cambio di larghezza va ridisegnato — vedi il listener sul resize. */
+  height:clamp(186px, min(46vw, 30vh), 300px);
+  /* LE STRADE. Due griglie di righe chiare sopra la carta tabacco: sono lo
+     sfondo su cui corre il percorso, e servono a far leggere il disegno come
+     una CITTA' invece che come un grafico. Le percentuali sono quelle della
+     mappa vera: isolati larghi e strade sottili. */
+  background:
+    linear-gradient(90deg,transparent 0 12%,#f2ece0 12% 13.4%,transparent 13.4% 30%,#f2ece0 30% 31.4%,transparent 31.4% 52%,#f2ece0 52% 53.4%,transparent 53.4% 74%,#f2ece0 74% 75.4%,transparent 75.4%),
+    linear-gradient(0deg,transparent 0 16%,#f2ece0 16% 18%,transparent 18% 44%,#f2ece0 44% 46%,transparent 46% 72%,#f2ece0 72% 74%,transparent 74%),
+    #e6dcc6;
+}
+.scriv-mappa svg{position:absolute;inset:0;width:100%;height:100%}
+.scriv-parco{position:absolute;background:#b9cf9c;opacity:.8}
+.scriv-fiume{position:absolute;background:#7fb6d8;opacity:.8}
+/* Il nome del mese e' STAMPATO, non scritto a mano: e' quello che c'era sul
+   foglio prima che tu ci passassi sopra col pennarello. */
+.scriv-mese{
+  position:absolute;left:14px;top:9px;font-family:'Nunito',sans-serif;
+  font-weight:800;letter-spacing:.14em;color:#5a5044;font-size:13px;
+}
+/* Le scritte a pennarello: le tue, sopra il foglio. */
+.scriv-nota{position:absolute;font-family:'Pennarello',cursive;color:#1d1a17;line-height:1}
+.scriv-oggi{position:absolute;border:3px solid #f5d949;border-radius:3px;opacity:.9}
+
+/* ── LA LEGENDA ──
+   In alto a destra, dov'e' sulla mappa vera. Ci vive la frase del giorno: cosi'
+   smette di essere un quarto oggetto che compete con gli altri tre e diventa
+   una didascalia del foglio. Battuta a macchina, perche' e' l'unica cosa qui
+   dentro che non hai scritto tu. */
+.scriv-legenda{
+  position:absolute;right:9px;top:9px;width:min(250px,52%);
+  background:rgba(247,242,228,.93);border:1px solid rgba(90,70,40,.25);
+  padding:7px 9px;
+}
+.scriv-legenda .cit{font-family:'Courier Prime',monospace;font-size:9px;line-height:1.55;color:#3a332a}
+.scriv-legenda .aut{font-family:'Pennarello',cursive;font-size:9px;color:#8d4a32;margin-top:4px;text-align:right}
+
+/* ── LA RIGA SOTTO ──
+   Il cronometro sale a cavallo dell'angolo della mappa: e' quello che lo fa
+   leggere come un oggetto APPOGGIATO sul foglio e non come un'icona incollata
+   alla pagina. Il biglietto invece torna giu' col suo margine, se no salirebbe
+   anche lui. */
+.scriv-riga{display:flex;align-items:flex-start;margin-top:-46px;padding:0 4px;gap:10px}
+.scriv-riga .tempo-posto{margin:0 0 0 auto;order:2}
+
+/* ── IL BIGLIETTO DI STASERA ──
+   Compare solo se c'e' un task scritto: un foglietto che dice "non hai scritto
+   niente" sarebbe un rimprovero appeso al tavolo. */
+.scriv-biglietto{
+  order:1;margin-top:58px;width:min(214px,52%);position:relative;
+  background:#f7f2e4;padding:15px 13px 12px;transform:rotate(1.4deg);
+  box-shadow:0 1px 2px rgba(0,0,0,.3),0 14px 30px rgba(0,0,0,.35);
+  border:0;text-align:left;font:inherit;cursor:pointer;
+}
+.scriv-biglietto[hidden]{display:none}
+.scriv-biglietto .nastro{
+  position:absolute;width:52px;height:16px;background:rgba(236,226,196,.6);
+  left:50%;margin-left:-26px;top:-7px;transform:rotate(-1.6deg);
+}
+.scriv-biglietto i{
+  font-style:normal;display:block;font-family:'Penna',cursive;
+  font-size:11px;color:#8d4a32;letter-spacing:.05em;margin-bottom:3px;
+}
+.scriv-biglietto b{
+  display:block;font-family:'Penna',cursive;font-size:18px;font-weight:400;
+  color:#1d1a17;line-height:1.28;
+}
+.scriv-biglietto em{
+  font-style:normal;display:inline-block;margin-top:8px;font-family:'Penna',cursive;
+  font-size:10px;color:#fff;background:#a8352c;padding:2px 8px;transform:rotate(-1deg);
+}
+
+/* ── L'INTERRUTTORE DELLA LUCE ──
+   Un bilanciere avvitato al piano, plastica scura e spia ambra. NON e' la
+   modalita' sera dell'app (quella e' una schermata sua, con le stelle e i
+   task): qui accende e spegne la lampada sopra QUESTO tavolo, e basta. La
+   scelta resta fra un'apertura e l'altra. */
+.scriv-cima{display:flex;justify-content:flex-end;padding:0 4px;margin-bottom:10px}
+.scriv-luce{
+  position:relative;z-index:3;
+  width:50px;height:70px;border-radius:7px;border:0;cursor:pointer;
+  background:#3a332c;padding:6px 7px;
+  display:flex;flex-direction:column;align-items:center;gap:5px;
+  box-shadow:0 2px 4px rgba(0,0,0,.5),0 10px 22px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.12);
+}
+.scriv-luce:active{transform:scale(.96)}
+.scriv-luce .vite{position:absolute;width:5px;height:5px;border-radius:50%;
+  background:#211c18;box-shadow:inset 0 1px 0 rgba(255,255,255,.18)}
+.scriv-luce .vite.a{left:5px;top:5px}   .scriv-luce .vite.b{right:5px;top:5px}
+.scriv-luce .vite.c{left:5px;bottom:5px}.scriv-luce .vite.d{right:5px;bottom:5px}
+.scriv-luce .bil{width:28px;height:36px;border-radius:4px;background:#171310;
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.6);position:relative;overflow:hidden}
+.scriv-luce .bil s{position:absolute;left:0;right:0;height:50%;top:0;text-decoration:none;
+  border-radius:3px;background:linear-gradient(180deg,#d8d0c2,#a89e8c);
+  box-shadow:0 1px 2px rgba(0,0,0,.5);transition:top .18s,background .18s}
+body.luce-spenta .scriv-luce .bil s{top:50%;background:linear-gradient(180deg,#8c8577,#5f5950)}
+.scriv-luce .spia{width:8px;height:8px;border-radius:50%;background:#ffc447;
+  box-shadow:0 0 7px 2px rgba(255,190,70,.65);transition:background .2s,box-shadow .2s}
+body.luce-spenta .scriv-luce .spia{background:#4a3a20;box-shadow:none}
+.scriv-luce u{text-decoration:none;font-family:'Nunito',sans-serif;font-size:6.5px;
+  font-weight:800;letter-spacing:.1em;color:rgba(240,232,216,.4)}
+
+/* ── IL CRONOMETRO SUL LEGNO ──
+   Il quadrante e' lo stesso di sempre (vedi tempo.css): qui gli si aggiunge
+   solo l'ombra da oggetto appoggiato, che sulla carta chiara non serviva. */
+#screen-home .tempo-quadrante{
+  box-shadow:inset 0 0 0 calc(var(--q) * .037) rgba(0,0,0,.42),
+             0 4px 12px rgba(0,0,0,.45), 0 20px 40px rgba(0,0,0,.4);
+}
+#screen-home .tempo-esito{color:rgba(240,232,216,.6)}
+
+/* Su uno schermo stretto il quadrante rimpicciolisce: a 412px, con la mappa
+   larga quanto lo schermo, un disco da 108px mangiava meta' della riga sotto. */
+@media (max-width:520px){
+  .tempo-quadrante{--q:92px}
+  .scriv-riga{margin-top:-38px}
+  .scriv-biglietto{margin-top:48px}
+}

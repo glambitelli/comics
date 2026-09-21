@@ -31,6 +31,7 @@
 <link rel="stylesheet" href="css/idee.css">
 <link rel="stylesheet" href="css/scene.css">
 <link rel="stylesheet" href="css/tempo.css">
+<link rel="stylesheet" href="css/scrivania.css">
 <link rel="stylesheet" href="css/modals.css">
 <link rel="stylesheet" href="css/stats.css" media="print" onload="this.media='all'">
 <link rel="stylesheet" href="css/scriptment.css" media="print" onload="this.media='all'">
@@ -136,29 +137,43 @@
     </div>
   </div>
   <div class="home-scroll" id="home-scroll">
-    <!-- Citazione del giorno — in alto, centrata -->
-    <div id="home-quote" style="text-align:center;padding:6px 8px 2px"></div>
-    <!-- IL CRONOMETRO SI AVVIA DA QUI, e non da una sezione tutta sua. La barra
-         in fondo ha cinque tondi con la casa al centro — dispari apposta — e
-         una sesta sezione sarebbe un posto in piu' da guardare per una cosa che
-         e' due tocchi in croce: parti, fermi. La home invece e' la prima cosa
-         che si vede sedendosi a disegnare.
-         Mentre gira, il tempo si vede anche da tutte le altre schermate, in una
-         capsula sopra la barra (vedi #tempo-capsula): cosi' si puo' stare in
-         References o nelle Scene mentre conta. -->
-    <!-- UN QUADRANTE, NON PIU' UNA RIGA SCRITTA. Era un rettangolo tratteggiato
-         largo tutta la colonna con dentro "Comincio a disegnare": la scritta
-         faceva tutto il lavoro — diceva anche in che stato eri ("Sto
-         disegnando", "In pausa") — e lasciava l'oggetto senza nessuna forma
-         propria. Adesso lo stato lo dice il disegno: da spento e' un cerchio
-         di carta con l'orologino, acceso si fa scuro e l'arco d'oro cresce
-         mentre passano i minuti. L'arco e' il pezzo che non c'era: dice
-         quanto sei avanti SENZA doverlo leggere, che davanti a un cronometro
-         e' la domanda vera.
-         LE QUATTRO TACCHE NON SONO UN ORNAMENTO: sono i quarti del giro, e
-         siccome un giro intero sono due ore, ognuna vale mezz'ora (vedi
-         GIRO_SECONDI in main.js). Servono anche da spento, a far capire che
-         quella cosa li' misura qualcosa. -->
+    <!-- ── LA SCRIVANIA ──
+         La home non e' un pannello di controllo: e' il piano su cui si lavora.
+         Idea di Giovanni, 21 settembre 2026, col riferimento in mano: la mappa
+         di Raccoon City annotata a pennarello da Jill Valentine in RE3, e la
+         sua scrivania. Il perche' per esteso sta in testa a js/scrivania.js e
+         a css/scrivania.css; qui c'e' solo come e' fatto il tavolo.
+         GERARCHIA: un grande, un medio, un piccolo. La mappa del mese e'
+         grande, il cronometro medio e ci sta sopra come un fermacarte, il
+         biglietto di stasera e' piccolo. Erano tre oggetti della stessa misura
+         che si contendevano l'occhio, e la frase del giorno era il quarto:
+         adesso la frase vive nella legenda della mappa. -->
+    <div class="scriv">
+      <!-- LA FRASE DEL GIORNO resta qui come unica sorgente — la riempie
+           main.js, in due punti — e scrivania.js ne porta una copia dentro la
+           legenda della mappa. Nascosta: quello che si legge e' la copia. -->
+      <div id="home-quote" hidden></div>
+      <!-- LA LAMPADA sopra il tavolo. Sta IN CIMA, su una riga sua sopra la
+           mappa. Ha gia' cambiato posto due volte e per due motivi diversi:
+           nell'angolo in alto, sovrapposta al foglio, su uno schermo stretto
+           copriva la mappa; in fondo a destra finiva sotto la capsula che
+           mostra il cronometro mentre gira (vedi #tempo-capsula), e un tasto
+           coperto da un altro e' un tasto che non si puo' premere. Sopra il
+           foglio non c'e' niente che possa arrivarci. -->
+      <div class="scriv-cima">
+        <button class="scriv-luce" id="scriv-luce" type="button" aria-pressed="true" aria-label="Spegni la lampada" title="Spegni la lampada">
+          <span class="vite a"></span><span class="vite b"></span>
+          <span class="vite c"></span><span class="vite d"></span>
+          <span class="bil"><s></s></span>
+          <span class="spia"></span>
+          <u>LUCE</u>
+        </button>
+      </div>
+      <div class="scriv-foglio">
+        <div class="scriv-mappa" id="scriv-mappa" role="img"></div>
+      </div>
+      <div class="scriv-riga">
+        <button class="scriv-biglietto" id="scriv-biglietto" type="button" hidden></button>
     <div class="tempo-posto" id="tempo-posto">
       <button class="tempo-quadrante" id="tempo-avvia" onclick="window.tempoTocca()" type="button"
               aria-label="Comincio a disegnare" title="Comincio a disegnare">
@@ -218,6 +233,8 @@
            il testo avrebbe fatto tornare. La riga resta alta anche da vuota,
            se no la pagina sobbalza ogni volta che compare. -->
       <div class="tempo-esito" id="tempo-esito" role="status"></div>
+    </div>
+      </div>
     </div>
   </div>
 </div>

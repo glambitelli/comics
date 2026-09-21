@@ -12,6 +12,7 @@ import { ascoltaErrori } from './registro.js';
 ascoltaErrori();
 import { openSettings, closeSettings, closeSettingsUI, azzeraTempoConferma, apriAiuto, resetStarsConfirm, closeStarsConfirm, doResetStars, exportBackup, importBackup, resetStreakConfirm, closeStreakConfirm, doResetStreak, onSoundToggle, onSoundPackChange, accountTocca, driveTocca, copiaUid, copiaRegistro, svuotaRegistroUI } from './settings.js';
 window.onSoundToggle=onSoundToggle; window.onSoundPackChange=onSoundPackChange;
+import { disegnaMappa, disegnaBiglietto, travasaLaFrase, montaLaLuce } from './scrivania.js';
 import { renderHome, openNewModal, closeModal, createProject, openCardMenu, exportProjectJSON, confirmDeleteProject, openColorPicker, closeColorPicker, selectProjectColor, filterProjects, attachCardDrag, applyProjectOrder, startSandstorm, getScriptment } from './home.js';
 import { openProject, restoreProject, goHome, confirmDeleteCurrent, closeConfirm, confirmMicrotask } from './project.js';
 import { enterEveningMode as enterEveningImpl, exitEveningMode as exitEveningImpl } from './evening.js';
@@ -431,10 +432,13 @@ hideLoading();
     renderHome();
     attachCardDrag();
     startSandstorm();
+    aggiornaScrivania();
     const hq=document.getElementById('home-quote');
     if(hq){
       const tip=getTodayTip();
       hq.innerHTML=`<div style="font-size:13px;line-height:1.65;color:var(--ink2);font-style:italic">"${tip.text}"</div><div style="font-size:11px;color:var(--ink3);margin-top:8px;font-weight:700;letter-spacing:.03em">— ${tip.author}</div>`;
+      // La frase si legge nella legenda della mappa: qui si porta la copia.
+      travasaLaFrase();
     }
   }
 })();
@@ -462,10 +466,13 @@ onSnapshot(collection(db, COL), snapshot => {
     renderHome();
     attachCardDrag();
     startSandstorm();
+    aggiornaScrivania();
     const hq=document.getElementById('home-quote');
     if(hq){
       const tip=getTodayTip();
       hq.innerHTML=`<div style="font-size:13px;line-height:1.65;color:var(--ink2);font-style:italic">"${tip.text}"</div><div style="font-size:11px;color:var(--ink3);margin-top:8px;font-weight:700;letter-spacing:.03em">— ${tip.author}</div>`;
+      // La frase si legge nella legenda della mappa: qui si porta la copia.
+      travasaLaFrase();
     }
   }
   if(currentId){
@@ -486,9 +493,43 @@ window.openNewModal=openNewModal; window.closeModal=closeModal; window.createPro
 // "Progetti" di #screen-projects, e le ridisegna mostraScaffale ad ogni
 // ingresso: farlo anche qui vorrebbe dire ricostruire l'HTML di tutte le
 // schede ad ogni visita alla home, per una cosa che la home non mostra.
+// ── LA SCRIVANIA ──
+// La home e' un tavolo con sopra tre cose: la mappa del mese, il cronometro e
+// il biglietto di stasera (vedi js/scrivania.js). Questa funzione le rinfresca
+// tutte e tre, e si chiama ogni volta che la home torna a schermo o che i dati
+// sotto cambiano.
+function disegnaLaMappa(m){
+  if(!m) return;
+  disegnaMappa(m.secondiPerGiorno(), m.secondiMese(), m.scriviBreve);
+}
+async function aggiornaScrivania(){
+  const casa = document.getElementById('screen-home');
+  if(!casa || !casa.classList.contains('active')) return;
+  montaLaLuce();
+  disegnaBiglietto(openProject);
+  travasaLaFrase();
+  // Il registro delle ore arriva da Firestore e si accende solo quando qualcuno
+  // guarda i numeri: adesso la home E' uno di quelli. ascoltaSessioni non apre
+  // due volte la stessa connessione, quindi richiamarla ad ogni ritorno a casa
+  // e' gratis (vedi il controllo su _unsub in tempo.js).
+  const m = await tempo();
+  m.ascoltaSessioni(()=> disegnaLaMappa(m));
+  disegnaLaMappa(m);
+}
+window.__aggiornaScrivania = aggiornaScrivania;
+// La mappa e' disegnata in pixel veri sulla misura che ha a schermo: girando
+// il telefono o allargando la finestra va rifatta, se no resta larga come
+// prima e il percorso esce dal foglio.
+let _rifaiTavolo = null;
+window.addEventListener('resize', ()=>{
+  clearTimeout(_rifaiTavolo);
+  _rifaiTavolo = setTimeout(aggiornaScrivania, 180);
+});
+
 const goHomeImpl=()=>{
   hideAllScreens();
   document.getElementById('screen-home').classList.add('active');
+  aggiornaScrivania();
   if(window._resumeSand) window._resumeSand();
 };
 window.togglePhase=togglePhase;
@@ -780,7 +821,12 @@ function disegnaTempo(){
   // lui il ridisegno che poi la ripulisce.
   const esito = document.getElementById('tempo-esito');
   if(esito) esito.textContent = '';
-  caps.hidden = !corre;
+  // LA CAPSULA SERVE ALLE ALTRE SCHERMATE. Sulla home il quadrante e' li' e
+  // mostra lo stesso numero piu' grande: la capsula sarebbe una seconda
+  // lettura della stessa cosa a dieci centimetri di distanza, e sul tavolo
+  // sarebbe anche un oggetto che non c'entra niente con gli altri.
+  const aCasa = document.getElementById('screen-home');
+  caps.hidden = !corre || !!(aCasa && aCasa.classList.contains('active'));
   caps.classList.toggle('ferma', ferma);
   const corsa = document.getElementById('tempo-corsa');
   if(corsa && m) corsa.textContent = m.scriviCorsa(m.secondiCorrenti());
@@ -817,6 +863,7 @@ window.tempoScarta = async ()=>{
   disegnaTempo();
   const s = document.getElementById('tempo-esito');
   if(s){ s.textContent = 'Sessione eliminata'; setTimeout(disegnaTempo, 2500); }
+  aggiornaScrivania();
 };
 window.tempoFerma = async ()=>{
   const m = await tempo();
@@ -828,6 +875,9 @@ window.tempoFerma = async ()=>{
     ? m.scriviBreve(secondi) + ' registrati'
     : 'Sessione troppo breve: non registrata';
   setTimeout(disegnaTempo, 3000);
+  // Il giorno appena chiuso entra nella mappa: senza questo il percorso
+  // arriverebbe a ieri fino alla riapertura dell'app.
+  aggiornaScrivania();
 };
 // Una sessione lasciata accesa riprende da sola all'avvio dell'app.
 if(tempoDaRiprendere()){
