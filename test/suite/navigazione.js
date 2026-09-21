@@ -677,14 +677,32 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
       croci: croci.length,
       tratti: azzurri.length,
       mese: (mappa.querySelector('.scriv-mese')||{}).textContent,
-      riquadroOggi: !!mappa.querySelector('.scriv-oggi'),
+      // OGGI E' CERCHIATO A PENNARELLO GIALLO, non piu' col riquadrino pulito
+      // che c'era prima: e' il segno che si fa su una mappa stampata.
+      // Ogni segno e' passato due volte (vedi dueMani in scrivania.js),
+      // quindi i tracciati gialli sono due.
+      cerchioOggi: percorsi.filter(p=> (p.getAttribute('stroke')||'').toLowerCase() === '#f2c400').length,
+      // IL RIQUADRO VERDE sulla serie piu' lunga di giorni di fila.
+      riquadroSerie: percorsi.filter(p=> (p.getAttribute('stroke')||'').toLowerCase() === '#4fae3f').length,
+      // E LE SCRITTE A MANO, con la loro inclinazione.
+      appunti: Array.from(mappa.querySelectorAll('.scriv-nota')).map(x=>({
+        testo: x.textContent, storta: /rotate/.test(x.style.transform) })),
       // Il biglietto c'e' perche' c'e' un microtask scritto, e porta il nome
       // del progetto.
       biglietto: big && !big.hidden ? big.textContent.replace(/\s+/g,' ').trim() : null,
     };
   });
   ok('la mappa porta il nome del mese', /^[A-Z]{5,}$/.test(tavolo.mese || ''), tavolo);
-  ok('e il riquadro di oggi', tavolo.riquadroOggi, tavolo);
+  ok('e oggi e\' cerchiato a pennarello', tavolo.cerchioOggi === 2, tavolo);
+  // LA SERIE PIU' LUNGA E' CERCHIATA IN VERDE, come gli edifici sulla mappa di
+  // Raccoon City, e c'e' scritto accanto quanti giorni sono.
+  ok('la serie piu\' lunga e\' cerchiata in verde', tavolo.riquadroSerie === 2, tavolo);
+  ok('e dice quanti giorni di fila sono',
+     tavolo.appunti.some(a=> /\d+ giorni di fila/.test(a.testo)), tavolo.appunti);
+  // LE SCRITTE STANNO STORTE, una per una: allineate sembravano etichette
+  // stampate invece che appunti.
+  ok('e gli appunti stanno storti', tavolo.appunti.length > 0
+     && tavolo.appunti.every(a=> a.storta), tavolo.appunti);
   // UNA CROCE PER OGNI GIORNO SALTATO, e nessuna di piu': sbarrare un giorno
   // che deve ancora arrivare vorrebbe dire segnarlo come mancato.
   ok('una croce rossa per ogni giorno saltato, e solo per quelli passati',

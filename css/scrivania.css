@@ -181,9 +181,17 @@ body.is-touch #screen-home .home-scroll{padding-bottom:calc(178px + var(--safe-b
   position:absolute;left:14px;top:9px;font-family:'Nunito',sans-serif;
   font-weight:800;letter-spacing:.14em;color:#5a5044;font-size:13px;
 }
-/* Le scritte a pennarello: le tue, sopra il foglio. */
-.scriv-nota{position:absolute;font-family:'Pennarello',cursive;color:#1d1a17;line-height:1}
-.scriv-oggi{position:absolute;border:3px solid #f5d949;border-radius:3px;opacity:.9}
+/* Le scritte a pennarello: le tue, sopra il foglio. Stanno storte una per una
+   (il grado lo mette scrivania.js): allineate sembravano etichette stampate.
+   Il perno della rotazione e' a SINISTRA, cosi' girando la scritta non si
+   sposta dal punto che sta annotando. */
+.scriv-nota{
+  position:absolute;font-family:'Pennarello',cursive;color:#1d1a17;line-height:1.05;
+  transform-origin:left center;white-space:nowrap;
+}
+/* I segni a pennarello stanno SOPRA il percorso e le croci, come gli appunti
+   su una mappa stampata, e non ricevono tocchi. */
+.scriv-appunti{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 
 /* ── LA LEGENDA ──
    In alto a destra, dov'e' sulla mappa vera. Ci vive la frase del giorno: cosi'
