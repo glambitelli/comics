@@ -514,6 +514,7 @@ async function aggiornaScrivania(){
   const casa = document.getElementById('screen-home');
   if(!casa || !casa.classList.contains('active')) return;
   montaLaLuce();
+  montaIlQuadrante();
   disegnaBiglietto(openProject, ()=> openProjects('progetti'));
   travasaLaFrase();
   // Il registro delle ore arriva da Firestore e si accende solo quando qualcuno
@@ -801,15 +802,9 @@ function disegnaTempo(){
   // parla agli occhi, non a loro due.
   const dice = !corre ? 'Comincio a disegnare'
              : ferma  ? 'In pausa — riprendi'
-             : 'Sto disegnando — metti in pausa';
+             : 'Sto disegnando — tocca per chiudere, tieni premuto per annullare';
   avvia.setAttribute('aria-label', dice);
   avvia.setAttribute('title', dice);
-  // FINE ED ELIMINA compaiono solo mentre il cronometro corre: da fermo non
-  // c'e' niente da chiudere e niente da buttare. Stanno sotto il quadrante
-  // sulla home, dove prima si poteva solo partire e mettere in pausa — per le
-  // altre due si doveva andare su un'altra schermata a cercare la capsula.
-  const comandi = document.getElementById('tempo-comandi');
-  if(comandi) comandi.hidden = !corre;
   // LE CIFRE CI SONO SEMPRE, anche da fermo, dove dicono 00:00: un quadrante
   // che non scrive niente finche' non lo premi e', da fermo, un quadrante che
   // non risponde. Il 00:00 di partenza sta nel markup — qui non si arriva
@@ -845,14 +840,56 @@ function disegnaTempo(){
   const corsa = document.getElementById('tempo-corsa');
   if(corsa && m) corsa.textContent = m.scriviCorsa(m.secondiCorrenti());
 }
+// ── IL QUADRANTE FA TUTTO DA SOLO ──
+// Un tocco parte, un altro tocco chiude la sessione e la mette in archivio,
+// una pressione lunga chiede se buttarla via. Tre gesti su un oggetto solo.
+//
+// PRIMA ERA COSI': il tocco alternava avvio, pausa e ripresa, e per chiudere
+// o per eliminare bisognava andarsene su un'altra schermata a cercare la
+// capsula del cronometro. Ci ho poi messo due tondi sotto il quadrante, e la
+// risposta di Giovanni (21 settembre 2026) e' stata che sulla home vuole
+// poter toccare UN OGGETTO SOLO — l'orologio — e basta.
+// LA PAUSA NON SPARISCE, si sposta: vive nella capsula, che si vede da ogni
+// altra schermata mentre il cronometro corre. Sulla home, dove il gesto deve
+// essere uno, mettere in pausa e chiudere sono la stessa intenzione detta in
+// due modi — smetto adesso — e il tempo finisce in archivio comunque.
 window.tempoTocca = async ()=>{
   const m = await tempo();
   m.alSecondo(disegnaTempo);
-  if(!m.acceso()) m.avvia();
-  else if(m.inPausa()) m.riprendi();
-  else m.pausa();
-  disegnaTempo();
+  if(!m.acceso()){ m.avvia(); disegnaTempo(); return; }
+  await window.tempoFerma();
 };
+// La pressione lunga: settecento millisecondi, che e' la soglia a cui il
+// telefono stesso chiama "tenere premuto". Piu' corta si fa per sbaglio
+// posando il dito, piu' lunga non la scopre nessuno.
+// L'ANELLO CHE SI CHIUDE mentre tieni premuto non e' un ornamento: senza,
+// un gesto che dura mezzo secondo prima di fare qualcosa e' indistinguibile
+// da un tocco che non ha funzionato.
+const LUNGA = 700;
+function montaIlQuadrante(){
+  const b = document.getElementById('tempo-avvia');
+  if(!b || b.dataset.montato) return;
+  b.dataset.montato = '1';
+  let conto = null, scattata = false;
+  const molla = ()=>{ clearTimeout(conto); conto = null; b.classList.remove('carica'); };
+  b.addEventListener('pointerdown', async ()=>{
+    scattata = false;
+    const m = await tempo();
+    if(!m.acceso()) return;            // da fermo non c'e' niente da annullare
+    b.classList.add('carica');
+    conto = setTimeout(()=>{
+      scattata = true; molla(); haptic('tap');
+      window.tempoScarta();
+    }, LUNGA);
+  });
+  for(const e of ['pointerup','pointercancel','pointerleave']) b.addEventListener(e, molla);
+  b.addEventListener('click', ()=>{
+    // Il tocco che CHIUDE la pressione lunga non deve anche fermare il
+    // cronometro: sarebbero due comandi per un gesto solo.
+    if(scattata){ scattata = false; return; }
+    window.tempoTocca();
+  });
+}
 window.tempoPausa = async ()=>{
   const m = await tempo();
   if(m.inPausa()) m.riprendi(); else m.pausa();

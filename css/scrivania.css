@@ -107,7 +107,7 @@ body.is-touch #screen-home .home-scroll{padding-bottom:calc(178px + var(--safe-b
    finivano mezze oltre lo schermo. Sotto gli 820px di pagina il tavolo torna
    quello di prima. */
 .scriv-tavolo{position:relative}
-.scriv-nastro,.scriv-matita,.scriv-foto{display:none}
+.scriv-nastro,.scriv-foto{display:none}
 @media (min-width:820px){
   .scriv-nastro{
     display:block;position:absolute;width:86px;height:26px;z-index:6;
@@ -116,14 +116,6 @@ body.is-touch #screen-home .home-scroll{padding-bottom:calc(178px + var(--safe-b
   /* Angoli diversi ai due capi: nessuno attacca due pezzi di scotch paralleli. */
   .scriv-nastro.a{left:-26px;top:-13px;transform:rotate(-38deg)}
   .scriv-nastro.b{right:-24px;top:-15px;transform:rotate(36deg)}
-  /* La matita passa SOTTO il foglio (z-index 1): appoggiata sopra sembrerebbe
-     disegnata addosso alla mappa. */
-  .scriv-matita{
-    display:block;position:absolute;right:-104px;top:40%;width:200px;height:9px;
-    border-radius:2px;transform:rotate(74deg);z-index:1;
-    background:linear-gradient(90deg,#3a332a 0 7%,#d9a417 7% 86%,#e8dcc4 86% 94%,#b08a6a 94%);
-    box-shadow:0 8px 14px rgba(0,0,0,.4);
-  }
   /* LA FOTO DELL'ULTIMO STUDIO. Questa invece e' un dato — l'ultima immagine
      entrata in archivio — e quando non c'e' la foto non c'e': una cornice
      vuota che dice "qui non c'e' niente" sarebbe l'unica cosa finta del
@@ -276,7 +268,7 @@ body.is-touch #screen-home .home-scroll{padding-bottom:calc(178px + var(--safe-b
    scorre. Col dito sale sopra la barra-duna, che e' alta 88px. */
 .scriv-luce{
   position:fixed;right:18px;bottom:calc(18px + var(--safe-bot));z-index:60;
-  width:46px;height:62px;border-radius:7px;border:0;cursor:pointer;
+  width:46px;height:52px;border-radius:7px;border:0;cursor:pointer;
   background:#3a332c;padding:5px 6px;
   display:flex;flex-direction:column;align-items:center;gap:5px;
   box-shadow:0 2px 4px rgba(0,0,0,.5),0 10px 22px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.12);
@@ -296,8 +288,11 @@ body.luce-spenta .scriv-luce .bil s{top:50%;background:linear-gradient(180deg,#8
 .scriv-luce .spia{width:8px;height:8px;border-radius:50%;background:#ffc447;
   box-shadow:0 0 7px 2px rgba(255,190,70,.65);transition:background .2s,box-shadow .2s}
 body.luce-spenta .scriv-luce .spia{background:#4a3a20;box-shadow:none}
-.scriv-luce u{text-decoration:none;font-family:'Nunito',sans-serif;font-size:6.5px;
-  font-weight:800;letter-spacing:.1em;color:rgba(240,232,216,.4)}
+/* LA SCRITTA "LUCE" NON C'E' PIU'. Un interruttore su un tavolo vero non ha
+   scritto sopra cosa fa: si capisce da com'e' fatto, dalla spia accesa e dal
+   fatto che al buio la si cerca proprio li'. Toglierla e' stata una richiesta
+   di Giovanni (22 settembre 2026), e il corpo si e' accorciato di
+   conseguenza — se no restava una fascia di vuoto sotto il bilanciere. */
 
 /* ── IL CRONOMETRO SUL LEGNO ──
    Il quadrante e' lo stesso di sempre (vedi tempo.css): qui gli si aggiunge

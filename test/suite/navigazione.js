@@ -805,55 +805,63 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
      && angolo.daSotto >= 8, angolo);
   ok('e non si siede sopra la barra-duna', !angolo.sullaDuna, angolo);
 
-  // ── DALLA HOME SI FANNO TUTTE E QUATTRO LE COSE ──
-  // IL DIFETTO: il quadrante sulla home faceva partire e metteva in pausa, ma
-  // per CHIUDERE una sessione o per BUTTARLA VIA bisognava andarsene su
-  // un'altra schermata, dove compare la capsula del cronometro. Cioe' per
-  // eliminare un cronometro partito in tasca si doveva prima aprire un'altra
-  // pagina e cercare una X (Giovanni, 21 settembre 2026).
-  const comandiHome = await page.evaluate(async ()=>{
+  // ── SULLA HOME SI TOCCA UN OGGETTO SOLO: L'OROLOGIO ──
+  // La storia di questo gesto, perche' e' cambiato due volte in due giorni.
+  // All'inizio il quadrante alternava avvio, pausa e ripresa, e per chiudere
+  // o eliminare una sessione bisognava andarsene su un'altra schermata a
+  // cercare la capsula del cronometro: per buttare via un cronometro partito
+  // in tasca si doveva prima aprire un'altra pagina. Allora sotto il
+  // quadrante erano comparsi due tondi, Fine ed Elimina — e la risposta di
+  // Giovanni (22 settembre 2026) e' stata che sulla home vuole toccare UN
+  // OGGETTO SOLO. Quindi: un tocco parte, un altro chiude, una pressione
+  // lunga chiede se buttare via.
+  const quadrante = await page.evaluate(async ()=>{
     const m = await import('/js/tempo.js');
-    const comandi = document.getElementById('tempo-comandi');
-    // Se la fila non c'e' proprio, si dice invece di schiantarsi: una prova
-    // che muore con "Cannot read properties of null" non racconta niente a
-    // chi la legge sei mesi dopo.
-    if(!comandi) return { manca: true };
-    const daFermo = comandi.hidden;
-    await window.tempoTocca();                       // parte
-    await new Promise(r=> setTimeout(r, 150));
-    const correndo = {
-      visti: !comandi.hidden,
-      fine: !!document.getElementById('tempo-stop-home'),
-      elimina: !!document.getElementById('tempo-scarta-home'),
-      // I due tondi devono essere PREMIBILI: nascosti sotto qualcosa non
-      // servirebbero a niente, ed e' l'errore da cui si viene.
-      // E HANNO UNA MISURA: un pulsante largo zero c'e' nel DOM e non
-      // esiste per il pollice. Che nessuno ci si sieda sopra lo prova gia'
-      // la sezione sulla capsula, piu' giu'.
-      misure: ['tempo-stop-home','tempo-scarta-home'].map(id=>{
-        const r = document.getElementById(id).getBoundingClientRect();
-        return { id, l: Math.round(r.width), a: Math.round(r.height) };
-      }),
-    };
-    // ELIMINA CHIEDE PRIMA e poi butta via: la sessione non finisce in
-    // archivio. Il modale non si aspetta con await — resterebbe appeso.
-    window.tempoScarta();
-    await new Promise(r=> setTimeout(r, 300));
-    const chiede = !!document.getElementById('ink-confirm-ok');
+    const b = document.getElementById('tempo-avvia');
+    if(!b) return { manca: true };
+    // Niente tondi in giro: il quadrante e' l'unica cosa che si tocca.
+    const soloLui = !document.getElementById('tempo-comandi')
+                 && !document.getElementById('tempo-stop-home');
+    const premi = ()=> b.dispatchEvent(new MouseEvent('click', { bubbles:true }));
+    m.ferma();
+    premi(); await new Promise(r=> setTimeout(r, 200));
+    const partito = m.acceso();
+    // UN ALTRO TOCCO CHIUDE, e la sessione finisce in archivio: fermare non
+    // e' mettere in pausa, e il tempo non deve perdersi.
+    premi(); await new Promise(r=> setTimeout(r, 400));
+    const chiuso = !m.acceso();
+    // LA PRESSIONE LUNGA chiede se annullare — e solo mentre corre: da fermo
+    // non c'e' niente da buttare via.
+    b.dispatchEvent(new PointerEvent('pointerdown', { bubbles:true }));
+    await new Promise(r=> setTimeout(r, 950));
+    const aperto = ()=> !!document.querySelector('.modal-overlay.open #ink-confirm-ok');
+    const chiedeDaFermo = aperto();
+    b.dispatchEvent(new PointerEvent('pointerup', { bubbles:true }));
+    premi(); await new Promise(r=> setTimeout(r, 200));   // riparte
+    b.dispatchEvent(new PointerEvent('pointerdown', { bubbles:true }));
+    await new Promise(r=> setTimeout(r, 200));
+    // Mentre si tiene premuto l'anello si stringe: un gesto che per mezzo
+    // secondo non fa vedere niente sembra un tocco che non ha funzionato.
+    const anello = b.classList.contains('carica');
+    await new Promise(r=> setTimeout(r, 750));
+    const chiede = aperto();
+    b.dispatchEvent(new PointerEvent('pointerup', { bubbles:true }));
     if(chiede) document.getElementById('ink-confirm-ok').click();
     await new Promise(r=> setTimeout(r, 400));
-    return Object.assign(correndo, { daFermo, chiede,
-      spento: !m.acceso(), tornatiNascosti: comandi.hidden });
+    return { soloLui, partito, chiuso, chiedeDaFermo, anello, chiede,
+             spento: !m.acceso() };
   });
-  ok('da fermo sotto il quadrante non c\'e\' niente',
-     !comandiHome.manca && comandiHome.daFermo, comandiHome);
-  ok('mentre corre ci sono Fine ed Elimina, e si possono premere',
-     !comandiHome.manca && comandiHome.visti && comandiHome.fine && comandiHome.elimina
-     && comandiHome.misure.every(x=> x.l >= 28 && x.a >= 28), comandiHome);
-  ok('Elimina chiede prima di buttare via i minuti',
-     !comandiHome.manca && comandiHome.chiede, comandiHome);
-  ok('e poi spegne il cronometro dalla home',
-     !comandiHome.manca && comandiHome.spento && comandiHome.tornatiNascosti, comandiHome);
+  ok('sulla home si tocca solo l\'orologio',
+     !quadrante.manca && quadrante.soloLui, quadrante);
+  ok('un tocco fa partire il cronometro',
+     !quadrante.manca && quadrante.partito, quadrante);
+  ok('e un altro tocco lo chiude', !quadrante.manca && quadrante.chiuso, quadrante);
+  ok('da fermo tenere premuto non chiede niente',
+     !quadrante.manca && !quadrante.chiedeDaFermo, quadrante);
+  ok('mentre corre, tenendo premuto l\'anello si stringe',
+     !quadrante.manca && quadrante.anello, quadrante);
+  ok('e dopo la pressione lunga chiede se annullare la sessione',
+     !quadrante.manca && quadrante.chiede && quadrante.spento, quadrante);
 
   // NIENTE TANGENTI. Il biglietto di stasera aveva il bordo sinistro a quattro
   // pixel da quello del foglio della mappa: due bordi QUASI allineati sono
