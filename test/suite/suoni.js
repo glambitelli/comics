@@ -130,9 +130,9 @@ module.exports = () => suite("Suoni — un tocco, un suono", {"banco": "/test/ba
   s = await conta();
   ok('il tocco ticchetta di nuovo', s.length === 1, s);
   console.log('\n── il set di suoni ──');
-  // Ce n'e' uno solo, e va bene: quello che si prova qui e' che il codice non
-  // dia piu' per scontato che sia UNO E BASTA, e che il file suonato dipenda
-  // dal set scelto invece di essere scritto a mano.
+  // Adesso sono due: Final Fantasy VII e Survival horror. Quello che si prova
+  // qui e' che il file suonato dipenda dal SET SCELTO invece di essere
+  // scritto a mano da qualche parte.
   const sets = await page.evaluate(async ()=>{
     const m = await import('/js/sound.js');
     return { elenco: m.SET_SUONI.map(x=>x.id), attivo: m.setSuoniAttivo() };
@@ -153,5 +153,34 @@ module.exports = () => suite("Suoni — un tocco, un suono", {"banco": "/test/ba
   await page.waitForTimeout(400);
   const dopoScelta = await page.evaluate(()=> window.__suoni);
   ok('e i suoni continuano a uscire', dopoScelta.length === 1, dopoScelta);
+
+  // ── IL SECONDO SET SUONA DAVVERO ──
+  // Un set nell'elenco che poi non ha i file dietro non e' un set: e' una
+  // voce nel menu che zittisce l'app. Qui si cambia set per davvero e si
+  // controlla che i quattro file esistano, si decodifichino e escano.
+  const altro = await page.evaluate(async ()=>{
+    const m = await import('/js/sound.js');
+    const set = m.SET_SUONI.find(x=> x.id !== m.SET_SUONI[0].id);
+    if(!set) return { uno: true };
+    const NOMI = ['nav.wav','done.wav','reward.wav','cancel.wav'];
+    const file = {};
+    for(const n of NOMI){
+      // La cartella e' relativa alla pagina dell'app; dal banco si risale.
+      const via = set.cartella.replace(/^\.\//, '/');
+      const r = await fetch(via + n);
+      const b = r.ok ? await r.arrayBuffer() : null;
+      file[n] = { stato: r.status, byte: b ? b.byteLength : 0 };
+    }
+    m.setSuoniScegli(set.id);
+    window.azzera();
+    window.playSfx('done');
+    await new Promise(r=> setTimeout(r, 800));
+    return { id: set.id, nome: set.nome, file,
+             attivo: m.setSuoniAttivo(), usciti: window.__suoni.length };
+  });
+  ok('il secondo set ha tutti e quattro i file',
+     !!altro.uno || Object.values(altro.file).every(f=> f.stato === 200 && f.byte > 1000), altro);
+  ok('e scegliendolo suona lui',
+     !!altro.uno || (altro.attivo === altro.id && altro.usciti >= 1), altro);
 
 });
