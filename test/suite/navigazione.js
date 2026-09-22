@@ -807,61 +807,106 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
 
   // ── SULLA HOME SI TOCCA UN OGGETTO SOLO: L'OROLOGIO ──
   // La storia di questo gesto, perche' e' cambiato due volte in due giorni.
-  // All'inizio il quadrante alternava avvio, pausa e ripresa, e per chiudere
-  // o eliminare una sessione bisognava andarsene su un'altra schermata a
-  // cercare la capsula del cronometro: per buttare via un cronometro partito
-  // in tasca si doveva prima aprire un'altra pagina. Allora sotto il
-  // quadrante erano comparsi due tondi, Fine ed Elimina — e la risposta di
-  // Giovanni (22 settembre 2026) e' stata che sulla home vuole toccare UN
-  // OGGETTO SOLO. Quindi: un tocco parte, un altro chiude, una pressione
-  // lunga chiede se buttare via.
+  // All'inizio il tocco alternava avvio, pausa e ripresa, e per chiudere o
+  // eliminare una sessione bisognava andarsene su un'altra schermata a
+  // cercare la capsula del cronometro. Allora sotto il quadrante erano
+  // comparsi due tondi, Fine ed Elimina — e Giovanni ha chiesto di toccare
+  // UN OGGETTO SOLO (21 settembre 2026), quindi il tocco era diventato
+  // avvio/chiusura. E li' stava il difetto: toccando per mettere in pausa il
+  // quadrante si azzerava (22 settembre 2026). Mettere in pausa e chiudere
+  // non sono la stessa intenzione, e la seconda non si disfa.
+  // Adesso: il gesto leggero fa la cosa leggera, il gesto lungo apre le due
+  // definitive scritte per esteso.
   const quadrante = await page.evaluate(async ()=>{
     const m = await import('/js/tempo.js');
     const b = document.getElementById('tempo-avvia');
     if(!b) return { manca: true };
-    // Niente tondi in giro: il quadrante e' l'unica cosa che si tocca.
     const soloLui = !document.getElementById('tempo-comandi')
                  && !document.getElementById('tempo-stop-home');
     const premi = ()=> b.dispatchEvent(new MouseEvent('click', { bubbles:true }));
+    // L'anello si guarda a meta' strada: a pressione compiuta e' gia' stato
+    // tolto (lo toglie chi apre il menu), quindi cercarlo dopo vorrebbe dire
+    // cercarlo quando ha appena finito il suo mestiere.
+    const tieni = async (ms)=>{
+      b.dispatchEvent(new PointerEvent('pointerdown', { bubbles:true }));
+      await new Promise(r=> setTimeout(r, 300));
+      const anello = b.classList.contains('carica');
+      await new Promise(r=> setTimeout(r, Math.max(0, ms - 300)));
+      b.dispatchEvent(new PointerEvent('pointerup', { bubbles:true }));
+      return anello;
+    };
     m.ferma();
     premi(); await new Promise(r=> setTimeout(r, 200));
     const partito = m.acceso();
-    // UN ALTRO TOCCO CHIUDE, e la sessione finisce in archivio: fermare non
-    // e' mettere in pausa, e il tempo non deve perdersi.
-    premi(); await new Promise(r=> setTimeout(r, 400));
-    const chiuso = !m.acceso();
-    // LA PRESSIONE LUNGA chiede se annullare — e solo mentre corre: da fermo
-    // non c'e' niente da buttare via.
-    b.dispatchEvent(new PointerEvent('pointerdown', { bubbles:true }));
-    await new Promise(r=> setTimeout(r, 950));
-    const aperto = ()=> !!document.querySelector('.modal-overlay.open #ink-confirm-ok');
-    const chiedeDaFermo = aperto();
-    b.dispatchEvent(new PointerEvent('pointerup', { bubbles:true }));
-    premi(); await new Promise(r=> setTimeout(r, 200));   // riparte
-    b.dispatchEvent(new PointerEvent('pointerdown', { bubbles:true }));
-    await new Promise(r=> setTimeout(r, 200));
-    // Mentre si tiene premuto l'anello si stringe: un gesto che per mezzo
-    // secondo non fa vedere niente sembra un tocco che non ha funzionato.
-    const anello = b.classList.contains('carica');
-    await new Promise(r=> setTimeout(r, 750));
-    const chiede = aperto();
-    b.dispatchEvent(new PointerEvent('pointerup', { bubbles:true }));
-    if(chiede) document.getElementById('ink-confirm-ok').click();
+    // UN ALTRO TOCCO METTE IN PAUSA, e il tempo accumulato resta: azzerare
+    // qui vorrebbe dire buttare via una sessione con un tocco solo.
+    premi(); await new Promise(r=> setTimeout(r, 150));
+    const inPausa = m.inPausa() && m.acceso();
+    premi(); await new Promise(r=> setTimeout(r, 150));
+    const ripreso = m.acceso() && !m.inPausa();
+    // DA FERMO la pressione lunga non apre niente: non c'e' niente da
+    // chiudere e niente da buttare.
+    m.ferma(); await new Promise(r=> setTimeout(r, 250));
+    await tieni(950);
+    await new Promise(r=> setTimeout(r, 150));
+    const menuDaFermo = !!document.querySelector('.ink-action-menu');
+    // MENTRE CORRE la pressione lunga apre le due definitive.
+    premi(); await new Promise(r=> setTimeout(r, 200));
+    const anello = await tieni(950);
+    await new Promise(r=> setTimeout(r, 250));
+    const menu = document.querySelector('.ink-action-menu');
+    const voci = menu ? Array.from(menu.querySelectorAll('button,[role="menuitem"],div'))
+      .map(x=> x.textContent.trim()).filter(Boolean) : [];
+    // ELIMINA chiede prima: quei minuti non tornano.
+    const bottoni = menu ? Array.from(menu.querySelectorAll('button')) : [];
+    const elimina = bottoni.find(x=> /elimina/i.test(x.textContent));
+    if(elimina) elimina.click();
     await new Promise(r=> setTimeout(r, 400));
-    return { soloLui, partito, chiuso, chiedeDaFermo, anello, chiede,
-             spento: !m.acceso() };
+    const chiede = !!document.querySelector('.modal-overlay.open #ink-confirm-ok');
+    if(chiede) document.querySelector('.modal-overlay.open #ink-confirm-ok').click();
+    await new Promise(r=> setTimeout(r, 400));
+    return { soloLui, partito, inPausa, ripreso, menuDaFermo, anello,
+             voci, chiede, spento: !m.acceso() };
   });
   ok('sulla home si tocca solo l\'orologio',
      !quadrante.manca && quadrante.soloLui, quadrante);
   ok('un tocco fa partire il cronometro',
      !quadrante.manca && quadrante.partito, quadrante);
-  ok('e un altro tocco lo chiude', !quadrante.manca && quadrante.chiuso, quadrante);
-  ok('da fermo tenere premuto non chiede niente',
-     !quadrante.manca && !quadrante.chiedeDaFermo, quadrante);
+  ok('un altro tocco mette in pausa, e non azzera',
+     !quadrante.manca && quadrante.inPausa, quadrante);
+  ok('e un terzo riprende', !quadrante.manca && quadrante.ripreso, quadrante);
+  ok('da fermo tenere premuto non apre niente',
+     !quadrante.manca && !quadrante.menuDaFermo, quadrante);
   ok('mentre corre, tenendo premuto l\'anello si stringe',
      !quadrante.manca && quadrante.anello, quadrante);
-  ok('e dopo la pressione lunga chiede se annullare la sessione',
+  ok('e la pressione lunga offre di chiudere o di eliminare',
+     !quadrante.manca && quadrante.voci.some(t=> /chiudi e registra/i.test(t))
+     && quadrante.voci.some(t=> /elimina la sessione/i.test(t)), quadrante.voci);
+  ok('eliminare chiede prima, e poi spegne il cronometro',
      !quadrante.manca && quadrante.chiede && quadrante.spento, quadrante);
+
+  // ── E IL QUADRANTE NON SI SPOSTA QUANDO ARRIVA L'ESITO ──
+  // La riga che dice com'e' andata stava sotto il quadrante come riga
+  // normale, quindi allargava la colonna: appena compariva "Sessione troppo
+  // breve: non registrata" il quadrante saltava di sessanta pixel verso
+  // sinistra, perche' sul tavolo la colonna e' appoggiata a destra. Dal
+  // telefono si vedeva benissimo (Giovanni, 22 settembre 2026).
+  const fermo = await page.evaluate(async ()=>{
+    const dove = ()=> Math.round(document.getElementById('tempo-avvia').getBoundingClientRect().left);
+    const esito = document.getElementById('tempo-esito');
+    esito.textContent = '';
+    await new Promise(r=> setTimeout(r, 80));
+    const prima = dove();
+    esito.textContent = 'Sessione troppo breve: non registrata';
+    await new Promise(r=> setTimeout(r, 80));
+    const dopo = dove();
+    const r = esito.getBoundingClientRect();
+    esito.textContent = '';
+    return { prima, dopo, dentro: r.left >= 0 && r.right <= innerWidth };
+  });
+  ok('il quadrante non si sposta quando compare l\'esito',
+     fermo.prima === fermo.dopo, fermo);
+  ok('e la riga dell\'esito resta dentro lo schermo', fermo.dentro, fermo);
 
   // NIENTE TANGENTI. Il biglietto di stasera aveva il bordo sinistro a quattro
   // pixel da quello del foglio della mappa: due bordi QUASI allineati sono

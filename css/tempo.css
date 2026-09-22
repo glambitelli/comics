@@ -146,9 +146,21 @@
 
 /* La riga dell'esito: vuota quasi sempre, tiene comunque il suo posto perche'
    la home non sobbalzi quando compare. Vedi il commento in index.html. */
+/* ── LA RIGA CHE DICE COM'E' ANDATA ──
+   FUORI DAL FLUSSO, e non e' un vezzo. Stava sotto il quadrante come riga
+   normale, quindi la sua larghezza era la larghezza della colonna: appena
+   compariva "Sessione troppo breve: non registrata" la colonna passava da 92
+   a 214 pixel e, siccome sul tavolo la colonna e' appoggiata a destra, il
+   quadrante SALTAVA di sessantuno pixel verso sinistra. Dal telefono si
+   vedeva benissimo (Giovanni, 22 settembre 2026).
+   Appesa sotto il quadrante e allineata al suo bordo destro: cresce verso
+   sinistra, dove c'e' il tavolo vuoto, invece di spingere l'orologio. */
+.tempo-posto{position:relative}
 .tempo-esito{
-  min-height:17px;font-size:12px;font-weight:700;color:var(--ink3);
-  text-align:center;line-height:1.4;transition:color .2s;
+  position:absolute;top:100%;right:0;margin-top:4px;
+  width:max-content;max-width:min(230px,54vw);
+  font-size:12px;font-weight:700;color:var(--ink3);
+  text-align:right;line-height:1.4;transition:color .2s;
 }
 
 /* LA CAPSULA. Sopra la barra-duna, centrata, degli stessi materiali: vetro

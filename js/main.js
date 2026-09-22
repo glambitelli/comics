@@ -802,7 +802,7 @@ function disegnaTempo(){
   // parla agli occhi, non a loro due.
   const dice = !corre ? 'Comincio a disegnare'
              : ferma  ? 'In pausa — riprendi'
-             : 'Sto disegnando — tocca per chiudere, tieni premuto per annullare';
+             : 'Sto disegnando — tocca per la pausa, tieni premuto per chiudere';
   avvia.setAttribute('aria-label', dice);
   avvia.setAttribute('title', dice);
   // LE CIFRE CI SONO SEMPRE, anche da fermo, dove dicono 00:00: un quadrante
@@ -841,23 +841,31 @@ function disegnaTempo(){
   if(corsa && m) corsa.textContent = m.scriviCorsa(m.secondiCorrenti());
 }
 // ── IL QUADRANTE FA TUTTO DA SOLO ──
-// Un tocco parte, un altro tocco chiude la sessione e la mette in archivio,
-// una pressione lunga chiede se buttarla via. Tre gesti su un oggetto solo.
+// Un tocco parte, un altro tocco mette in pausa e un terzo riprende; una
+// pressione lunga apre le due cose definitive — chiudi e registra, oppure
+// elimina. Tutto sull'orologio, che e' l'unica cosa che si tocca sulla home.
 //
-// PRIMA ERA COSI': il tocco alternava avvio, pausa e ripresa, e per chiudere
-// o per eliminare bisognava andarsene su un'altra schermata a cercare la
-// capsula del cronometro. Ci ho poi messo due tondi sotto il quadrante, e la
-// risposta di Giovanni (21 settembre 2026) e' stata che sulla home vuole
-// poter toccare UN OGGETTO SOLO — l'orologio — e basta.
-// LA PAUSA NON SPARISCE, si sposta: vive nella capsula, che si vede da ogni
-// altra schermata mentre il cronometro corre. Sulla home, dove il gesto deve
-// essere uno, mettere in pausa e chiudere sono la stessa intenzione detta in
-// due modi — smetto adesso — e il tempo finisce in archivio comunque.
+// COME CI SI E' ARRIVATI, perche' e' cambiato due volte in due giorni.
+// All'inizio il tocco alternava avvio/pausa/ripresa e per chiudere o
+// eliminare si doveva andare su un'altra schermata a cercare la capsula del
+// cronometro. Allora sotto il quadrante erano comparsi due tondi, Fine ed
+// Elimina — e Giovanni ha chiesto di toccare UN OGGETTO SOLO (21 settembre
+// 2026). Il tocco e' quindi diventato avvio/chiusura.
+// E LI' STAVA IL DIFETTO: toccando per mettere in pausa, il quadrante si
+// azzerava (22 settembre 2026, "l'orologio si azzera per qualche motivo").
+// Ed e' logico: mettere in pausa e chiudere NON sono la stessa intenzione —
+// uno e' "mi alzo un attimo", l'altro e' "ho finito" — e la seconda e'
+// irreversibile. Una cosa che non si disfa non puo' stare sullo stesso
+// gesto di una che si disfa.
+// Adesso il gesto leggero fa la cosa leggera (pausa) e il gesto lungo apre
+// le due definitive, che si leggono scritte prima di sceglierle.
 window.tempoTocca = async ()=>{
   const m = await tempo();
   m.alSecondo(disegnaTempo);
-  if(!m.acceso()){ m.avvia(); disegnaTempo(); return; }
-  await window.tempoFerma();
+  if(!m.acceso()) m.avvia();
+  else if(m.inPausa()) m.riprendi();
+  else m.pausa();
+  disegnaTempo();
 };
 // La pressione lunga: settecento millisecondi, che e' la soglia a cui il
 // telefono stesso chiama "tenere premuto". Piu' corta si fa per sbaglio
@@ -877,9 +885,14 @@ function montaIlQuadrante(){
     const m = await tempo();
     if(!m.acceso()) return;            // da fermo non c'e' niente da annullare
     b.classList.add('carica');
-    conto = setTimeout(()=>{
+    conto = setTimeout(async ()=>{
       scattata = true; molla(); haptic('tap');
-      window.tempoScarta();
+      const { actionMenu } = await import('./dialogs.js');
+      actionMenu(b, [
+        { label: 'Chiudi e registra', icon: 'tavola', onSelect: ()=> window.tempoFerma() },
+        { label: 'Elimina la sessione', icon: 'elimina', danger: true,
+          onSelect: ()=> window.tempoScarta() },
+      ]);
     }, LUNGA);
   });
   for(const e of ['pointerup','pointercancel','pointerleave']) b.addEventListener(e, molla);
