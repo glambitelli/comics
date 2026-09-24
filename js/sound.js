@@ -12,8 +12,6 @@
 // Filosofia: discreti (volume basso) e spegnibili (interruttore in
 // Impostazioni). Accesi di default; la preferenza vive in localStorage.
 
-import { haSuoniMiei, leggiSuonoMio } from './suonimiei.js';
-
 const PREF_KEY = 'inkflow-sfx-enabled';
 // Volume per intento: il tick di navigazione resta discreto, conferma e
 // ricompensa un po' più presenti perché sono momenti, non accompagnamento.
@@ -63,22 +61,12 @@ export const SET_SUONI = [
 ];
 const PACK_KEY = 'inkflow-sfx-pack';
 
-// ── IL SET PERSONALE ──
-// Non sta nell'elenco qui sopra perche' non e' un set nostro: sono i file che
-// hai caricato tu, tenuti sul tuo dispositivo (vedi suonimiei.js). Compare
-// nel menu solo quando ce n'e' almeno uno, se no sarebbe una voce che
-// promette qualcosa e poi zittisce l'app.
-const MIO = { id: 'mio', nome: 'Set personale', cartella: null };
-export function setSuoniDisponibili(){
-  return haSuoniMiei() ? SET_SUONI.concat([MIO]) : SET_SUONI.slice();
-}
-
 export function setSuoniAttivo(){
   const v = localStorage.getItem(PACK_KEY);
-  return setSuoniDisponibili().some(s=>s.id === v) ? v : SET_SUONI[0].id;
+  return SET_SUONI.some(s=>s.id === v) ? v : SET_SUONI[0].id;
 }
 export function setSuoniScegli(id){
-  if(!setSuoniDisponibili().some(s=>s.id === id)) return;
+  if(!SET_SUONI.some(s=>s.id === id)) return;
   if(id === setSuoniAttivo()) return;
   try{ localStorage.setItem(PACK_KEY, id); }catch(e){}
   // I campioni già decodificati sono quelli VECCHI: si buttano, altrimenti si
@@ -87,32 +75,10 @@ export function setSuoniScegli(id){
   _loading = null;
   unlockAudio();
 }
-// Lo stesso, senza cambiare set: lo chiamano le Impostazioni dopo che hai
-// caricato o svuotato i tuoi file. Senza, si continuerebbe a sentire quello
-// che era gia' stato decodificato fino alla ricarica della pagina.
-export function scordaISuoni(){
-  Object.keys(_buffers).forEach(k=> delete _buffers[k]);
-  _loading = null;
-  unlockAudio();
-}
 
 function fileDi(intento){
   const set = SET_SUONI.find(s=>s.id === setSuoniAttivo()) || SET_SUONI[0];
   return set.cartella + NOMI[intento];
-}
-// I byte di un suono, da dove che sia. Il set personale li prende dal
-// dispositivo; tutti gli altri dalla loro cartella.
-// SE UN SUONO TUO MANCA si ripiega sul set di serie invece di restare muti:
-// chi carica solo il tick del cursore vuole cambiare quello, non perdere gli
-// altri tre.
-async function bytesDi(intento){
-  if(setSuoniAttivo() === 'mio'){
-    const mio = await leggiSuonoMio(intento);
-    if(mio) return mio;
-    return fetch(SET_SUONI[0].cartella + NOMI[intento])
-      .then(r=> r.ok ? r.arrayBuffer() : Promise.reject(r.status));
-  }
-  return fetch(fileDi(intento)).then(r=> r.ok ? r.arrayBuffer() : Promise.reject(r.status));
 }
 
 let _ctx = null;
@@ -163,7 +129,7 @@ function preload(){
   if(!ctx) return Promise.resolve();
   _loading = Promise.all(Object.keys(NOMI).map(async key=>{
     try{
-      const buf = await bytesDi(key);
+      const buf = await fetch(fileDi(key)).then(r=> r.ok ? r.arrayBuffer() : Promise.reject(r.status));
       _buffers[key] = await ctx.decodeAudioData(buf);
     }catch(e){ /* suono mancante: pazienza, gli altri funzionano */ }
   }));

@@ -2,8 +2,7 @@ import { projects } from './state.js';
 import { db, COL, saveUserData, setDoc, doc, bumpDataRev, collection, getDocs } from './firebase.js';
 import { getStreak } from './evening.js';
 import { restoreReminderUI } from './notifications.js';
-import { isSoundEnabled, setSoundEnabled, playSfx, SET_SUONI, setSuoniDisponibili,
-         setSuoniAttivo, setSuoniScegli, scordaISuoni } from './sound.js';
+import { isSoundEnabled, setSoundEnabled, playSfx, SET_SUONI, setSuoniAttivo, setSuoniScegli } from './sound.js';
 import { confirmModal, infoModal } from './dialogs.js';
 import { registro, registroTesto, svuotaRegistro } from './registro.js';
 
@@ -538,83 +537,11 @@ function riempiSetSuoni(){
   const sel = document.getElementById('sound-pack');
   if(!sel) return;
   const attivo = setSuoniAttivo();
-  // L'elenco comprende il set personale, ma solo quando ci sono davvero dei
-  // file tuoi caricati (vedi setSuoniDisponibili in sound.js).
-  const elenco = setSuoniDisponibili();
-  sel.innerHTML = elenco.map(s=>
+  sel.innerHTML = SET_SUONI.map(s=>
     `<option value="${s.id}"${s.id === attivo ? ' selected' : ''}>${s.nome}</option>`).join('');
   // Con un set solo non c'è niente da scegliere: il menu resta visibile — dice
   // COSA stai sentendo, ed è un'informazione — ma non si apre a vuoto.
-  sel.disabled = elenco.length < 2;
-  aggiornaStatoMiei();
-}
-
-// ── I TUOI SUONI ──
-// Quali dei quattro hai caricato, detto per nome. Un "3 file caricati" non
-// servirebbe a niente: i quattro vanno su quattro comandi diversi, e quello
-// che vuoi sapere e' QUALE manca.
-const DETTO = { tap: 'cursore', done: 'conferma', cancel: 'indietro', reward: 'premio' };
-async function aggiornaStatoMiei(){
-  const nota = document.getElementById('sound-mine-stato');
-  const btn = document.getElementById('sound-mine-btn');
-  if(!nota) return;
-  const { quantiSuoniMiei, haSuoniMiei } = await import('./suonimiei.js');
-  const quali = quantiSuoniMiei();
-  if(!haSuoniMiei() || !quali.length){
-    nota.textContent = 'Nessuno: usa i set di serie';
-    if(btn) btn.textContent = 'Carica';
-    return;
-  }
-  nota.textContent = quali.map(k=> DETTO[k] || k).join(', ');
-  if(btn) btn.textContent = 'Cambia';
-}
-
-// Il menu invece del solo selettore di file: da quando ce n'e' almeno uno
-// caricato servono DUE cose — sostituirli e toglierli — e due pulsanti in
-// fila su una riga di impostazioni sono uno di troppo.
-export async function onSoundMineMenu(btnEl){
-  const { actionMenu } = await import('./dialogs.js');
-  const { haSuoniMiei } = await import('./suonimiei.js');
-  const voci = [{ label: 'Scegli i file…', icon: 'piu',
-                  onSelect: ()=> document.getElementById('sound-mine-file').click() }];
-  if(haSuoniMiei()) voci.push({ label: 'Togli i tuoi suoni', icon: 'elimina', danger: true,
-                                onSelect: ()=> onSoundMineSvuota() });
-  if(voci.length === 1){ voci[0].onSelect(); return; }
-  actionMenu(btnEl, voci);
-}
-
-// I FILE NON ESCONO DA QUI. Restano nel dispositivo: niente caricamento,
-// niente Firestore, niente repository.
-export async function onSoundMineFiles(input){
-  const files = Array.from(input.files || []);
-  input.value = '';                       // cosi' riscegliere lo stesso file riparte
-  if(!files.length) return;
-  const { assegnaFile, salvaSuoniMiei } = await import('./suonimiei.js');
-  try{
-    await salvaSuoniMiei(assegnaFile(files));
-  }catch(e){
-    const { infoModal } = await import('./dialogs.js');
-    await infoModal('Non sono riuscito a tenere questi file sul dispositivo.', { title:'Suoni' });
-    return;
-  }
-  // I campioni gia' decodificati sono quelli di prima: si buttano, se no si
-  // continuerebbe a sentire il set vecchio fino alla ricarica della pagina.
-  scordaISuoni();
-  setSuoniScegli('mio');                  // appena li carichi, li vuoi sentire
-  riempiSetSuoni();
-  if(isSoundEnabled()) playSfx('done');   // e li senti subito
-}
-
-export async function onSoundMineSvuota(){
-  const { confirmModal } = await import('./dialogs.js');
-  const si = await confirmModal('Togliere i tuoi suoni e tornare a quelli di serie?',
-                                { title:'I tuoi suoni', confirmLabel:'Togli' });
-  if(!si) return;
-  const { svuotaSuoniMiei } = await import('./suonimiei.js');
-  await svuotaSuoniMiei();
-  setSuoniScegli(SET_SUONI[0].id);
-  scordaISuoni();
-  riempiSetSuoni();
+  sel.disabled = SET_SUONI.length < 2;
 }
 
 // Interruttore suoni: salva la preferenza e, se acceso, fa un piccolo suono
