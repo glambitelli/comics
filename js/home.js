@@ -3,7 +3,7 @@ import { saveProject, scheduleSave } from './firebase.js';
 import { drawGem } from './canvas.js';
 import { calcPct, getPhaseIndex } from './progress.js';
 import { calcDaysLeft } from './velocity.js';
-import { openProject, confirmDeleteCurrent } from './project.js';
+import { openProject, apriConfermaElimina } from './project.js';
 import { promptModal } from './dialogs.js';
 import { esc } from './testo.js';
 
@@ -201,10 +201,14 @@ export function exportProjectJSON(id){
   URL.revokeObjectURL(url);
 }
 
+// DALL'ELENCO: si elimina la scheda che hai toccato, e basta. Qui prima
+// c'era setCurrentId(id) — cioe' "fai finta che io sia dentro quel
+// progetto" — per poter riusare la conferma della scheda aperta. Era una
+// bugia con una conseguenza: finita l'eliminazione l'app credeva che tu
+// fossi nella scheda appena cancellata e ti riportava alla home, mentre
+// eri tranquillamente nell'elenco.
 export function confirmDeleteProject(id){
-  const p = getProject(id); if(!p) return;
-  setCurrentId(id);
-  confirmDeleteCurrent();
+  apriConfermaElimina(id);
 }
 
 export function openNewModal(){

@@ -885,6 +885,62 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
   ok('eliminare chiede prima, e poi spegne il cronometro',
      !quadrante.manca && quadrante.chiede && quadrante.spento, quadrante);
 
+  // ── ELIMINARE DALL'ELENCO NON TI SBATTE A CASA ──
+  // IL DIFETTO: eliminando un progetto dall'elenco l'app tornava alla home
+  // (Giovanni, 25 settembre 2026, "per qualche ragione strana"). Di strano
+  // non c'era niente ed era sempre: per riusare la conferma della scheda
+  // aperta, l'elenco scriveva currentId col progetto da eliminare. Dopo
+  // l'eliminazione c'e' un controllo — "ho appena cancellato la scheda che
+  // stavo guardando?" — che serve a non lasciarti su una pagina che non
+  // esiste piu': con currentId falsificato era sempre vero.
+  const elimina = await page.evaluate(async ()=>{
+    const st = await import('/js/state.js');
+    const home = await import('/js/home.js');
+    const proj = await import('/js/project.js');
+    const a = home.newProjectObj('Da tenere', 10); a.id = 'pa';
+    const b = home.newProjectObj('Da buttare', 10); b.id = 'pb';
+    st.setProjects([a, b]);
+    // SI ENTRA E SI ESCE da una scheda: e' il caso vero, quello in cui
+    // currentId resta addosso anche dopo essere tornati indietro.
+    proj.openProject('pa');
+    await new Promise(r=> setTimeout(r, 300));
+    await window.openProjects('progetti');
+    await new Promise(r=> setTimeout(r, 400));
+    const partenza = document.getElementById('screen-projects').classList.contains('active');
+    // Si elimina L'ALTRO, dall'elenco.
+    home.confirmDeleteProject('pb');
+    await new Promise(r=> setTimeout(r, 200));
+    document.getElementById('confirm-ok').click();
+    await new Promise(r=> setTimeout(r, 700));
+    return {
+      partenza,
+      restaNellElenco: document.getElementById('screen-projects').classList.contains('active'),
+      finitoACasa: document.getElementById('screen-home').classList.contains('active'),
+    };
+  });
+  ok('si parte dall\'elenco dei progetti', elimina.partenza, elimina);
+  ok('eliminando dall\'elenco si resta nell\'elenco',
+     elimina.restaNellElenco && !elimina.finitoACasa, elimina);
+
+  // E L'ALTRO CASO DEVE CONTINUARE A FUNZIONARE: se cancelli la scheda che
+  // stai guardando, restare li' vorrebbe dire restare su un progetto che non
+  // esiste piu'. Quella e' l'unica volta in cui si torna a casa.
+  const daDentro = await page.evaluate(async ()=>{
+    const st = await import('/js/state.js');
+    const home = await import('/js/home.js');
+    const proj = await import('/js/project.js');
+    const a = home.newProjectObj('Aperta', 10); a.id = 'pc';
+    st.setProjects([a]);
+    proj.openProject('pc');
+    await new Promise(r=> setTimeout(r, 300));
+    proj.confirmDeleteCurrent();
+    await new Promise(r=> setTimeout(r, 200));
+    document.getElementById('confirm-ok').click();
+    await new Promise(r=> setTimeout(r, 800));
+    return { aCasa: document.getElementById('screen-home').classList.contains('active') };
+  });
+  ok('ma cancellando la scheda aperta si torna a casa', daDentro.aCasa, daDentro);
+
   // ── NASCE UN PROGETTO, E SI SENTE ──
   // Era l'unico momento davvero importante della home che avveniva in
   // silenzio: il foglio si chiudeva e compariva una sfera nuova, senza che

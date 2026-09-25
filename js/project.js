@@ -87,12 +87,25 @@ export function goHome(){
   document.title = 'Inkflow';
 }
 
-export function confirmDeleteCurrent(){
-  const p = getProject(currentId); if(!p) return;
-  setDeleteId(currentId);
+// ── CHIEDERE PRIMA DI ELIMINARE ──
+// Prende l'id di CHI si elimina, esplicitamente. Prima esisteva solo la
+// versione "elimina quello aperto", che leggeva currentId: per riusarla
+// dall'elenco, confirmDeleteProject scriveva currentId col progetto da
+// eliminare — e cosi' facendo diceva una bugia al resto dell'app.
+// COSA SI ROMPEVA: dopo l'eliminazione si torna a casa solo se hai appena
+// cancellato la scheda che stavi guardando (se no resteresti su una pagina
+// che non esiste piu'). Quel controllo e' "deleteId === currentId", che con
+// currentId falsificato era sempre vero: eliminando dall'elenco l'app ti
+// sbatteva sulla home invece di lasciarti dov'eri (Giovanni, 25 settembre
+// 2026, "per qualche ragione strana torno nella home").
+export function apriConfermaElimina(id){
+  const p = getProject(id); if(!p) return;
+  setDeleteId(id);
   document.getElementById('confirm-text').textContent = `Eliminare "${p.title}"? L'operazione non è reversibile.`;
   document.getElementById('confirm-modal').classList.add('open');
 }
+// Dalla scheda aperta: quello che si elimina e' quello che stai guardando.
+export function confirmDeleteCurrent(){ apriConfermaElimina(currentId); }
 
 export function closeConfirm(){
   document.getElementById('confirm-modal').classList.remove('open');
