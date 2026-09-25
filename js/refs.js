@@ -8,6 +8,7 @@ import { haptic, showUndoToast, projects, currentId } from './state.js';
 import { compressImageFile, dataUrlToBlob } from './imgcompress.js';
 import { esc } from './testo.js';
 import { montaScelta } from './scelta.js';
+import { sorvegliaMiniature } from './miniature.js';
 import { uploadToCloudinary, cldResize } from './cloudinary.js';
 import { promptModal, promptCampi, confirmModal, actionMenu } from './dialogs.js';
 import {
@@ -1717,6 +1718,9 @@ function renderAlbumsShelf(){
     </div>`;
   }).join('');
 
+  // Anche le copertine dello scaffale: stesso caricamento pigro, stesso buco
+  // possibile scorrendo in fretta (vedi miniature.js).
+  sorvegliaMiniature(grid);
   grid.querySelectorAll('.album-card').forEach(el=>{
     el.addEventListener('click', ()=> reopenAlbum(el.dataset.id));
   });
@@ -2198,6 +2202,12 @@ export function renderRefsGrid(){
   `;
   }).join('');
 
+  // LE MINIATURE CHE NON ARRIVANO SI RITENTANO. Scorrendo in fretta capita
+  // che una richiesta venga annullata o fallisca, e il caricamento pigro non
+  // ci riprova da solo: resta un buco color sabbia su un'immagine che c'e'
+  // (Giovanni, 25 settembre 2026). Vedi miniature.js.
+  sorvegliaMiniature(grid);
+
   // Le proporzioni scritte sul documento possono mancare (immagini archiviate
   // da versioni vecchie) o non essere quelle vere. Appena la miniatura è
   // caricata si prendono da lei, che non può sbagliarsi: è la stessa immagine
@@ -2307,6 +2317,7 @@ export function renderProjectRefPanel(projectId){
         <span class="ref-panel-add-plus">+</span>
         <span class="ref-panel-add-lbl">Aggiungi</span>
       </button>`;
+    sorvegliaMiniature(grid);
     grid.querySelectorAll('.ref-panel-thumb').forEach(el=>{
       el.addEventListener('click', ()=> openProjectRefGallery(projectId, +el.dataset.i));
     });

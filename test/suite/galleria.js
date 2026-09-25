@@ -59,6 +59,40 @@ module.exports = () => suite("Galleria References — nastro e gesti", {"banco":
   ok('il contatore lo dice', s.counter === '3 / 10', s.counter);
   const tids0 = s.tids.slice().sort().join();
 
+  console.log('\n── le miniature che non arrivano si ritentano ──');
+  // IL DIFETTO: scorrendo una galleria ogni tanto resta un buco — una tessera
+  // color sabbia senza disegno — su un'immagine che c'e' eccome, tanto che
+  // toccandola si apre a schermo intero (Giovanni, 25 settembre 2026).
+  // Le miniature hanno loading="lazy", quindi e' il browser a decidere quando
+  // scaricarle; se la richiesta viene annullata perche' la tessera e' uscita
+  // di corsa dallo schermo, o se fallisce, il browser NON ci riprova mai da
+  // solo. Qui si prova che adesso ci riprova qualcuno.
+  const ritenta = await page.evaluate(async ()=>{
+    const m = await import('/js/miniature.js');
+    const box = document.createElement('div');
+    box.style.cssText = 'position:fixed;left:0;top:0;width:200px;height:200px;z-index:-1';
+    box.innerHTML = '<img src="/questa-non-esiste.png" alt="">'
+                  + '<img src="/sfx/../favicon.svg" alt="">';
+    document.body.appendChild(box);
+    const rotta = box.querySelector('img');
+    m.sorvegliaMiniature(box);
+    // Tre tentativi, con le attese di miniature.js (400, 1500, 4000 ms): si
+    // aspetta oltre l'ultimo per vedere anche che POI SI FERMI.
+    await new Promise(r=> setTimeout(r, 8000));
+    const via = rotta.getAttribute('src') || '';
+    box.remove();
+    return { tentativi: +(rotta.dataset.tentativi || 0), via };
+  });
+  ok('una miniatura che non arriva viene ritentata', ritenta.tentativi >= 1, ritenta);
+  // E POI SI SMETTE. Ritentare all'infinito su un'immagine che davvero non
+  // c'e' vorrebbe dire una richiesta di rete ogni pochi secondi, per sempre,
+  // su ogni tessera rotta della cartella.
+  ok('ma dopo tre volte si smette', ritenta.tentativi <= 3, ritenta);
+  // L'ULTIMO TENTATIVO CAMBIA L'INDIRIZZO: se il browser si e' segnato quella
+  // richiesta come fallita, ripetere la stessa non esce mai dalla sua memoria.
+  ok('e l\'ultimo tentativo aggiunge una coda per uscire dalla memoria del browser',
+     ritenta.tentativi < 3 || /[?&]r=/.test(ritenta.via), ritenta);
+
   console.log('\n── le frecce stanno accanto alla foto ──');
   // IL DIFETTO: le frecce erano inchiodate ai bordi della finestra
   // (left:2px / right:2px). Col dito non si vedono nemmeno — li' si sfoglia
