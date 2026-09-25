@@ -2,7 +2,8 @@ import { projects } from './state.js';
 import { db, COL, saveUserData, setDoc, doc, bumpDataRev, collection, getDocs } from './firebase.js';
 import { getStreak } from './evening.js';
 import { restoreReminderUI } from './notifications.js';
-import { isSoundEnabled, setSoundEnabled, playSfx, SET_SUONI, setSuoniAttivo, setSuoniScegli } from './sound.js';
+import { isSoundEnabled, setSoundEnabled, playSfx, SET_SUONI,
+         setSuoniAttivo, setSuoniScegli, scordaISuoni } from './sound.js';
 import { confirmModal, infoModal } from './dialogs.js';
 import { registro, registroTesto, svuotaRegistro } from './registro.js';
 
@@ -542,6 +543,72 @@ function riempiSetSuoni(){
   // Con un set solo non c'è niente da scegliere: il menu resta visibile — dice
   // COSA stai sentendo, ed è un'informazione — ma non si apre a vuoto.
   sel.disabled = SET_SUONI.length < 2;
+  aggiornaStatoMiei();
+}
+
+// ── I TUOI SUONI ──
+// Riempiono il set "Survival Horror". Quali comandi hai coperto, detto per
+// nome: un "3 file caricati" non servirebbe: i quattro vanno su quattro
+// comandi diversi, e quello che vuoi sapere e' QUALE manca.
+const DETTO = { tap: 'cursore', done: 'conferma', cancel: 'indietro', reward: 'premio' };
+async function aggiornaStatoMiei(){
+  const nota = document.getElementById('sound-mine-stato');
+  const btn = document.getElementById('sound-mine-btn');
+  if(!nota) return;
+  const { quantiSuoniMiei, haSuoniMiei } = await import('./suonimiei.js');
+  const quali = quantiSuoniMiei();
+  if(!haSuoniMiei() || !quali.length){
+    nota.textContent = 'Nessuno: Survival Horror suona come quello di serie';
+    if(btn) btn.textContent = 'Carica';
+    return;
+  }
+  nota.textContent = 'Survival Horror: ' + quali.map(k=> DETTO[k] || k).join(', ');
+  if(btn) btn.textContent = 'Cambia';
+}
+
+// Il menu invece del solo selettore di file: da quando ce n'e' almeno uno
+// caricato servono DUE cose — sostituirli e toglierli — e due pulsanti in
+// fila su una riga di impostazioni sono uno di troppo.
+export async function onSoundMineMenu(btnEl){
+  const { actionMenu } = await import('./dialogs.js');
+  const { haSuoniMiei } = await import('./suonimiei.js');
+  const voci = [{ label: 'Scegli i file…', icon: 'piu',
+                  onSelect: ()=> document.getElementById('sound-mine-file').click() }];
+  if(haSuoniMiei()) voci.push({ label: 'Togli i tuoi suoni', icon: 'elimina', danger: true,
+                                onSelect: ()=> onSoundMineSvuota() });
+  if(voci.length === 1){ voci[0].onSelect(); return; }
+  actionMenu(btnEl, voci);
+}
+
+// I FILE NON ESCONO DA QUI: niente caricamento, niente Firestore, niente
+// repository. Restano sul dispositivo.
+export async function onSoundMineFiles(input){
+  const files = Array.from(input.files || []);
+  input.value = '';                       // cosi' riscegliere lo stesso file riparte
+  if(!files.length) return;
+  const { assegnaFile, salvaSuoniMiei } = await import('./suonimiei.js');
+  try{
+    await salvaSuoniMiei(assegnaFile(files));
+  }catch(e){
+    const { infoModal } = await import('./dialogs.js');
+    await infoModal('Non sono riuscito a tenere questi file sul dispositivo.', { title:'Suoni' });
+    return;
+  }
+  scordaISuoni();
+  setSuoniScegli('survival');             // appena li carichi, li vuoi sentire
+  riempiSetSuoni();
+  if(isSoundEnabled()) playSfx('done');   // e li senti subito
+}
+
+export async function onSoundMineSvuota(){
+  const { confirmModal } = await import('./dialogs.js');
+  const si = await confirmModal('Togliere i tuoi suoni? Survival Horror tornera\' a suonare come il set di serie.',
+                                { title:'I tuoi suoni', confirmLabel:'Togli' });
+  if(!si) return;
+  const { svuotaSuoniMiei } = await import('./suonimiei.js');
+  await svuotaSuoniMiei();
+  scordaISuoni();
+  riempiSetSuoni();
 }
 
 // Interruttore suoni: salva la preferenza e, se acceso, fa un piccolo suono

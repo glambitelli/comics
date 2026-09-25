@@ -12,6 +12,8 @@
 // Filosofia: discreti (volume basso) e spegnibili (interruttore in
 // Impostazioni). Accesi di default; la preferenza vive in localStorage.
 
+import { leggiSuonoMio } from './suonimiei.js';
+
 const PREF_KEY = 'inkflow-sfx-enabled';
 // Volume per intento: il tick di navigazione resta discreto, conferma e
 // ricompensa un po' più presenti perché sono momenti, non accompagnamento.
@@ -77,17 +79,37 @@ export function setSuoniScegli(id){
   _loading = null;
   unlockAudio();
 }
+// Lo stesso, senza cambiare set: lo chiamano le Impostazioni dopo che hai
+// caricato o tolto i tuoi file. Senza, si continuerebbe a sentire quello che
+// era gia' stato decodificato fino alla ricarica della pagina.
+export function scordaISuoni(){
+  Object.keys(_buffers).forEach(k=> delete _buffers[k]);
+  _loading = null;
+  unlockAudio();
+}
 
 function fileDi(intento){
   const set = SET_SUONI.find(s=>s.id === setSuoniAttivo()) || SET_SUONI[0];
   return set.cartella + NOMI[intento];
 }
-// I byte di un suono, col RIPIEGO sul set di serie.
-// Un set a cui manca un file non deve restare muto su quel comando: e' il
-// caso di una cartella riempita a meta' — tre suoni caricati su quattro — e
-// anche quello di una cartella ancora vuota. Meglio il suono di serie che il
-// silenzio: il silenzio si legge come un tocco che non ha funzionato.
+// I byte di un suono, da tre posti in fila.
+//
+// 1) I TUOI FILE, se ne hai caricati (Impostazioni > I tuoi suoni). Stanno
+//    sul dispositivo e non escono da li': ne' su GitHub, ne' sul sito.
+//    Vengono per primi perche' sono la scelta piu' esplicita che si possa
+//    fare — li hai messi tu, adesso, a mano.
+// 2) La cartella del set.
+// 3) IL RIPIEGO SUL SET DI SERIE. Un set a cui manca un file non deve
+//    restare muto su quel comando: vale per la cartella vuota come per
+//    quella riempita a meta'. Il silenzio si legge come un tocco che non ha
+//    funzionato, ed e' il difetto peggiore che un set incompleto possa avere.
 async function bytesDi(intento){
+  if(setSuoniAttivo() === 'survival'){
+    try{
+      const mio = await leggiSuonoMio(intento);
+      if(mio) return mio;
+    }catch(e){ /* niente di caricato, o database non disponibile */ }
+  }
   const via = fileDi(intento);
   try{
     const r = await fetch(via);
