@@ -1,4 +1,4 @@
-import { projects } from './state.js';
+import { projects, haptic } from './state.js';
 import { db, COL, saveUserData, setDoc, doc, bumpDataRev, collection, getDocs } from './firebase.js';
 import { getStreak } from './evening.js';
 import { restoreReminderUI } from './notifications.js';
@@ -633,6 +633,8 @@ export function onSoundPackChange(){
 // la cronologia l'ha gia' fatta scorrere per conto suo (vedi popstate in
 // main.js). Stesso schema del lettore e della lightbox.
 export function closeSettingsUI(){
+  const ov = document.getElementById('settings-overlay');
+  if(ov && ov.classList.contains('open')) haptic('cancel');
   document.getElementById('settings-overlay').classList.remove('open');
   document.getElementById('settings-panel').classList.remove('open');
   document.body.classList.remove('settings-open');

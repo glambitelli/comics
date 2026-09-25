@@ -12,7 +12,7 @@
 // FISSI che non si ricreano mai, e le due trasformazioni (nastro che sfoglia,
 // zoom sull'immagine) restano indipendenti. I perche' sono raccontati sul
 // posto, dove servono.
-import { projects } from './state.js';
+import { projects, haptic } from './state.js';
 import {
   ZOOM_IN, ZOOM_MAX, panGain, edgeSpring, EDGE_COMMIT, EDGE_HANDOFF,
   panLimits as limitiPan, clampTo, ZOOM_TRANSITION, EDGE_COMMIT_ZOOM,
@@ -401,6 +401,10 @@ export function closeRefLightbox(){
 // livello).
 export function closeLightboxUI(){
   const ov = document.getElementById('refs-lightbox');
+  // SOLO SE ERA DAVVERO APERTA: questa funzione la chiamano anche il tasto
+  // Indietro e chi fa pulizia, e suonare a vuoto sarebbe un suono che arriva
+  // da un'azione che non c'e' stata.
+  if(ov && ov.classList.contains('open')) haptic('cancel');
   if(ov) ov.classList.remove('open');
   document.body.classList.remove('refs-lightbox-open');
   // Lo studio della prospettiva vive sopra l'immagine: se l'immagine se ne va,

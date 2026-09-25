@@ -113,7 +113,12 @@ export function showUndoToast(label, undoFn){
     document.body.appendChild(t);
   }
   t.querySelector('#undo-toast-lbl').textContent=label;
-  t.querySelector('#undo-toast-btn').onclick=()=>{ clearTimeout(_undoTimer); t.classList.remove('show'); try{undoFn();}catch(e){} };
+  // Premere Annulla qui RIMETTE A POSTO quello che era appena sparito: e' il
+  // gesto piu' "cancel" che ci sia in tutta l'app.
+  t.querySelector('#undo-toast-btn').onclick=()=>{
+    haptic('cancel');
+    clearTimeout(_undoTimer); t.classList.remove('show'); try{undoFn();}catch(e){}
+  };
   t.classList.add('show');
   clearTimeout(_undoTimer);
   _undoTimer=setTimeout(()=>t.classList.remove('show'), 5000);

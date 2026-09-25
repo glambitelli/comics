@@ -129,6 +129,38 @@ module.exports = () => suite("Suoni — un tocco, un suono", {"banco": "/test/ba
   await page.evaluate(()=> window.tocca('#b1','tap',30));
   s = await conta();
   ok('il tocco ticchetta di nuovo', s.length === 1, s);
+  console.log('\n── il verso che scende: quando suona "cancel" ──');
+  // IL DIFETTO: il file cancel.wav esisteva da mesi e non lo chiamava
+  // nessuno. Tornare indietro, chiudere una foto, dire di no a una conferma,
+  // annullare un'eliminazione: tutto muto (Giovanni, 25 settembre 2026).
+  //
+  // SI IMPORTA IL state.js VERO, non quello finto del banco. L'importmap
+  // dirotta la specifica esatta '/js/state.js' sul finto, che ha un haptic()
+  // vuoto: con quello il collegamento non si potrebbe provare. Aggiungendo
+  // una coda alla specifica non combacia piu' con l'importmap e arriva il
+  // modulo vero, che parla con lo STESSO sound.js del banco — quindi il
+  // suono che esce finisce in window.__suoni come tutti gli altri.
+  //
+  // E SI GUARDA LA DURATA di quello che e' uscito: cosi' non si prova solo
+  // che un suono ci sia stato, ma che sia proprio cancel.wav e non uno degli
+  // altri tre.
+  const indietro = await page.evaluate(async ()=>{
+    const ctx = new (window.AudioContext||window.webkitAudioContext)();
+    const atteso = +(await ctx.decodeAudioData(
+      await (await fetch('/sfx/cancel.wav')).arrayBuffer())).duration.toFixed(4);
+    const st = await import('/js/state.js?vero');
+    window.azzera();
+    let rimesso = false;
+    st.showUndoToast('Prova', ()=>{ rimesso = true; });
+    document.getElementById('undo-toast-btn').click();
+    await new Promise(r=> setTimeout(r, 900));
+    return { atteso, usciti: window.__suoni.slice(), rimesso };
+  });
+  ok('annullare un\'eliminazione fa il verso che scende',
+     indietro.usciti.includes(indietro.atteso), indietro);
+  ok('e rimette davvero a posto quello che era sparito',
+     indietro.rimesso === true, indietro);
+
   console.log('\n── il set di suoni ──');
   // Quello che si prova qui e' che il file suonato dipenda dal SET SCELTO
   // invece di essere scritto a mano da qualche parte.

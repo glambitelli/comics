@@ -31,9 +31,24 @@ const NAV_DEFER = 45;
 // torna a valere la sola distanza minima.
 const GESTURE_WINDOW = 1000;
 
-// Un file per ciascun intento di haptic(): 'tap' navigazione, 'done' conferma,
-// 'reward' il momento clou (serata completata). 'cancel' è pronto per un
-// eventuale uso su annulla/elimina, ma non agganciato di default.
+// ── I QUATTRO INTENTI, E QUANDO SI USANO ──
+// E' la regola che tiene insieme tutto il set: ogni suono ha un mestiere, e
+// chi aggiunge un haptic() da qualche parte sceglie fra questi quattro.
+//
+//   tap      ti sei mosso. Navigazione, cursori, aprire, scorrere. E' il
+//            piu' frequente di tutti, quindi e' anche il piu' discreto.
+//   done     hai chiuso qualcosa. Salvato, confermato, completato, avviato.
+//   cancel   qualcosa si e' chiuso, e' tornato indietro, o si e' disfatto.
+//            Chiudere una foto a schermo intero o il lettore, dire di no a
+//            un foglio di conferma, premere Annulla su un'eliminazione,
+//            buttare via una sessione del cronometro.
+//   reward   il momento clou: la serata completata. Uno solo, raro apposta.
+//
+// 'cancel' E' STATO MUTO PER MESI: il file c'era e non lo chiamava nessuno
+// (segnalato da Giovanni il 25 settembre 2026, "il suono per tornare
+// indietro non l'ho mai sentito"). Adesso e' agganciato nei cinque punti qui
+// sopra, e sono tutti posti dove prima non suonava proprio niente — quindi
+// non ruba il turno a nessun altro suono.
 const NOMI = {
   tap: 'nav.wav',
   done: 'done.wav',

@@ -269,7 +269,10 @@ export function scarta(){
   _stato = null;
   scrivi(null);
   clearInterval(_tic); _tic = null;
-  haptic('tap');
+  // NON E' UN TOCCO QUALUNQUE: qui dei minuti veri se ne vanno e non tornano.
+  // Il verso di 'cancel' scende, ed e' l'unico del set che lo fa: e' il suono
+  // giusto per una cosa che si disfa (vedi la regola in sound.js).
+  haptic('cancel');
   avvisa();
   return persi;
 }

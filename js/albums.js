@@ -1179,6 +1179,11 @@ function closeReader(){
 // Esportata perché la chiama anche il gestore del tasto Indietro in main.js.
 export function closeReaderUI(){
   if(!_reader) return;
+  // IL LETTORE CHE SI CHIUDE e' un "torna indietro", quindi prende il verso
+  // che scende (vedi la regola in sound.js). Solo se era davvero aperto:
+  // questa funzione la chiamano anche il tasto Indietro e chi fa pulizia, e
+  // suonare a vuoto sarebbe un suono senza un'azione dietro.
+  if(_reader.classList.contains('open')) haptic('cancel');
   // ── CHIUDERE IL LETTORE FERMA LO SCARICAMENTO ──
   //
   // Prima no, e si vedeva cosi' (14 settembre 2026, foto): si apre OPUS 02, lo

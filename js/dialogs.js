@@ -3,6 +3,7 @@
 // fuori palette) con modali coerenti col resto di Inkflow. Creati una sola
 // volta e riusati; risolvono una Promise, si usano con await esattamente
 // come le controparti native.
+import { haptic } from './state.js';
 //
 // ── COME SI SCRIVE QUELLO CHE C'E' DENTRO ──
 //
@@ -197,9 +198,15 @@ function ensureConfirmModal(){
     document.body.style.overflow='';
     if(_confirmResolve){ const r=_confirmResolve; _confirmResolve=null; r(val); }
   };
+  // CHI CONFERMA HA GIA' IL SUO SUONO — lo fa l'azione che parte dopo, e
+  // sovrapporne un altro qui vorrebbe dire due suoni per un tocco solo. Chi
+  // dice di no invece non aveva niente: il foglio spariva in silenzio, che e'
+  // indistinguibile da un tocco che non ha funzionato.
   _confirmOkBtn.onclick = ()=> finish(true);
-  cancelBtn.onclick = ()=> finish(false);
-  _confirmOverlay.addEventListener('click', e=>{ if(e.target===_confirmOverlay) finish(false); });
+  cancelBtn.onclick = ()=>{ haptic('cancel'); finish(false); };
+  _confirmOverlay.addEventListener('click', e=>{
+    if(e.target===_confirmOverlay){ haptic('cancel'); finish(false); }
+  });
 }
 
 // Sostituto di window.confirm(message) → Promise<boolean>. options: {title, confirmLabel}
