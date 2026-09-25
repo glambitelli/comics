@@ -885,6 +885,53 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
   ok('eliminare chiede prima, e poi spegne il cronometro',
      !quadrante.manca && quadrante.chiede && quadrante.spento, quadrante);
 
+  // ── NASCE UN PROGETTO, E SI SENTE ──
+  // Era l'unico momento davvero importante della home che avveniva in
+  // silenzio: il foglio si chiudeva e compariva una sfera nuova, senza che
+  // niente dicesse "e' fatta" (Giovanni, 25 settembre 2026).
+  // SI GUARDA LA VIBRAZIONE, non il suono: haptic() manda intenti diversi a
+  // durate diverse — 18 per 'done', 9 per un tocco qualunque — quindi il
+  // numero dice con che intento e' stato chiamato. Il suono vero e proprio
+  // ha bisogno di un contesto audio sbloccato da un gesto, che in una prova
+  // automatica non c'e' sempre; la vibrazione no.
+  const nascita = await page.evaluate(async ()=>{
+    const vibrate = [];
+    const vero = navigator.vibrate;
+    navigator.vibrate = v => { vibrate.push(v); return true; };
+    const st = await import('/js/state.js');
+    const quanti = st.projects.length;
+    window.openNewModal();
+    document.getElementById('new-title').value = 'Prova del suono';
+    document.getElementById('new-tav').value = '12';
+    await window.createProject();
+    await new Promise(r=> setTimeout(r, 400));
+    navigator.vibrate = vero;
+    return { vibrate, quanti, adesso: st.projects.length };
+  });
+  ok('creare un progetto fa il suono della conferma',
+     nascita.vibrate.includes(18), nascita);
+
+  // ── ELIMINARE UNA SESSIONE NON SI SCRIVE PIU' ──
+  // C'era "Sessione eliminata" per due secondi e mezzo. Serviva quando
+  // eliminare era muto: senza, premere non sembrava fare niente. Adesso
+  // scartare ha il suo suono e il quadrante torna a zero sotto gli occhi,
+  // quindi scriverlo era ripetere tre volte la stessa cosa.
+  const senzaScritta = await page.evaluate(async ()=>{
+    const m = await import('/js/tempo.js');
+    const esito = document.getElementById('tempo-esito');
+    esito.textContent = '';
+    m.avvia();
+    await new Promise(r=> setTimeout(r, 200));
+    window.tempoScarta();
+    await new Promise(r=> setTimeout(r, 300));
+    const ok = document.querySelector('.modal-overlay.open #ink-confirm-ok');
+    if(ok) ok.click();
+    await new Promise(r=> setTimeout(r, 500));
+    return { testo: esito.textContent.trim(), acceso: m.acceso() };
+  });
+  ok('eliminare una sessione non lascia scritte sul tavolo',
+     senzaScritta.testo === '' && senzaScritta.acceso === false, senzaScritta);
+
   // ── E IL QUADRANTE NON SI SPOSTA QUANDO ARRIVA L'ESITO ──
   // La riga che dice com'e' andata stava sotto il quadrante come riga
   // normale, quindi allargava la colonna: appena compariva "Sessione troppo

@@ -1,4 +1,4 @@
-import { projects, getProject, setCurrentId, PHASE_NAMES, PROJECT_PALETTE , loadJSON } from './state.js';
+import { projects, getProject, setCurrentId, PHASE_NAMES, PROJECT_PALETTE , loadJSON, haptic } from './state.js';
 import { saveProject, scheduleSave } from './firebase.js';
 import { drawGem } from './canvas.js';
 import { calcPct, getPhaseIndex } from './progress.js';
@@ -220,6 +220,14 @@ export async function createProject(){
   const title = document.getElementById('new-title').value.trim()||'Nuovo progetto';
   const tav = document.getElementById('new-tav').value;
   const p = newProjectObj(title, tav);
+  // NASCE UN PROGETTO, e si sente. Era l'unico momento davvero importante di
+  // tutta la home che avveniva in silenzio: il foglio si chiudeva e comparia
+  // una sfera nuova, senza che niente dicesse "e' fatta". E' una conferma in
+  // piena regola, quindi prende 'done' (vedi la regola dei quattro intenti in
+  // sound.js). Suona PRIMA del salvataggio: il suono accompagna il gesto, e
+  // aspettare il giro in rete lo farebbe arrivare mezzo secondo dopo — cioe'
+  // slegato dal tocco che l'ha causato.
+  haptic('done');
   closeModal();
   await saveProject(p);
 }

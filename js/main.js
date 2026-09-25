@@ -926,8 +926,12 @@ window.tempoScarta = async ()=>{
   if(!si) return;
   m.scarta();
   disegnaTempo();
-  const s = document.getElementById('tempo-esito');
-  if(s){ s.textContent = 'Sessione eliminata'; setTimeout(disegnaTempo, 2500); }
+  // NIENTE SCRITTA. Prima qui compariva "Sessione eliminata" per due secondi
+  // e mezzo. Serviva quando eliminare era muto: senza, premere non sembrava
+  // fare niente. Adesso scartare ha il suo suono — il verso che scende, vedi
+  // scarta() in tempo.js — e il quadrante torna a zero sotto gli occhi:
+  // dirlo anche per iscritto e' ripetere tre volte la stessa cosa. Tolto su
+  // richiesta di Giovanni, 25 settembre 2026.
   aggiornaScrivania();
 };
 window.tempoFerma = async ()=>{
