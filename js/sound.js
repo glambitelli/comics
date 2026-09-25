@@ -51,13 +51,6 @@ const NOMI = {
 // campo `cartella` esiste apposta per non doverlo decidere adesso.
 export const SET_SUONI = [
   { id: 'ff7', nome: 'Final Fantasy VII', cartella: './sfx/' },
-  // IL SECONDO SET, chiesto da Giovanni il 22 settembre 2026: l'HUD dei primi
-  // Resident Evil per PlayStation. I quattro file NON sono i campioni di
-  // Capcom — quelli sono roba loro e questo e' un sito pubblico: sono
-  // rifatti da zero in quello stile, e come sono fatti sta scritto nel
-  // programma che li genera (sfx/re/genera-suoni.py), che si rilancia e
-  // rida' gli stessi file.
-  { id: 're', nome: 'Survival horror', cartella: './sfx/re/' },
 ];
 const PACK_KEY = 'inkflow-sfx-pack';
 
