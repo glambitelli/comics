@@ -45,8 +45,10 @@ module.exports = () => suite("Impostazioni — il pannello dice solo quello che 
       testo: riga.querySelector('.settings-item').textContent.trim(),
       opzioni: sel ? Array.from(sel.options).map(o=>o.textContent) : null,
       scelto: sel ? sel.value : null,
-      // Con un set solo il menu resta leggibile ma non si apre a vuoto.
+      // Con un set solo il menu resta leggibile ma non si apre a vuoto;
+      // da due in su si apre.
       spento: sel ? sel.disabled : null,
+      quanti: sel ? sel.options.length : 0,
       visibile: sel ? getComputedStyle(sel).display !== 'none' : null,
     };
   });
@@ -54,7 +56,14 @@ module.exports = () => suite("Impostazioni — il pannello dice solo quello che 
      suoni.didascalie === 0 && suoni.testo === 'Suoni di menu', suoni);
   ok('c\'è un menu per scegliere il set', suoni.visibile === true, suoni);
   ok('e dentro c\'è il set attuale', /Final Fantasy VII/.test((suoni.opzioni||[]).join('|')), suoni);
-  ok('con un set solo non si apre a vuoto', suoni.spento === true, suoni);
+  // DUE SET: quello di serie e "Survival horror", che legge da una cartella
+  // che nel repository e' vuota e finche' e' vuota suona come quello di serie
+  // (vedi sfx/survival/LEGGIMI.txt). Finche' ce n'era uno solo il menu
+  // restava spento — diceva cosa stavi sentendo senza aprirsi a vuoto.
+  ok('c\'è anche il set Survival horror',
+     /Survival horror/.test((suoni.opzioni||[]).join('|')), suoni);
+  ok('e con due set il menu si apre',
+     suoni.quanti >= 2 && suoni.spento === false, suoni);
 
   sezione('sotto "Promemoria" si scrive quello che l\'interruttore NON dice');
   const spento = await page.evaluate(async ()=>{

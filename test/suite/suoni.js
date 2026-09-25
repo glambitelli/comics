@@ -130,9 +130,8 @@ module.exports = () => suite("Suoni — un tocco, un suono", {"banco": "/test/ba
   s = await conta();
   ok('il tocco ticchetta di nuovo', s.length === 1, s);
   console.log('\n── il set di suoni ──');
-  // Ce n'e' uno solo, e va bene: quello che si prova qui e' che il codice non
-  // dia piu' per scontato che sia UNO E BASTA, e che il file suonato dipenda
-  // dal set scelto invece di essere scritto a mano.
+  // Quello che si prova qui e' che il file suonato dipenda dal SET SCELTO
+  // invece di essere scritto a mano da qualche parte.
   const sets = await page.evaluate(async ()=>{
     const m = await import('/js/sound.js');
     return { elenco: m.SET_SUONI.map(x=>x.id), attivo: m.setSuoniAttivo() };
@@ -153,5 +152,32 @@ module.exports = () => suite("Suoni — un tocco, un suono", {"banco": "/test/ba
   await page.waitForTimeout(400);
   const dopoScelta = await page.evaluate(()=> window.__suoni);
   ok('e i suoni continuano a uscire', dopoScelta.length === 1, dopoScelta);
+
+  // ── UN SET A CUI MANCANO I FILE NON RESTA MUTO ──
+  // "Survival horror" legge da una cartella che nel repository e' vuota: i
+  // file li mette chi pubblica il sito, non il codice. Finche' non ci sono —
+  // o se ce ne sono solo due su quattro — quel comando deve suonare col
+  // campione di serie. Il silenzio si legge come un tocco che non ha
+  // funzionato, ed e' il difetto peggiore che un set incompleto possa avere.
+  const vuoto = await page.evaluate(async ()=>{
+    const m = await import('/js/sound.js');
+    const set = m.SET_SUONI.find(x=> x.id === 'survival');
+    if(!set) return { manca: true };
+    // La cartella c'e' ma i suoni no: lo si prova davvero, chiedendone uno.
+    const via = set.cartella.replace(/^\.\//, '/') + 'nav.wav';
+    const r = await fetch(via);
+    m.setSuoniScegli('survival');
+    window.azzera();
+    window.playSfx('done');
+    await new Promise(r=> setTimeout(r, 900));
+    const usciti = window.__suoni.length;
+    m.setSuoniScegli(m.SET_SUONI[0].id);
+    return { stato: r.status, attivo: 'survival', usciti };
+  });
+  ok('il set Survival horror c\'è', !vuoto.manca, vuoto);
+  ok('la sua cartella nel repository è vuota',
+     !vuoto.manca && vuoto.stato !== 200, vuoto);
+  ok('e finché è vuota si sente comunque il set di serie',
+     !vuoto.manca && vuoto.usciti >= 1, vuoto);
 
 });

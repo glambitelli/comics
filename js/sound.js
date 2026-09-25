@@ -51,6 +51,15 @@ const NOMI = {
 // campo `cartella` esiste apposta per non doverlo decidere adesso.
 export const SET_SUONI = [
   { id: 'ff7', nome: 'Final Fantasy VII', cartella: './sfx/' },
+  // IL SET "SURVIVAL HORROR" legge da sfx/survival/, che nel repository e'
+  // una cartella VUOTA (c'e' solo un LEGGIMI). I file li mette Giovanni: sono
+  // suoni presi da un gioco, cioe' roba di chi il gioco l'ha fatto, e questo
+  // repository e' pubblico — chi lo pubblica se ne prende la responsabilita',
+  // e non tocca a chi scrive il codice deciderlo per lui.
+  // FINCHE' LA CARTELLA E' VUOTA il set suona esattamente come quello di
+  // serie: vedi il ripiego in bytesDi qui sotto. Cosi' comparire nel menu
+  // prima che i file ci siano non zittisce niente.
+  { id: 'survival', nome: 'Survival horror', cartella: './sfx/survival/' },
 ];
 const PACK_KEY = 'inkflow-sfx-pack';
 
@@ -72,6 +81,21 @@ export function setSuoniScegli(id){
 function fileDi(intento){
   const set = SET_SUONI.find(s=>s.id === setSuoniAttivo()) || SET_SUONI[0];
   return set.cartella + NOMI[intento];
+}
+// I byte di un suono, col RIPIEGO sul set di serie.
+// Un set a cui manca un file non deve restare muto su quel comando: e' il
+// caso di una cartella riempita a meta' — tre suoni caricati su quattro — e
+// anche quello di una cartella ancora vuota. Meglio il suono di serie che il
+// silenzio: il silenzio si legge come un tocco che non ha funzionato.
+async function bytesDi(intento){
+  const via = fileDi(intento);
+  try{
+    const r = await fetch(via);
+    if(r.ok) return await r.arrayBuffer();
+  }catch(e){ /* rete assente o file assente: si ripiega */ }
+  const serie = SET_SUONI[0].cartella + NOMI[intento];
+  if(via === serie) throw new Error('manca ' + via);
+  return fetch(serie).then(r=> r.ok ? r.arrayBuffer() : Promise.reject(r.status));
 }
 
 let _ctx = null;
@@ -122,7 +146,7 @@ function preload(){
   if(!ctx) return Promise.resolve();
   _loading = Promise.all(Object.keys(NOMI).map(async key=>{
     try{
-      const buf = await fetch(fileDi(key)).then(r=> r.ok ? r.arrayBuffer() : Promise.reject(r.status));
+      const buf = await bytesDi(key);
       _buffers[key] = await ctx.decodeAudioData(buf);
     }catch(e){ /* suono mancante: pazienza, gli altri funzionano */ }
   }));

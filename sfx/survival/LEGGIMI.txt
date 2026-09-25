@@ -1,0 +1,22 @@
+Questa cartella e' il set di suoni "Survival horror", e nel repository e'
+VUOTA APPOSTA.
+
+Ci vanno quattro file, con questi nomi esatti:
+
+    nav.wav      lo spostamento del cursore (il suono piu' frequente: corto)
+    done.wav     la conferma
+    cancel.wav   il ritorno indietro
+    reward.wav   la serata chiusa
+
+Va bene qualunque formato che il browser sappia leggere (wav, mp3, m4a, ogg),
+purche' il NOME finisca in .wav: e' il nome che il codice va a cercare.
+
+FINCHE' UN FILE NON C'E', quel comando suona con il campione del set di serie
+(vedi bytesDi in js/sound.js). Quindi una cartella vuota, o riempita a meta',
+non zittisce niente e non rompe niente: si sente semplicemente il set di
+sempre finche' non metti il tuo.
+
+PERCHE' E' VUOTA. I suoni di un videogioco sono di chi il gioco l'ha fatto, e
+questo repository e' pubblico: va su GitHub Pages, indicizzato e scaricabile.
+Metterceli dentro e' una scelta di chi pubblica il sito, non una cosa che si
+decide scrivendo il codice.
