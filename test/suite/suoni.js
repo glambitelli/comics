@@ -154,7 +154,7 @@ module.exports = () => suite("Suoni — un tocco, un suono", {"banco": "/test/ba
   ok('e i suoni continuano a uscire', dopoScelta.length === 1, dopoScelta);
 
   // ── UN SET A CUI MANCANO I FILE NON RESTA MUTO ──
-  // "Survival horror" legge da una cartella che nel repository e' vuota: i
+  // "Survival Horror" legge da una cartella che nel repository e' vuota: i
   // file li mette chi pubblica il sito, non il codice. Finche' non ci sono —
   // o se ce ne sono solo due su quattro — quel comando deve suonare col
   // campione di serie. Il silenzio si legge come un tocco che non ha
@@ -174,7 +174,7 @@ module.exports = () => suite("Suoni — un tocco, un suono", {"banco": "/test/ba
     m.setSuoniScegli(m.SET_SUONI[0].id);
     return { stato: r.status, attivo: 'survival', usciti };
   });
-  ok('il set Survival horror c\'è', !vuoto.manca, vuoto);
+  ok('il set Survival Horror c\'è', !vuoto.manca, vuoto);
   ok('la sua cartella nel repository è vuota',
      !vuoto.manca && vuoto.stato !== 200, vuoto);
   ok('e finché è vuota si sente comunque il set di serie',

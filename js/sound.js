@@ -59,7 +59,7 @@ export const SET_SUONI = [
   // FINCHE' LA CARTELLA E' VUOTA il set suona esattamente come quello di
   // serie: vedi il ripiego in bytesDi qui sotto. Cosi' comparire nel menu
   // prima che i file ci siano non zittisce niente.
-  { id: 'survival', nome: 'Survival horror', cartella: './sfx/survival/' },
+  { id: 'survival', nome: 'Survival Horror', cartella: './sfx/survival/' },
 ];
 const PACK_KEY = 'inkflow-sfx-pack';
 

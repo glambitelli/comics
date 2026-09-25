@@ -56,12 +56,12 @@ module.exports = () => suite("Impostazioni — il pannello dice solo quello che 
      suoni.didascalie === 0 && suoni.testo === 'Suoni di menu', suoni);
   ok('c\'è un menu per scegliere il set', suoni.visibile === true, suoni);
   ok('e dentro c\'è il set attuale', /Final Fantasy VII/.test((suoni.opzioni||[]).join('|')), suoni);
-  // DUE SET: quello di serie e "Survival horror", che legge da una cartella
+  // DUE SET: quello di serie e "Survival Horror", che legge da una cartella
   // che nel repository e' vuota e finche' e' vuota suona come quello di serie
   // (vedi sfx/survival/LEGGIMI.txt). Finche' ce n'era uno solo il menu
   // restava spento — diceva cosa stavi sentendo senza aprirsi a vuoto.
-  ok('c\'è anche il set Survival horror',
-     /Survival horror/.test((suoni.opzioni||[]).join('|')), suoni);
+  ok('c\'è anche il set Survival Horror',
+     /Survival Horror/.test((suoni.opzioni||[]).join('|')), suoni);
   ok('e con due set il menu si apre',
      suoni.quanti >= 2 && suoni.spento === false, suoni);
 
