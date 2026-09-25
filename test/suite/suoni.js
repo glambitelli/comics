@@ -185,32 +185,45 @@ module.exports = () => suite("Suoni — un tocco, un suono", {"banco": "/test/ba
   const dopoScelta = await page.evaluate(()=> window.__suoni);
   ok('e i suoni continuano a uscire', dopoScelta.length === 1, dopoScelta);
 
-  // ── UN SET A CUI MANCANO I FILE NON RESTA MUTO ──
-  // "Survival Horror" legge da una cartella che nel repository e' vuota: i
-  // file li mette chi pubblica il sito, non il codice. Finche' non ci sono —
-  // o se ce ne sono solo due su quattro — quel comando deve suonare col
-  // campione di serie. Il silenzio si legge come un tocco che non ha
-  // funzionato, ed e' il difetto peggiore che un set incompleto possa avere.
-  const vuoto = await page.evaluate(async ()=>{
+  // ── UN SET A CUI MANCA UN FILE NON RESTA MUTO ──
+  // Il ripiego sul set di serie vale per ogni comando scoperto: la cartella
+  // vuota, quella riempita a meta', o il file sbagliato di nome. Il silenzio
+  // si legge come un tocco che non ha funzionato, ed e' il difetto peggiore
+  // che un set incompleto possa avere.
+  //
+  // QUI SI PROVA SU UN BUCO VERO. Prima questo controllo pretendeva che la
+  // cartella sfx/survival/ fosse VUOTA — cioe' fotografava lo stato di quel
+  // giorno invece di una regola — e infatti e' caduto appena Giovanni ci ha
+  // messo i suoi tre file (25 settembre 2026). La regola vera e' un'altra:
+  // qualunque comando la cartella non copra, si sente quello di serie. Il
+  // premio, che un suono suo non ce l'ha, e' il buco su cui misurarlo.
+  const ripiego = await page.evaluate(async ()=>{
     const m = await import('/js/sound.js');
     const set = m.SET_SUONI.find(x=> x.id === 'survival');
     if(!set) return { manca: true };
-    // La cartella c'e' ma i suoni no: lo si prova davvero, chiedendone uno.
-    const via = set.cartella.replace(/^\.\//, '/') + 'nav.wav';
-    const r = await fetch(via);
+    const via = set.cartella.replace(/^\.\//, '/');
+    const stati = {};
+    for(const n of ['nav.wav','done.wav','cancel.wav','reward.wav']){
+      stati[n] = (await fetch(via + n)).status;
+    }
+    const scoperto = Object.keys(stati).find(n => stati[n] !== 200);
     m.setSuoniScegli('survival');
+    m.scordaISuoni();
     window.azzera();
-    window.playSfx('done');
+    // Si suona l'intento che corrisponde al file mancante, se ce n'e' uno;
+    // se la cartella fosse completa il ripiego non si puo' provare qui, e il
+    // controllo lo dice invece di fingere.
+    const INTENTO = { 'nav.wav':'tap', 'done.wav':'done', 'cancel.wav':'cancel', 'reward.wav':'reward' };
+    window.playSfx(scoperto ? INTENTO[scoperto] : 'done');
     await new Promise(r=> setTimeout(r, 900));
     const usciti = window.__suoni.length;
     m.setSuoniScegli(m.SET_SUONI[0].id);
-    return { stato: r.status, attivo: 'survival', usciti };
+    m.scordaISuoni();
+    return { stati, scoperto, usciti };
   });
-  ok('il set Survival Horror c\'è', !vuoto.manca, vuoto);
-  ok('la sua cartella nel repository è vuota',
-     !vuoto.manca && vuoto.stato !== 200, vuoto);
-  ok('e finché è vuota si sente comunque il set di serie',
-     !vuoto.manca && vuoto.usciti >= 1, vuoto);
+  ok('il set Survival Horror c\'è', !ripiego.manca, ripiego);
+  ok('e un comando che la sua cartella non copre si sente lo stesso',
+     !ripiego.manca && ripiego.usciti >= 1, ripiego);
 
   console.log('\n── i tuoi file riempiono Survival Horror ──');
   // PERCHE' ESISTE QUESTA STRADA. La cartella sfx/survival/ nel sito e'
