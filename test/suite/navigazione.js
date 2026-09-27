@@ -885,6 +885,72 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
   ok('eliminare chiede prima, e poi spegne il cronometro',
      !quadrante.manca && quadrante.chiede && quadrante.spento, quadrante);
 
+  // ── JOBS: IL TERZO SCAFFALE ──
+  // Non e' un progetto con meno roba dentro: e' un lavoro su commissione,
+  // dove lo script ce l'hai gia' e lo leggi altrove (Giovanni, 27 settembre
+  // 2026). Quindi niente storia, niente atti: un titolo, quante tavole, e per
+  // ogni tavola le immagini che ti servono sotto gli occhi.
+  const jobs = await page.evaluate(async ()=>{
+    await window.openProjects('jobs');
+    await new Promise(r=> setTimeout(r, 600));
+    const vede = n => { const el = document.getElementById('projects-pane-' + n);
+                        return !!el && !el.hidden; };
+    const scaffale = { jobs: vede('jobs'), progetti: vede('progetti'), scene: vede('scene'),
+      linguetta: document.getElementById('projects-tab-jobs').classList.contains('active'),
+      // Il cursore bianco deve sapere che le linguette sono tre: a due resta
+      // largo mezza vasca e sulla terza finisce fuori posto.
+      quante: getComputedStyle(document.getElementById('projects-vasca')).getPropertyValue('--n').trim() };
+    const j = await import('/js/jobs.js');
+    j.__seminaJobs([{ id:'j1', titolo:'Nemesis #3', tavole:6,
+                      rif:{ '2':[{url:'https://x/a.png', refId:'r1'}],
+                            '5':[{url:'https://x/b.png', refId:'r2'},
+                                 {url:'https://x/c.png', refId:'r3'}] } }]);
+    await new Promise(r=> setTimeout(r, 200));
+    const card = document.querySelector('#jobs-lista .jobs-card');
+    const scheda = card ? card.textContent.replace(/\s+/g,' ').trim() : null;
+    card.click();
+    await new Promise(r=> setTimeout(r, 400));
+    const righe = Array.from(document.querySelectorAll('#job-corpo .job-riga'))
+      .map(r=> r.textContent.replace(/\s+/g,' ').trim());
+    // Se le righe non ci sono tutte si dice, invece di schiantarsi: una prova
+    // che muore con "Cannot read properties of undefined" non racconta niente
+    // a chi la legge sei mesi dopo.
+    const quinta = document.querySelectorAll('#job-corpo .job-riga')[4];
+    if(!quinta) return { scaffale, scheda, righe, manca:'la quinta riga' };
+    quinta.click();   // Tavola 5
+    await new Promise(r=> setTimeout(r, 300));
+    const dentro = {
+      titolo: document.getElementById('job-titolo').textContent.trim(),
+      celle: document.querySelectorAll('#job-corpo .job-cella').length,
+      piu: !!document.getElementById('job-piu'),
+    };
+    // Indietro scende di un livello: dalla tavola all'elenco delle tavole.
+    const tornato = window.__indietroJob();
+    await new Promise(r=> setTimeout(r, 250));
+    return { scaffale, scheda, righe, dentro, tornato,
+             dopoIndietro: document.getElementById('job-titolo').textContent.trim() };
+  });
+  ok('c\'e\' il terzo scaffale e si apre',
+     jobs.scaffale.jobs && !jobs.scaffale.progetti && !jobs.scaffale.scene
+     && jobs.scaffale.linguetta, jobs.scaffale);
+  ok('e il cursore sa che le linguette sono tre',
+     jobs.scaffale.quante === '3', jobs.scaffale);
+  ok('la scheda di un lavoro dice titolo, tavole e quante ne hai preparate',
+     /Nemesis #3/.test(jobs.scheda) && /6 tavole/.test(jobs.scheda)
+     && /2 preparate/.test(jobs.scheda), jobs);
+  // LE TAVOLE CI SONO TUTTE DALL'INIZIO: il lavoro sa quante sono, e chiedere
+  // di "creare la tavola 7" prima di poterci mettere un'immagine sarebbe un
+  // passaggio in piu' per una cosa che si sa gia'.
+  ok('dentro il lavoro ci sono tutte le tavole',
+     jobs.righe.length === 6 && /Tavola 1/.test(jobs.righe[0]), jobs.righe);
+  ok('e ognuna dice quante immagini ha, o un trattino se e\' vuota',
+     /2 rif\./.test(jobs.righe[4]) && /—/.test(jobs.righe[0]), jobs.righe);
+  ok('aprendo una tavola si vedono le sue immagini e il piu\' per aggiungerne',
+     !jobs.manca && jobs.dentro.titolo === 'Tavola 5' && jobs.dentro.celle === 2
+     && jobs.dentro.piu, jobs);
+  ok('e Indietro torna all\'elenco delle tavole, non fuori dal lavoro',
+     !jobs.manca && jobs.tornato === true && jobs.dopoIndietro === 'Nemesis #3', jobs);
+
   // ── ELIMINARE DALL'ELENCO NON TI SBATTE A CASA ──
   // IL DIFETTO: eliminando un progetto dall'elenco l'app tornava alla home
   // (Giovanni, 25 settembre 2026, "per qualche ragione strana"). Di strano

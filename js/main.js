@@ -193,10 +193,18 @@ async function openIdee(){
 // arrivati.
 let _scaffaleProgetti = 'progetti';
 
+// GLI SCAFFALI SONO TRE dal 27 settembre 2026, e da due che erano il codice
+// e' passato da "e' scene o no" a un elenco: con tre, ogni domanda binaria
+// diventa una catena di se, e la quarta linguetta costringerebbe a riscrivere
+// tutto un'altra volta.
+const SCAFFALI = ['progetti', 'scene', 'jobs'];
 async function openProjects(quale){
   hideAllScreens();
   document.getElementById('screen-projects').classList.add('active');
-  const dove = (quale === 'scene' || quale === 'progetti') ? quale : _scaffaleProgetti;
+  // Gli scaffali sono tre e si chiedono per nome: l'elenco sta in un posto
+  // solo (vedi SCAFFALI), se no aggiungerne un quarto vorrebbe dire ricordarsi
+  // di allungare anche questa riga.
+  const dove = SCAFFALI.includes(quale) ? quale : _scaffaleProgetti;
   if(window.__navSync) window.__navSync(dove === 'scene' ? 'scene' : 'projects');
   await mostraScaffale(dove);
 }
@@ -212,26 +220,34 @@ async function openScene(){ return openProjects('scene'); }
 // essere vero anche stando sui progetti, e senza il listener acceso sarebbe
 // uno zero per finta.
 async function mostraScaffale(quale){
-  _scaffaleProgetti = (quale === 'scene') ? 'scene' : 'progetti';
-  const suScene = _scaffaleProgetti === 'scene';
-  const pp = document.getElementById('projects-pane-progetti');
-  const ps = document.getElementById('projects-pane-scene');
-  if(pp) pp.hidden = suScene;
-  if(ps) ps.hidden = !suScene;
+  _scaffaleProgetti = SCAFFALI.includes(quale) ? quale : 'progetti';
+  for(const nome of SCAFFALI){
+    const pane = document.getElementById('projects-pane-' + nome);
+    if(pane) pane.hidden = (nome !== _scaffaleProgetti);
+    const tab = document.getElementById('projects-tab-' + nome);
+    if(tab) tab.classList.toggle('active', nome === _scaffaleProgetti);
+  }
   // Il cursore bianco scorre sullo scaffale scelto: un numero, e il resto lo
   // fa il CSS (stessa meccanica dei quattro scaffali dell'archivio).
   const vasca = document.getElementById('projects-vasca');
-  if(vasca) vasca.style.setProperty('--i', suScene ? 1 : 0);
-  const tp = document.getElementById('projects-tab-progetti');
-  const ts = document.getElementById('projects-tab-scene');
-  if(tp) tp.classList.toggle('active', !suScene);
-  if(ts) ts.classList.toggle('active', suScene);
+  if(vasca) vasca.style.setProperty('--i', SCAFFALI.indexOf(_scaffaleProgetti));
   // Le schede si ridisegnano ad ogni ingresso: un progetto puo' essere
   // cambiato da un'altra schermata (rinominato, cancellato, avanzato di una
   // tavola) mentre questa stava ferma sotto.
   renderHome(); attachCardDrag();
   const m = await trackResolved('./scene.js');
   m.initScene();
+  // I lavori si accendono qui, non all'avvio: chi non apre mai questo
+  // scaffale non paga un ascolto su Firestore per una sezione che non usa.
+  const j = await trackResolved('./jobs.js');
+  window.__indietroJob = j.indietroJob;
+  j.startJobsListener();
+  j.renderJobs();
+  const nuovo = document.getElementById('jobs-nuovo');
+  if(nuovo && !nuovo.dataset.montato){
+    nuovo.dataset.montato = '1';
+    nuovo.addEventListener('click', ()=> j.nuovoJob());
+  }
 }
 // L'interruttore in cima alla schermata.
 window.setScaffaleProgetti = quale=>{ mostraScaffale(quale); };
@@ -631,6 +647,12 @@ window.addEventListener('popstate', e=>{
   // lascia qui la sua funzione di chiusura.
   const rf = document.getElementById('rifila');
   if(rf && !rf.hidden && window.chiudiRifila){ window.chiudiRifila(); return; }
+  // DENTRO UN LAVORO si scende di un livello per volta: dalla tavola aperta
+  // all'elenco delle tavole, e solo al passo dopo si esce dal lavoro. Chi ci
+  // e' entrato ha fatto due tocchi, e Indietro deve disfarne uno.
+  const sj = document.getElementById('screen-job');
+  if(sj && sj.classList.contains('active') && window.__indietroJob
+     && window.__indietroJob()) return;
   // Se c'è un albo aperto a schermo intero, il tasto Indietro chiude il lettore
   // e riporta alle References, invece di uscire dall'app.
   // loadedMod e non loadMod: se il lettore e' aperto il modulo e' per forza
@@ -757,6 +779,7 @@ const goHomeAlways = ()=>{
   if(depth > 0){ history.go(-depth); }
   else { if(document.body.classList.contains('evening-mode')) exitEveningImpl(); goHomeImpl(); }
 };
+window.__navPush = navPush;
 window.goHome = goHomeAlways;
 window.goHomeFromLogo = goHomeAlways;
 

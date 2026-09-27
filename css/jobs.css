@@ -1,0 +1,71 @@
+/* ── JOBS — i lavori su commissione ─────────────────────────────────────────
+   Il perche' di questa sezione sta in cima a js/jobs.js. Qui dentro non si
+   inventa nessun linguaggio nuovo: le righe delle tavole sono le stesse
+   dell'archivio (.refs-folder-row col disco d'oro), la griglia e' quella
+   delle miniature, la scheda e' la stessa carta. Un lavoro e' un posto
+   diverso, non un'altra app. */
+
+/* ── LO SCAFFALE ── */
+.jobs-card{
+  display:flex;flex-direction:column;gap:3px;width:100%;text-align:left;
+  background:var(--white);border:1.5px solid var(--sand2);border-radius:14px;
+  padding:14px 16px;margin-bottom:10px;cursor:pointer;
+  box-shadow:0 2px 8px rgba(40,30,15,.05);
+  font-family:'Nunito',sans-serif;transition:background .12s;
+}
+.jobs-card:active{background:var(--sand)}
+.jobs-card-t{font-size:15px;font-weight:800;color:var(--ink)}
+.jobs-card-s{font-size:11.5px;font-weight:600;color:var(--ink3)}
+/* Lo scaffale vuoto dice A COSA SERVE, non "nessun lavoro": un elenco vuoto
+   che si limita a dichiararsi vuoto e' l'occasione persa di spiegare la
+   sezione a chi ci entra la prima volta. */
+.jobs-vuoto{
+  font-family:'Nunito',sans-serif;font-size:12.5px;line-height:1.6;
+  color:var(--ink3);padding:18px 4px;max-width:34em;
+}
+
+/* ── DENTRO UN LAVORO ── */
+#screen-job{background:var(--fondo-carta)}
+/* Stessa impalcatura della schermata Idee: l'intestazione sta ferma in cima
+   e il resto scorre. Si riusa quella invece di inventarne un'altra — sono la
+   stessa forma di schermata, e due impalcature diverse per la stessa forma
+   si disallineano al primo ritocco. */
+.job-scroll{
+  flex:1;overflow-y:auto;background:var(--fondo-carta);
+  padding:0 0 calc(20px + var(--safe-bot));
+}
+body.is-touch .job-scroll{padding-bottom:calc(110px + var(--safe-bot))}
+.job-cappello{padding:14px 16px 10px}
+.job-titolo{font-family:'Nunito',sans-serif;font-weight:800;font-size:16px;color:var(--ink)}
+.job-sotto{font-family:'Nunito',sans-serif;font-size:11.5px;color:var(--ink3);margin-top:2px}
+/* Quante immagini ha quella tavola, in coda alla riga. E' l'unica cosa che
+   dice a colpo d'occhio quali tavole hai gia' preparato e quali no — che e'
+   la domanda con cui si apre questa schermata prima di mettersi a disegnare.
+   Le anteprime delle immagini ci sono state per un giorno: Giovanni le ha
+   volute via (27 settembre 2026), e aveva ragione — tre francobolli per riga
+   facevano rumore e non si riconoscevano comunque. */
+.job-quanti{
+  margin-left:auto;flex-shrink:0;
+  font-family:'Nunito',sans-serif;font-size:12px;font-weight:700;color:var(--sand3);
+}
+.job-riga.vuota .job-quanti{color:#c9bda2}
+
+/* ── LE IMMAGINI DI UNA TAVOLA ──
+   Tre per riga come nell'archivio: la stessa misura, cosi' passando da una
+   parte all'altra non cambia il passo dell'occhio. */
+.job-griglia{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:4px 14px 14px}
+.job-cella{
+  aspect-ratio:1/1;border-radius:9px;overflow:hidden;position:relative;
+  background:var(--sand2);border:1.5px solid #fefcf8;cursor:pointer;
+  box-shadow:0 2px 8px rgba(40,30,15,.14);
+}
+.job-cella img{width:100%;height:100%;object-fit:cover;display:block}
+.job-cella:active{transform:scale(.97)}
+/* Il piu' e' tratteggiato come "Nuova scena": vuol dire "qui ci va qualcosa
+   che ancora non c'e'", ed e' gia' la parola che l'app usa per quel concetto. */
+.job-piu{
+  aspect-ratio:1/1;border-radius:9px;border:1.8px dashed #d9c9a4;background:#fffdf7;
+  display:flex;align-items:center;justify-content:center;
+  color:#b9a880;font-size:26px;font-weight:300;line-height:1;cursor:pointer;
+}
+.job-piu:active{background:var(--sand)}

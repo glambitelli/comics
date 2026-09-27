@@ -37,7 +37,10 @@ body.is-touch .projects-scroll{padding-bottom:calc(110px + var(--safe-bot))}
    scattare passando dall'una all'altra. Qui non ha nessuno stato "nascosto"
    — gli scaffali sono sempre due — quindi niente classe .show. */
 .projects-tabs{background:var(--fondo-carta);flex-shrink:0;padding:2px 16px 14px}
-.projects-tabs .seg-vasca{--n:2}
+/* Tre linguette dal 27 settembre 2026: Progetti, Scene, Jobs. Il numero serve
+   al cursore bianco per sapere quanto e' largo un terzo di vasca — lasciandolo
+   a due, il cursore resta mezzo e finisce fuori posto sulla terza. */
+.projects-tabs .seg-vasca{--n:3}
 /* Uno scaffale per volta. hidden da solo non basterebbe: questi due non sono
    .prosp-btn e nessuna regola d'autore gli mette display, quindi il
    display:none del browser vale — ma scriverlo qui lo rende una scelta

@@ -32,6 +32,7 @@
 <link rel="stylesheet" href="css/scene.css">
 <link rel="stylesheet" href="css/tempo.css">
 <link rel="stylesheet" href="css/scrivania.css">
+<link rel="stylesheet" href="css/jobs.css">
 <link rel="stylesheet" href="css/modals.css">
 <link rel="stylesheet" href="css/stats.css" media="print" onload="this.media='all'">
 <link rel="stylesheet" href="css/scriptment.css" media="print" onload="this.media='all'">
@@ -332,6 +333,11 @@
            richiesta di Giovanni, 19 settembre 2026. -->
       <button class="seg-tab" id="projects-tab-progetti" onclick="setScaffaleProgetti('progetti')" type="button">Progetti</button>
       <button class="seg-tab" id="projects-tab-scene" onclick="setScaffaleProgetti('scene')" type="button">Scene</button>
+      <!-- IL TERZO SCAFFALE, dal 27 settembre 2026. Non e' un progetto con
+           meno roba dentro: e' un lavoro che ti hanno commissionato, dove lo
+           script ce l'hai gia' e lo leggi altrove. Il perche' per esteso sta
+           in cima a js/jobs.js. -->
+      <button class="seg-tab" id="projects-tab-jobs" onclick="setScaffaleProgetti('jobs')" type="button">Jobs</button>
     </div>
   </div>
   <div class="projects-scroll" id="projects-scroll">
@@ -360,6 +366,34 @@
       </button>
       <div id="scene-lista"></div>
     </div>
+    <!-- LO SCAFFALE DEI LAVORI. -->
+    <div id="projects-pane-jobs" hidden>
+      <button class="scene-nuova" id="jobs-nuovo" type="button">
+        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M12 5.5v13M5.5 12h13" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"/></svg>
+        <span>Nuovo lavoro</span>
+      </button>
+      <div id="jobs-lista"></div>
+    </div>
+  </div>
+</div>
+
+<!-- UN LAVORO: l'elenco delle sue tavole, e dentro ogni tavola le immagini
+     che ti servono sotto gli occhi mentre la disegni. Niente script, niente
+     storia: vedi il perche' in cima a js/jobs.js. La stessa schermata mostra
+     due cose — l'elenco delle tavole e una tavola aperta — perche' sono lo
+     stesso posto a due profondita', e due schermate vorrebbero dire due
+     intestazioni che dicono la stessa cosa. -->
+<div class="screen" id="screen-job">
+  <div class="idee-header">
+    <div class="section-title" onclick="goHomeFromLogo()" style="cursor:pointer" role="button" tabindex="0" aria-label="Torna alla home">Inkflow <span style="font-size:.6em;color:#f0c020;vertical-align:.14em;font-weight:400">✦</span></div>
+    <div class="section-sub">jobs</div>
+  </div>
+  <div class="job-scroll">
+    <div class="job-cappello">
+      <div class="job-titolo" id="job-titolo"></div>
+      <div class="job-sotto" id="job-sotto"></div>
+    </div>
+    <div id="job-corpo"></div>
   </div>
 </div>
 

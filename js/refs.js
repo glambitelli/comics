@@ -2151,6 +2151,7 @@ export function renderRefsGrid(){
   // in cima diceva "Aggiungi a Il Sentiero" e sotto non si vedeva una spunta.
   const sig = (mostraTavole ? 'T|' : 'R|') + 'S' + Array.from(_scelti).sort().join('+')
     + '|P' + (_perProgetto || '') + '|'
+    + 'V' + (_perTavola ? _perTavola.jobId + ':' + _perTavola.tavola + ':' + Array.from(_rifiTavola).sort().join('+') : '') + '|'
     + list.map(r=>r.id+':'+r.url+':'+projectIdsOf(r).join(',')+':'+tagsOf(r).join(',')).join('|');
   if(grid.dataset.sig === sig) return;
   grid.dataset.sig = sig;
@@ -2179,7 +2180,9 @@ export function renderRefsGrid(){
     // In modalita' "aggiungi a un progetto" la spunta dice se l'immagine e'
     // gia' collegata a QUEL progetto: e' l'informazione che serve mentre si
     // sceglie, e si vede senza aprire niente.
-    const preso = _perProgetto ? projectIdsOf(r).includes(_perProgetto) : _scelti.has(r.id);
+    const preso = _perTavola ? _rifiTavola.has(r.id)
+               : _perProgetto ? projectIdsOf(r).includes(_perProgetto)
+               : _scelti.has(r.id);
     // LA PERCENTUALE SCRITTA SULLO STUDIO. E' la ragione per cui gli studi
     // stanno in uno scaffale loro: uno accanto all'altro, ognuno col suo
     // numero, si vede a colpo d'occhio dove un autore mette l'orizzonte — che
@@ -2223,7 +2226,7 @@ export function renderRefsGrid(){
 
   // Una classe sola dice al CSS "si sta scegliendo": da li' dipende se le
   // spunte si vedono anche col dito.
-  grid.classList.toggle('scegliendo', _scelti.size > 0 || !!_perProgetto);
+  grid.classList.toggle('scegliendo', _scelti.size > 0 || !!_perProgetto || !!_perTavola);
   montaSceltaGriglia(grid);
 }
 
@@ -2245,6 +2248,20 @@ function montaSceltaGriglia(grid){
       // Scegliendo per un progetto il tocco COLLEGA: e' il motivo per cui si
       // e' arrivati qui. Aprire l'immagine a schermo intero resta a portata,
       // ma da dentro la scheda del progetto.
+      if(_perTavola){
+        const r = _refs.find(x=> x.id === id);
+        if(r){
+          import('./jobs.js').then(async j=>{
+            await j.toggleRifTavola(_perTavola.jobId, _perTavola.tavola,
+                                    { url: r.url, refId: r.id });
+            haptic('tap');
+            await aggiornaRifiTavola();
+            renderPerProgetto();
+            renderRefsGrid();
+          });
+        }
+        return;
+      }
       if(_perProgetto){
         toggleRefProject(id, _perProgetto);
         haptic('tap');
@@ -2537,10 +2554,43 @@ export function linkRefToProject(id, projectId){
 // Adesso il progetto viaggia con te: una striscia in cima dice per chi stai
 // scegliendo, le miniature gia' collegate hanno la spunta, e un tocco collega
 // o scollega invece di aprire.
+// ── SCEGLIERE PER UNA TAVOLA DI UN LAVORO ──
+// Gemella di _perProgetto e nata dalla stessa esigenza, con una differenza
+// che conta: collegando a un PROGETTO si scrive sull'immagine (l'immagine
+// sa a quali progetti appartiene), mentre una tavola di un Job tiene LEI
+// l'elenco delle sue immagini — vedi jobs.js e il perche' scritto li'.
+// Quindi qui non si tocca l'archivio: si aggiunge una riga a un elenco che
+// sta da un'altra parte.
+let _perTavola = null;   // { jobId, tavola, nome }
+export function scegliPerTavola(dove){
+  _perTavola = dove || null;
+  _perProgetto = null;   // le due modalita' si escludono: due strisce in cima
+  aggiornaRifiTavola().then(()=>{   // che dicono due destinazioni diverse sarebbero un rebus
+    renderPerProgetto();
+    renderRefsGrid();
+  });
+}
+export function tavolaInCorso(){ return _perTavola; }
+async function rifiDellaTavolaInCorso(){
+  if(!_perTavola) return [];
+  const j = await import('./jobs.js');
+  const job = j.tuttiIJobs().find(x=> x.id === _perTavola.jobId);
+  return job ? j.rifiDiTavola(job, _perTavola.tavola) : [];
+}
+// Le spunte della griglia si leggono in modo sincrono mentre si disegna,
+// quindi l'elenco della tavola aperta si tiene qui a portata e si rinfresca
+// ad ogni aggancio.
+let _rifiTavola = new Set();
+async function aggiornaRifiTavola(){
+  const lista = await rifiDellaTavolaInCorso();
+  _rifiTavola = new Set(lista.map(r=> r.refId).filter(Boolean));
+}
+
 let _perProgetto = null;
 
 export function scegliPerProgetto(projectId){
   _perProgetto = projectId || null;
+  if(projectId) _perTavola = null;
   renderPerProgetto();
   renderRefsGrid();
 }
@@ -2549,6 +2599,18 @@ export function progettoInCorso(){ return _perProgetto; }
 function renderPerProgetto(){
   const riga = document.getElementById('refs-per-progetto');
   if(!riga) return;
+  // La stessa striscia serve due destinazioni: un progetto o una tavola.
+  if(_perTavola){
+    riga.hidden = false;
+    const nome = document.getElementById('refs-pp-nome');
+    if(nome) nome.textContent = _perTavola.nome || 'questa tavola';
+    const conto = document.getElementById('refs-pp-conto');
+    if(conto){
+      const n = _rifiTavola.size;
+      conto.textContent = n ? (n === 1 ? '1 sulla tavola' : n + ' sulla tavola') : '';
+    }
+    return;
+  }
   riga.hidden = !_perProgetto;
   if(!_perProgetto) return;
   const p = projects.find(x=> x.id === _perProgetto);
@@ -2564,6 +2626,22 @@ function renderPerProgetto(){
 // "Fine" riporta al progetto da cui si era partiti: chiudere la modalita' e
 // lasciare l'utente in archivio vorrebbe dire fargli rifare la strada a mano.
 function finePerProgetto(){
+  // "Fine" riporta da dove sei venuto: alla scheda del progetto, o alla
+  // tavola del lavoro. Restare nell'archivio dopo aver finito di scegliere
+  // vorrebbe dire far rifare a mano la strada dell'andata.
+  if(_perTavola){
+    const dove = _perTavola;
+    _perTavola = null;
+    _rifiTavola = new Set();
+    renderPerProgetto();
+    renderRefsGrid();
+    haptic('tap');
+    import('./jobs.js').then(j=>{
+      j.apriJob(dove.jobId);
+      j.apriTavola(dove.tavola);
+    });
+    return;
+  }
   const id = _perProgetto;
   _perProgetto = null;
   renderPerProgetto();
