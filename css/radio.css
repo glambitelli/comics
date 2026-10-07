@@ -1,0 +1,50 @@
+/* ── LA RADIOLINA ───────────────────────────────────────────────────────────
+   Un mobiletto avvitato all'angolo del tavolo, dalla parte opposta
+   all'interruttore della lampada: due oggetti sul bordo, uno per mano.
+   LO STILE E' DA RIFARE, ed e' voluto: Giovanni ha chiesto di pensare prima
+   a come funziona (7 ottobre 2026). Questa e' una scatola onesta, non la
+   radiolina anni 90 che sara'.
+   LA REGOLA CHE PERO' VALE GIA': la radio non e' il centro della schermata,
+   e' una cosa accesa in sottofondo mentre si lavora. Niente copertine,
+   niente onde che ballano: cosa sta suonando e i tre tasti che si premono
+   senza guardare. */
+.radio{
+  position:fixed;left:18px;bottom:calc(18px + var(--safe-bot));z-index:60;
+  width:132px;padding:7px 8px 8px;border-radius:8px;
+  background:linear-gradient(180deg,#3a332c,#2a241e);
+  box-shadow:0 2px 4px rgba(0,0,0,.5),0 10px 22px rgba(0,0,0,.45),
+             inset 0 1px 0 rgba(255,255,255,.12);
+}
+body.is-touch .radio{bottom:calc(100px + var(--safe-bot))}
+/* IL VETRINO AMBRA, che e' l'unica cosa che si legge da lontano. Il nome
+   scorre via se e' lungo invece di andare a capo: una radiolina ha una riga
+   sola, e due righe farebbero ballare l'altezza della scatola ad ogni brano. */
+.radio-vetro{
+  background:#17130f;border-radius:4px;padding:5px 7px;margin-bottom:6px;
+  box-shadow:inset 0 1px 3px rgba(0,0,0,.8);overflow:hidden;
+}
+.radio-nome{
+  display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  font-family:'Nunito',sans-serif;font-size:10px;font-weight:700;letter-spacing:.02em;
+  color:#ffc447;text-shadow:0 0 6px rgba(255,190,70,.45);
+}
+/* Da spenta la cifra del vetrino e' smorta, come un display che non ha
+   corrente: e' il modo in cui una radio dice di essere spenta senza scriverlo. */
+.radio[data-stato="spenta"] .radio-nome{color:rgba(255,196,71,.35);text-shadow:none}
+.radio[data-stato="errore"] .radio-nome,
+.radio[data-stato="vuota"] .radio-nome{color:#e08a6a;text-shadow:none}
+/* Mentre carica, il vetrino respira: un brano da Drive ci mette qualche
+   secondo, e senza un segno sembra che il tasto non abbia funzionato. */
+.radio[data-stato="carico"] .radio-nome{animation:radio-respira 1.1s ease-in-out infinite}
+@keyframes radio-respira{0%,100%{opacity:1}50%{opacity:.45}}
+.radio-tasti{display:flex;gap:5px}
+.radio-tasti button{
+  flex:1;height:24px;border:0;border-radius:4px;cursor:pointer;
+  background:linear-gradient(180deg,#d8d0c2,#a89e8c);
+  box-shadow:0 1px 2px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.4);
+  color:#2a241e;font-size:8px;line-height:1;padding:0;
+}
+.radio-tasti button:active{transform:translateY(1px);background:linear-gradient(180deg,#b9b19f,#8f8676)}
+/* Il tasto di mezzo e' quello che si preme di piu' ed e' l'unico colorato. */
+#radio-onoff{flex:1.3;background:linear-gradient(180deg,#e0b05a,#b1823a);color:#1d1710}
+.radio[data-stato="suona"] #radio-onoff{background:linear-gradient(180deg,#f0d08a,#c99a46)}

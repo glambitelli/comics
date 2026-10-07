@@ -33,6 +33,7 @@
 <link rel="stylesheet" href="css/tempo.css">
 <link rel="stylesheet" href="css/scrivania.css">
 <link rel="stylesheet" href="css/jobs.css">
+<link rel="stylesheet" href="css/radio.css">
 <link rel="stylesheet" href="css/modals.css">
 <link rel="stylesheet" href="css/stats.css" media="print" onload="this.media='all'">
 <link rel="stylesheet" href="css/scriptment.css" media="print" onload="this.media='all'">
@@ -265,6 +266,19 @@
        ragione per cui quel contenitore esiste. A luce spenta tutto quello
        che sta sul tavolo si smorza, e l'interruttore e' l'unica cosa che al
        buio devi riuscire a trovare. -->
+  <!-- LA RADIOLINA, avvitata all'angolo opposto all'interruttore: due oggetti
+       sul bordo del tavolo, uno per mano. Suona i brani di una cartella Drive
+       — vedi js/radio.js per il perche' non e' YouTube. Sta FUORI dal
+       contenitore che scorre e fuori da .scriv-tavolo: come l'interruttore,
+       e' una cosa del tavolo e non del foglio. -->
+  <div class="radio" id="radio" data-stato="spenta">
+    <div class="radio-vetro"><span class="radio-nome" id="radio-nome">Radio</span></div>
+    <div class="radio-tasti">
+      <button id="radio-prec" type="button" aria-label="Brano precedente">&#9664;&#9664;</button>
+      <button id="radio-onoff" type="button" aria-label="Accendi la radio">&#9654;</button>
+      <button id="radio-succ" type="button" aria-label="Brano successivo">&#9654;&#9654;</button>
+    </div>
+  </div>
   <button class="scriv-luce" id="scriv-luce" type="button" aria-pressed="true" aria-label="Spegni la lampada" title="Spegni la lampada">
     <span class="vite a"></span><span class="vite b"></span>
     <span class="vite c"></span><span class="vite d"></span>

@@ -706,3 +706,67 @@ export async function getDriveAlbumFile(fileMeta, onProgress, signal){
   segnaScaricato(fileMeta.id);
   return { file, fromCache: false };
 }
+
+// ── LA RADIOLINA ────────────────────────────────────────────────────────────
+// I brani stanno in una sottocartella Drive come gli albi, e per la stessa
+// ragione: sono file di Giovanni, nella sua nuvola. Nel repository non ci
+// vanno — e' un sito pubblico, e musica li' dentro vorrebbe dire pubblicarla.
+// Qui c'e' solo come si leggono.
+const AUDIO_EXT_RE = /\.(mp3|m4a|aac|ogg|oga|opus|wav|flac|weba)$/i;
+// La cartella dove cercarli. Il nome e' fisso apposta: una preferenza in piu'
+// da configurare, per una cosa che si fa una volta sola, e' una domanda in
+// mezzo fra chi apre l'app e la musica.
+export const CARTELLA_RADIO = 'Musica';
+
+export async function listDriveAudio(){
+  if(!isDriveConfigured() || !isDriveConnected()) return { stato:'spento', files:[] };
+  try{
+    const subId = await findAuthorSubfolderId(CARTELLA_RADIO);
+    if(!subId) return { stato:'senzaCartella', files:[] };
+    const q = `'${subId}' in parents and trashed=false`;
+    const url = 'https://www.googleapis.com/drive/v3/files?' + new URLSearchParams({
+      q, fields: 'files(id,name,size,mimeType)', spaces: 'drive', pageSize: '200', orderBy: 'name',
+    });
+    const data = await driveFetch(url);
+    const tutti = data.files || [];
+    return { stato:'ok', files: tutti.filter(f => AUDIO_EXT_RE.test(f.name)) };
+  }catch(e){
+    console.warn('listDriveAudio:', e.message);
+    return { stato:'errore', files:[] };
+  }
+}
+
+// La cache della radio e' SUA e si preserva fra i deploy, come quella degli
+// albi: un brano scaricato una volta non va riscaricato ad ogni ritocco di
+// CSS. Il nome deve restare identico a RADIO_CACHE in sw.js.
+const RADIO_CACHE = 'inkflow-radio';
+const RADIO_CACHE_MAX = 12;
+
+// Scarica un brano (o lo ripesca dalla cache) e torna un Blob pronto da
+// suonare. Intero e non a pezzi: un brano sono pochi megabyte, e lo
+// streaming autenticato in un <audio> non si puo' fare — l'intestazione con
+// il gettone non si puo' attaccare a un src.
+export async function getDriveAudio(fileId){
+  const chiave = 'https://inkflow.local/radio/' + fileId;
+  const cache = await caches.open(RADIO_CACHE);
+  const gia = await cache.match(chiave);
+  if(gia) return gia.blob();
+  if(!isDriveConnected()) throw new Error('Drive non collegato.');
+  const url = `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`;
+  const res = await fetchWithTimeout(url, {
+    headers: { Authorization: 'Bearer ' + _token.access_token }
+  }, 60000);
+  if(res.status === 401){ clearToken(); throw new Error('Sessione Drive scaduta: ricollega.'); }
+  if(!res.ok) throw new Error('Drive (' + res.status + ')');
+  const blob = await res.blob();
+  try{
+    await cache.put(chiave, new Response(blob.slice(), { headers:{ 'Content-Type': blob.type || 'audio/mpeg' } }));
+    await sfoltisciRadio(cache);
+  }catch(e){ /* cache piena o negata: si suona lo stesso */ }
+  return blob;
+}
+async function sfoltisciRadio(cache){
+  const keys = await cache.keys();
+  if(keys.length <= RADIO_CACHE_MAX) return;
+  for(const k of keys.slice(0, keys.length - RADIO_CACHE_MAX)) await cache.delete(k);
+}

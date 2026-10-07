@@ -13,12 +13,17 @@
 // di servire quelli di ieri. Alzare questo e non quello e' normale; il
 // contrario no.
 const VERSIONE = '1.0.0';
-const CACHE = 'inkflow-static-v367';
+const CACHE = 'inkflow-static-v368';
 const SHARE_CACHE = 'inkflow-share-inbox';
 // Cache dei file .cbz/.cbr scaricati da Drive: gestita da js/drive.js, va
 // PRESERVATA tra i deploy (altrimenti a ogni aggiornamento riscaricheresti
 // decine di MB su 4G). Deve restare identica alla costante in drive.js.
 const ALBUM_CACHE = 'inkflow-drive-albums';
+// I brani della radiolina, scaricati dalla cartella Drive di Giovanni. Va
+// PRESERVATA come quella degli albi, e per la stessa ragione: un brano
+// scaricato una volta non va riscaricato ad ogni ritocco di CSS. Deve restare
+// identica alla costante RADIO_CACHE in drive.js.
+const RADIO_CACHE = 'inkflow-radio';
 // Roba di terze parti: l'SDK di Firebase e i caratteri. Sta in una cache
 // TUTTA SUA, e come quella degli albi va PRESERVATA fra i deploy.
 //
@@ -68,7 +73,7 @@ self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys().then(keys => Promise.all(
       keys.filter(k => k !== CACHE && k !== SHARE_CACHE && k !== ALBUM_CACHE
-                    && k !== VENDOR_CACHE && k !== IMG_CACHE)
+                    && k !== VENDOR_CACHE && k !== IMG_CACHE && k !== RADIO_CACHE)
           .map(k => caches.delete(k))
     )).then(() => self.clients.claim())
   );

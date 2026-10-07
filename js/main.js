@@ -532,6 +532,10 @@ async function aggiornaScrivania(){
   if(!casa || !casa.classList.contains('active')) return;
   montaLaLuce();
   montaIlQuadrante();
+  // La radiolina si monta alla prima apertura della home e poi resta: il
+  // modulo e' leggero perche' parla con Drive solo quando la accendi, quindi
+  // chi non la usa non paga niente.
+  import('./radio.js').then(r=> r.montaRadio()).catch(()=>{});
   disegnaBiglietto(openProject, ()=> openProjects('progetti'));
   travasaLaFrase();
   // Il registro delle ore arriva da Firestore e si accende solo quando qualcuno

@@ -1077,6 +1077,43 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
      fermo.prima === fermo.dopo, fermo);
   ok('e la riga dell\'esito resta dentro lo schermo', fermo.dentro, fermo);
 
+  // ── LA RADIOLINA ──
+  // Giovanni disegna con la musica e la vuole sul tavolo (7 ottobre 2026).
+  // Non suona YouTube e non e' un ripiego: tenere in riproduzione un player
+  // di YouTube a schermo bloccato e' una funzione DEL BROWSER, che una
+  // pagina non si puo' dare da sola, e separare l'audio dal video e' vietato
+  // dai termini. Un <audio> normale invece suona a schermo bloccato e si fa
+  // comandare dalla schermata di blocco: e' la cosa che serviva davvero.
+  const radio = await page.evaluate(async ()=>{
+    const r = await import('/js/radio.js');
+    const box = document.getElementById('radio');
+    if(!box) return { manca: true };
+    r.montaRadio();
+    const spenta = { stato: box.dataset.stato,
+                     nome: document.getElementById('radio-nome').textContent.trim() };
+    // Si semina un elenco senza passare da Drive: qui si prova il mobiletto,
+    // non la rete.
+    r.__seminaBrani([{ id:'a', name:'03 - Notturno.mp3' }, { id:'b', name:'04 - Pioggia.m4a' }]);
+    await new Promise(x=> setTimeout(x, 100));
+    const primo = document.getElementById('radio-nome').textContent.trim();
+    r.avanti(1);
+    await new Promise(x=> setTimeout(x, 150));
+    const dopo = r.statoRadio();
+    return { spenta, primo, dopo,
+             tasti: ['radio-prec','radio-onoff','radio-succ'].every(i=> !!document.getElementById(i)) };
+  });
+  ok('la radiolina sta sul tavolo, coi suoi tre tasti',
+     !radio.manca && radio.tasti, radio);
+  ok('da spenta lo dice e basta',
+     !radio.manca && radio.spenta.stato === 'spenta' && radio.spenta.nome === 'Radio', radio);
+  // IL NOME SI LEGGE COME SU UNA RADIO: niente estensione e niente numero
+  // d'ordine davanti. "03 - Notturno.mp3" su un vetrino largo cosi' sarebbe
+  // tre quarti di rumore.
+  ok('il vetrino dice il titolo pulito, senza numeri ne\' estensione',
+     !radio.manca && radio.primo === 'Notturno', radio);
+  ok('e il tasto avanti cambia brano',
+     !radio.manca && radio.dopo.i === 1 && radio.dopo.titolo === 'Pioggia', radio);
+
   // NIENTE TANGENTI. Il biglietto di stasera aveva il bordo sinistro a quattro
   // pixel da quello del foglio della mappa: due bordi QUASI allineati sono
   // peggio di due allineati — si legge come un errore di un pixel invece che
