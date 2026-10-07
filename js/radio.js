@@ -44,11 +44,25 @@ function titoloDi(b){
   return (b && b.name || '').replace(/\.[a-z0-9]+$/i, '').replace(/^\s*\d+[\s._-]+/, '');
 }
 
+// IL TASTO DI MEZZO CAMBIA FACCIA: play quando e' ferma, pausa quando
+// suona. Prima restava sempre un triangolo, e a radio accesa non c'era modo
+// di capire dal tasto cosa avrebbe fatto premendolo (Giovanni, 7 ottobre).
+const ICONA_PLAY  = '<svg viewBox="0 0 24 12" aria-hidden="true"><path d="M8 1v10l9-5z" fill="currentColor"/></svg>';
+const ICONA_PAUSA = '<svg viewBox="0 0 24 12" aria-hidden="true"><path d="M7 1h3.5v10H7zM13.5 1H17v10h-3.5z" fill="currentColor"/></svg>';
 function scrivi(){
   const n = el('radio-nome');
   const corpo = el('radio');
   if(!corpo) return;
   corpo.dataset.stato = _stato;
+  const tasto = el('radio-onoff');
+  if(tasto){
+    const suona = _stato === 'suona';
+    if(tasto.dataset.faccia !== (suona ? 'pausa' : 'play')){
+      tasto.dataset.faccia = suona ? 'pausa' : 'play';
+      tasto.innerHTML = suona ? ICONA_PAUSA : ICONA_PLAY;
+    }
+    tasto.setAttribute('aria-label', suona ? 'Pausa' : 'Play');
+  }
   if(!n) return;
   if(_stato === 'scollegata'){ n.textContent = 'Tocca \u25B6 per collegare Drive'; return; }
   if(_stato === 'senzaCartella'){ n.textContent = 'Manca la cartella Inkflow Radio'; return; }

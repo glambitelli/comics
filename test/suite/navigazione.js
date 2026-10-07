@@ -1129,6 +1129,26 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
   ok('e "non risponde" resta solo per l\'errore vero',
      modi.errore === 'Drive non risponde'
      && ![modi.scollegata, modi.senzaCartella, modi.vuota].some(t=> /non risponde/.test(t)), modi);
+  // IL TASTO DI MEZZO CAMBIA FACCIA: play da ferma, pausa mentre suona.
+  // Prima restava sempre un triangolo, e a radio accesa non c'era modo di
+  // capire dal tasto cosa avrebbe fatto (Giovanni, 7 ottobre 2026).
+  const faccia = await page.evaluate(async ()=>{
+    const r = await import('/js/radio.js');
+    const t = document.getElementById('radio-onoff');
+    r.__metti('suona');  const suonando = { label: t.getAttribute('aria-label'), f: t.dataset.faccia,
+                                            bobine: getComputedStyle(document.querySelector('.radio-bobina')).animationName };
+    r.__metti('pausa');  const ferma = { label: t.getAttribute('aria-label'), f: t.dataset.faccia,
+                                         bobine: getComputedStyle(document.querySelector('.radio-bobina')).animationName };
+    r.__metti('spenta');
+    return { suonando, ferma };
+  });
+  ok('mentre suona il tasto di mezzo e\' la pausa',
+     faccia.suonando.label === 'Pausa' && faccia.suonando.f === 'pausa', faccia);
+  ok('e da ferma torna play', faccia.ferma.label === 'Play' && faccia.ferma.f === 'play', faccia);
+  // LE BOBINE GIRANO SOLO MENTRE SUONA: e' l'unico movimento del mobiletto,
+  // e il modo in cui un lettore a cassette dice "sto andando".
+  ok('le bobine girano mentre suona, e si fermano in pausa',
+     faccia.suonando.bobine === 'radio-gira' && faccia.ferma.bobine === 'none', faccia);
   ok('e il tasto avanti cambia brano',
      !radio.manca && radio.dopo.i === 1 && radio.dopo.titolo === 'Pioggia', radio);
 
