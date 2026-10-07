@@ -948,6 +948,25 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
   ok('aprendo una tavola si vedono le sue immagini e il piu\' per aggiungerne',
      !jobs.manca && jobs.dentro.titolo === 'Tavola 5' && jobs.dentro.celle === 2
      && jobs.dentro.piu, jobs);
+  // TORNANDO A CASA DA UN LAVORO, il lavoro si spegne. Prima l'elenco delle
+  // schermate da spegnere era scritto a mano e quella dei Jobs non c'era: la
+  // home si accendeva sopra un lavoro ancora acceso, e le due si
+  // sovrapponevano (Giovanni, 7 ottobre 2026).
+  const aCasa = await page.evaluate(async ()=>{
+    const j = await import('/js/jobs.js');
+    j.__seminaJobs([{ id:'jh', titolo:'Prova', tavole:3, rif:{} }]);
+    j.apriJob('jh');
+    await new Promise(r=> setTimeout(r, 200));
+    const prima = document.getElementById('screen-job').classList.contains('active');
+    window.goHome();
+    await new Promise(r=> setTimeout(r, 600));
+    return { prima,
+      lavoroSpento: !document.getElementById('screen-job').classList.contains('active'),
+      accese: Array.from(document.querySelectorAll('.screen.active')).map(x=> x.id) };
+  });
+  ok('tornando a casa da un lavoro resta accesa solo la home',
+     aCasa.prima && aCasa.lavoroSpento
+     && aCasa.accese.length === 1 && aCasa.accese[0] === 'screen-home', aCasa);
   ok('e Indietro torna all\'elenco delle tavole, non fuori dal lavoro',
      !jobs.manca && jobs.tornato === true && jobs.dopoIndietro === 'Nemesis #3', jobs);
 

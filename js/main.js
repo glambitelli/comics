@@ -137,10 +137,13 @@ function hideAllScreens(){
   // Elimina" di una cartella di References appoggiato sopra le schede della
   // home, ancora funzionante e riferito a una cosa non piu' a schermo.
   closeActionMenu();
-  ['screen-home','screen-project','screen-stats','screen-evening','screen-refs','screen-idee','screen-projects'].forEach(id=>{
-    const el = document.getElementById(id);
-    if(el) el.classList.remove('active');
-  });
+  // TUTTE LE SCHERMATE, non un elenco scritto a mano. Prima qui c'erano i
+  // loro nomi uno per uno, e quando e' nata la schermata dei Jobs nessuno l'ha
+  // aggiunta: tornando a casa da un lavoro, il lavoro restava acceso sotto la
+  // home e le due si sovrapponevano (Giovanni, 7 ottobre 2026). Una schermata
+  // e' tale perche' ha la classe .screen, e si spegne per quello: la prossima
+  // non dovra' ricordarsi di iscriversi da nessuna parte.
+  document.querySelectorAll('.screen.active').forEach(el=> el.classList.remove('active'));
   // Chiude anche settings se aperto
   const so = document.getElementById('settings-overlay');
   const sp = document.getElementById('settings-panel');
