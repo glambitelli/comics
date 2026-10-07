@@ -191,14 +191,6 @@
         </div>
         <div class="scriv-riga">
           <button class="scriv-biglietto" id="scriv-biglietto" type="button"></button>
-      <!-- LA COLONNA DI DESTRA: il cronometro a cavallo dell'angolo della
-           mappa, e sotto di lui il walkman. Il walkman stava fra il post-it e
-           il cronometro, ma a quella grandezza il post-it si stringeva in una
-           colonnina (Giovanni, 7 ottobre 2026: "il post-it deve restare
-           identico"). Sotto il cronometro c'e' il legno che il post-it lascia
-           libero, ed e' li' che un oggetto in piu' ci sta senza spostare gli
-           altri. -->
-      <div class="scriv-destra">
       <div class="tempo-posto" id="tempo-posto">
         <button class="tempo-quadrante" id="tempo-avvia" type="button"
                 aria-label="Comincio a disegnare" title="Comincio a disegnare">
@@ -259,11 +251,13 @@
              se no la pagina sobbalza ogni volta che compare. -->
         <div class="tempo-esito" id="tempo-esito" role="status"></div>
       </div>
+        </div>
         <!-- IL WALKMAN, sul tavolo come gli altri oggetti e grande come un
-             oggetto: prima era avvitato all'angolo della pagina, grande quanto
-             l'interruttore della luce, e su una scrivania vera un lettore a
-             cassette non e' piccolo come un interruttore. Suona i brani di una
-             cartella Drive — vedi js/radio.js per il perche' non e' YouTube. -->
+             oggetto. Sta A SINISTRA, SOTTO IL POST-IT: sotto il cronometro,
+             a destra, finiva sopra l'interruttore della luce, che e' avvitato
+             nell'angolo in basso a destra (Giovanni, 7 ottobre 2026). Suona i
+             brani di una cartella Drive — vedi js/radio.js per il perche' non
+             e' YouTube. -->
         <div class="radio" id="radio" data-stato="spenta">
           <!-- I TASTI STANNO SUL BORDO IN ALTO, come sul lettore a cui il mobiletto
                si ispira: si premono col pollice senza guardare. -->
@@ -284,8 +278,6 @@
             <div class="radio-barra"><span class="radio-nome" id="radio-nome">Radio</span></div>
             <span class="radio-fianco" aria-hidden="true"><i></i></span>
           </div>
-        </div>
-      </div>
         </div>
       </div>
     </div>

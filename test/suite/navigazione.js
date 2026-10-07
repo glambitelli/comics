@@ -1152,6 +1152,41 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
   ok('e il tasto avanti cambia brano',
      !radio.manca && radio.dopo.i === 1 && radio.dopo.titolo === 'Pioggia', radio);
 
+  // ── IL WALKMAN NON SI SIEDE SULL'INTERRUTTORE ──
+  // Messo a destra sotto il cronometro, sul telefono finiva sopra
+  // l'interruttore della luce, che e' avvitato nell'angolo in basso a destra
+  // (Giovanni, 7 ottobre 2026). Adesso sta a sinistra sotto il post-it. Si
+  // misura su un telefono vero, perche' e' li' che lo spazio manca: e sul piu'
+  // stretto che si usi ancora, 360 per 740.
+  const vecchia = page.viewportSize();
+  const misureTavolo = [];
+  for(const [w,h] of [[412,800],[360,740]]){
+    await page.setViewportSize({ width:w, height:h });
+    misureTavolo.push(await page.evaluate(async (dim)=>{
+      document.body.classList.add('is-touch');
+      document.querySelectorAll('.screen').forEach(x=> x.classList.remove('active'));
+      document.getElementById('screen-home').classList.add('active');
+      const st = await import('/js/state.js'); const home = await import('/js/home.js');
+      const p1 = home.newProjectObj('Kara', 24); p1.id='pw'; p1.microtask='Chiudere gli sfondi della tavola 7';
+      st.setProjects([p1]);
+      await window.__aggiornaScrivania();
+      await new Promise(r=> setTimeout(r, 400));
+      const R = sel=>{ const e=document.querySelector(sel).getBoundingClientRect(); return {x:e.left,y:e.top,r:e.right,b:e.bottom,w:e.width}; };
+      const tocca = (a,c)=> a.x<c.r && c.x<a.r && a.y<c.b && c.y<a.b;
+      const wk = R('#radio'), lu = R('#scriv-luce'), pi = R('#scriv-biglietto');
+      return { dim, sullInterruttore: tocca(wk, lu), sulPostit: tocca(wk, pi),
+               // IL POST-IT RESTA COM'ERA: largo il 52% del tavolo, al massimo 214px.
+               postit: Math.round(pi.w),
+               attesa: Math.round(Math.min(214, document.querySelector('.scriv-riga').getBoundingClientRect().width * .52)) };
+    }, w+'x'+h));
+  }
+  await page.setViewportSize(vecchia);
+  await page.evaluate(()=> document.body.classList.remove('is-touch'));
+  ok('il walkman non si siede sull\'interruttore della luce',
+     misureTavolo.every(t=> !t.sullInterruttore), misureTavolo);
+  ok('e nemmeno sul post-it', misureTavolo.every(t=> !t.sulPostit), misureTavolo);
+  ok('e il post-it resta largo com\'era', misureTavolo.every(t=> Math.abs(t.postit - t.attesa) <= 3), misureTavolo);
+
   // NIENTE TANGENTI. Il biglietto di stasera aveva il bordo sinistro a quattro
   // pixel da quello del foglio della mappa: due bordi QUASI allineati sono
   // peggio di due allineati — si legge come un errore di un pixel invece che

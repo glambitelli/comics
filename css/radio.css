@@ -17,18 +17,15 @@
    LA REGOLA CHE TIENE: la radio non e' il centro della schermata. Niente
    copertine, niente onde che ballano. Si muovono solo le bobine mentre
    suona, e il titolo che scorre nella sua barra. */
-.radio{position:relative;width:143px;padding-top:12px;margin-top:26px}
-
-/* ── LA COLONNA DI DESTRA ──
-   Il cronometro e, sotto, il walkman. Il margine sopra il walkman lascia
-   posto alla riga dell'esito del cronometro ("12 min registrati"), che e'
-   appesa sotto il quadrante e altrimenti finirebbe sui tasti. */
-.scriv-destra{order:2;margin-left:auto;display:flex;flex-direction:column;align-items:flex-end}
-/* Il cronometro aveva order:2 per stare a destra del post-it nella riga;
-   dentro questa colonna quella regola lo mandava SOTTO il walkman, e il
-   quadrante perdeva il suo posto a cavallo dell'angolo della mappa. Qui
-   torna primo. */
-.scriv-riga .scriv-destra .tempo-posto{margin:0;order:0}
+/* A SINISTRA, SOTTO IL POST-IT. Per un giorno e' stato a destra sotto il
+   cronometro, e li' finiva sopra l'interruttore della luce, avvitato
+   nell'angolo in basso a destra (Giovanni, 7 ottobre 2026). Da questa parte
+   il tavolo e' libero.
+   RIENTRA PIU' DEL POST-IT, e di proposito: con i due bordi sinistri quasi
+   allineati si ricreerebbe la tangente sbagliata che si era tolta fra il
+   post-it e la mappa. E sta storto di un grado e mezzo dall'altra parte
+   rispetto al post-it, come una cosa appoggiata e non incolonnata. */
+.radio{position:relative;width:143px;padding-top:12px;margin:20px 0 0 15%;transform:rotate(-1.5deg)}
 
 /* ── I TASTI SUL BORDO ── */
 .radio-tasti{position:absolute;top:0;left:9px;right:32px;display:flex;gap:4px;z-index:1}
@@ -126,6 +123,7 @@
 .radio[data-stato="carico"] .radio-nome{animation:radio-respira 1.1s ease-in-out infinite}
 @keyframes radio-respira{0%,100%{opacity:1}50%{opacity:.45}}
 
-/* SUI TELEFONI STRETTI il walkman si rimpicciolisce un poco: a 143px su uno
-   schermo da 360 il suo bordo sinistro toccherebbe il post-it. */
-@media (max-width:380px){ .radio{zoom:.88} }
+/* SUI TELEFONI BASSI il walkman si rimpicciolisce un poco: e' il pezzo che
+   allunga il tavolo, e su uno schermo corto e' lui a decidere se tutto ci
+   sta senza scorrere. */
+@media (max-height:760px){ .radio{zoom:.88} }
