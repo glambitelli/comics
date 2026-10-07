@@ -29,7 +29,13 @@ let _i = 0;             // quale si sta suonando
 let _audio = null;
 let _url = null;        // l'indirizzo temporaneo del Blob in corso
 let _montata = false;
-let _stato = 'spenta';  // spenta | carico | suona | pausa | vuota | errore
+// spenta | carico | suona | pausa | scollegata | senzaCartella | vuota | errore
+// QUATTRO MODI DI NON SUONARE, e vanno detti tutti e quattro. La prima
+// versione li chiamava tutti "Drive non risponde": e Giovanni si e' trovato
+// quella scritta con la cartella appena creata (7 ottobre 2026). Era vero
+// solo in uno dei quattro casi, e negli altri tre diceva la cosa sbagliata
+// da fare.
+let _stato = 'spenta';
 
 function el(id){ return document.getElementById(id); }
 function titoloDi(b){
@@ -44,7 +50,9 @@ function scrivi(){
   if(!corpo) return;
   corpo.dataset.stato = _stato;
   if(!n) return;
-  if(_stato === 'vuota'){ n.textContent = 'Nessun brano in Drive'; return; }
+  if(_stato === 'scollegata'){ n.textContent = 'Tocca \u25B6 per collegare Drive'; return; }
+  if(_stato === 'senzaCartella'){ n.textContent = 'Manca la cartella Inkflow Radio'; return; }
+  if(_stato === 'vuota'){ n.textContent = 'Inkflow Radio e\u0300 vuota'; return; }
   if(_stato === 'spenta' && !_brani.length){ n.textContent = 'Radio'; return; }
   if(_stato === 'errore'){ n.textContent = 'Drive non risponde'; return; }
   if(_stato === 'carico'){ n.textContent = 'Carico…'; return; }
@@ -108,9 +116,19 @@ export async function accendi(){
   if(_brani.length){ return suona(); }
   const d = await import('./drive.js');
   _stato = 'carico'; scrivi();
+  // PREMERE PLAY E' UNA RICHIESTA ESPLICITA, quindi qui si puo' chiedere il
+  // gettone a Google — col rinnovo silenzioso, e se serve con la sua pagina.
+  // E' la regola di ensureDriveConnected: niente parte da solo, ma un tasto
+  // premuto apposta e' il permesso. Senza questo passaggio la radio guardava
+  // solo il gettone gia' in tasca, e se era scaduto si fermava li'.
+  const collegato = await d.ensureDriveConnected(true);
+  if(!collegato){ _stato = 'scollegata'; scrivi(); return; }
   const r = await d.listDriveAudio();
   if(r.stato !== 'ok' || !r.files.length){
-    _stato = r.stato === 'ok' ? 'vuota' : 'errore';
+    _stato = r.stato === 'ok' ? 'vuota'
+           : r.stato === 'senzaCartella' ? 'senzaCartella'
+           : r.stato === 'spento' ? 'scollegata'
+           : 'errore';
     scrivi();
     return;
   }
@@ -142,13 +160,26 @@ export function montaRadio(){
   const corpo = el('radio');
   if(!corpo) return;
   _montata = true;
-  el('radio-onoff').addEventListener('click', ()=>{
+  el('radio-onoff').addEventListener('click', async ()=>{
     haptic('tap');
-    if(_stato === 'suona') pausa();
-    else if(_stato === 'pausa') suona();
-    else accendi();
+    if(_stato === 'suona') return pausa();
+    if(_stato === 'pausa') return suona();
+    // SCOLLEGATA: il rinnovo silenzioso non e' bastato, quindi si apre la
+    // pagina di Google. Solo qui e solo su tocco: e' il gesto con cui si e'
+    // detto "si', collegalo".
+    if(_stato === 'scollegata'){
+      try{ const d = await import('./drive.js'); await d.connectDrive(); }
+      catch(e){ scrivi(); return; }
+    }
+    // Riprovando da zero: la cartella potrebbe essere stata creata adesso.
+    if(_stato === 'senzaCartella' || _stato === 'vuota' || _stato === 'errore'
+       || _stato === 'scollegata') _brani = [];
+    accendi();
   });
   el('radio-prec').addEventListener('click', ()=>{ haptic('tap'); avanti(-1); });
   el('radio-succ').addEventListener('click', ()=>{ haptic('tap'); avanti(1); });
   scrivi();
 }
+// Per le prove: forza uno stato e ridisegna il vetrino, per controllare che
+// ognuno dei modi di non suonare dica la cosa giusta.
+export function __metti(stato){ _stato = stato; scrivi(); }

@@ -1111,6 +1111,24 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
   // tre quarti di rumore.
   ok('il vetrino dice il titolo pulito, senza numeri ne\' estensione',
      !radio.manca && radio.primo === 'Notturno', radio);
+  // QUATTRO MODI DI NON SUONARE, e ognuno dice la cosa da fare. La prima
+  // versione li chiamava tutti "Drive non risponde", e Giovanni se l'e'
+  // trovato con la cartella appena creata (7 ottobre 2026): era vero solo in
+  // uno dei quattro casi.
+  const modi = await page.evaluate(async ()=>{
+    const r = await import('/js/radio.js');
+    const dice = st=>{ r.__metti(st); return document.getElementById('radio-nome').textContent.trim(); };
+    const out = { scollegata: dice('scollegata'), senzaCartella: dice('senzaCartella'),
+                  vuota: dice('vuota'), errore: dice('errore') };
+    r.__metti('spenta');
+    return out;
+  });
+  ok('da scollegata dice di collegare Drive', /collegare Drive/.test(modi.scollegata), modi);
+  ok('senza cartella dice quale cartella manca', /Inkflow Radio/.test(modi.senzaCartella), modi);
+  ok('con la cartella vuota lo dice', /vuota/.test(modi.vuota), modi);
+  ok('e "non risponde" resta solo per l\'errore vero',
+     modi.errore === 'Drive non risponde'
+     && ![modi.scollegata, modi.senzaCartella, modi.vuota].some(t=> /non risponde/.test(t)), modi);
   ok('e il tasto avanti cambia brano',
      !radio.manca && radio.dopo.i === 1 && radio.dopo.titolo === 'Pioggia', radio);
 

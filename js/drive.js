@@ -722,10 +722,33 @@ const AUDIO_EXT_RE = /\.(mp3|m4a|aac|ogg|oga|opus|wav|flac|weba)$/i;
 // 7 ottobre 2026).
 export const CARTELLA_RADIO = 'Inkflow Radio';
 
+// LA CARTELLA SI CERCA OVUNQUE NEL DRIVE, non solo dentro quella degli albi.
+// La prima versione la cercava DENTRO "Inkflow Albi", come le cartelle degli
+// autori — ma detta a voce, "accanto a Inkflow Albi", la si crea di fianco, e
+// li' l'app non guardava: risultato, "Drive non risponde" con la cartella
+// sotto gli occhi (Giovanni, 7 ottobre 2026). Lo scope e' drive.readonly,
+// quindi cercarla per nome in tutto il Drive si puo'. Se per caso ce ne sono
+// due, vince quella dentro la cartella degli albi.
+let _radioId = null;
+async function trovaCartellaRadio(){
+  if(_radioId) return _radioId;
+  const nome = CARTELLA_RADIO.replace(/'/g, "\\'");
+  const q = `mimeType='application/vnd.google-apps.folder' and trashed=false and name='${nome}'`;
+  const url = 'https://www.googleapis.com/drive/v3/files?' + new URLSearchParams({
+    q, fields: 'files(id,name,parents)', spaces: 'drive', pageSize: '10',
+  });
+  const data = await driveFetch(url);
+  const tutte = data.files || [];
+  const dentro = tutte.find(f => (f.parents||[]).includes(DRIVE_ROOT_FOLDER_ID));
+  const hit = dentro || tutte[0] || null;
+  if(hit) _radioId = hit.id;
+  return _radioId;
+}
+
 export async function listDriveAudio(){
   if(!isDriveConfigured() || !isDriveConnected()) return { stato:'spento', files:[] };
   try{
-    const subId = await findAuthorSubfolderId(CARTELLA_RADIO);
+    const subId = await trovaCartellaRadio();
     if(!subId) return { stato:'senzaCartella', files:[] };
     const q = `'${subId}' in parents and trashed=false`;
     const url = 'https://www.googleapis.com/drive/v3/files?' + new URLSearchParams({
