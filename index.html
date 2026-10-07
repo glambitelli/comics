@@ -191,6 +191,14 @@
         </div>
         <div class="scriv-riga">
           <button class="scriv-biglietto" id="scriv-biglietto" type="button"></button>
+      <!-- LA COLONNA DI DESTRA: il cronometro a cavallo dell'angolo della
+           mappa, e sotto di lui il walkman. Il walkman stava fra il post-it e
+           il cronometro, ma a quella grandezza il post-it si stringeva in una
+           colonnina (Giovanni, 7 ottobre 2026: "il post-it deve restare
+           identico"). Sotto il cronometro c'e' il legno che il post-it lascia
+           libero, ed e' li' che un oggetto in piu' ci sta senza spostare gli
+           altri. -->
+      <div class="scriv-destra">
       <div class="tempo-posto" id="tempo-posto">
         <button class="tempo-quadrante" id="tempo-avvia" type="button"
                 aria-label="Comincio a disegnare" title="Comincio a disegnare">
@@ -251,6 +259,33 @@
              se no la pagina sobbalza ogni volta che compare. -->
         <div class="tempo-esito" id="tempo-esito" role="status"></div>
       </div>
+        <!-- IL WALKMAN, sul tavolo come gli altri oggetti e grande come un
+             oggetto: prima era avvitato all'angolo della pagina, grande quanto
+             l'interruttore della luce, e su una scrivania vera un lettore a
+             cassette non e' piccolo come un interruttore. Suona i brani di una
+             cartella Drive — vedi js/radio.js per il perche' non e' YouTube. -->
+        <div class="radio" id="radio" data-stato="spenta">
+          <!-- I TASTI STANNO SUL BORDO IN ALTO, come sul lettore a cui il mobiletto
+               si ispira: si premono col pollice senza guardare. -->
+          <div class="radio-tasti">
+            <button id="radio-prec" type="button" aria-label="Brano precedente"><svg viewBox="0 0 24 12" aria-hidden="true"><path d="M11 1 3 6l8 5zM21 1l-8 5 8 5z" fill="currentColor"/></svg></button>
+            <button id="radio-onoff" type="button" aria-label="Accendi la radio"><svg viewBox="0 0 24 12" aria-hidden="true"><path d="M8 1v10l9-5z" fill="currentColor"/></svg></button>
+            <button id="radio-succ" type="button" aria-label="Brano successivo"><svg viewBox="0 0 24 12" aria-hidden="true"><path d="M3 1l8 5-8 5zM13 1l8 5-8 5z" fill="currentColor"/></svg></button>
+          </div>
+          <div class="radio-corpo">
+            <div class="radio-finestra" aria-hidden="true">
+              <span class="radio-bobina"></span>
+              <span class="radio-nastro"></span>
+              <span class="radio-bobina"></span>
+            </div>
+            <!-- LA BARRA DEL TITOLO: nera, arrotondata, e il nome del brano ci
+                 scorre dentro dall'alto in basso — come i display dei lettori
+                 di quegli anni. -->
+            <div class="radio-barra"><span class="radio-nome" id="radio-nome">Radio</span></div>
+            <span class="radio-fianco" aria-hidden="true"><i></i></span>
+          </div>
+        </div>
+      </div>
         </div>
       </div>
     </div>
@@ -266,31 +301,6 @@
        ragione per cui quel contenitore esiste. A luce spenta tutto quello
        che sta sul tavolo si smorza, e l'interruttore e' l'unica cosa che al
        buio devi riuscire a trovare. -->
-  <!-- LA RADIOLINA, avvitata all'angolo opposto all'interruttore: due oggetti
-       sul bordo del tavolo, uno per mano. Suona i brani di una cartella Drive
-       — vedi js/radio.js per il perche' non e' YouTube. Sta FUORI dal
-       contenitore che scorre e fuori da .scriv-tavolo: come l'interruttore,
-       e' una cosa del tavolo e non del foglio. -->
-  <div class="radio" id="radio" data-stato="spenta">
-    <!-- I TASTI STANNO SUL BORDO IN ALTO, come sul walkman a cui il mobiletto
-         si ispira: si premono col pollice senza guardare. Sembrano sottili ma
-         il bersaglio vero e' piu' grande (vedi .radio-tasti button::after). -->
-    <div class="radio-tasti">
-      <button id="radio-prec" type="button" aria-label="Brano precedente"><svg viewBox="0 0 24 12" aria-hidden="true"><path d="M11 1 3 6l8 5zM21 1l-8 5 8 5z" fill="currentColor"/></svg></button>
-      <button id="radio-onoff" type="button" aria-label="Accendi la radio"><svg viewBox="0 0 24 12" aria-hidden="true"><path d="M8 1v10l9-5z" fill="currentColor"/></svg></button>
-      <button id="radio-succ" type="button" aria-label="Brano successivo"><svg viewBox="0 0 24 12" aria-hidden="true"><path d="M3 1l8 5-8 5zM13 1l8 5-8 5z" fill="currentColor"/></svg></button>
-    </div>
-    <div class="radio-corpo">
-      <div class="radio-finestra" aria-hidden="true">
-        <span class="radio-bobina"></span>
-        <span class="radio-nastro"></span>
-        <span class="radio-bobina"></span>
-      </div>
-      <svg class="radio-freccia" viewBox="0 0 10 22" aria-hidden="true"><path d="M5 21V3M1.5 7 5 2.5 8.5 7" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      <span class="radio-nome" id="radio-nome">Radio</span>
-      <span class="radio-fianco" aria-hidden="true"><i></i></span>
-    </div>
-  </div>
   <button class="scriv-luce" id="scriv-luce" type="button" aria-pressed="true" aria-label="Spegni la lampada" title="Spegni la lampada">
     <span class="vite a"></span><span class="vite b"></span>
     <span class="vite c"></span><span class="vite d"></span>

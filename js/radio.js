@@ -50,6 +50,11 @@ function titoloDi(b){
 const ICONA_PLAY  = '<svg viewBox="0 0 24 12" aria-hidden="true"><path d="M8 1v10l9-5z" fill="currentColor"/></svg>';
 const ICONA_PAUSA = '<svg viewBox="0 0 24 12" aria-hidden="true"><path d="M7 1h3.5v10H7zM13.5 1H17v10h-3.5z" fill="currentColor"/></svg>';
 function scrivi(){
+  scriviTesto();
+  const n = el('radio-nome');
+  if(n) n.style.setProperty('--dur', Math.max(5, n.textContent.length * 0.42).toFixed(1) + 's');
+}
+function scriviTesto(){
   const n = el('radio-nome');
   const corpo = el('radio');
   if(!corpo) return;

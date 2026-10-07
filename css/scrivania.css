@@ -88,11 +88,11 @@ body.luce-spenta .scriv-tavolo{filter:brightness(.4) saturate(.82)}
    quadrante del cronometro gli finisce sotto e non si puo' piu' premere per
    mettere in pausa. Col mouse basta lo spazio dell'interruttore; col dito
    sotto c'e' anche la barra-duna, che e' alta 88px, e lo spazio raddoppia. */
-/* LA RADIOLINA E' ALTA 127px dal 7 ottobre 2026 — il mobiletto a cassette
-   e' verticale — e sta nell'angolo opposto: lo spazio in fondo deve tenere
-   fuori anche lei, se no il biglietto di stasera le finisce dietro. */
-#screen-home .home-scroll{padding-bottom:calc(160px + var(--safe-bot))}
-body.is-touch #screen-home .home-scroll{padding-bottom:calc(240px + var(--safe-bot))}
+/* Il walkman e' stato per un giorno all'angolo opposto, e questo spazio era
+   cresciuto per tenere fuori anche lui. Adesso sta sul tavolo, dentro il
+   flusso, e lo spazio torna quello del solo interruttore. */
+#screen-home .home-scroll{padding-bottom:calc(96px + var(--safe-bot))}
+body.is-touch #screen-home .home-scroll{padding-bottom:calc(178px + var(--safe-bot))}
 /* IL TAVOLO STA IN MEZZO allo spazio che avanza: appoggiato in cima lasciava
    mezzo schermo di legno vuoto sotto, che e' il difetto da cui si era partiti.
    Vale lo stesso avvertimento di .home-scroll: se un giorno qui dentro
