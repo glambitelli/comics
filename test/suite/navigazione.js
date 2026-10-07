@@ -1195,7 +1195,13 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
       const wk = R('#radio'), lu = R('#scriv-luce'), pi = R('#scriv-biglietto');
       return { dim, sullInterruttore: tocca(wk, lu), sulPostit: tocca(wk, pi),
                // IL POST-IT RESTA COM'ERA: largo il 52% del tavolo, al massimo 214px.
-               postit: Math.round(pi.w),
+               // Si misura offsetWidth, la larghezza del foglio da dritto: il
+               // riquadro di getBoundingClientRect e' quello del foglio RUOTATO
+               // di 1,4 gradi, che si allarga di un quarantesimo dell'altezza.
+               // Col biglietto fotografico (7 ottobre) il testo e' sceso di 5px
+               // per non finire sulla piega, e quel riquadro e' passato da 196 a
+               // 199 senza che il foglio si fosse allargato di un pixel.
+               postit: document.getElementById('scriv-biglietto').offsetWidth,
                attesa: Math.round(Math.min(214, document.querySelector('.scriv-riga').getBoundingClientRect().width * .52)) };
     }, w+'x'+h));
   }
