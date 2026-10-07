@@ -23,9 +23,12 @@
    il tavolo e' libero.
    RIENTRA PIU' DEL POST-IT, e di proposito: con i due bordi sinistri quasi
    allineati si ricreerebbe la tangente sbagliata che si era tolta fra il
-   post-it e la mappa. E sta storto di un grado e mezzo dall'altra parte
-   rispetto al post-it, come una cosa appoggiata e non incolonnata. */
-.radio{position:relative;width:143px;padding-top:12px;margin:20px 0 0 15%;transform:rotate(-1.5deg)}
+   post-it e la mappa.
+   E STA DRITTO, parallelo alla barra in fondo. Per un giorno e' stato storto
+   di un grado e mezzo, "come una cosa appoggiata": ma storti lo sono gia' la
+   mappa e il post-it, e un terzo oggetto storto trasformava il disordine
+   voluto in un tavolo che sembra caduto (Giovanni, 7 ottobre 2026). */
+.radio{position:relative;width:143px;padding-top:12px;margin:20px 0 0 15%}
 
 /* ── I TASTI SUL BORDO ── */
 .radio-tasti{position:absolute;top:0;left:9px;right:32px;display:flex;gap:4px;z-index:1}
