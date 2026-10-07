@@ -716,7 +716,11 @@ const AUDIO_EXT_RE = /\.(mp3|m4a|aac|ogg|oga|opus|wav|flac|weba)$/i;
 // La cartella dove cercarli. Il nome e' fisso apposta: una preferenza in piu'
 // da configurare, per una cosa che si fa una volta sola, e' una domanda in
 // mezzo fra chi apre l'app e la musica.
-export const CARTELLA_RADIO = 'Musica';
+// "Inkflow Radio" e non "Musica": accanto c'e' gia' "Inkflow Albi", e due
+// cartelle sorelle che l'app usa per lo stesso scopo devono riconoscersi dal
+// nome quando le si guarda da Drive, in mezzo a tutto il resto (Giovanni,
+// 7 ottobre 2026).
+export const CARTELLA_RADIO = 'Inkflow Radio';
 
 export async function listDriveAudio(){
   if(!isDriveConfigured() || !isDriveConnected()) return { stato:'spento', files:[] };
