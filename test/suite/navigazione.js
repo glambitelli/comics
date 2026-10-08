@@ -1157,7 +1157,9 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
     r.__metti('suona');  const suonando = { label: t.getAttribute('aria-label'), f: t.dataset.faccia,
                                             bobine: getComputedStyle(document.querySelector('.radio-bobina')).animationName };
     r.__metti('pausa');  const ferma = { label: t.getAttribute('aria-label'), f: t.dataset.faccia,
-                                         bobine: getComputedStyle(document.querySelector('.radio-bobina')).animationName };
+                                         bobine: getComputedStyle(document.querySelector('.radio-bobina')).animationName,
+                                         ferme: getComputedStyle(document.querySelector('.radio-bobina')).animationPlayState,
+                                         titolo: getComputedStyle(document.querySelector('.radio-nome')).animationName };
     r.__metti('spenta');
     return { suonando, ferma };
   });
@@ -1166,8 +1168,14 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
   ok('e da ferma torna play', faccia.ferma.label === 'Play' && faccia.ferma.f === 'play', faccia);
   // LE BOBINE GIRANO SOLO MENTRE SUONA: e' l'unico movimento del mobiletto,
   // e il modo in cui un lettore a cassette dice "sto andando".
-  ok('le bobine girano mentre suona, e si fermano in pausa',
-     faccia.suonando.bobine === 'radio-gira' && faccia.ferma.bobine === 'none', faccia);
+  // IN PAUSA SI CONGELANO, NON SI AZZERANO. Togliere l'animazione le faceva
+  // scattare indietro alla posizione di partenza (Giovanni, 8 ottobre 2026):
+  // l'animazione resta, e si mette in pausa. Il titolo invece continua.
+  ok('le bobine girano mentre suona, e in pausa si fermano dove sono',
+     faccia.suonando.bobine === 'radio-gira' && faccia.ferma.bobine === 'radio-gira'
+       && faccia.ferma.ferme === 'paused', faccia);
+  ok('e in pausa il titolo continua a scorrere',
+     faccia.ferma.titolo === 'radio-scorre', faccia);
   ok('e il tasto avanti cambia brano',
      !radio.manca && radio.dopo.i === 1 && radio.dopo.titolo === 'Pioggia', radio);
 

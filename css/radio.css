@@ -105,7 +105,15 @@
   width:78%;aspect-ratio:1;border-radius:50%;flex-shrink:0;
   background:url(../img/scrivania/bobina.webp) center/contain no-repeat;
 }
-.radio[data-stato="suona"] .radio-bobina{animation:radio-gira 1.6s linear infinite}
+.radio[data-stato="suona"] .radio-bobina,
+.radio[data-stato="pausa"] .radio-bobina{animation:radio-gira 1.6s linear infinite}
+/* IN PAUSA SI FERMANO DOVE SONO, non tornano a zero. Prima la pausa toglieva
+   l'animazione, e le bobine scattavano indietro alla posizione di partenza:
+   un nastro vero non si riavvolge da solo quando premi pausa (Giovanni, 8
+   ottobre 2026). Adesso l'animazione resta e si congela; e siccome e' la
+   STESSA animazione in tutti e due gli stati, ripremendo play riparte da li'
+   e non da capo. */
+.radio[data-stato="pausa"] .radio-bobina{animation-play-state:paused}
 .radio[data-stato="carico"] .radio-bobina{animation:radio-gira 4s linear infinite}
 @keyframes radio-gira{to{transform:rotate(360deg)}}
 
@@ -129,13 +137,17 @@
   text-transform:uppercase;line-height:1;
   color:#9fd8ff;text-shadow:0 0 5px rgba(120,200,255,.7);
 }
-/* SCORRE SOLO QUANDO HA QUALCOSA DA DIRE: mentre suona, e nei quattro modi di
-   non suonare (che sono istruzioni lunghe da leggere per intero). Da ferma
-   o in pausa sta fermo con l'inizio in vista, che e' la parte che basta per
-   riconoscere il brano. La durata la scrive radio.js in base alla lunghezza
+/* SCORRE SOLO QUANDO HA QUALCOSA DA DIRE: mentre suona, IN PAUSA, e nei
+   quattro modi di non suonare (che sono istruzioni lunghe da leggere per
+   intero). Da spenta sta fermo con l'inizio in vista.
+   In pausa scorre anche lui, senza ripartire da capo: e' lo stesso brano,
+   solo fermo. Prima in pausa il titolo saltava all'inizio, insieme alle
+   bobine (Giovanni, 8 ottobre 2026: "la scritta deve continuare a scorrere
+   con il nome mentre la bobina deve fermarsi"). La durata la scrive radio.js in base alla lunghezza
    del testo: a velocita' fissa, un titolo lungo e uno corto si leggono allo
    stesso passo. */
 .radio[data-stato="suona"] .radio-nome,
+.radio[data-stato="pausa"] .radio-nome,
 .radio[data-stato="scollegata"] .radio-nome,
 .radio[data-stato="senzaCartella"] .radio-nome,
 .radio[data-stato="vuota"] .radio-nome,
