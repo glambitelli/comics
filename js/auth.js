@@ -158,11 +158,19 @@ export function alCambioAccesso(fn){
 // STRADA B — la finestra di Firebase. Funziona dappertutto tranne che su
 // iPad, ed e' quella che si usa finche' la A non e' configurata.
 //
-// SI CHIEDE SOLO L'EMAIL (strada A). Entrare non deve far comparire una
-// richiesta di permesso su Drive: quella arriva quando si collega Drive, ed e'
-// un'altra decisione.
+// SI CHIEDE ANCHE DRIVE, IN LETTURA. Fino all'8 ottobre 2026 qui c'era solo
+// l'email, con la regola "entrare non deve far comparire una richiesta su
+// Drive: quella arriva quando si collega Drive, ed e' un'altra decisione".
+// Sulla carta era pulito; nell'uso voleva dire due finestre di Google per lo
+// stesso account — una all'ingresso, una al primo tocco sul walkman o su un
+// albo — e la seconda sembrava un guasto: "ho appena fatto l'accesso, perche'
+// me lo richiede?" (Giovanni). L'account e' uno, l'accesso e' uno.
+// Il permesso e' drive.readonly: Inkflow legge albi e musica, non scrive e
+// non cancella niente su Drive.
+const SCOPE_DRIVE = 'https://www.googleapis.com/auth/drive.readonly';
 const SCOPE_ACCESSO = 'https://www.googleapis.com/auth/userinfo.email'
-  + ' https://www.googleapis.com/auth/userinfo.profile';
+  + ' https://www.googleapis.com/auth/userinfo.profile'
+  + ' ' + SCOPE_DRIVE;
 
 let _clientAccesso = null;
 function clientAccesso(){
@@ -203,7 +211,9 @@ function tokenGoogle(){
           rifiuta(new Error((r && (r.error_description || r.error)) || 'Accesso a Google non riuscito.'));
           return;
         }
-        risolvi(r.access_token);
+        // Si consegna la risposta INTERA, non solo il token: la durata
+        // (expires_in) serve a Drive per sapere fino a quando lo puo' usare.
+        risolvi(r);
       };
       // Finestra chiusa o annullata: non e' un errore da urlare, ed e' lo
       // stesso codice che usava Firebase, cosi' chi lo guarda (vedi
@@ -225,13 +235,50 @@ function tokenGoogle(){
   });
 }
 
+// LA RETE DI SICUREZZA. La strada A e' nuova (8 ottobre 2026) e dipende da
+// due impostazioni sulla console di Google — l'origine autorizzata del client
+// e la Drive API accesa — che Google dice di attivare "da 5 minuti a qualche
+// ora". Se Google o Firebase rispondono con un errore, il tocco DOPO prende la
+// strada B, la finestra di Firebase, che entrava gia' prima: un ingresso nuovo
+// che non funziona non deve mai chiudere fuori dall'archivio, come successe il
+// 14 settembre. Non si passa alla B nello stesso tocco perche' quello e' gia'
+// stato speso: la finestra verrebbe bloccata in silenzio.
+let _stradaB = false;
+
+// Il token che arriva con l'accesso vale anche per Drive: lo si consegna a
+// drive.js, cosi' walkman e albi lo trovano gia' pronto. E' un "in piu'":
+// se qualcosa va storto qui si e' comunque entrati, e Drive chiedera' il suo
+// al primo tocco come faceva prima.
+function passaADrive(risposta){
+  if(!risposta || !risposta.access_token) return;
+  import('./drive.js').then(d=> d.adottaTokenDrive(risposta)).catch(()=>{});
+}
+
 export async function entraConGoogle(){
-  // La scelta fra le due strade e' SINCRONA (una costante), e deve restarlo:
-  // la finestra di Google va aperta dentro il tocco, e un await qui davanti
-  // la farebbe bloccare in silenzio dal browser.
-  const esito = CLIENT_ID_ACCESSO
-    ? await signInWithCredential(auth(), GoogleAuthProvider.credential(null, await tokenGoogle()))
-    : await signInWithPopup(auth(), new GoogleAuthProvider());
+  // La scelta fra le due strade e' SINCRONA, e deve restarlo: la finestra di
+  // Google va aperta dentro il tocco, e un await qui davanti la farebbe
+  // bloccare in silenzio dal browser.
+  let esito;
+  if(CLIENT_ID_ACCESSO && !_stradaB){
+    try{
+      const r = await tokenGoogle();
+      esito = await signInWithCredential(auth(), GoogleAuthProvider.credential(null, r.access_token));
+      passaADrive(r);
+    }catch(e){
+      if(!(e && /popup-closed|cancelled-popup/.test(e.code || ''))) _stradaB = true;
+      throw e;
+    }
+  } else {
+    // Anche la finestra di Firebase chiede Drive, e il suo token arriva dallo
+    // stesso progetto: vale per Drive allo stesso modo.
+    const fornitore = new GoogleAuthProvider();
+    if(fornitore.addScope) fornitore.addScope(SCOPE_DRIVE);
+    esito = await signInWithPopup(auth(), fornitore);
+    try{
+      const c = GoogleAuthProvider.credentialFromResult && GoogleAuthProvider.credentialFromResult(esito);
+      if(c && c.accessToken) passaADrive({ access_token: c.accessToken, expires_in: 3500 });
+    }catch(e){}
+  }
   _utente = esito && esito.user ? esito.user : auth().currentUser;
   if(_utente) segnaEntrata();
   _inAscolto.forEach(fn=>{ try{ fn(_utente); }catch(e){} });

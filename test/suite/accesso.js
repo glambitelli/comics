@@ -240,25 +240,90 @@ module.exports = () => suite("Accesso — l'archivio si apre solo a chi e' entra
   // this project", chiudendo fuori dall'app anche il telefono — che prima
   // entrava. Il 14 settembre l'accesso era rotto dappertutto.
   //
-  // Finche' non esiste un client del progetto di Firebase (vedi
-  // CLIENT_ID_ACCESSO in gis.js) si entra dalla finestra di Firebase.
+  // L'8 OTTOBRE 2026 il client del progetto di Firebase c'e' (vedi
+  // CLIENT_ID_ACCESSO in gis.js), e la strada A e' quella che si prende. Con
+  // un compito in piu': lo stesso accesso porta anche il permesso di leggere
+  // Drive, cosi' walkman e albi non chiedono un secondo accesso con Google
+  // per lo stesso account (Giovanni: "l'account e' uno solo").
   await page.evaluate(()=>{
+    try{ localStorage.removeItem('inkflow-drive-token'); }catch(e){}
     window.__gisRichieste = 0;
     window.__credenziale = null;
     window.__utenteDaEntrare = null;
   });
   await page.evaluate(()=> window.entraInInkflow());
   await page.waitForFunction(()=> document.getElementById('accesso').hidden === true, { timeout: 8000 });
+  // Drive prende il token solo dopo aver chiesto a Google se la cartella
+  // degli albi si vede (vedi adottaTokenDrive): qui Google non risponde, e
+  // la risposta "rete assente" puo' metterci qualche secondo.
+  await page.waitForFunction(()=> !!localStorage.getItem('inkflow-drive-token'), { timeout: 8000 }).catch(()=>{});
   const dentro = await page.evaluate(()=>({
     porta: !document.getElementById('accesso').hidden,
     richieste: window.__gisRichieste || 0,
     cliente: window.__gisClientId || '',
+    scope: window.__gisScope || '',
+    consegnato: window.__credenziale && window.__credenziale.__google,
+    drive: (()=>{ try{ return JSON.parse(localStorage.getItem('inkflow-drive-token')) || null; }catch(e){ return null; } })(),
   }));
   ok('si entra davvero', !dentro.porta, dentro);
-  // Senza il client della strada A non si deve nemmeno provare a chiedere un
-  // token a Google: si prende la finestra di Firebase e basta.
-  ok('e senza chiedere token a Google con un client che non e\' suo',
-     dentro.richieste === 0, dentro);
+  // Il numero davanti all'ID e' quello del progetto: 323774526281 e' Firebase.
+  // Il 14 settembre ci si era entrati con 58067893949, quello di Drive, e
+  // Firebase aveva chiuso fuori tutti.
+  ok('con il client del progetto di Firebase, non con quello di Drive',
+     dentro.richieste === 1 && /^323774526281-/.test(dentro.cliente), dentro);
+  ok('consegnando a Firebase il token vero',
+     dentro.consegnato === 'TOKEN-DI-PROVA', dentro);
+  ok('chiedendo anche Drive, e solo in lettura',
+     /auth\/drive\.readonly(\s|$)/.test(dentro.scope) && !/auth\/drive(\s|$)/.test(dentro.scope), dentro.scope);
+  ok('e Drive trova il token gia\' pronto, senza un secondo accesso',
+     !!dentro.drive && dentro.drive.access_token === 'TOKEN-DI-PROVA' && dentro.drive.expiresAt > Date.now(), dentro.drive);
+
+  // E SE SI ENTRA CON UN ACCOUNT CHE LA CARTELLA NON LA VEDE, Drive tiene il
+  // suo collegamento. Gli albi stanno sul Drive di inkflow.comics@gmail.com:
+  // entrando con un altro account, un token che apre un Drive vuoto non deve
+  // prendere il posto di quello buono.
+  const altroAccount = await page.evaluate(async ()=>{
+    const buono = { access_token:'TOKEN-DRIVE-BUONO', expiresAt: Date.now() + 3e6, email:'' };
+    localStorage.setItem('inkflow-drive-token', JSON.stringify(buono));
+    const veroFetch = window.fetch;
+    window.fetch = (url, o)=> /drive\/v3\/files\//.test(String(url))
+      ? Promise.resolve(new Response('{}', { status: 404 })) : veroFetch(url, o);
+    const d = await import('/js/drive.js');
+    const preso = await d.adottaTokenDrive({ access_token:'TOKEN-ALTRO-ACCOUNT', expires_in: 3600 });
+    window.fetch = veroFetch;
+    return { preso, resta: JSON.parse(localStorage.getItem('inkflow-drive-token')).access_token };
+  });
+  ok('ma se l\'account non vede la cartella degli albi, Drive tiene il collegamento che aveva',
+     altroAccount.preso === false && altroAccount.resta === 'TOKEN-DRIVE-BUONO', altroAccount);
+
+  sezione('e se l\'ingresso nuovo non va, il tocco dopo prende quello vecchio');
+  // La strada A dipende da due impostazioni sulla console di Google che
+  // possono metterci ore ad attivarsi. Un ingresso nuovo che non funziona non
+  // deve chiudere fuori dall'archivio: il secondo tocco prende la finestra di
+  // Firebase, che entrava gia' prima.
+  await page.evaluate(async ()=>{
+    const a = await import('/js/auth.js');
+    await a.esci();
+    await new Promise(r=>setTimeout(r,300));
+    window.__gisRichieste = 0;
+    window.__gisErrore = 'idpiframe_initialization_failed';
+    window.entraInInkflow();
+  });
+  await page.waitForTimeout(900);
+  const primoTocco = await page.evaluate(()=>({
+    porta: !document.getElementById('accesso').hidden,
+    premibile: !document.getElementById('accesso-btn').disabled,
+  }));
+  await page.evaluate(()=>{ window.__gisErrore = null; window.entraInInkflow(); });
+  await page.waitForFunction(()=> document.getElementById('accesso').hidden === true, { timeout: 8000 }).catch(()=>{});
+  const secondoTocco = await page.evaluate(()=>({
+    porta: !document.getElementById('accesso').hidden,
+    richieste: window.__gisRichieste || 0,
+  }));
+  ok('al primo tocco la porta resta, e si lascia ripremere',
+     primoTocco.porta && primoTocco.premibile, primoTocco);
+  ok('al secondo si entra dalla finestra di Firebase',
+     !secondoTocco.porta && secondoTocco.richieste === 1, secondoTocco);
 
   sezione('e i due client di Google non si confondono mai');
   // E' la prova che sarebbe servita il 14 settembre. Il client di Drive e
@@ -317,6 +382,6 @@ module.exports = () => suite("Accesso — l'archivio si apre solo a chi e' entra
   const codice = sorgente.replace(/^\s*\/\/.*$/gm, '');
   ok('la consegna diretta a Firebase c\'e\' ancora',
      /signInWithCredential\s*\(/.test(codice), null);
-  ok('e la finestra di Firebase e\' quella che si usa oggi',
+  ok('e la finestra di Firebase resta come ripiego',
      /signInWithPopup\s*\(/.test(codice), null);
 });

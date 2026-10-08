@@ -52,7 +52,15 @@ export const CLIENT_ID_GOOGLE = '58067893949-o05jibjpk2fgjfal4k57tmjikgg7b78c.ap
 //       https://glambitelli.github.io
 //     (nessun URI di reindirizzamento: GIS non ne usa)
 //  4. Copia l'ID client e incollalo qui sotto, fra gli apici.
-export const CLIENT_ID_ACCESSO = '';
+//
+// RIEMPITA L'8 OTTOBRE 2026. Il client e' il "Web client (auto created by
+// Google Service)" del progetto inkflow-95f2f, numero 323774526281 — lo stesso
+// numero con cui comincia l'ID, ed e' il controllo da fare se un giorno lo si
+// cambia: se il numero davanti non e' 323774526281, e' il client sbagliato.
+// Sullo stesso progetto e' stata abilitata la Google Drive API, perche' adesso
+// questo client fa anche da collegamento a Drive (vedi auth.js e drive.js):
+// un accesso solo, invece di due finestre di Google per lo stesso account.
+export const CLIENT_ID_ACCESSO = '323774526281-st2qtdtibsvaive0neomnjh9pnbhls1p.apps.googleusercontent.com';
 
 const GIS_SRC = 'https://accounts.google.com/gsi/client';
 let _inCaricamento = null;

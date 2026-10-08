@@ -33,7 +33,14 @@
 // 7. Dentro quella cartella crea una sottocartella per ogni cartella-autore
 //    già presente in Inkflow, con lo STESSO NOME (es. "Otomo"): i file .cbz/
 //    .cbr messi lì dentro appariranno da soli nello scaffale di quell'autore.
-import { CLIENT_ID_GOOGLE as DRIVE_CLIENT_ID, caricaGis } from './gis.js';
+// IL CLIENT DI DRIVE E' QUELLO DELL'ACCESSO, dall'8 ottobre 2026: tutti e due
+// stanno nel progetto di Firebase (inkflow-95f2f), che ha la Drive API accesa.
+// Cosi' il permesso dato all'ingresso vale anche qui, e il rinnovo ogni ora
+// riesce in silenzio invece di chiedere un secondo accesso. Il client vecchio
+// (CLIENT_ID_GOOGLE, progetto 58067893949) resta come ripiego solo finche'
+// quello dell'accesso e' vuoto.
+import { CLIENT_ID_GOOGLE, CLIENT_ID_ACCESSO, caricaGis } from './gis.js';
+const DRIVE_CLIENT_ID = CLIENT_ID_ACCESSO || CLIENT_ID_GOOGLE;
 const DRIVE_ROOT_FOLDER_ID = '1CY6IGLbsd_M5pX8APCiOmLxssWCjWtaE';
 
 const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/userinfo.email';
@@ -86,6 +93,40 @@ function saveToken(t){
   try{ localStorage.setItem(TOKEN_KEY, JSON.stringify(t)); localStorage.setItem(LINKED_KEY, '1'); }catch(e){}
   _listeners.forEach(fn=>{ try{ fn(); }catch(e){} });
 }
+// IL TOKEN CHE ARRIVA DALL'INGRESSO (vedi passaADrive in auth.js). L'accesso
+// all'app chiede gia' il permesso su Drive, quindi la sua risposta e' un
+// token Drive a tutti gli effetti: lo si tiene come se lo avesse chiesto il
+// walkman. L'email serve solo alle impostazioni, e se non arriva pazienza.
+// MA SOLO SE QUELL'ACCOUNT LA CARTELLA LA VEDE. Gli albi e "Inkflow Radio"
+// stanno sul Drive di inkflow.comics@gmail.com (Giovanni, 8 ottobre 2026): se
+// all'ingresso si sceglie un altro account, il suo token aprirebbe un Drive
+// in cui la cartella non c'e', e prenderebbe il posto del collegamento buono
+// — walkman e albi spenti per colpa di un accesso riuscito. Quindi prima si
+// chiede a Drive la cartella radice con il token nuovo: se risponde "non
+// trovata" o "non permesso" il token resta all'app e Drive tiene il suo.
+// Se invece la domanda non arriva proprio (rete assente), lo si tiene: il
+// dubbio va a favore dell'accesso unico, e al primo uso Drive si vedra' da sé.
+export async function adottaTokenDrive(risposta){
+  if(!risposta || !risposta.access_token) return false;
+  try{
+    const r = await fetch('https://www.googleapis.com/drive/v3/files/' + DRIVE_ROOT_FOLDER_ID
+      + '?fields=id&supportsAllDrives=true', { headers: { Authorization: 'Bearer ' + risposta.access_token } });
+    if(r.status === 403 || r.status === 404) return false;
+  }catch(e){ /* rete assente: si tiene */ }
+  const t = {
+    access_token: risposta.access_token,
+    expiresAt: Date.now() + (parseInt(risposta.expires_in, 10) || 3500) * 1000,
+    email: '',
+  };
+  saveToken(t);
+  fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+    headers: { Authorization: 'Bearer ' + t.access_token }
+  }).then(r => r.ok ? r.json() : null).then(info=>{
+    if(info && info.email && _token === t){ t.email = info.email; saveToken(t); }
+  }).catch(()=>{});
+  return true;
+}
+
 function clearToken(){
   _token = null;
   try{ localStorage.removeItem(TOKEN_KEY); }catch(e){}
