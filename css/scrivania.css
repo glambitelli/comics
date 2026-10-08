@@ -99,7 +99,24 @@ body.luce-spenta .scriv-tavolo{filter:brightness(.4) saturate(.82)}
    cresciuto per tenere fuori anche lui. Adesso sta sul tavolo, dentro il
    flusso, e lo spazio torna quello del solo interruttore. */
 #screen-home .home-scroll{padding-bottom:calc(96px + var(--safe-bot))}
-body.is-touch #screen-home .home-scroll{padding-bottom:calc(178px + var(--safe-bot))}
+/* COL DITO BASTA LA BARRA-DUNA, 88px piu' un filo. Qui c'era una regola da
+   178px che non e' mai entrata in vigore: layout.css mette 110px con
+   !important a tutti gli elenchi che scorrono sotto la duna, e vinceva lei.
+   Sugli elenchi quei 110 servono (l'ultima riga deve potersi alzare sopra la
+   barra); sulla scrivania no, perche' il tavolo non e' un elenco e in fondo
+   ha il walkman, che sta a SINISTRA e l'interruttore non lo incontra (c'e'
+   una prova). Erano proprio quei 14px di troppo a far scorrere la home anche
+   quando tutto ci stava, e scorrendo la mappa finiva tagliata di netto sotto
+   l'intestazione (Giovanni, 8 ottobre 2026). */
+body.is-touch #screen-home .home-scroll{padding-bottom:calc(96px + var(--safe-bot)) !important}
+/* E SE SCORRE DAVVERO, sullo schermo troppo corto, la cima sfuma invece di
+   tagliarsi: il bordo netto a meta' mappa sembrava un errore di disegno.
+   La classe la mette scrivania.js solo quando non si e' piu' in cima, se no
+   sfumerebbe anche il bordo della mappa a riposo. */
+#screen-home .home-scroll.scorsa{
+  -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 28px);
+          mask-image:linear-gradient(180deg,transparent 0,#000 28px);
+}
 /* IL TAVOLO STA IN MEZZO allo spazio che avanza: appoggiato in cima lasciava
    mezzo schermo di legno vuoto sotto, che e' il difetto da cui si era partiti.
    Vale lo stesso avvertimento di .home-scroll: se un giorno qui dentro
@@ -371,6 +388,12 @@ body.luce-spenta .scriv-luce .spia{background:#4a3a20;box-shadow:none}
      sul telefono servono quei venti pixel per far stare il walkman sopra la
      barra. Sul computer resta com'era. */
   .scriv-mappa{height:clamp(170px, min(40vw, 26vh), 300px)}
+  /* IL BIGLIETTO PIU' PICCOLO, PER UN WALKMAN PIU' GRANDE. Al 52% della riga
+     il foglietto vuoto era alto quanto la mappa, e per farci stare il
+     walkman sopra la barra lo si era ridotto all'80%: troppo piccolo, i tasti
+     non si prendevano (Giovanni, 8 ottobre 2026). Il biglietto ha poco da
+     dire — una riga, il nome del progetto — e al 44% lo dice lo stesso. */
+  .scriv-biglietto{--largo:min(214px,44%)}
   .tempo-quadrante{--q:92px}
   .scriv-riga{margin-top:-38px}
   .scriv-biglietto{margin-top:48px}

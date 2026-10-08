@@ -13,7 +13,7 @@ ascoltaErrori();
 import { openSettings, closeSettings, closeSettingsUI, azzeraTempoConferma, apriAiuto, resetStarsConfirm, closeStarsConfirm, doResetStars, exportBackup, importBackup, resetStreakConfirm, closeStreakConfirm, doResetStreak, onSoundToggle, onSoundPackChange, onSoundMineMenu, onSoundMineFiles, accountTocca, driveTocca, copiaUid, copiaRegistro, svuotaRegistroUI } from './settings.js';
 window.onSoundToggle=onSoundToggle; window.onSoundPackChange=onSoundPackChange;
 window.onSoundMineMenu=onSoundMineMenu; window.onSoundMineFiles=onSoundMineFiles;
-import { disegnaMappa, disegnaBiglietto, travasaLaFrase, montaLaLuce } from './scrivania.js';
+import { disegnaMappa, disegnaBiglietto, travasaLaFrase, montaLaLuce, sfumaLaCima } from './scrivania.js';
 import { renderHome, openNewModal, closeModal, createProject, openCardMenu, exportProjectJSON, confirmDeleteProject, openColorPicker, closeColorPicker, selectProjectColor, filterProjects, attachCardDrag, applyProjectOrder, startSandstorm, getScriptment } from './home.js';
 import { openProject, restoreProject, goHome, confirmDeleteCurrent, closeConfirm, confirmMicrotask } from './project.js';
 import { enterEveningMode as enterEveningImpl, exitEveningMode as exitEveningImpl } from './evening.js';
@@ -534,6 +534,7 @@ async function aggiornaScrivania(){
   const casa = document.getElementById('screen-home');
   if(!casa || !casa.classList.contains('active')) return;
   montaLaLuce();
+  sfumaLaCima();
   montaIlQuadrante();
   // La radiolina si monta alla prima apertura della home e poi resta: il
   // modulo e' leggero perche' parla con Drive solo quando la accendi, quindi

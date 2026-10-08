@@ -1201,7 +1201,15 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
       const tocca = (a,c)=> a.x<c.r && c.x<a.r && a.y<c.b && c.y<a.b;
       const wk = R('#radio'), lu = R('#scriv-luce'), pi = R('#scriv-biglietto');
       return { dim, sullInterruttore: tocca(wk, lu), sulPostit: tocca(wk, pi),
-               sottoLaBarra: Math.round(wk.b - R('#dune-nav').y),
+               scorre: (s=> s.scrollHeight - s.clientHeight)(document.getElementById('home-scroll')),
+               // Si misura IN FONDO allo scorrimento: sul 360x740 la home
+               // scorre di qualche pixel (lo spazio manca davvero), e quello
+               // che conta e' che il walkman si possa portare sopra la barra.
+               sottoLaBarra: await (async ()=>{
+                 const hs = document.getElementById('home-scroll');
+                 hs.scrollTop = 99999; await new Promise(r=> setTimeout(r, 60));
+                 const v = Math.round(document.getElementById('radio').getBoundingClientRect().bottom - R('#dune-nav').y);
+                 hs.scrollTop = 0; return v; })(),
                // IL POST-IT RESTA COM'ERA: largo il 52% del tavolo, al massimo 214px.
                // Si misura offsetWidth, la larghezza del foglio da dritto: il
                // riquadro di getBoundingClientRect e' quello del foglio RUOTATO
@@ -1210,7 +1218,10 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
                // per non finire sulla piega, e quel riquadro e' passato da 196 a
                // 199 senza che il foglio si fosse allargato di un pixel.
                postit: document.getElementById('scriv-biglietto').offsetWidth,
-               attesa: Math.round(Math.min(214, document.querySelector('.scriv-riga').getBoundingClientRect().width * .52)) };
+               // Sul telefono e' al 44%: e' stato ristretto l'8 ottobre per
+               // far posto a un walkman piu' grande (vedi scrivania.css).
+               attesa: Math.round(Math.min(214, document.querySelector('.scriv-riga').getBoundingClientRect().width * (innerWidth <= 520 ? .44 : .52))),
+               walkman: Math.round(wk.w) };
     }, w+'x'+h));
   }
   await page.setViewportSize(vecchia);
@@ -1220,6 +1231,13 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
   ok('e nemmeno sul post-it', misureTavolo.every(t=> !t.sulPostit), misureTavolo);
   ok('e sul telefono resta sopra la barra in fondo, anche con la frase del giorno',
      misureTavolo.every(t=> t.sottoLaBarra <= 0), misureTavolo);
+  // E NON SCORRE SE CI STA. Un margine in fondo di 110px pensato per gli
+  // elenchi faceva scorrere la home di qualche pixel anche quando tutto ci
+  // stava, e scorrendo la mappa si tagliava di netto sotto l'intestazione
+  // (Giovanni, 8 ottobre 2026). Sul 360x740 con la frase lunga un filo di
+  // scorrimento e' ammesso: li' lo spazio manca davvero, e la cima sfuma.
+  ok('e la home non scorre quando il tavolo ci sta',
+     misureTavolo.filter(t=> t.dim !== '360x740').every(t=> t.scorre <= 0), misureTavolo);
   ok('e il post-it resta largo com\'era', misureTavolo.every(t=> Math.abs(t.postit - t.attesa) <= 3), misureTavolo);
 
   // NIENTE TANGENTI. Il biglietto di stasera aveva il bordo sinistro a quattro

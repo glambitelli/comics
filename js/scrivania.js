@@ -344,6 +344,19 @@ export function disegnaBiglietto(apriProgetto, apriIProgetti){
 // La scelta resta fra un'apertura e l'altra, perche' chi disegna di notte non
 // vuole riaccendere la luce ogni volta che apre.
 const CHIAVE_LUCE = 'inkflow_scrivania_luce';
+// ── LA CIMA CHE SFUMA ──
+// Quando la home scorre, il bordo alto del tavolo si sfuma invece di tagliarsi
+// netto sotto l'intestazione (vedi .home-scroll.scorsa in scrivania.css). Solo
+// lontano dalla cima: a riposo il bordo della mappa deve restare intero.
+export function sfumaLaCima(){
+  const s = document.getElementById('home-scroll');
+  if(!s || s.dataset.sfuma) return;
+  s.dataset.sfuma = '1';
+  const guarda = ()=> s.classList.toggle('scorsa', s.scrollTop > 2);
+  s.addEventListener('scroll', guarda, { passive:true });
+  guarda();
+}
+
 export function montaLaLuce(){
   const b = document.getElementById('scriv-luce');
   if(!b || b.dataset.montato) return;
