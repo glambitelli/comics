@@ -355,6 +355,22 @@ body.luce-spenta .scriv-luce .spia{background:#4a3a20;box-shadow:none}
 /* Su uno schermo stretto il quadrante rimpicciolisce: a 412px, con la mappa
    larga quanto lo schermo, un disco da 108px mangiava meta' della riga sotto. */
 @media (max-width:520px){
+  /* Il legno fra l'intestazione e la mappa scende da 20 a 8px: ogni riga
+     di legno vuoto sopra la mappa e' una riga in meno per il walkman, che sta
+     in fondo (vedi radio.css). L'intestazione invece NON si tocca: deve
+     restare identica su tutte le schermate, se no il marchio salta quando
+     cambi pagina (c'e' una prova, "stessa imbottitura su tutte"). */
+  #screen-home .home-scroll{padding-top:8px}
+  /* La frase sul cartiglio, piu' fitta: a interlinea 1,6 quattro righe di
+     Courier erano un quinto del tavolo. */
+  .scriv-legenda{padding:5px 8px 4px;margin-top:5px}
+  .scriv-legenda .cit{line-height:1.42}
+  .scriv-legenda .aut{margin-top:3px}
+  /* E la mappa scende al minimo dei 170px gia' a 412 di larghezza: e' il
+     limite sotto cui le righe di giorni si impastano (vedi .scriv-mappa), e
+     sul telefono servono quei venti pixel per far stare il walkman sopra la
+     barra. Sul computer resta com'era. */
+  .scriv-mappa{height:clamp(170px, min(40vw, 26vh), 300px)}
   .tempo-quadrante{--q:92px}
   .scriv-riga{margin-top:-38px}
   .scriv-biglietto{margin-top:48px}

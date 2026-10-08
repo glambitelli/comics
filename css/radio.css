@@ -130,3 +130,14 @@
    allunga il tavolo, e su uno schermo corto e' lui a decidere se tutto ci
    sta senza scorrere. */
 @media (max-height:760px){ .radio{zoom:.88} }
+/* E SUL TELEFONO SEMPRE UN PO' PIU' PICCOLO, e piu' vicino al biglietto.
+   Con la mappa e il biglietto fotografici (8 ottobre 2026) il tavolo si e'
+   allungato: la frase del giorno sta su un cartiglio sotto la mappa e il
+   biglietto ha le proporzioni della foto. Su un telefono vero — 412x773, con
+   la barra del browser — il walkman finiva per 90px sotto la barra-duna
+   (segnalato da Giovanni). La soglia d'altezza qui sopra non scattava, perche'
+   773 e' piu' di 760. */
+@media (max-width:520px) and (max-height:900px){ .radio{zoom:.8;margin-top:4px} }
+/* Sui telefoni piu' corti ancora (360x740) con una frase di cinque righe
+   restavano 8px sotto la barra: lo si stringe di un altro poco. */
+@media (max-width:520px) and (max-height:760px){ .radio{zoom:.72} }

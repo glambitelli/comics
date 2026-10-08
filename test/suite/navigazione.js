@@ -1177,9 +1177,14 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
   // (Giovanni, 7 ottobre 2026). Adesso sta a sinistra sotto il post-it. Si
   // misura su un telefono vero, perche' e' li' che lo spazio manca: e sul piu'
   // stretto che si usi ancora, 360 per 740.
+  // E SOPRA LA BARRA-DUNA. Con la mappa e il biglietto fotografici (8 ottobre
+  // 2026) il tavolo si e' allungato, e sul telefono di Giovanni — 412x773, con
+  // la barra del browser aperta — il walkman finiva 90px sotto la barra. Il
+  // caso peggiore e' con la frase del giorno, che sta su un cartiglio sotto la
+  // mappa e la allunga di quattro righe: per questo la si mette sempre.
   const vecchia = page.viewportSize();
   const misureTavolo = [];
-  for(const [w,h] of [[412,800],[360,740]]){
+  for(const [w,h] of [[412,800],[412,773],[360,740]]){
     await page.setViewportSize({ width:w, height:h });
     misureTavolo.push(await page.evaluate(async (dim)=>{
       document.body.classList.add('is-touch');
@@ -1188,12 +1193,15 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
       const st = await import('/js/state.js'); const home = await import('/js/home.js');
       const p1 = home.newProjectObj('Kara', 24); p1.id='pw'; p1.microtask='Chiudere gli sfondi della tavola 7';
       st.setProjects([p1]);
+      document.getElementById('home-quote').innerHTML =
+        '<div>"Chi vuole sapere qualcosa di me — come artista, l\'unica cosa che conti — guardi con attenzione i miei quadri."</div><div>— Gustav Klimt</div>';
       await window.__aggiornaScrivania();
       await new Promise(r=> setTimeout(r, 400));
       const R = sel=>{ const e=document.querySelector(sel).getBoundingClientRect(); return {x:e.left,y:e.top,r:e.right,b:e.bottom,w:e.width}; };
       const tocca = (a,c)=> a.x<c.r && c.x<a.r && a.y<c.b && c.y<a.b;
       const wk = R('#radio'), lu = R('#scriv-luce'), pi = R('#scriv-biglietto');
       return { dim, sullInterruttore: tocca(wk, lu), sulPostit: tocca(wk, pi),
+               sottoLaBarra: Math.round(wk.b - R('#dune-nav').y),
                // IL POST-IT RESTA COM'ERA: largo il 52% del tavolo, al massimo 214px.
                // Si misura offsetWidth, la larghezza del foglio da dritto: il
                // riquadro di getBoundingClientRect e' quello del foglio RUOTATO
@@ -1210,6 +1218,8 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
   ok('il walkman non si siede sull\'interruttore della luce',
      misureTavolo.every(t=> !t.sullInterruttore), misureTavolo);
   ok('e nemmeno sul post-it', misureTavolo.every(t=> !t.sulPostit), misureTavolo);
+  ok('e sul telefono resta sopra la barra in fondo, anche con la frase del giorno',
+     misureTavolo.every(t=> t.sottoLaBarra <= 0), misureTavolo);
   ok('e il post-it resta largo com\'era', misureTavolo.every(t=> Math.abs(t.postit - t.attesa) <= 3), misureTavolo);
 
   // NIENTE TANGENTI. Il biglietto di stasera aveva il bordo sinistro a quattro
