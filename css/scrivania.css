@@ -45,7 +45,14 @@
    schermo vero, a un pixel per pixel, diventano righe verticali marcate su
    tutta la pagina. Segnalato da Giovanni il 21 settembre 2026: il fondo deve
    essere uniforme. La profondita' la da' la luce qui sotto, non la grana. */
-#screen-home{background-color:#3d2c1e}
+/* IL LEGNO E' UNA FOTO (8 ottobre 2026), generata da Giovanni prendendo come
+   riferimento la scrivania di Jill: noce scuro, graffi, due aloni di tazza.
+   La tinta piatta resta sotto come colore di riserva, per il mezzo secondo
+   prima che l'immagine arrivi. COVER e non ripetuta: la foto non e' una
+   piastrella, ha gia' dentro la sua luce e i bordi scuri, e ripetendola si
+   vedrebbero le cuciture. Su un telefono in verticale se ne vede una fetta
+   centrale, che e' la parte con gli aloni. */
+#screen-home{background:#3d2c1e url(../img/scrivania/legno.webp) center/cover no-repeat}
 /* LA POZZA DI LUCE. Larga e in alto, come la fa una lampada da tavolo: una
    macchia piccola al centro sembrava un faretto da museo. Sta sopra il legno e
    sotto gli oggetti (z-index), e non riceve tocchi. */
@@ -147,9 +154,24 @@ body.is-touch #screen-home .home-scroll{padding-bottom:calc(178px + var(--safe-b
    intorno al disegno, e sta storto di mezzo grado. Storto di piu' sembrerebbe
    un errore; dritto sembrerebbe stampato sulla pagina. */
 .scriv-foglio{
-  background:#efe7d2;padding:7px;transform:rotate(-.5deg);
-  box-shadow:0 1px 2px rgba(0,0,0,.3),0 14px 30px rgba(0,0,0,.35);
+  background:url(../img/scrivania/mappa.webp) center/100% 100% no-repeat;
+  padding:7px;transform:rotate(-.5deg);
+  filter:drop-shadow(0 1px 1px rgba(0,0,0,.35)) drop-shadow(0 12px 16px rgba(0,0,0,.32));
 }
+/* LA MAPPA E' UNA FOTO (8 ottobre 2026): carta piegata in sei, macchie di
+   caffe', isolati, parchi e fiume gia' stampati. Prima erano due griglie di
+   righe chiare e tre rettangoli colorati messi da scrivania.js; adesso il
+   disegno lo fa l'immagine, e il codice ci scrive sopra solo i DATI — il
+   percorso, le croci, il cerchio di oggi, le note a pennarello.
+   - Si stira su tutto il foglio (100% 100%): il foglio e' alto quanto la mappa
+     piu' la legenda, quindi le proporzioni cambiano da schermo a schermo, e
+     una cartina di isolati stirata del dieci per cento non si nota.
+   - L'ombra e' un drop-shadow perche' i bordi della carta sono consumati e
+     irregolari: un box-shadow disegnerebbe un rettangolo dritto sotto.
+   - Lo sfondo bianco del generatore e' stato tolto riempiendo dai bordi
+     dell'immagine i pixel quasi uguali al vicino, piu' l'ombra grigia neutra
+     sotto il foglio. Un filtro sul colore non bastava: la luce calda in alto
+     a sinistra aveva lo stesso giallo della carta. */
 .scriv-mappa{
   position:relative;overflow:hidden;
   /* L'ALTEZZA CRESCE COL FOGLIO ma non oltre: il mese ha cinque righe di
@@ -158,18 +180,8 @@ body.is-touch #screen-home .home-scroll{padding-bottom:calc(178px + var(--safe-b
      veri (lo compone scrivania.js leggendo la misura a schermo), quindi ad
      ogni cambio di larghezza va ridisegnato — vedi il listener sul resize. */
   height:clamp(186px, min(46vw, 30vh), 300px);
-  /* LE STRADE. Due griglie di righe chiare sopra la carta tabacco: sono lo
-     sfondo su cui corre il percorso, e servono a far leggere il disegno come
-     una CITTA' invece che come un grafico. Le percentuali sono quelle della
-     mappa vera: isolati larghi e strade sottili. */
-  background:
-    linear-gradient(90deg,transparent 0 12%,#f2ece0 12% 13.4%,transparent 13.4% 30%,#f2ece0 30% 31.4%,transparent 31.4% 52%,#f2ece0 52% 53.4%,transparent 53.4% 74%,#f2ece0 74% 75.4%,transparent 75.4%),
-    linear-gradient(0deg,transparent 0 16%,#f2ece0 16% 18%,transparent 18% 44%,#f2ece0 44% 46%,transparent 46% 72%,#f2ece0 72% 74%,transparent 74%),
-    #e6dcc6;
 }
 .scriv-mappa svg{position:absolute;inset:0;width:100%;height:100%}
-.scriv-parco{position:absolute;background:#b9cf9c;opacity:.8}
-.scriv-fiume{position:absolute;background:#7fb6d8;opacity:.8}
 /* Il nome del mese e' STAMPATO, non scritto a mano: e' quello che c'era sul
    foglio prima che tu ci passassi sopra col pennarello. */
 .scriv-mese{
@@ -197,8 +209,11 @@ body.is-touch #screen-home .home-scroll{padding-bottom:calc(178px + var(--safe-b
    destra del foglio e' dove il cronometro ci si appoggia sopra, e li' sotto
    ogni parola sparisce. */
 .scriv-legenda{
-  margin-top:7px;padding:8px 4px 2px;max-width:74%;
-  border-top:1px solid rgba(90,70,40,.22);
+  margin-top:7px;padding:7px 9px 5px;max-width:74%;
+  /* Sulla mappa fotografica sotto ci sono gli isolati, non piu' il margine
+     bianco del foglio: la frase sta su un cartiglio di carta, come la legenda
+     stampata di una cartina vera, se no la si legge sopra i tetti. */
+  background:rgba(244,236,216,.9);box-shadow:0 0 0 1px rgba(90,70,40,.18);
   display:flex;flex-direction:column;gap:2px;
 }
 .scriv-legenda[hidden]{display:none}
@@ -230,9 +245,11 @@ body.is-touch #screen-home .home-scroll{padding-bottom:calc(178px + var(--safe-b
    (Giovanni, 21 settembre 2026). Sette centesimi sono abbastanza da leggersi
    come una scelta e non come un errore di un pixel. */
 .scriv-biglietto{
-  order:1;margin-top:58px;margin-left:7%;width:min(214px,52%);position:relative;
+  --largo:min(214px,52%);
+  order:1;margin-top:58px;margin-left:7%;width:var(--largo);position:relative;
   background:url(../img/scrivania/biglietto.webp) center/100% 100% no-repeat;
-  padding:20px 12px 13px 14px;transform:rotate(1.4deg);
+  aspect-ratio:600/418;transform:rotate(1.4deg);
+  padding:calc(var(--largo)*.21) calc(var(--largo)*.09) calc(var(--largo)*.06) calc(var(--largo)*.12);
   filter:drop-shadow(0 1px 1px rgba(0,0,0,.35)) drop-shadow(0 10px 14px rgba(0,0,0,.32));
   border:0;text-align:left;font:inherit;cursor:pointer;
 }
@@ -244,10 +261,25 @@ body.is-touch #screen-home .home-scroll{padding-bottom:calc(178px + var(--safe-b
    - l'ombra e' un drop-shadow e non un box-shadow, che disegnerebbe il
      rettangolo pieno e farebbe vedere un'ombra quadrata sotto l'angolo
      piegato, dove la carta non c'e';
-   - il testo parte 20px sotto il bordo invece di 15, se no "STASERA" finiva
-     sopra la piega. Ai lati invece il totale resta 26px come prima: il
-     foglio deve restare largo quanto era, il walkman e l'interruttore sono
-     stati sistemati attorno a quella misura.
+   - "Stasera" adesso e' scritto a mano DENTRO la foto (8 ottobre), con la
+     grafia delle note di Jill sulla mappa, e finisce al 28% dell'altezza del
+     foglio. Il testo del compito deve partire sotto, e per restare sotto il
+     foglio ha le proporzioni della foto (aspect-ratio) e i margini sono una
+     frazione della sua larghezza (--largo): in alto il 21%, che con quelle
+     proporzioni e' il 30% dell'altezza. Con un margine in pixel, su un foglio
+     piu' piccolo il compito sarebbe finito sopra la parola. Il 12% a sinistra
+     allinea il compito all'inizio di "Stasera".
+     NON IN PERCENTUALE SECCA: un padding in % si calcola sulla larghezza
+     della RIGA che contiene il biglietto, non del biglietto. Sul telefono le
+     due misure quasi coincidono e non si vedeva; sul computer la riga e'
+     larga 860px, il 12% diventava 103px e il compito andava a capo a ogni
+     parola. --largo ripete la formula della larghezza, cosi' i margini
+     seguono il foglio.
+     Se il compito e' lungo il foglio cresce in altezza (aspect-ratio fa da
+     minimo, non da gabbia) e la parola scende un poco con lui: meglio che
+     tagliare il compito.
+     La larghezza non cambia: il walkman e l'interruttore sono stati
+     sistemati attorno a quella misura.
    L'immagine si stira sull'altezza del biglietto (100% 100%): la carta non
    ha righe ne' disegni, quindi stirata non si nota, e il foglio resta
    sempre alto quanto quello che c'e' scritto. Lo sfondo a scacchi che il
@@ -257,10 +289,6 @@ body.is-touch #screen-home .home-scroll{padding-bottom:calc(178px + var(--safe-b
 .scriv-biglietto .nastro{
   position:absolute;width:52px;height:16px;background:rgba(236,226,196,.6);
   left:50%;margin-left:-26px;top:-7px;transform:rotate(-1.6deg);
-}
-.scriv-biglietto i{
-  font-style:normal;display:block;font-family:'Penna',cursive;
-  font-size:11px;color:#8d4a32;letter-spacing:.05em;margin-bottom:3px;
 }
 .scriv-biglietto b{
   display:block;font-family:'Penna',cursive;font-size:18px;font-weight:400;

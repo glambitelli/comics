@@ -270,10 +270,9 @@ export function disegnaMappa(perGiorno, secondiMese, scriviBreve){
   }
 
   el.innerHTML =
-    `<span class="scriv-parco" style="left:3%;top:9%;width:19%;height:26%"></span>`
-  + `<span class="scriv-parco" style="left:70%;top:52%;width:27%;height:40%"></span>`
-  + `<span class="scriv-fiume" style="left:58%;top:0;width:${Math.max(6, L/74).toFixed(0)}px;height:100%;transform:rotate(2.5deg)"></span>`
-  + `<div class="scriv-mese">${MESI[mese]}</div>`
+    // Parchi e fiume non si disegnano piu': sono stampati nella foto della
+    // mappa (vedi .scriv-foglio in scrivania.css).
+    `<div class="scriv-mese">${MESI[mese]}</div>`
   + `<svg viewBox="0 0 ${L} ${H}" aria-hidden="true">${svg}</svg>`
   + note
   // Le ore del mese vanno in basso a SINISTRA: stavano al centro, dove adesso
@@ -319,7 +318,9 @@ export function disegnaBiglietto(apriProgetto, apriIProgetti){
   el.hidden = false;
   const p = projects.find(x => x && x.microtask && x.microtask.trim());
   if(p){
-    el.innerHTML = `<span class="nastro"></span><i>STASERA</i>`
+    // "Stasera" non si scrive piu': e' scritto a mano dentro la foto del
+    // foglio (vedi .scriv-biglietto in scrivania.css).
+    el.innerHTML = `<span class="nastro"></span>`
                  + `<b>${esc(p.microtask.trim())}</b>`
                  + `<em>${esc((p.title || '').toUpperCase())}</em>`;
     el.onclick = ()=> apriProgetto && apriProgetto(p.id);
@@ -333,7 +334,7 @@ export function disegnaBiglietto(apriProgetto, apriIProgetti){
   // foglietto che dicesse "non hai ancora scritto il task di stasera" sarebbe
   // un rimprovero appeso al tavolo. Toccandolo si va ai progetti, che e' dove
   // il task si scrive.
-  el.innerHTML = `<span class="nastro"></span><i>STASERA</i><span class="riga-vuota"></span>`;
+  el.innerHTML = `<span class="nastro"></span><span class="riga-vuota"></span>`;
   el.onclick = ()=> apriIProgetti && apriIProgetti();
 }
 

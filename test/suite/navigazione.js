@@ -743,7 +743,7 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
   });
   ok('senza un task scritto il foglio resta sul tavolo', senzaTask.c1, senzaTask);
   ok('con la riga da riempire, e niente scritto dentro',
-     senzaTask.riga && senzaTask.testo === 'STASERA', senzaTask);
+     senzaTask.riga && senzaTask.testo === '', senzaTask);
   ok('ma senza nemmeno un progetto il foglio non c\'e\'', senzaTask.senzaNiente, senzaTask);
 
   // LA LAMPADA. Accende e spegne il tavolo, e la scelta resta: chi disegna di
