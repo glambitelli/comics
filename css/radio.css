@@ -139,7 +139,31 @@
    773 e' piu' di 760.
    Dopo, il biglietto si e' ristretto (vedi scrivania.css) e il walkman e'
    risalito dall'80 al 94%: all'80 era troppo piccolo per i pollici. */
-@media (max-width:520px) and (max-height:900px){ .radio{zoom:.94;margin-top:4px} }
+/* ── SUL TELEFONO: APPOGGIATO STORTO SUL BORDO DELLA SCRIVANIA ──
+   Composizione approvata da Giovanni l'8 ottobre 2026, dopo due tentativi
+   bocciati. Le regole che l'hanno decisa, perche' valgono per ogni oggetto
+   che si aggiungera' al tavolo:
+   - NIENTE TANGENTI. Due oggetti o si sovrappongono con decisione, o stanno
+     ben staccati. Il walkman che sfiorava l'angolo del biglietto di pochi
+     pixel, e il biglietto quasi parallelo al bordo della mappa, erano
+     "terrificanti": l'occhio li legge come errori di un pixel.
+   - NIENTE PARALLELI. Dritto e parallelo al bordo del telefono sembrava
+     incollato allo schermo. Inclinato di -9 gradi, e diverso dai -3,5 del
+     biglietto, cosi' nemmeno i due bordi corrono insieme.
+   - DIMENSIONI VERE. Un walkman e' alto piu' o meno quanto e' lungo un
+     cartoncino da appunti: al 94% sembrava un giocattolo accanto al foglio.
+   - PUO' USCIRE DALL'INQUADRATURA. E' un pezzo di scrivania inquadrato, non
+     una pagina: il walkman sborda a sinistra come il cronometro sborda
+     sopra la mappa. I tre tasti pero' restano dentro e premibili.
+   Sale sull'angolo in basso a sinistra del biglietto, dove la carta e'
+   vuota; l'etichetta del progetto si e' spostata a destra per non finirci
+   sotto (vedi scrivania.css). 10px piu' in basso del primo mockup, su
+   richiesta: copriva troppo l'inizio della seconda riga del compito.
+   Sta sopra il biglietto (z-index): e' l'ultimo oggetto appoggiato. */
+@media (max-width:520px){
+  .radio{zoom:1.04;margin:-30px 0 0 -10px;transform:rotate(-9deg);z-index:3}
+}
 /* Sui telefoni piu' corti ancora (360x740) con una frase di cinque righe
    restavano 8px sotto la barra: lo si stringe di un altro poco. */
-@media (max-width:520px) and (max-height:760px){ .radio{zoom:.84} }
+/* (Le riduzioni d'altezza per i telefoni corti non ci sono piu': da quando
+   la home non scorre, il walkman puo' finire in parte dietro la barra.) */

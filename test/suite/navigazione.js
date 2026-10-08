@@ -1194,14 +1194,40 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
       const p1 = home.newProjectObj('Kara', 24); p1.id='pw'; p1.microtask='Chiudere gli sfondi della tavola 7';
       st.setProjects([p1]);
       document.getElementById('home-quote').innerHTML =
-        '<div>"Chi vuole sapere qualcosa di me — come artista, l\'unica cosa che conti — guardi con attenzione i miei quadri."</div><div>— Gustav Klimt</div>';
+        '<div>"Chi vuole sapere qualcosa di me — come artista, l\'unica cosa che conti — guardi con attenzione i miei quadri e cerchi di riconoscervi ciò che sono e ciò che voglio."</div><div>— Gustav Klimt</div>';
       await window.__aggiornaScrivania();
       await new Promise(r=> setTimeout(r, 400));
       const R = sel=>{ const e=document.querySelector(sel).getBoundingClientRect(); return {x:e.left,y:e.top,r:e.right,b:e.bottom,w:e.width}; };
       const tocca = (a,c)=> a.x<c.r && c.x<a.r && a.y<c.b && c.y<a.b;
       const wk = R('#radio'), lu = R('#scriv-luce'), pi = R('#scriv-biglietto');
-      return { dim, sullInterruttore: tocca(wk, lu), sulPostit: tocca(wk, pi),
+      // SUL POST-IT SI', SULLE SCRITTE NO. Dall'8 ottobre il walkman sale
+      // apposta sull'angolo del biglietto (la home non scorre piu' e gli
+      // oggetti si accavallano), ma il compito e il nome del progetto devono
+      // restare leggibili: si guarda quelle due righe, non il foglio intero.
+      // Si guarda PUNTO PER PUNTO cosa c'e' in cima, non i riquadri: il
+      // walkman e' inclinato, e il riquadro di un oggetto storto e' molto piu'
+      // grande dell'oggetto — toccherebbe le scritte anche quando non le
+      // copre. Si provano l'inizio e la fine di ogni riga del compito e il
+      // centro dell'etichetta del progetto.
+      const coperte = [];
+      const prova = (x, y, dove)=>{
+        const e = document.elementFromPoint(x, y);
+        if(e && e.closest('#radio')) coperte.push(dove);
+      };
+      const bb = document.querySelector('#scriv-biglietto b');
+      if(bb){
+        [...bb.getClientRects()].forEach((q,i)=>{
+          prova(q.left + 4, q.top + q.height/2, 'riga ' + (i+1) + ' inizio');
+          prova(q.right - 4, q.top + q.height/2, 'riga ' + (i+1) + ' fine');
+        });
+      }
+      const em = document.querySelector('#scriv-biglietto em');
+      if(em){ const q = em.getBoundingClientRect(); prova(q.left + q.width/2, q.top + q.height/2, 'progetto'); }
+      const tasti = R('.radio-tasti');
+      return { dim, sullInterruttore: tocca(wk, lu), sulPostit: coperte.length > 0, coperte,
+               tastiSottoLaBarra: Math.round(tasti.b - R('#dune-nav').y),
                scorre: (s=> s.scrollHeight - s.clientHeight)(document.getElementById('home-scroll')),
+               scorrimento: getComputedStyle(document.getElementById('home-scroll')).overflowY,
                // Si misura IN FONDO allo scorrimento: sul 360x740 la home
                // scorre di qualche pixel (lo spazio manca davvero), e quello
                // che conta e' che il walkman si possa portare sopra la barra.
@@ -1228,16 +1254,21 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
   await page.evaluate(()=> document.body.classList.remove('is-touch'));
   ok('il walkman non si siede sull\'interruttore della luce',
      misureTavolo.every(t=> !t.sullInterruttore), misureTavolo);
-  ok('e nemmeno sul post-it', misureTavolo.every(t=> !t.sulPostit), misureTavolo);
-  ok('e sul telefono resta sopra la barra in fondo, anche con la frase del giorno',
-     misureTavolo.every(t=> t.sottoLaBarra <= 0), misureTavolo);
-  // E NON SCORRE SE CI STA. Un margine in fondo di 110px pensato per gli
-  // elenchi faceva scorrere la home di qualche pixel anche quando tutto ci
-  // stava, e scorrendo la mappa si tagliava di netto sotto l'intestazione
-  // (Giovanni, 8 ottobre 2026). Sul 360x740 con la frase lunga un filo di
-  // scorrimento e' ammesso: li' lo spazio manca davvero, e la cima sfuma.
-  ok('e la home non scorre quando il tavolo ci sta',
-     misureTavolo.filter(t=> t.dim !== '360x740').every(t=> t.scorre <= 0), misureTavolo);
+  ok('e non copre quello che c\'e\' scritto sul biglietto', misureTavolo.every(t=> !t.sulPostit), misureTavolo);
+  // Il walkman PUO' finire in parte dietro la barra: e' appoggiato sul bordo
+  // della scrivania (composizione dell'8 ottobre). I suoi tasti no: devono
+  // restare sopra la barra, se no non si accende la radio.
+  ok('e sul telefono i tasti del walkman restano sopra la barra in fondo, anche con la frase del giorno',
+     misureTavolo.every(t=> t.tastiSottoLaBarra <= 0), misureTavolo);
+  // E SUL TELEFONO LA HOME NON SCORRE, MAI. Prima un margine pensato per gli
+  // elenchi la faceva scorrere di qualche pixel, poi la frase del giorno che
+  // sul telefono vero andava a capo una riga in piu': ogni volta tornava la
+  // barra di scorrimento sul lato (Giovanni, 8 ottobre 2026, "non ci deve
+  // stare nella home nessun tipo di scorrimento"). Adesso lo scorrimento e'
+  // spento e gli oggetti si accavallano; la prova usa la frase piu' lunga che
+  // si sia vista, cinque righe sul telefono.
+  ok('e sul telefono la home non scorre, nemmeno con una frase lunga',
+     misureTavolo.every(t=> t.scorrimento === 'hidden' || t.scorre <= 0), misureTavolo);
   ok('e il post-it resta largo com\'era', misureTavolo.every(t=> Math.abs(t.postit - t.attesa) <= 3), misureTavolo);
 
   // NIENTE TANGENTI. Il biglietto di stasera aveva il bordo sinistro a quattro

@@ -397,4 +397,30 @@ body.luce-spenta .scriv-luce .spia{background:#4a3a20;box-shadow:none}
   .tempo-quadrante{--q:92px}
   .scriv-riga{margin-top:-38px}
   .scriv-biglietto{margin-top:48px}
+  /* ── SUL TELEFONO LA HOME NON SCORRE. MAI. ──
+     E' un pezzo di scrivania inquadrato, non una pagina: la barra di
+     scorrimento sul lato e il tavolo che si sposta di qualche pixel sotto il
+     dito erano "orribili" (Giovanni, 8 ottobre 2026). Si era provato a far
+     stare tutto misurando al pixel, ma la frase del giorno cambia ogni giorno
+     e sul telefono vero va a capo diversamente che nelle prove: bastava una
+     riga in piu' e tornava lo scorrimento.
+     Quindi lo scorrimento si spegne, e gli oggetti si accavallano come su un
+     tavolo vero: il biglietto sale sul bordo della mappa (il suo nastro ci
+     resta attaccato sopra), il walkman sale sull'angolo del biglietto. Se in
+     un giorno di frase lunga qualcosa esce di un dito dall'inquadratura, e'
+     un oggetto appoggiato sul bordo della scrivania, non un difetto. */
+  #screen-home .home-scroll{overflow:hidden}
+  /* IL BIGLIETTO SALE SULLA MAPPA CON DECISIONE, come il cronometro: circa
+     30px dentro il foglio, inclinato di -3,5 gradi perche' il suo bordo non
+     corra parallelo a quello della mappa (la prima versione, quasi dritta e
+     a filo, era una "bad tangent"). Il foglio ha 40px di carta vuota sotto
+     la frase del giorno apposta: il biglietto ci si appoggia sopra senza
+     coprire la firma. Inclinato verso sinistra e non verso destra perche'
+     cosi' e' l'angolo DESTRO a salire, sopra la parte vuota della riga della
+     firma; al contrario saliva l'angolo sinistro, sopra "— Gustav Klimt". */
+  .scriv-foglio{padding-bottom:40px}
+  .scriv-biglietto{margin-top:-12px;margin-left:15%;transform:rotate(-3.5deg)}
+  /* L'etichetta del progetto va a destra: l'angolo in basso a sinistra del
+     biglietto e' quello su cui si appoggia il walkman (vedi radio.css). */
+  .scriv-biglietto em{display:table;margin-left:auto}
 }

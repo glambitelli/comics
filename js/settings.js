@@ -388,6 +388,12 @@ export async function mostraDrive(){
     // Solo il download della libreria di Google, cosi' quando il dito arriva
     // sul pulsante la finestra puo' partire DENTRO il tocco (vedi drive.js).
     d.prepareDriveAuth();
+    // PRIMA SI SA CHI E' ENTRATO, poi si disegna. Se la riga di Drive arriva
+    // prima di quella dell'account non sa con che mail confrontarsi, e un
+    // Drive collegato con un ALTRO account sembrerebbe quello normale:
+    // sparirebbe, e con lui il suo "Scollega". Succedeva una volta ogni tanto,
+    // a seconda di quale delle due righe finiva prima.
+    try{ const a = await auth(); await a.attendiAccesso(); if(!_mailInkflow && a.utente()) _mailInkflow = a.utente().email || ''; }catch(e){}
     disegnaDrive();
   }catch(e){
     const stato = document.getElementById('drive-mail');
