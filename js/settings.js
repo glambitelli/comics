@@ -417,6 +417,11 @@ function disegnaDrive(){
   // Resta SOLO nel caso in cui Drive e' collegato con un account DIVERSO
   // (un collegamento vecchio): li' e' davvero una cosa a parte, e si deve
   // poterla scollegare.
+  // La mail di Inkflow la si chiede anche al modulo dell'accesso: la riga
+  // dell'account puo' non essere ancora stata disegnata (le due partono
+  // insieme), e senza mail un collegamento con un ALTRO account sembrerebbe
+  // quello normale e sparirebbe insieme al suo "Scollega".
+  if(!_mailInkflow && _authMod && _authMod.utente && _authMod.utente()) _mailInkflow = _authMod.utente().email || '';
   const diverso = collegato && mail && _mailInkflow && mail.toLowerCase() !== _mailInkflow.toLowerCase();
   const nascondi = !!(d.accessoUnico && d.accessoUnico()) && !diverso;
   const riga = document.getElementById('drive-riga');
