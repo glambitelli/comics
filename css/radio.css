@@ -28,7 +28,7 @@
    di un grado e mezzo, "come una cosa appoggiata": ma storti lo sono gia' la
    mappa e il post-it, e un terzo oggetto storto trasformava il disordine
    voluto in un tavolo che sembra caduto (Giovanni, 7 ottobre 2026). */
-.radio{position:relative;width:112px;padding-top:11px;margin:20px 0 0 15%}
+.radio{position:relative;width:112px;padding-top:8px;margin:20px 0 0 15%}
 /* ── IL WALKMAN E' UNA FOTO (8 ottobre 2026) ──
    Corpo, bobina e i due tasti li ha generati Giovanni; il codice ci mette
    sopra solo quello che si MUOVE: le bobine che girano, il titolo che scorre,
@@ -44,17 +44,18 @@
    225px, un mattone accanto a un cartoncino. */
 
 /* ── I TASTI SUL BORDO ── */
-.radio-tasti{position:absolute;top:0;left:9%;right:25%;height:11px;display:flex;align-items:flex-end;gap:3px;z-index:1}
+.radio-tasti{position:absolute;top:0;left:9%;right:25%;height:8px;display:flex;align-items:flex-end;gap:3px;z-index:1}
 /* I TASTI SONO INCASTRATI NEL BORDO SUPERIORE, non appoggiati sopra. Ne
    spunta solo la parte di sopra, e finiscono netti sulla linea del corpo,
    come i tasti veri che escono da una feritoia (Giovanni, 8 ottobre 2026:
-   la prima versione era troppo grande e scendeva sopra la scocca). La foto
+   la prima versione era troppo grande e scendeva sopra la scocca; poi
+   ancora "un pelo piu' incassati": ne spuntano 8px, 5 da premuti). La foto
    del tasto si mostra dall'alto e si taglia in basso (background in cima,
    larga quanto il tasto): si vedono gli angoli arrotondati di sopra, e il
    resto e' "dentro" il walkman.
    Il simbolo resta disegnato dal codice, perche' play diventa pausa. */
 .radio-tasti button{
-  position:relative;flex:1;height:11px;padding:0;border:0;cursor:pointer;
+  position:relative;flex:1;height:8px;padding:0;border:0;cursor:pointer;
   border-radius:3px 3px 0 0;
   background:url(../img/scrivania/tasto.webp) center top/100% auto no-repeat;color:#2c3540;
   box-shadow:0 -1px 2px rgba(0,0,0,.28);
@@ -66,13 +67,19 @@
    legno vuoto sopra il mobiletto. */
 .radio-tasti button::after{content:'';position:absolute;inset:-14px -2px -6px}
 .radio-tasti svg{width:12px;height:6px;display:block}
+/* SENZA SIMBOLI, come sul lettore vero: i tasti di quel walkman erano lisci,
+   e si riconoscevano dal posto e dal colore (Giovanni, 8 ottobre 2026). Le
+   frecce restano nel markup, nascoste, e il nome di ogni tasto resta per chi
+   usa un lettore di schermo. Che la radio suoni lo dice il tasto arancione,
+   che resta giu', e le bobine che girano. */
+.radio-tasti svg{display:none}
 /* Premuto, il tasto rientra nella feritoia: si accorcia, il bordo di sotto
    resta fermo sulla scocca. Spostarlo in giu' lo avrebbe fatto sovrapporre
    al corpo, che e' proprio quello che non deve fare. */
-.radio-tasti button:active{height:8px}
+.radio-tasti button:active{height:5px}
 #radio-onoff{background-image:url(../img/scrivania/tasto-play.webp);color:#3b1e06}
 /* Mentre suona il tasto resta giu', premuto, come un tasto vero. */
-.radio[data-stato="suona"] #radio-onoff{height:8px}
+.radio[data-stato="suona"] #radio-onoff{height:5px}
 
 /* ── LA SCOCCA ── */
 .radio-corpo{
