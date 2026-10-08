@@ -28,15 +28,32 @@
    di un grado e mezzo, "come una cosa appoggiata": ma storti lo sono gia' la
    mappa e il post-it, e un terzo oggetto storto trasformava il disordine
    voluto in un tavolo che sembra caduto (Giovanni, 7 ottobre 2026). */
-.radio{position:relative;width:143px;padding-top:12px;margin:20px 0 0 15%}
+.radio{position:relative;width:112px;padding-top:12px;margin:20px 0 0 15%}
+/* ── IL WALKMAN E' UNA FOTO (8 ottobre 2026) ──
+   Corpo, bobina e i due tasti li ha generati Giovanni; il codice ci mette
+   sopra solo quello che si MUOVE: le bobine che girano, il titolo che scorre,
+   i tasti che si abbassano. Per questo il corpo e' stato chiesto con la
+   finestrella e la fessura vuote: le due aperture sono dove il codice lavora.
+   LE MISURE DELLE APERTURE sono prese dalla foto, in percentuale del corpo:
+   finestrella 20,2% da sinistra, 31,6% dall'alto, 29,4% x 49,4%; fessura
+   58,1% / 43,7%, 11,7% x 24,4%; la fascia d'argento parte all'81%. Se un
+   giorno la foto cambia, sono questi i numeri da rimisurare.
+   LARGO 112px E NON PIU' 143: la foto ha le proporzioni di un lettore vero
+   (alto una volta e mezza la larghezza, 494 x 776), e un walkman vero e' alto
+   piu' o meno quanto e' lungo il biglietto. Largo 143 sarebbe stato alto
+   225px, un mattone accanto a un cartoncino. */
 
 /* ── I TASTI SUL BORDO ── */
-.radio-tasti{position:absolute;top:0;left:9px;right:32px;display:flex;gap:4px;z-index:1}
+.radio-tasti{position:absolute;top:0;left:6%;right:21%;display:flex;gap:4px;z-index:1}
+/* I tasti sono le due foto (grigio e arancione), stirate sulla misura del
+   tasto: viste dall'alto sono quasi quadrate, ma un tasto di walkman visto
+   di fronte e' basso e largo, e una lamiera graffiata stirata non si nota.
+   Il simbolo resta disegnato dal codice, perche' play diventa pausa. */
 .radio-tasti button{
-  position:relative;flex:1;height:17px;padding:0;border:0;cursor:pointer;
-  border-radius:4px 4px 0 0;
-  background:linear-gradient(180deg,#d9d6cf,#a9a59c);color:#3a4552;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.6),0 -1px 2px rgba(0,0,0,.25);
+  position:relative;flex:1;height:18px;padding:0;border:0;cursor:pointer;
+  border-radius:3px 3px 0 0;
+  background:url(../img/scrivania/tasto.webp) center/100% 100% no-repeat;color:#2c3540;
+  box-shadow:0 -1px 2px rgba(0,0,0,.3);
   display:flex;align-items:center;justify-content:center;
 }
 /* IL BERSAGLIO E' PIU' GRANDE DEL DISEGNO: diciassette pixel di tasto si
@@ -45,18 +62,19 @@
 .radio-tasti button::after{content:'';position:absolute;inset:-14px -2px -6px}
 .radio-tasti svg{width:17px;height:9px;display:block}
 .radio-tasti button:active{transform:translateY(2px)}
-#radio-onoff{background:linear-gradient(180deg,#f3a24a,#d97a1e);color:#3b1e06}
+#radio-onoff{background-image:url(../img/scrivania/tasto-play.webp);color:#3b1e06}
 /* Mentre suona il tasto resta giu', premuto, come un tasto vero. */
 .radio[data-stato="suona"] #radio-onoff{transform:translateY(2px);box-shadow:inset 0 1px 2px rgba(0,0,0,.3)}
 
 /* ── LA SCOCCA ── */
 .radio-corpo{
-  position:relative;height:160px;border-radius:7px;overflow:hidden;
-  background:linear-gradient(160deg,#5a7c99 0%,#4a6a87 45%,#3d5a74 100%);
-  box-shadow:0 2px 4px rgba(0,0,0,.5),0 14px 28px rgba(0,0,0,.45),
-             inset 0 1px 0 rgba(255,255,255,.25),inset 1px 0 0 rgba(255,255,255,.08);
+  position:relative;aspect-ratio:494/776;border-radius:4px;overflow:hidden;
+  background:url(../img/scrivania/walkman.webp) center/100% 100% no-repeat;
+  box-shadow:0 2px 4px rgba(0,0,0,.5),0 14px 28px rgba(0,0,0,.45);
 }
-.radio-fianco{
+/* La fascia d'argento ora e' nella foto: quella disegnata resta nel markup
+   ma non si vede. */
+.radio-fianco{display:none;
   position:absolute;top:0;right:0;bottom:0;width:27px;
   background:linear-gradient(90deg,#9ea3a8,#d4d7da 40%,#b4b8bc 100%);
   box-shadow:inset 1px 0 0 rgba(0,0,0,.25);
@@ -66,20 +84,18 @@
 
 /* ── LA FINESTRELLA COL NASTRO ── */
 .radio-finestra{
-  position:absolute;left:18px;top:14px;width:51px;height:96px;border-radius:7px;
-  background:#121314;box-shadow:inset 0 1px 3px rgba(0,0,0,.9),0 0 0 1px rgba(0,0,0,.35);
-  display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:8px 0;
+  position:absolute;left:20.2%;top:31.6%;width:29.4%;height:49.4%;
+  display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:12% 0;
 }
-.radio-nastro{width:32px;flex:1;margin:5px 0;border-radius:3px;
-  background:linear-gradient(180deg,#a7aaad,#c9ccce);box-shadow:inset 0 0 0 1px rgba(0,0,0,.25)}
+/* Fra le due bobine passa il nastro: un filo marrone scuro, come quello
+   avvolto sulle bobine della foto. Il rettangolo grigio di prima, nella
+   finestrella nera della foto, sembrava un'etichetta incollata. */
+.radio-nastro{width:3px;flex:1;margin:2px 0;background:#3a2a1e;opacity:.85}
 /* Le bobine: ferme quando e' ferma, girano quando suona, piano mentre carica
    — il nastro che si avvolge prima di cominciare. */
 .radio-bobina{
-  width:18px;height:18px;border-radius:50%;flex-shrink:0;
-  background:
-    conic-gradient(from 0deg,#e9e9e6 0 20deg,transparent 20deg 120deg,#e9e9e6 120deg 140deg,
-                   transparent 140deg 240deg,#e9e9e6 240deg 260deg,transparent 260deg),
-    radial-gradient(circle,#1d1e20 0 4px,#e9e9e6 4px 6px,#2a2b2d 6px);
+  width:78%;aspect-ratio:1;border-radius:50%;flex-shrink:0;
+  background:url(../img/scrivania/bobina.webp) center/contain no-repeat;
 }
 .radio[data-stato="suona"] .radio-bobina{animation:radio-gira 1.6s linear infinite}
 .radio[data-stato="carico"] .radio-bobina{animation:radio-gira 4s linear infinite}
@@ -92,13 +108,16 @@
    perche' sta nel posto vuoto fra la finestrella e la fascia d'argento, e
    perche' cosi' diventa un pezzo del lettore invece di un'etichetta incollata
    sopra. */
+/* DENTRO LA FESSURA DELLA FOTO, che e' stretta (13px su 112): il titolo
+   scende a 9px. --corsa e' quanto e' alta, e serve allo scorrimento per
+   partire da sotto il bordo. */
 .radio-barra{
-  position:absolute;left:78px;top:14px;width:26px;height:96px;border-radius:8px;overflow:hidden;
-  background:#0d0e0f;box-shadow:inset 0 1px 3px rgba(0,0,0,.9),0 0 0 1px rgba(255,255,255,.06);
+  --corsa:43px;
+  position:absolute;left:58.1%;top:43.7%;width:11.7%;height:24.4%;border-radius:999px;overflow:hidden;
 }
 .radio-nome{
-  position:absolute;left:6px;top:6px;white-space:nowrap;writing-mode:vertical-rl;
-  font-family:'Nunito',sans-serif;font-weight:800;font-size:11px;letter-spacing:.12em;
+  position:absolute;left:50%;margin-left:-5px;top:4px;white-space:nowrap;writing-mode:vertical-rl;
+  font-family:'Nunito',sans-serif;font-weight:800;font-size:9px;letter-spacing:.12em;
   text-transform:uppercase;line-height:1;
   color:#9fd8ff;text-shadow:0 0 5px rgba(120,200,255,.7);
 }
@@ -115,7 +134,7 @@
 .radio[data-stato="errore"] .radio-nome{
   top:0;animation:radio-scorre var(--dur, 8s) linear infinite;
 }
-@keyframes radio-scorre{from{transform:translateY(96px)}to{transform:translateY(-100%)}}
+@keyframes radio-scorre{from{transform:translateY(var(--corsa, 96px))}to{transform:translateY(-100%)}}
 /* Da spenta il display e' smorto, come senza corrente; negli avvisi diventa
    corallo, cosi' si capisce che e' un avviso e non un titolo. */
 .radio[data-stato="spenta"] .radio-nome{color:rgba(159,216,255,.35);text-shadow:none}
