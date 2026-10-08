@@ -303,8 +303,10 @@ module.exports = () => suite("Backup — l'archivio esce da qui, e ci rientra", 
   ok('si distinguono anche senza leggerle', sorgente.coloreId !== sorgente.coloreDrive, sorgente);
   ok('senza collegamento lo dice', /non collegato/i.test(sorgente.stato), sorgente);
   ok('e il pulsante propone di collegarlo', /^collega$/i.test(sorgente.bottone.trim()), sorgente);
-  ok('spiegando che puo\' essere un altro account Google',
-     /altro account google/i.test(sorgente.nota), sorgente);
+  // Dall'8 ottobre Drive si collega entrando: la nota lo dice, cosi' chi
+  // trova "Non collegato" sa che non e' un secondo accesso da fare a mano.
+  ok('spiegando che di solito si collega gia\' entrando',
+     /entrando in inkflow/i.test(sorgente.nota), sorgente);
 
   // Collegato con un indirizzo DIVERSO da quello di Inkflow: e' il caso per
   // cui esiste tutta questa distinzione — un archivio tenuto altrove.
@@ -327,6 +329,8 @@ module.exports = () => suite("Backup — l'archivio esce da qui, e ci rientra", 
   ok('la scheda dice che va bene cosi\', invece di far sospettare un errore',
      /diverso da quello di inkflow/i.test(diverso.nota), diverso);
   ok('e il pulsante adesso scollega', /scollega/i.test(diverso.bottone), diverso);
+  // Ma con un account DIVERSO il pulsante resta: li' Drive e' davvero un
+  // collegamento a parte, e si deve poter cambiare.
 
   // Stesso indirizzo: lo dice, cosi' non si resta a confrontare due mail.
   const stesso = await page.evaluate(async ()=>{
@@ -335,9 +339,13 @@ module.exports = () => suite("Backup — l'archivio esce da qui, e ci rientra", 
       access_token:'finto', expiresAt: Date.now() + 3600000, email:'giovanni@example.com' }));
     const m = await import('/js/settings.js');
     await m.mostraDrive();
-    return { nota: (document.getElementById('drive-nota')||{}).textContent || '' };
+    return { nota: (document.getElementById('drive-nota')||{}).textContent || '',
+             bottone: !document.getElementById('drive-bottone').hidden };
   });
   ok('con lo stesso account di Inkflow lo scrive', /stesso account/i.test(stesso.nota), stesso);
+  // E non offre "Scollega": con lo stesso account Drive non e' un secondo
+  // accesso da gestire, si e' collegato entrando (Giovanni, 8 ottobre 2026).
+  ok('e senza un pulsante che lo faccia sembrare un secondo accesso', !stesso.bottone, stesso);
 
   const scollegato = await page.evaluate(async ()=>{
     window.driveTocca();

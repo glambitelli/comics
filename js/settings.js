@@ -408,14 +408,22 @@ function disegnaDrive(){
   if(collegato){
     stato.textContent = mail || 'Collegato';
     btn.textContent = 'Scollega';
+    // STESSO ACCOUNT, NIENTE PULSANTE. Dall'8 ottobre 2026 Drive si collega
+    // entrando in Inkflow (vedi SCOPE_ACCESSO in auth.js): con la stessa mail
+    // in tutte e due le righe, un "Scollega" qui sotto faceva sembrare Drive
+    // un secondo accesso da gestire a parte — che e' proprio la cosa tolta
+    // (Giovanni: "ho sia Google Drive con collega/scollega, sia l'account").
+    // La riga resta, perche' dice da dove arrivano albi e radio.
+    const stesso = mail && _mailInkflow && mail.toLowerCase() === _mailInkflow.toLowerCase();
+    btn.hidden = !!stesso;
     if(nota){
       nota.className = 'settings-note';
       // I due indirizzi diversi NON sono un errore, ed e' importante che la
       // scheda lo dica: chi tiene gli albi su un secondo account Google,
       // vedendo due mail diverse senza una parola di spiegazione, pensa di
       // aver sbagliato accesso e scollega quello giusto.
-      if(mail && _mailInkflow && mail.toLowerCase() === _mailInkflow.toLowerCase())
-        nota.textContent = 'Sorgente degli albi, in sola lettura. Stesso account di Inkflow.';
+      if(stesso)
+        nota.textContent = 'Albi e radio, in sola lettura. Stesso account di Inkflow: si collega entrando.';
       else if(mail && _mailInkflow)
         nota.textContent = 'Sorgente degli albi, in sola lettura. Account diverso da quello di Inkflow: va bene così.';
       else
@@ -428,9 +436,12 @@ function disegnaDrive(){
       nota.className = 'settings-note';
       // Scaduto non e' rotto: il token dura un'ora e si rinnova da solo finche'
       // la sessione Google e' viva. Detto in una riga, senza il meccanismo.
+      // Scaduto: Google lo fa durare un'ora, e si rinnova da solo al primo
+      // albo o brano. Prima diceva "gli albi tornano con un tocco", che
+      // invitava a premere qui un pulsante che non serve.
       nota.textContent = d.daRicollegare()
-        ? 'Collegamento scaduto. Gli albi tornano con un tocco.'
-        : 'Sorgente degli albi .cbz e .cbr, in sola lettura. Può essere un altro account Google.';
+        ? 'Si rinnova da solo quando apri un albo o accendi la radio.'
+        : 'Albi e radio, in sola lettura. Di solito si collega entrando in Inkflow.';
     }
   }
 }
