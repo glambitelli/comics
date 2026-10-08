@@ -339,7 +339,11 @@ function disegnaAccount(u){
     mail.textContent = u.email || u.displayName || 'Account collegato';
     btn.textContent = 'Esci';
     if(nota){
-      nota.textContent = 'Proprietario dell\'archivio: solo questo account lo legge e lo scrive.';
+      // E dice anche Drive, perche' da quando l'accesso e' uno solo (8
+      // ottobre 2026) la riga di Drive qui sotto non c'e' piu': albi e radio
+      // arrivano da questo stesso account.
+      nota.textContent = 'Proprietario dell\'archivio: solo questo account lo legge e lo scrive. '
+        + 'Da qui arrivano anche albi e radio, da Drive in sola lettura.';
       nota.className = 'settings-note';
     }
     // Il pulsante dice a cosa serve il codice: cosi' la nota qui sopra non
@@ -405,6 +409,22 @@ function disegnaDrive(){
   btn.hidden = false;
   const collegato = d.isDriveConnected();
   const mail = collegato ? d.driveAccountEmail() : '';
+  // CON L'ACCESSO UNICO LA RIGA NON C'E'. Drive si collega entrando in
+  // Inkflow e si rinnova da solo al primo albo o brano: una riga "Google
+  // Drive — Non collegato — Ricollega" accanto all'account era un secondo
+  // accesso da gestire, cioe' esattamente la cosa tolta. Giovanni, 8 ottobre
+  // 2026: "vedo ancora da un lato l'account e dall'altro Drive: a che serve?".
+  // Resta SOLO nel caso in cui Drive e' collegato con un account DIVERSO
+  // (un collegamento vecchio): li' e' davvero una cosa a parte, e si deve
+  // poterla scollegare.
+  const diverso = collegato && mail && _mailInkflow && mail.toLowerCase() !== _mailInkflow.toLowerCase();
+  const nascondi = !!(d.accessoUnico && d.accessoUnico()) && !diverso;
+  const riga = document.getElementById('drive-riga');
+  const divisore = document.getElementById('drive-divisore');
+  if(riga) riga.hidden = nascondi;
+  if(divisore) divisore.hidden = nascondi;
+  if(nota) nota.hidden = nascondi;
+  if(nascondi) return;
   if(collegato){
     stato.textContent = mail || 'Collegato';
     btn.textContent = 'Scollega';

@@ -284,6 +284,8 @@ module.exports = () => suite("Backup — l'archivio esce da qui, e ci rientra", 
     nota: (document.getElementById('drive-nota')||{}).textContent || '',
     coloreId: getComputedStyle(document.querySelector('#account-riga .settings-ico')).color,
     coloreDrive: getComputedStyle(document.querySelector('#drive-riga .settings-ico')).color,
+    rigaVisibile: !document.getElementById('drive-riga').hidden,
+    notaAccount: (document.getElementById('account-nota')||{}).textContent || '',
   }));
   // I nomi sono SECCHI: erano "Il tuo Inkflow" e "Albi da Google Drive", cioe'
   // didascalie travestite da titoli — e un titolo che spiega qualcosa, in una
@@ -301,12 +303,14 @@ module.exports = () => suite("Backup — l'archivio esce da qui, e ci rientra", 
      sorgente.nota.length <= 110, sorgente.nota);
   // A colpo d'occhio, prima di leggere: due icone di colore diverso.
   ok('si distinguono anche senza leggerle', sorgente.coloreId !== sorgente.coloreDrive, sorgente);
-  ok('senza collegamento lo dice', /non collegato/i.test(sorgente.stato), sorgente);
-  ok('e il pulsante propone di collegarlo', /^collega$/i.test(sorgente.bottone.trim()), sorgente);
-  // Dall'8 ottobre Drive si collega entrando: la nota lo dice, cosi' chi
-  // trova "Non collegato" sa che non e' un secondo accesso da fare a mano.
-  ok('spiegando che di solito si collega gia\' entrando',
-     /entrando in inkflow/i.test(sorgente.nota), sorgente);
+  // DALL'8 OTTOBRE 2026 L'ACCESSO E' UNO. Drive si collega entrando in
+  // Inkflow (vedi SCOPE_ACCESSO in auth.js), e una riga "Google Drive — Non
+  // collegato — Ricollega" accanto all'account era un secondo accesso da
+  // gestire: Giovanni l'ha vista e ha chiesto a cosa servisse. Non c'e' piu',
+  // e lo dice l'account.
+  ok('con l\'accesso unico la riga di Drive non c\'e\'', !sorgente.rigaVisibile, sorgente);
+  ok('e l\'account dice che da li\' arrivano anche albi e radio',
+     /albi e radio/i.test(sorgente.notaAccount), sorgente.notaAccount);
 
   // Collegato con un indirizzo DIVERSO da quello di Inkflow: e' il caso per
   // cui esiste tutta questa distinzione — un archivio tenuto altrove.
@@ -339,28 +343,27 @@ module.exports = () => suite("Backup — l'archivio esce da qui, e ci rientra", 
       access_token:'finto', expiresAt: Date.now() + 3600000, email:'giovanni@example.com' }));
     const m = await import('/js/settings.js');
     await m.mostraDrive();
-    return { nota: (document.getElementById('drive-nota')||{}).textContent || '',
-             bottone: !document.getElementById('drive-bottone').hidden };
+    return { riga: !document.getElementById('drive-riga').hidden };
   });
-  ok('con lo stesso account di Inkflow lo scrive', /stesso account/i.test(stesso.nota), stesso);
-  // E non offre "Scollega": con lo stesso account Drive non e' un secondo
-  // accesso da gestire, si e' collegato entrando (Giovanni, 8 ottobre 2026).
-  ok('e senza un pulsante che lo faccia sembrare un secondo accesso', !stesso.bottone, stesso);
+  // Collegato con lo STESSO account di Inkflow: e' il caso normale, e Drive
+  // non e' una cosa a parte. La riga sparisce.
+  ok('con lo stesso account di Inkflow la riga se ne va', !stesso.riga, stesso);
 
   const scollegato = await page.evaluate(async ()=>{
     window.driveTocca();
     const m = await import('/js/settings.js');
     await m.mostraDrive();
     return {
-      stato: (document.getElementById('drive-mail')||{}).textContent || '',
+      riga: !document.getElementById('drive-riga').hidden,
       resta: localStorage.getItem('inkflow-drive-token'),
       accesso: (document.getElementById('account-mail')||{}).textContent || '',
     };
   });
   ok('scollegare Drive butta via il suo token', !scollegato.resta, scollegato);
   ok('ma non tocca l\'accesso a Inkflow', /giovanni/i.test(scollegato.accesso), scollegato);
-  ok('e la riga torna a dire che non c\'e\' collegamento',
-     /non collegato/i.test(scollegato.stato), scollegato);
+  // Scollegato, con l'accesso unico non c'e' niente da mostrare: Drive si
+  // ricollega da solo al primo albo o brano.
+  ok('e la riga non torna come un accesso da rifare', !scollegato.riga, scollegato);
 
   sezione('e se manca un pezzo di configurazione, lo dice a parole');
   // Il primo tentativo di entrare finisce quasi sempre contro un passaggio non

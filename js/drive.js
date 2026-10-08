@@ -41,6 +41,10 @@
 // quello dell'accesso e' vuoto.
 import { CLIENT_ID_GOOGLE, CLIENT_ID_ACCESSO, caricaGis } from './gis.js';
 const DRIVE_CLIENT_ID = CLIENT_ID_ACCESSO || CLIENT_ID_GOOGLE;
+// "Drive si collega entrando in Inkflow": vero quando il client e' quello
+// dell'accesso. Serve alle impostazioni per non mostrare Drive come un
+// secondo accesso (vedi disegnaDrive in settings.js).
+export function accessoUnico(){ return !!CLIENT_ID_ACCESSO; }
 const DRIVE_ROOT_FOLDER_ID = '1CY6IGLbsd_M5pX8APCiOmLxssWCjWtaE';
 
 const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/userinfo.email';
