@@ -334,25 +334,38 @@ body.is-touch #screen-home .home-scroll{padding-bottom:calc(96px + var(--safe-bo
    scorre. Col dito sale sopra la barra-duna, che e' alta 88px. */
 .scriv-luce{
   position:fixed;right:18px;bottom:calc(18px + var(--safe-bot));z-index:60;
-  width:46px;height:52px;border-radius:7px;border:0;cursor:pointer;
-  background:#3a332c;padding:5px 6px;
-  display:flex;flex-direction:column;align-items:center;gap:5px;
-  box-shadow:0 2px 4px rgba(0,0,0,.5),0 10px 22px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.12);
+  width:44px;height:63px;border-radius:4px;border:0;cursor:pointer;padding:0;
+  background:url(../img/scrivania/interruttore.webp) center/100% 100% no-repeat;
+  box-shadow:0 2px 4px rgba(0,0,0,.5),0 10px 22px rgba(0,0,0,.45);
 }
+/* ── LA PIASTRA E IL BILANCIERE SONO FOTO (9 ottobre 2026) ──
+   La piastra marrone con le quattro viti e il bilanciere crema li ha
+   generati Giovanni. Il bilanciere era uscito con la sua piastra attorno:
+   se n'e' ritagliato solo il tasto, che sta nella feritoia della piastra
+   marrone. Le misure della feritoia vengono dalla foto: 30,4% da sinistra,
+   23,3% dall'alto, 38,2% x 52,5% — da rimisurare se la foto cambia.
+   Le viti, il fondo scuro e i colori del bilanciere disegnati prima ora sono
+   nella foto: le viti restano nel markup ma non si vedono. */
 body.is-touch .scriv-luce{bottom:calc(100px + var(--safe-bot))}
 .scriv-luce:active{transform:scale(.96)}
-.scriv-luce .vite{position:absolute;width:5px;height:5px;border-radius:50%;
-  background:#211c18;box-shadow:inset 0 1px 0 rgba(255,255,255,.18)}
-.scriv-luce .vite.a{left:5px;top:5px}   .scriv-luce .vite.b{right:5px;top:5px}
-.scriv-luce .vite.c{left:5px;bottom:5px}.scriv-luce .vite.d{right:5px;bottom:5px}
-.scriv-luce .bil{width:26px;height:31px;border-radius:4px;background:#171310;
-  box-shadow:inset 0 0 0 1px rgba(0,0,0,.6);position:relative;overflow:hidden}
-.scriv-luce .bil s{position:absolute;left:0;right:0;height:50%;top:0;text-decoration:none;
-  border-radius:3px;background:linear-gradient(180deg,#d8d0c2,#a89e8c);
-  box-shadow:0 1px 2px rgba(0,0,0,.5);transition:top .18s,background .18s}
-body.luce-spenta .scriv-luce .bil s{top:50%;background:linear-gradient(180deg,#8c8577,#5f5950)}
-.scriv-luce .spia{width:8px;height:8px;border-radius:50%;background:#ffc447;
-  box-shadow:0 0 7px 2px rgba(255,190,70,.65);transition:background .2s,box-shadow .2s}
+.scriv-luce .vite{display:none}
+/* IL BILANCIERE SCATTA INCLINANDOSI, come uno vero: acceso e' giu' in alto
+   (la meta' di sopra rientra nella feritoia), spento e' giu' in basso. Prima
+   era un mezzo tasto che scorreva su e giu'; con una foto intera l'unico
+   movimento credibile e' la rotazione sul perno, con la meta' che rientra
+   un po' piu' in ombra. */
+.scriv-luce .bil{position:absolute;left:30.4%;top:23.3%;width:38.2%;height:52.5%;perspective:60px}
+.scriv-luce .bil s{position:absolute;inset:0;text-decoration:none;border-radius:3px;
+  background:url(../img/scrivania/bilanciere.webp) center/100% 100% no-repeat;
+  transform:rotateX(14deg);transition:transform .16s ease}
+.scriv-luce .bil s::after{content:'';position:absolute;inset:0;border-radius:3px;pointer-events:none;
+  background:linear-gradient(180deg,rgba(0,0,0,.32),rgba(0,0,0,0) 55%);transition:background .16s}
+body.luce-spenta .scriv-luce .bil s{transform:rotateX(-14deg)}
+body.luce-spenta .scriv-luce .bil s::after{background:linear-gradient(0deg,rgba(0,0,0,.4),rgba(0,0,0,0) 55%)}
+/* LA SPIA AMBRA sta sulla piastra fra le due viti di sotto: e' l'unica cosa
+   che al buio deve ancora vedersi. */
+.scriv-luce .spia{position:absolute;left:50%;top:84%;width:6px;height:6px;margin:-3px 0 0 -3px;border-radius:50%;
+  background:#ffc447;box-shadow:0 0 7px 2px rgba(255,190,70,.65);transition:background .2s,box-shadow .2s}
 body.luce-spenta .scriv-luce .spia{background:#4a3a20;box-shadow:none}
 /* LA SCRITTA "LUCE" NON C'E' PIU'. Un interruttore su un tavolo vero non ha
    scritto sopra cosa fa: si capisce da com'e' fatto, dalla spia accesa e dal
