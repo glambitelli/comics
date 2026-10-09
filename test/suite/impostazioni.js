@@ -326,14 +326,16 @@ module.exports = () => suite("Impostazioni — il pannello dice solo quello che 
       quanti: bt.length,
       etichette: bt.map(b=> b.getAttribute('aria-label')),
       scarto: Math.abs((casa.left + casa.width/2) - (items.left + items.width/2)),
-      chiara: getComputedStyle(document.querySelector('.dune-btn-home')).backgroundColor,
+      tasto: getComputedStyle(document.querySelector('.dune-btn-home')).backgroundImage,
     };
   });
   ok('i tondi sono cinque', barra.quanti === 5, barra);
   ok('e le statistiche non sono piu\' fra loro',
      !barra.etichette.includes('Statistiche'), barra.etichette);
-  ok('la casa e\' quella di sempre, chiara come le altre',
-     barra.chiara === 'rgb(255, 251, 242)', barra);
+  // Dal 9 ottobre 2026 la casa e' il tasto fotografato della macchina da
+  // scrivere, non piu' il tondo chiaro.
+  ok('la casa e\' il tasto della macchina da scrivere',
+     /tasto-casa/.test(barra.tasto), barra);
   ok('e cade sul centro della barra', barra.scarto < 6, barra);
 
   sezione('e su mobile il pannello si chiude tirandolo giu\', senza X');

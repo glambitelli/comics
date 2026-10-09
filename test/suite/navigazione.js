@@ -354,7 +354,7 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
     const ultimo = Array.from(row.querySelectorAll('.home-fab')).pop().getBoundingClientRect();
     return {
       fondo: st.backgroundColor,
-      raggio: parseFloat(st.borderTopLeftRadius),
+      immagine: st.backgroundImage,
       // Larga quanto i tondi piu' un po' d'aria, non quanto lo schermo: una
       // pastiglia da bordo a bordo sarebbe una fascia, non una barra.
       larga: Math.round(r.width),
@@ -365,11 +365,10 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
       ariaSopra: Math.round(primo.top - r.top),
     };
   });
-  // Trasparente: si legge dall'alfa, che dev'esserci e non essere 1.
-  const alfa = (pastiglia.fondo.match(/rgba?\([^)]*,\s*([\d.]+)\)/)||[])[1];
-  ok('la fila ha un fondo suo', pastiglia.fondo !== 'rgba(0, 0, 0, 0)', pastiglia);
-  ok('ed e\' leggermente trasparente', alfa && parseFloat(alfa) > 0 && parseFloat(alfa) < 1, { alfa, ...pastiglia });
-  ok('e' + '\' una pastiglia, non un rettangolo', pastiglia.raggio >= 30, pastiglia);
+  // DAL 9 OTTOBRE 2026 IL FONDO E' LA FOTO DELLA MACCHINA DA SCRIVERE (vedi
+  // layout.css): la pastiglia di sabbia trasparente non c'e' piu', e le tre
+  // prove sul suo colore e sul suo raggio sono state sostituite da questa.
+  ok('la fila sta sulla macchina da scrivere', /barra-tw/.test(pastiglia.immagine), pastiglia);
   ok('larga quanto i tondi, non quanto lo schermo',
      pastiglia.larga < pastiglia.schermo * 0.75, pastiglia);
   ok('coi tondi dentro e un po\' d\'aria attorno',

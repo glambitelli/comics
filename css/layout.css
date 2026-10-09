@@ -290,3 +290,67 @@ body:not(.is-touch):not(.evening-mode) .idee-scroll{padding-bottom:calc(85px + v
   margin-top:20px;max-width:320px;font-size:12.5px;line-height:1.5;
   color:#8a3020;background:var(--coral-pale);border-radius:12px;padding:12px 14px;
 }
+
+/* ── LA BARRA E' UNA MACCHINA DA SCRIVERE (9 ottobre 2026) ─────────────────
+   La pillola di sabbia stonava sulla scrivania fotografica (Giovanni: "i
+   bottoni stonano"). Adesso e' la tastiera di una macchina da scrivere anni
+   '30, come quella della stanza sicura di Resident Evil: lastra nera laccata
+   col bordo cromato e cinque fori. La foto della barra e quella del tasto
+   della casa le ha generate Giovanni con Firefly; gli altri quattro tasti li
+   sta facendo, e finche' non arrivano restano i tondi di prima, messi nei
+   fori.
+   I TONDI STANNO NEI FORI, e la posizione dei fori viene dalla foto: centri
+   al 13,5 / 31,5 / 50 / 68,5 / 86,3 % della larghezza, a meta' altezza; i
+   fori sono larghi il 10% (quello della casa l'11,2%). Ogni tasto e' un filo
+   piu' piccolo del suo foro, cosi' si vede l'anello cromato attorno.
+   Vale per la barra del telefono e per quella del mouse, che dicono le
+   stesse cose. Le regole del mouse hanno davanti "html body" perche' home.css
+   arriva dopo e ridipingerebbe la pastiglia di sabbia. */
+body.is-touch .dune-blur,
+body.is-touch .dune-color,
+body.is-touch .dune-grain{display:none}
+.dune-nav-items,
+html body .home-fab-row{
+  background:url(../img/scrivania/barra-tw.webp) center/100% 100% no-repeat;
+  aspect-ratio:1970/331;
+  filter:drop-shadow(0 2px 2px rgba(0,0,0,.55)) drop-shadow(0 8px 14px rgba(0,0,0,.35));
+}
+body.is-touch .dune-nav-items{
+  left:50%;right:auto;width:min(380px, calc(100% - 28px));height:auto;
+  transform:translateX(-50%);display:block;padding:0;
+}
+html body .home-fab-row{
+  display:block;width:380px;height:auto;padding:0;gap:0;
+  background-color:transparent;border:0;border-radius:0;box-shadow:none;
+  backdrop-filter:none;-webkit-backdrop-filter:none;
+}
+html body.is-touch .home-fab-row,
+html body.settings-open .home-fab-row,
+html body.evening-mode .home-fab-row{display:none}
+.dune-nav-items > .dune-btn,
+html body .home-fab-row > .home-fab{
+  position:absolute;top:49.8%;width:8.6%;height:auto;aspect-ratio:1;margin:0;
+  transform:translate(-50%,-50%);
+}
+.dune-nav-items > .dune-btn:nth-child(1),html body .home-fab-row > .home-fab:nth-child(1){left:13.5%}
+.dune-nav-items > .dune-btn:nth-child(2),html body .home-fab-row > .home-fab:nth-child(2){left:31.5%}
+.dune-nav-items > .dune-btn:nth-child(3),html body .home-fab-row > .home-fab:nth-child(3){left:50%}
+.dune-nav-items > .dune-btn:nth-child(4),html body .home-fab-row > .home-fab:nth-child(4){left:68.5%}
+.dune-nav-items > .dune-btn:nth-child(5),html body .home-fab-row > .home-fab:nth-child(5){left:86.3%}
+.dune-nav-items > .dune-btn:active,
+html body .home-fab-row > .home-fab:active{transform:translate(-50%,-50%) scale(.88)}
+/* IL TASTO DELLA CASA e' la foto: tasto tondo cromato con la casa stampata.
+   Il glifo disegnato non serve piu'. Premuto rientra nel foro: si
+   rimpicciolisce e si scurisce. */
+.dune-nav-items > .dune-btn-home,
+html body .home-fab-row > #btn-home{
+  width:10.4%;
+  background:url(../img/scrivania/tasto-casa.webp) center/100% 100% no-repeat;
+  border:0;border-radius:50%;box-shadow:0 1px 2px rgba(0,0,0,.6);
+  transition:transform .07s ease,filter .07s ease;
+}
+.dune-nav-items > .dune-btn-home svg,
+html body .home-fab-row > #btn-home svg{display:none}
+.dune-nav-items > .dune-btn-home:active,
+html body .home-fab-row > #btn-home:active{filter:brightness(.78)}
+body.evening-mode.is-touch .dune-nav-items > .dune-btn-home{background-color:transparent;border:0}
