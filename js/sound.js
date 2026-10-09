@@ -211,6 +211,9 @@ function unlockAudio(){
 function isInteractive(el){
   if(!el || el.nodeType !== 1) return false;
   if(el.closest('input, textarea, select, [contenteditable="true"]')) return false;
+  // I tasti del walkman hanno i loro rumori di meccanismo (vedi radio.js):
+  // il tic del menu sopra il clac del tasto sarebbe un suono di troppo.
+  if(el.closest('.radio-tasti')) return false;
   return !!el.closest('button, a[href], [role="button"], [onclick], .refs-thumb, .album-card, .refs-folder-row, .step-item, .project-card');
 }
 // Suona al RILASCIO (non al tocco): appoggiare il dito su un elemento

@@ -1183,6 +1183,30 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
        && faccia.ferma.ferme === 'paused', faccia);
   ok('e in pausa il titolo continua a scorrere',
      faccia.ferma.titolo === 'radio-scorre', faccia);
+
+  // I RUMORI DEL MECCANISMO. Ogni tasto ha il suo, tagliato dalla
+  // registrazione di un lettore vero (9 ottobre 2026): play il motore che
+  // parte, pausa lo stop, avanti e indietro lo scatto del tasto. Si guarda
+  // quale file parte, intercettando play() degli elementi audio.
+  const rumori = await page.evaluate(async ()=>{
+    const r = await import('/js/radio.js');
+    const sentiti = [];
+    const vero = HTMLMediaElement.prototype.play;
+    HTMLMediaElement.prototype.play = function(){
+      if(/sfx\/walkman\//.test(this.src || '')) sentiti.push(this.src.split('/').pop());
+      return Promise.resolve();
+    };
+    r.__seminaBrani([{id:'a',name:'Uno.mp3'},{id:'b',name:'Due.mp3'}]);
+    const leggi = ()=> sentiti.splice(0);
+    r.__metti('pausa');  document.getElementById('radio-onoff').click(); const daPausa = leggi();
+    r.__metti('suona');  document.getElementById('radio-onoff').click(); const daSuona = leggi();
+    document.getElementById('radio-succ').click(); const avanti = leggi();
+    HTMLMediaElement.prototype.play = vero;
+    return { daPausa, daSuona, avanti };
+  });
+  ok('play fa partire il motore, pausa fa lo stop, avanti lo scatto del tasto',
+     rumori.daPausa.includes('play.mp3') && rumori.daSuona.includes('stop.mp3')
+       && rumori.avanti.includes('tasto.mp3'), rumori);
   ok('e il tasto avanti cambia brano',
      !radio.manca && radio.dopo.i === 1 && radio.dopo.titolo === 'Pioggia', radio);
 

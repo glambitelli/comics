@@ -21,7 +21,47 @@
 // schermata, e' una cosa accesa in sottofondo mentre si lavora. Quindi niente
 // copertine, niente onde che ballano, niente elenco a tutto schermo: un
 // mobiletto, cosa sta suonando, e i tre tasti che si premono senza guardare.
-import { haptic } from './state.js';
+import { isSoundEnabled } from './sound.js';
+
+// ── I RUMORI DEL MECCANISMO ──
+// Tagliati da una registrazione di un lettore a cassette che Giovanni ha
+// portato il 9 ottobre 2026 (sette secondi: la cassetta che entra, il tasto,
+// il nastro che parte, lo stop). Quattro pezzi, uno per gesto:
+//   cassetta — la prima accensione, quando la radio va a prendere i brani:
+//              e' il momento in cui si "mette dentro la cassetta";
+//   play     — il tasto che scende e il motore che si avvia;
+//   stop     — il tasto della pausa, il clac del meccanismo che si ferma;
+//   tasto    — il solo scatto del tasto, per avanti e indietro.
+// Sono rumori del walkman e NON del menu dell'app: per questo non passano
+// dal set di suoni scelto nelle impostazioni (non avrebbe senso un walkman
+// che fa il suono di Final Fantasy). Ubbidiscono pero' all'interruttore dei
+// suoni: spenti i suoni, il walkman suona la musica e basta.
+// Volume a meta': sono stati normalizzati quasi a piena scala, e sopra la
+// musica un clac a tutto volume fa sobbalzare.
+const RUMORI = {
+  cassetta: './sfx/walkman/cassetta.mp3',
+  play:     './sfx/walkman/play.mp3',
+  stop:     './sfx/walkman/stop.mp3',
+  tasto:    './sfx/walkman/tasto.mp3',
+};
+const _rumori = {};
+function meccanica(nome){
+  if(!isSoundEnabled() || !RUMORI[nome]) return;
+  try{
+    let a = _rumori[nome];
+    if(!a){ a = _rumori[nome] = new Audio(RUMORI[nome]); a.preload = 'auto'; a.volume = .5; }
+    a.currentTime = 0;
+    const p = a.play(); if(p && p.catch) p.catch(()=>{});
+  }catch(e){}
+}
+// Il tasto del walkman vibra come gli altri tocchi, ma senza il "tic" del
+// menu: il suono lo fa gia' il meccanismo (vedi anche isInteractive in
+// sound.js, che esclude questi tre tasti dal tic diffuso).
+function vibra(){ try{ if('vibrate' in navigator) navigator.vibrate(9); }catch(e){} }
+// La prima volta che la musica parte dopo l'accensione, il motore si avvia:
+// il rumore di "play" si aspetta lui, non il tocco, perche' fra il tocco e la
+// musica c'e' Drive che scarica il brano.
+let _motoreDaAvviare = false;
 
 const CHIAVE_BRANO = 'inkflow_radio_brano';
 let _brani = [];        // [{ id, name }]
@@ -103,7 +143,10 @@ function creaAudio(){
   // Finito un brano si passa al prossimo: una radio che si ferma dopo tre
   // minuti e' una radio che ti fa alzare dal tavolo.
   _audio.addEventListener('ended', ()=> avanti(1));
-  _audio.addEventListener('playing', ()=>{ _stato = 'suona'; scrivi(); });
+  _audio.addEventListener('playing', ()=>{
+    if(_motoreDaAvviare){ _motoreDaAvviare = false; meccanica('play'); }
+    _stato = 'suona'; scrivi();
+  });
   _audio.addEventListener('pause', ()=>{ if(_stato === 'suona'){ _stato = 'pausa'; scrivi(); } });
   _audio.addEventListener('error', ()=>{ _stato = 'errore'; scrivi(); });
   return _audio;
@@ -180,9 +223,13 @@ export function montaRadio(){
   if(!corpo) return;
   _montata = true;
   el('radio-onoff').addEventListener('click', async ()=>{
-    haptic('tap');
-    if(_stato === 'suona') return pausa();
-    if(_stato === 'pausa') return suona();
+    vibra();
+    if(_stato === 'suona'){ meccanica('stop'); return pausa(); }
+    if(_stato === 'pausa'){ meccanica('play'); return suona(); }
+    // Dalla prima accensione: la cassetta entra adesso, il motore partira'
+    // quando arriva la musica.
+    meccanica('cassetta');
+    _motoreDaAvviare = true;
     // SCOLLEGATA: il rinnovo silenzioso non e' bastato, quindi si apre la
     // pagina di Google. Solo qui e solo su tocco: e' il gesto con cui si e'
     // detto "si', collegalo".
@@ -195,8 +242,8 @@ export function montaRadio(){
        || _stato === 'scollegata') _brani = [];
     accendi();
   });
-  el('radio-prec').addEventListener('click', ()=>{ haptic('tap'); avanti(-1); });
-  el('radio-succ').addEventListener('click', ()=>{ haptic('tap'); avanti(1); });
+  el('radio-prec').addEventListener('click', ()=>{ vibra(); meccanica('tasto'); avanti(-1); });
+  el('radio-succ').addEventListener('click', ()=>{ vibra(); meccanica('tasto'); avanti(1); });
   scrivi();
 }
 // Per le prove: forza uno stato e ridisegna il vetrino, per controllare che
