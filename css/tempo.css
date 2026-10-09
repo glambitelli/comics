@@ -372,7 +372,7 @@ body.scena-open .tempo-capsula{display:none}
 #screen-home .tempo-quadrante.casio{
   --w:118px;
   position:absolute;left:50%;top:50%;width:var(--w);height:auto;aspect-ratio:330/1199;
-  transform:translate(-48.7%,-47.2%) rotate(28deg);
+  transform:translate(-48.7%,-47.2%) rotate(var(--giro,28deg));
   background:url(../img/scrivania/timer.webp) center/100% 100% no-repeat;
   border-radius:0;box-shadow:none;display:block;padding:0;
   pointer-events:none;
@@ -380,7 +380,16 @@ body.scena-open .tempo-capsula{display:none}
 }
 /* Il rimpicciolimento al tocco del cronometro qui sposterebbe tutto
    l'orologio: a scendere e' il tasto, non il polso. */
-.tempo-quadrante.casio:active{transform:translate(-48.7%,-47.2%) rotate(28deg)}
+.tempo-quadrante.casio:active{transform:translate(-48.7%,-47.2%) rotate(var(--giro,28deg))}
+/* SUL TELEFONO PIU' DRITTO E PIU' A SINISTRA. Inclinato di 28 gradi il
+   tasto START finiva quasi sul bordo destro dello schermo, scomodo da
+   prendere col pollice (Giovanni, 9 ottobre 2026). A 5 gradi e spostato
+   di 28px verso il centro, il tasto START sta a una quarantina di pixel dal
+   bordo, e la cassa resta staccata dal biglietto di una ventina di pixel:
+   spostato di piu' ci arrivava a dieci, cioe' una tangente. */
+@media (max-width:520px){
+  .tempo-quadrante.casio,.tempo-quadrante.casio.corre,#screen-home .tempo-quadrante.casio{--giro:5deg;margin-left:-28px}
+}
 .tempo-quadrante.casio.carica::after{display:none}
 .casio-cassa{
   position:absolute;left:0;top:38.1%;width:98.6%;height:18.2%;
