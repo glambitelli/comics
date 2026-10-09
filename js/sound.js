@@ -324,6 +324,12 @@ function emit(key){
 // errore. Suona al pointerdown, cioe' quando il dito scende: e' li' che un
 // tasto di macchina da scrivere fa rumore, non quando lo lasci.
 const COLPI = ['./sfx/macchina/tasto1.mp3', './sfx/macchina/tasto2.mp3', './sfx/macchina/tasto3.mp3'];
+// IL VOLUME DI OGNI COLPO, misurato: tasto1 ha un volume medio di -24 dB,
+// tasto2 e tasto3 di -12,7 — quattro volte piu' forti. Al 70% per tutti,
+// come all'inizio, due colpi su tre "stonavano l'orecchio" (Giovanni, 9
+// ottobre 2026). Qui si pareggiano e si abbassano tutti: finiscono attorno ai
+// -31 dB, sotto il tic del menu, perche' un tasto si preme spesso.
+const VOLUMI = [0.45, 0.12, 0.12];
 const _colpi = COLPI.map(()=> null);
 let _colpiMancano = false;
 function colpoDiMacchina(){
@@ -336,10 +342,15 @@ function colpoDiMacchina(){
   try{
     let a = _colpi[i];
     if(!a){
-      a = _colpi[i] = new Audio(COLPI[i]); a.preload = 'auto'; a.volume = .7;
+      a = _colpi[i] = new Audio(COLPI[i]); a.preload = 'auto'; a.volume = VOLUMI[i];
       a.addEventListener('error', ()=>{ _colpiMancano = true; }, { once:true });
     }
     a.currentTime = 0;
+    // E OGNI COLPO UN FILO DIVERSO: tre file sono pochi, e a tasti premuti di
+    // fila si riconoscevano. Una velocita' che varia del 6% in su o in giu'
+    // cambia anche il tono, come due tasti veri che non suonano mai uguali.
+    a.preservesPitch = false; a.mozPreservesPitch = false; a.webkitPreservesPitch = false;
+    a.playbackRate = 0.94 + Math.random() * 0.12;
     const p = a.play();
     if(p && p.catch) p.catch(()=>{ _colpiMancano = true; emit('tap'); });
   }catch(e){ emit('tap'); }
