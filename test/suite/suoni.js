@@ -301,19 +301,29 @@ module.exports = () => suite("Suoni — un tocco, un suono", {"banco": "/test/ba
 
 
   console.log('\n── un tasto della barra-macchina da scrivere ──');
-  // I tasti della barra sono una macchina da scrivere e suonano il colpo di
-  // un tasto (sfx/macchina/, li carica Giovanni). Finche' i file non ci sono
-  // suona il tic normale: UNA volta, anche se l'azione chiama haptic('tap').
-  await page.evaluate(()=>{
+  // I tasti della barra sono una macchina da scrivere: suonano uno dei tre
+  // colpi in sfx/macchina/ (caricati da Giovanni il 9 ottobre 2026), UNO per
+  // tocco, e niente tic del menu sopra — anche se l'azione chiama
+  // haptic('tap'). Si guarda quali file partono intercettando play().
+  const tw = await page.evaluate(async ()=>{
     const fila = document.createElement('div'); fila.className = 'dune-nav-items';
     const b = document.createElement('button'); b.className = 'dune-btn'; b.id = 'tw1';
     b.onclick = ()=> window.playSfx('tap');
     fila.appendChild(b); document.body.appendChild(fila);
+    const colpi = [];
+    const vero = HTMLMediaElement.prototype.play;
+    HTMLMediaElement.prototype.play = function(){
+      if(/sfx\/macchina\//.test(this.src || '')) colpi.push(this.src.split('/').pop());
+      return vero.call(this);
+    };
     window.azzera();
+    for(let k = 0; k < 2; k++){
+      await window.tocca('#tw1', null, 30);
+      await new Promise(r=> setTimeout(r, 700));
+    }
+    HTMLMediaElement.prototype.play = vero;
+    return { colpi, tic: window.__suoni.length };
   });
-  await page.evaluate(()=> window.tocca('#tw1', null, 30));
-  await page.waitForTimeout(900);
-  await page.evaluate(()=> window.tocca('#tw1', null, 30));
-  const tw = await conta();
-  ok('senza i colpi di macchina, ogni tasto suona una volta sola col tic', tw.length === 2, tw);
+  ok('ogni tasto della barra fa un colpo di macchina da scrivere, e niente tic del menu',
+     tw.colpi.length === 2 && tw.colpi.every(c=> /^tasto[123]\.mp3$/.test(c)) && tw.tic === 0, tw);
 });
