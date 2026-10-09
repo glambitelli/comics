@@ -454,3 +454,27 @@ body.luce-spenta .scriv-luce{filter:brightness(.5) saturate(.8)}
      biglietto e' quello su cui si appoggia il walkman (vedi radio.css). */
   .scriv-biglietto em{display:table;margin-left:auto}
 }
+
+/* ── LA POLAROID DI MAX ──
+   Nell'angolo in alto a destra della scrivania, storta di 12 gradi, con un
+   terzo fuori dallo schermo: si vede che c'e' e chi e', non deve stare tutta
+   in vista (Giovanni, 9 ottobre 2026). Sta SOPRA la mappa: sul telefono il
+   suo angolo ci si appoggia, e da sotto la carta copriva la scritta "Max".
+   Non riceve tocchi, quindi non ruba niente al tavolo ne' all'intestazione; e si spegne con la lampada come il resto del
+   tavolo. Non riceve tocchi: sotto, sul telefono, c'e' l'intestazione.
+   Sul telefono e' piu' piccola e piu' fuori: il suo angolo e' lo spazio vuoto
+   accanto al titolo, e non deve arrivare fino alla mappa. */
+.scriv-polaroid{
+  position:absolute;z-index:3;pointer-events:none;
+  top:-6px;right:-40px;width:168px;aspect-ratio:300/370;
+  background:url(../img/scrivania/polaroid.webp) center/100% 100% no-repeat;
+  transform:rotate(12deg);
+  filter:drop-shadow(0 2px 2px rgba(0,0,0,.4)) drop-shadow(0 12px 18px rgba(0,0,0,.35));
+  transition:filter .45s ease;
+}
+body.luce-spenta .scriv-polaroid{
+  filter:brightness(.4) saturate(.82) drop-shadow(0 2px 2px rgba(0,0,0,.4));
+}
+@media (max-width:520px){
+  .scriv-polaroid{width:118px;top:-2px;right:-28px;transform:rotate(14deg)}
+}
