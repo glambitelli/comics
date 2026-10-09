@@ -732,13 +732,25 @@ function transizioneNotte(azione){
   if(!velo || ridotto || _veloInCorso){ azione(); return; }
   _veloInCorso = true;
   velo.classList.add('acceso');
-  setTimeout(()=>{
+  // Si scambia quando la tenda e' DAVVERO opaca (transitionend), non dopo
+  // VELO_MS a orologio: il timer partiva insieme alla classe, ma la
+  // transizione parte solo al fotogramma dopo, quindi a 200ms la tenda era
+  // ancora all'86% — e con la home piu' pesante (il foglio giallo con le sue
+  // ombre) lo scambio si intravedeva. Il timer resta come paracadute, con
+  // margine, se transitionend non arrivasse (scheda in background, ecc.).
+  let fatto = false;
+  const scambia = ()=>{
+    if(fatto) return; fatto = true;
+    velo.removeEventListener('transitionend', suFine);
     azione();
     requestAnimationFrame(()=> requestAnimationFrame(()=>{
       velo.classList.remove('acceso');
       _veloInCorso = false;
     }));
-  }, VELO_MS);
+  };
+  const suFine = e=>{ if(e.target === velo && e.propertyName === 'opacity') scambia(); };
+  velo.addEventListener('transitionend', suFine);
+  setTimeout(scambia, VELO_MS + 150);
 }
 
 const _backOrHome = ()=>{

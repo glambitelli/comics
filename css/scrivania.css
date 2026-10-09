@@ -510,3 +510,52 @@ body.luce-spenta .scriv-polaroid{
   .scriv-polaroid{width:118px;top:4px;right:-34px;transform:rotate(-10deg)}
 }
 
+
+/* ── LA FRASE DEL GIORNO SU UN FOGLIO GIALLO STRAPPATO (9 ottobre 2026) ──
+   Prima era un cartiglio color crema incollato sotto la mappa, con i bordi
+   quasi allineati a quelli della mappa: una "bad tangent", e un rettangolo
+   di carta finto in mezzo a oggetti fotografati. Adesso e' un pezzo di
+   blocco giallo strappato (foto di Giovanni, Firefly), con l'intestazione
+   tagliata dallo strappo, l'alone di caffe' e un omino disegnato in un
+   angolo: un foglio riusato per scriverci la frase.
+   LA COMPOSIZIONE, approvata su mockup (variante 1): il foglio sale sul
+   bordo della mappa e il suo angolo in alto a sinistra ESCE dalla mappa,
+   storto di -3 gradi; il biglietto "Stasera" gli si appoggia sopra, storto
+   di +3, e ne copre la parte bassa, dove sul foglio non c'e' scritto niente.
+   Inclinazioni opposte: i bordi dei due fogli non corrono mai paralleli.
+   LA FRASE STA SULLE RIGHE, a destra del margine rosso: le misure vengono
+   dalla foto — margine al 16,5% della larghezza, prima riga al 20%, righe
+   ogni 8,55% della larghezza — e sono legate a --lw, la larghezza del
+   foglio, cosi' cambiandola si ridimensiona tutto insieme. */
+.scriv-legenda{
+  --lw:250px;
+  width:var(--lw);max-width:none;aspect-ratio:560/503;box-sizing:border-box;
+  margin:-38px 0 0 -24px;
+  padding:calc(var(--lw)*.2) calc(var(--lw)*.06) 0 calc(var(--lw)*.165);
+  background:url(../img/scrivania/frase.webp) center/100% 100% no-repeat;box-shadow:none;
+  transform:rotate(-3deg);
+  filter:drop-shadow(0 1px 1px rgba(0,0,0,.4)) drop-shadow(1px 4px 5px rgba(0,0,0,.3));
+  display:block;
+}
+.scriv-legenda .cit{
+  font-size:calc(var(--lw)*.044);line-height:calc(var(--lw)*.0855);color:#2c2620;
+}
+.scriv-legenda .aut{margin-top:calc(var(--lw)*.01);font-size:calc(var(--lw)*.048)}
+/* Il foglio della mappa non ha piu' carta sotto la cartina: il foglio giallo
+   ci sborda sopra. */
+.scriv-foglio{padding-bottom:7px}
+/* Con la frase il biglietto scende sul foglio giallo e ne copre il fondo. */
+.scriv-tavolo.con-frase .scriv-biglietto{margin-top:-16px;margin-left:10%;transform:rotate(3deg)}
+@media (max-width:520px){
+  .scriv-legenda{--lw:214px;margin:-34px 0 0 -22px;padding:calc(var(--lw)*.2) calc(var(--lw)*.06) 0 calc(var(--lw)*.165)}
+  .scriv-legenda .cit{line-height:calc(var(--lw)*.0855)}
+  .scriv-legenda .aut{margin-top:calc(var(--lw)*.01)}
+  .scriv-tavolo.con-frase .scriv-biglietto{margin-top:-12px;margin-left:9%;transform:rotate(3deg)}
+}
+/* SUL COMPUTER IL WALKMAN SALE ACCANTO AL BIGLIETTO. Col foglio giallo il
+   tavolo si e' allungato, e su uno schermo da portatile (1280x860) il
+   walkman finiva sotto la barra in fondo. Accanto al biglietto c'e' legno
+   vuoto fra il biglietto e l'orologio: ci sta, un filo storto. */
+@media (min-width:521px){
+  .scriv-tavolo.con-frase .radio{margin:-196px 0 0 47%;transform:rotate(5deg)}
+}

@@ -298,8 +298,13 @@ export function travasaLaFrase(){
   const dove = document.getElementById('scriv-legenda');
   if(!sorgente || !dove) return;
   const righe = sorgente.querySelectorAll('div');
-  if(righe.length < 2){ dove.hidden = true; return; }
+  // Il tavolo sa se c'e' la frase: con la frase il biglietto scende e copre
+  // la parte bassa del foglio giallo; senza, torna dov'era (vedi
+  // .scriv-tavolo.con-frase in scrivania.css).
+  const tavolo = dove.closest('.scriv-tavolo');
+  if(righe.length < 2){ dove.hidden = true; if(tavolo) tavolo.classList.remove('con-frase'); return; }
   dove.hidden = false;
+  if(tavolo) tavolo.classList.add('con-frase');
   dove.innerHTML = `<div class="cit">${esc(righe[0].textContent)}</div>`
                  + `<div class="aut">${esc(righe[1].textContent)}</div>`;
 }
