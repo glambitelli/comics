@@ -1149,8 +1149,32 @@ function strisciaDati(c, W, y, h, misure){
   });
 }
 
-function disegnaSuTela(){
+// ── UN'IMMAGINE CHE LA TELA PUO' ESPORTARE ──
+// I frammenti dell'archivio arrivano da Cloudinary, cioe' da un altro
+// dominio, e la galleria li mostra con un <img> normale. Disegnato su una
+// tela, un'immagine cosi' la "sporca": il disegno riesce, ma toBlob rifiuta
+// di esportarla per sicurezza, e il salvataggio finiva in "Non riuscito"
+// (Giovanni, 9 ottobre 2026, prospettiva su una foto di Hands). Il lettore
+// degli albi non aveva il problema perche' le sue pagine sono Blob locali.
+// Quindi, per il solo disegno da salvare, l'immagine si scarica di nuovo
+// chiedendola "in chiaro" (CORS: Cloudinary lo permette) e si disegna quella.
+// L'<img> a schermo resta la stessa: serve a misurare dove sono le linee.
+async function sorgentePulita(){
+  const src = _img.currentSrc || _img.src || '';
+  let altro = false;
+  try{ altro = /^https?:/.test(src) && new URL(src).origin !== location.origin; }catch(e){}
+  if(!altro) return _img;
+  try{
+    const blob = await fetch(src, { mode:'cors', cache:'no-store' }).then(r=>{
+      if(!r.ok) throw new Error('http ' + r.status); return r.blob();
+    });
+    return await createImageBitmap(blob);
+  }catch(e){ return _img; }
+}
+
+function disegnaSuTela(sorgente){
   if(!_img || !_img.naturalWidth) return null;
+  const quadro = sorgente || _img;
   const A = areaDaSalvare();
   const riq = cornice();
   const NW = _img.naturalWidth, NH = _img.naturalHeight;
@@ -1184,7 +1208,7 @@ function disegnaSuTela(){
   if(sx1 > sx0 && sy1 > sy0){
     const dx = (sx0 - ax) * k, dy = (sy0 - ay) * k;
     const dw = (sx1 - sx0) * k, dh = (sy1 - sy0) * k;
-    c.drawImage(_img, sx0, sy0, sx1 - sx0, sy1 - sy0, dx, dy, dw, dh);
+    c.drawImage(quadro, sx0, sy0, sx1 - sx0, sy1 - sy0, dx, dy, dw, dh);
     // LA CARTA DA LUCIDO, e va SOLO sopra il disegno — non sul fondo del
     // tavolo intorno, che non ha niente da mandare indietro.
     c.globalAlpha = LUCIDO_OP;
@@ -1299,7 +1323,7 @@ async function salva(){
   // accorga fino a quando non lo si riapre fra un mese.
   try{ await document.fonts.load('800 40px Nunito'); }catch(e){}
   const misure = misureStudio();
-  const fatto = disegnaSuTela();
+  const fatto = disegnaSuTela(await sorgentePulita());
   if(!misure || !fatto) return;
   _salvando = true;
   const btn = _ov.querySelector('.prosp-salva');

@@ -748,6 +748,38 @@ module.exports = () => suite("Prospettiva — il righello per leggere l'orizzont
      && facciaSalva.riaperto.nome === 'Salva', facciaSalva.riaperto);
 
 
+  sezione('e si salva anche lo studio di una foto dell\'archivio');
+  // LE FOTO DELL'ARCHIVIO VENGONO DA UN ALTRO DOMINIO (Cloudinary), e una
+  // tela che ne disegna una senza permesso non si lascia piu' esportare:
+  // salvando lo studio di una foto di Hands usciva "Non riuscito" (Giovanni,
+  // 9 ottobre 2026). Qui la foto arriva da un indirizzo finto di Cloudinary
+  // che, come quello vero, dice "si', puoi leggermi" (CORS).
+  const PNG = 'iVBORw0KGgoAAAANSUhEUgAAAHgAAABaCAIAAAD8YgW4AAAA30lEQVR4nO3QQREAIRDAsOP8i10JqKA8SBR0umbm47z/dsArjI4YHTE6YnTE6IjREaMjRkeMjhgdMTpidMToiNERoyNGR4yOGB0xOmJ0xOiI0RGjI0ZHjI4YHTE6YnTE6IjREaMjRkeMjhgdMTpidMToiNERoyNGR4yOGB0xOmJ0xOiI0RGjI0ZHjI4YHTE6YnTE6IjREaMjRkeMjhgdMTpidMToiNERoyNGR4yOGB0xOmJ0xOiI0RGjI0ZHjI4YHTE6YnTE6IjREaMjRkeMjhgdMTpidMToiNERoyNGRzYhPAOEM/ZccQAAAABJRU5ErkJggg==';
+  await page.route('https://res.cloudinary.com/prova/**', r=> r.fulfill({
+    status:200, contentType:'image/png', body: Buffer.from(PNG, 'base64'),
+    headers:{ 'Access-Control-Allow-Origin':'*' } }));
+  const daFuori = await page.evaluate(async ()=>{
+    const P = window.P;
+    const im = document.createElement('img');
+    im.src = 'https://res.cloudinary.com/prova/hands.png';
+    im.style.cssText = 'position:fixed;left:0;top:0;width:600px';
+    document.body.appendChild(im); await im.decode();
+    let blob = null;
+    P.chiudiProspettiva();
+    P.apriProspettiva(im, { salva: async (x)=>{ blob = x.blob; } });
+    P.__perLeProveTraccia({ a:{x:0.15,y:0.75}, b:{x:0.55,y:0.35} });
+    P.__perLeProveTraccia({ a:{x:0.85,y:0.75}, b:{x:0.62,y:0.35} });
+    await new Promise(r=> setTimeout(r, 80));
+    const btn = document.querySelector('#prospettiva .prosp-salva');
+    btn.dispatchEvent(new MouseEvent('click',{bubbles:true}));
+    await new Promise(r=> setTimeout(r, 900));
+    const nome = btn.getAttribute('aria-label');
+    P.chiudiProspettiva(); im.remove();
+    return { salvato: !!blob && blob.size > 0, nome };
+  });
+  ok('lo studio di una foto che arriva da Cloudinary si salva, non finisce in "Non riuscito"',
+     daFuori.salvato && daFuori.nome !== 'Non riuscito', daFuori);
+
   sezione('e dal lettore ci si arriva col pulsante, sulla tavola che si sta guardando');
   // Fin qui lo strumento e' stato aperto a mano. Qui si apre come lo apre
   // Giovanni: un albo vero, il pulsante in barra, e la tavola sotto gli occhi.

@@ -381,14 +381,14 @@ body.scena-open .tempo-capsula{display:none}
 /* Il rimpicciolimento al tocco del cronometro qui sposterebbe tutto
    l'orologio: a scendere e' il tasto, non il polso. */
 .tempo-quadrante.casio:active{transform:translate(-48.7%,-47.2%) rotate(var(--giro,28deg))}
-/* SUL TELEFONO PIU' DRITTO E PIU' A SINISTRA. Inclinato di 28 gradi il
-   tasto START finiva quasi sul bordo destro dello schermo, scomodo da
-   prendere col pollice (Giovanni, 9 ottobre 2026). A 5 gradi e spostato
-   di 28px verso il centro, il tasto START sta a una quarantina di pixel dal
-   bordo, e la cassa resta staccata dal biglietto di una ventina di pixel:
-   spostato di piu' ci arrivava a dieci, cioe' una tangente. */
+/* SUL TELEFONO UN PO' MENO STORTO E UN PO' PIU' A SINISTRA. A 28 gradi il
+   tasto START finiva sul bordo destro dello schermo, scomodo col pollice
+   (Giovanni, 9 ottobre 2026). Raddrizzato fino a 5 gradi era troppo: dritto,
+   l'orologio sembrava messo li' apposta. A 21 gradi e 22px verso il centro
+   il cinturino esce ancora un poco dal bordo in alto, come deve, e il tasto
+   sta dentro lo schermo. La cassa resta ben staccata dal biglietto. */
 @media (max-width:520px){
-  .tempo-quadrante.casio,.tempo-quadrante.casio.corre,#screen-home .tempo-quadrante.casio{--giro:5deg;margin-left:-28px}
+  .tempo-quadrante.casio,.tempo-quadrante.casio.corre,#screen-home .tempo-quadrante.casio{--giro:21deg;margin-left:-22px}
 }
 .tempo-quadrante.casio.carica::after{display:none}
 .casio-cassa{
