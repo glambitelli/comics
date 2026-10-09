@@ -339,18 +339,30 @@ html body .home-fab-row > .home-fab{
 .dune-nav-items > .dune-btn:nth-child(5),html body .home-fab-row > .home-fab:nth-child(5){left:86.3%}
 .dune-nav-items > .dune-btn:active,
 html body .home-fab-row > .home-fab:active{transform:translate(-50%,-50%) scale(.88)}
-/* IL TASTO DELLA CASA e' la foto: tasto tondo cromato con la casa stampata.
-   Il glifo disegnato non serve piu'. Premuto rientra nel foro: si
-   rimpicciolisce e si scurisce. */
-.dune-nav-items > .dune-btn-home,
-html body .home-fab-row > #btn-home{
-  width:10.4%;
-  background:url(../img/scrivania/tasto-casa.webp) center/100% 100% no-repeat;
+/* I CINQUE TASTI SONO FOTO: tasto tondo cromato con il simbolo stampato in
+   vernice avorio, come le lettere delle macchine da scrivere. La casa e'
+   arrivata per prima, gli altri quattro lo stesso giorno (9 ottobre 2026).
+   I glifi disegnati non servono piu'. Premuto, il tasto rientra nel foro: si
+   rimpicciolisce e si scurisce.
+   DI SERA il tasto della luna resta la luna: prima il tondo nero mostrava un
+   sole per dire "torna al giorno", ma su un tasto di metallo stampato il
+   simbolo non cambia, e la luna dice comunque quale tasto e'. */
+.dune-nav-items > .dune-btn,
+html body .home-fab-row > .home-fab{
+  background:center/100% 100% no-repeat;background-color:transparent;
   border:0;border-radius:50%;box-shadow:0 1px 2px rgba(0,0,0,.6);
+  font-size:0;color:transparent;
   transition:transform .07s ease,filter .07s ease;
 }
-.dune-nav-items > .dune-btn-home svg,
-html body .home-fab-row > #btn-home svg{display:none}
-.dune-nav-items > .dune-btn-home:active,
-html body .home-fab-row > #btn-home:active{filter:brightness(.78)}
-body.evening-mode.is-touch .dune-nav-items > .dune-btn-home{background-color:transparent;border:0}
+.dune-nav-items > .dune-btn:nth-child(3),
+html body .home-fab-row > .home-fab:nth-child(3){width:10.4%}
+.dune-nav-items > .dune-btn:nth-child(1),html body .home-fab-row > .home-fab:nth-child(1){background-image:url(../img/scrivania/tasto-sera.webp)}
+.dune-nav-items > .dune-btn:nth-child(2),html body .home-fab-row > .home-fab:nth-child(2){background-image:url(../img/scrivania/tasto-archivio.webp)}
+.dune-nav-items > .dune-btn:nth-child(3),html body .home-fab-row > .home-fab:nth-child(3){background-image:url(../img/scrivania/tasto-casa.webp)}
+.dune-nav-items > .dune-btn:nth-child(4),html body .home-fab-row > .home-fab:nth-child(4){background-image:url(../img/scrivania/tasto-progetti.webp)}
+.dune-nav-items > .dune-btn:nth-child(5),html body .home-fab-row > .home-fab:nth-child(5){background-image:url(../img/scrivania/tasto-impostazioni.webp)}
+.dune-nav-items > .dune-btn > *,
+html body .home-fab-row > .home-fab > *{display:none !important}
+.dune-nav-items > .dune-btn:active,
+html body .home-fab-row > .home-fab:active{filter:brightness(.78)}
+body.evening-mode.is-touch .dune-nav-items > .dune-btn{background-color:transparent;border:0;box-shadow:0 1px 2px rgba(0,0,0,.6)}
