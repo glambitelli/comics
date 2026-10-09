@@ -214,6 +214,9 @@ function isInteractive(el){
   // I tasti del walkman hanno i loro rumori di meccanismo (vedi radio.js):
   // il tic del menu sopra il clac del tasto sarebbe un suono di troppo.
   if(el.closest('.radio-tasti')) return false;
+  // E lo stesso i tasti della barra, che sono una macchina da scrivere e
+  // suonano come tale (vedi colpoDiMacchina qui sotto).
+  if(el.closest('.dune-nav-items, .home-fab-row')) return false;
   return !!el.closest('button, a[href], [role="button"], [onclick], .refs-thumb, .album-card, .refs-folder-row, .step-item, .project-card');
 }
 // Suona al RILASCIO (non al tocco): appoggiare il dito su un elemento
@@ -310,3 +313,38 @@ function emit(key){
   if(_buffers[key]) play();
   else preload().then(play);   // primo suono prima del precarico: aspetta e poi parte
 }
+
+// ── LA MACCHINA DA SCRIVERE ──
+// Dal 9 ottobre 2026 la barra in fondo e' la tastiera di una macchina da
+// scrivere (vedi layout.css), e i suoi tasti fanno il colpo di un tasto
+// vero. Tre registrazioni, una a caso per tocco: lo stesso identico colpo
+// ripetuto suona finto alla seconda volta.
+// I file li carica Giovanni in sfx/macchina/ (vedi il LEGGIMI li'). Se
+// mancano, il tasto fa il suono normale dei tocchi: e' il ripiego, non un
+// errore. Suona al pointerdown, cioe' quando il dito scende: e' li' che un
+// tasto di macchina da scrivere fa rumore, non quando lo lasci.
+const COLPI = ['./sfx/macchina/tasto1.mp3', './sfx/macchina/tasto2.mp3', './sfx/macchina/tasto3.mp3'];
+const _colpi = COLPI.map(()=> null);
+let _colpiMancano = false;
+function colpoDiMacchina(){
+  if(!isSoundEnabled()) return;
+  // Questo gesto ha gia' il suo suono: il tic che l'azione del tasto
+  // chiederebbe dopo (un haptic('tap') nell'onclick) non deve sommarsi.
+  _soundedGesture = _gesture;
+  if(_colpiMancano){ emit('tap'); return; }
+  const i = Math.floor(Math.random() * COLPI.length);
+  try{
+    let a = _colpi[i];
+    if(!a){
+      a = _colpi[i] = new Audio(COLPI[i]); a.preload = 'auto'; a.volume = .7;
+      a.addEventListener('error', ()=>{ _colpiMancano = true; }, { once:true });
+    }
+    a.currentTime = 0;
+    const p = a.play();
+    if(p && p.catch) p.catch(()=>{ _colpiMancano = true; emit('tap'); });
+  }catch(e){ emit('tap'); }
+}
+document.addEventListener('pointerdown', e=>{
+  const t = e.target;
+  if(t && t.closest && t.closest('.dune-nav-items > .dune-btn, .home-fab-row > .home-fab')) colpoDiMacchina();
+}, { passive:true });

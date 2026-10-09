@@ -299,4 +299,21 @@ module.exports = () => suite("Suoni — un tocco, un suono", {"banco": "/test/ba
   ok('un nome riconosciuto si prende il suo posto anche in mezzo agli altri',
      nomi.misto.cancel === 'cancel.wav' && nomi.misto.tap === 'boh.wav', nomi);
 
+
+  console.log('\n── un tasto della barra-macchina da scrivere ──');
+  // I tasti della barra sono una macchina da scrivere e suonano il colpo di
+  // un tasto (sfx/macchina/, li carica Giovanni). Finche' i file non ci sono
+  // suona il tic normale: UNA volta, anche se l'azione chiama haptic('tap').
+  await page.evaluate(()=>{
+    const fila = document.createElement('div'); fila.className = 'dune-nav-items';
+    const b = document.createElement('button'); b.className = 'dune-btn'; b.id = 'tw1';
+    b.onclick = ()=> window.playSfx('tap');
+    fila.appendChild(b); document.body.appendChild(fila);
+    window.azzera();
+  });
+  await page.evaluate(()=> window.tocca('#tw1', null, 30));
+  await page.waitForTimeout(900);
+  await page.evaluate(()=> window.tocca('#tw1', null, 30));
+  const tw = await conta();
+  ok('senza i colpi di macchina, ogni tasto suona una volta sola col tic', tw.length === 2, tw);
 });
