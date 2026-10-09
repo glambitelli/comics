@@ -406,7 +406,13 @@ function disegnaDrive(){
   const nota = document.getElementById('drive-nota');
   if(!stato || !btn) return;
   const d = _driveMod;
-  if(!d || !d.isDriveConfigured()){
+  // MODULO NON ANCORA CARICATO non vuol dire "non configurato". La riga
+  // dell'account ridisegna anche questa, e a volte arrivava prima che
+  // drive.js fosse in memoria: scriveva "Non configurato" sopra una riga
+  // gia' giusta (le prove lo prendevano una volta su tre). Si carica e si
+  // ridisegna quando c'e'.
+  if(!d){ mostraDrive(); return; }
+  if(!d.isDriveConfigured()){
     stato.textContent = 'Non configurato';
     btn.hidden = true;
     if(nota){ nota.textContent = 'Non ancora configurato per questa app.'; nota.className = 'settings-note'; }

@@ -315,6 +315,11 @@ module.exports = () => suite("Backup — l'archivio esce da qui, e ci rientra", 
   // Collegato con un indirizzo DIVERSO da quello di Inkflow: e' il caso per
   // cui esiste tutta questa distinzione — un archivio tenuto altrove.
   const diverso = await page.evaluate(async ()=>{
+    // Si butta prima il token che drive.js tiene in memoria: se una parte
+    // dell'app ne aveva gia' preso uno (senza mail), drive.js crederebbe a
+    // quello e non a quello scritto qui, e la prova falliva una volta su
+    // dieci a seconda di chi arrivava prima.
+    (await import('/js/drive.js')).disconnectDrive();
     localStorage.setItem('inkflow-drive-token', JSON.stringify({
       access_token:'finto', expiresAt: Date.now() + 3600000, email:'archivio.albi@gmail.com' }));
     const m = await import('/js/settings.js');
