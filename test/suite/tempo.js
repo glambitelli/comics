@@ -694,97 +694,51 @@ module.exports = () => suite("Il tempo al tavolo — le ore non si perdono",
      && giro.dueOre <= giro.treOre && giro.treOre <= giro.ottoOre, giro);
   ok('e senza un cronometro acceso non si rompe', giro.niente === 0, giro);
 
-  sezione('e il quadrante ha di che dirlo, senza piu\' una parola scritta');
-  // Il markup qui e' quello vero, importato da index.html dal banco: se
-  // domani il quadrante cambia li', questa prova lo segue.
+  sezione('e il timer da polso ha di che dirlo, senza una parola scritta');
+  // DAL 9 OTTOBRE 2026 il comando non e' piu' il cronometro tondo con le tre
+  // corone di tacche e l'arco d'oro: e' un timer digitale-analogico anni
+  // Novanta, una foto appoggiata storta sul tavolo, scelta da Giovanni. Le
+  // prove sulle tacche, sull'arco e sul vetro sono state tolte con lui;
+  // restano quelle sulle cose che il timer deve ancora fare.
+  // Il markup qui e' quello vero, importato da index.html dal banco.
   const quadrante = await page.evaluate(()=>{
     const b = document.getElementById('tempo-avvia');
-    const arco = document.getElementById('tempo-arco');
+    const cassa = b && b.querySelector('.casio-cassa');
+    const l = document.getElementById('tempo-lancetta');
     return {
-      tondo: !!b && b.classList.contains('tempo-quadrante'),
-      // L'arco si comanda in centesimi di giro: senza pathLength il conto
-      // dipenderebbe dal diametro, e cambiarlo nel CSS lo sfaserebbe.
-      inCentesimi: arco && arco.getAttribute('pathLength') === '100',
-      parteDaMezzogiorno: arco && /rotate\(-90/.test(arco.getAttribute('transform') || ''),
-      // LE TRE CORONE. Si contano i segmenti dentro ogni <path>: sono scritti
-      // come "M x yL x y" ripetuti, quindi le M sono le tacche.
-      segni: (()=>{
-        const conta = sel=>{
-          const e = document.querySelector('#tempo-avvia ' + sel);
-          return e ? (e.getAttribute('d').match(/M/g) || []).length : 0;
-        };
-        return { fini: conta('.tempo-fini'), medi: conta('.tempo-medi'), forti: conta('.tempo-forti') };
+      timer: !!b && b.classList.contains('tempo-quadrante') && b.classList.contains('casio'),
+      // Si tocca la cassa, non il cinturino: il bottone e' tutto l'orologio
+      // ma non riceve tocchi, la cassa si'.
+      bottoneSordo: b ? getComputedStyle(b).pointerEvents : null,
+      cassaPremibile: cassa ? getComputedStyle(cassa).pointerEvents : null,
+      lancetta: !!l,
+      // Da ferma la lancetta sta sullo 0, in basso: 180 gradi.
+      lancettaSuZero: (()=>{
+        if(!l) return false;
+        const t = l.style.transform || getComputedStyle(l).transform;
+        return /rotate\(180(\.0+)?deg\)/.test(t) || /matrix\(-1, ?(1\.22465e-16|0), ?(-1\.22465e-16|-?0), ?-1/.test(t);
       })(),
       cifre: !!document.getElementById('tempo-cifre'),
-      // A cronometro spento le cifre dicono gia' 00:00: sta nel markup, perche'
-      // da fermo disegnaTempo non gira nemmeno una volta.
       cifreDaFermo: (document.getElementById('tempo-cifre')||{}).textContent,
-      // LA LANCETTA: da ferma punta a mezzogiorno, cioe' non ha nessuna
-      // rotazione addosso.
-      lancetta: !!document.getElementById('tempo-lancetta'),
-      lancettaFerma: (()=>{
-        const g = document.getElementById('tempo-lancetta');
-        const t = g && g.getAttribute('transform');
-        return !t || /rotate\(0(\.0+)? /.test(t);
-      })(),
-      // E ha un contrappeso: la punta sta sopra il centro, la coda sotto.
-      contrappeso: (()=>{
-        const l = document.querySelector('#tempo-avvia .tempo-ago');
-        if(!l) return null;
-        return +l.getAttribute('y1') > 50 && +l.getAttribute('y2') < 50;
-      })(),
-      // E niente piu' orologino disegnato al centro.
-      senzaOrologino: !document.querySelector('#tempo-avvia svg.tempo-lancetta'),
-      // IL VETRO DEVE STARE PER ULTIMO. Se finisse prima delle cifre o del
-      // disco la luce ci passerebbe dietro invece che davanti, e non
-      // sbiancherebbe piu' niente: sarebbe di nuovo il primo tentativo,
-      // quello scartato perche' troppo timido.
-      vetroPerUltimo: (()=>{
-        const b = document.getElementById('tempo-avvia');
-        const ultimo = b && b.lastElementChild;
-        return !!(ultimo && ultimo.classList.contains('tempo-vetro'));
-      })(),
-      // E non deve rubare i tocchi: copre tutto il bottone.
-      vetroTrasparenteAlDito: (()=>{
-        const v = document.querySelector('#tempo-avvia .tempo-vetro');
-        return v ? getComputedStyle(v).pointerEvents : null;
-      })(),
-      // Senza la scritta, cosa fa il bottone lo devono dire l'etichetta e il
-      // suggerimento: sono l'unica voce rimasta per chi non guarda il disegno.
+      nelDisplay: !!document.querySelector('#tempo-avvia .casio-lcd #tempo-cifre'),
       etichetta: b && b.getAttribute('aria-label'),
-      // E lo stop deve avere ancora un posto dove dire com'e' andata.
       esito: !!document.getElementById('tempo-esito'),
       nessunaScritta: !document.getElementById('tempo-avvia-testo'),
     };
   });
-  ok('il comando e\' un quadrante tondo', quadrante.tondo, quadrante);
-  ok('e la scritta "Comincio a disegnare" non c\'e\' piu\'',
-     quadrante.nessunaScritta, quadrante);
-  ok('l\'arco si misura in centesimi di giro e parte da mezzogiorno',
-     quadrante.inCentesimi && quadrante.parteDaMezzogiorno, quadrante);
-  // SCELTO DA GIOVANNI IL 19 SETTEMBRE 2026, mockup "C · Lancetta". Prima
-  // c'erano quattro tacche in croce e un orologino disegnato al centro: il
-  // quadrante era un disco con sopra un'icona, e da spento non c'era niente da
-  // guardare. Adesso i segni stanno tutti sul bordo, come su un orologio vero,
-  // e il centro e' libero per la lancetta.
-  ok('le tacche sono tre corone: sessanta fini, dodici medie, quattro forti',
-     quadrante.segni.fini === 60 && quadrante.segni.medi === 12
-     && quadrante.segni.forti === 4, quadrante.segni);
-  ok('l\'orologino al centro non c\'e\' piu\'', quadrante.senzaOrologino, quadrante);
-  ok('al suo posto c\'e\' una lancetta', quadrante.lancetta, quadrante);
-  ok('che da ferma punta a mezzogiorno', quadrante.lancettaFerma, quadrante);
-  ok('e ha la coda dall\'altra parte del perno', quadrante.contrappeso === true, quadrante);
-  ok('c\'e\' dove scrivere il tempo che corre', quadrante.cifre, quadrante);
+  ok('il comando e\' il timer da polso', quadrante.timer, quadrante);
+  ok('e si tocca la cassa, non il cinturino',
+     quadrante.bottoneSordo === 'none' && quadrante.cassaPremibile === 'auto', quadrante);
+  ok('e la scritta "Comincio a disegnare" non c\'e\'', quadrante.nessunaScritta, quadrante);
+  ok('c\'e\' la lancetta della mezzaluna', quadrante.lancetta, quadrante);
+  ok('e da ferma sta sullo zero', quadrante.lancettaSuZero, quadrante);
+  ok('le cifre stanno nel display', quadrante.cifre && quadrante.nelDisplay, quadrante);
   ok('e da fermo ci si legge gia\' 00:00, non il vuoto',
      quadrante.cifreDaFermo === '00:00', quadrante);
-  ok('il vetro passa davanti ai segni, non dietro',
-     quadrante.vetroPerUltimo, quadrante);
-  ok('e non ruba i tocchi al bottone che copre',
-     quadrante.vetroTrasparenteAlDito === 'none', quadrante);
   ok('il bottone dice comunque cosa fa, a voce', !!quadrante.etichetta, quadrante);
   // E' la garanzia che togliendo il testo non si sia perso il messaggio dopo
   // lo stop: quello era stato aggiunto apposta perche' fermare il cronometro
   // sembrava non fare niente.
-  ok('e fermare il cronometro ha ancora dove dire com\'e\' andata',
+  ok('e fermare il timer ha ancora dove dire com\'e\' andata',
      quadrante.esito, quadrante);
 });

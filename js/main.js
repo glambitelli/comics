@@ -844,7 +844,10 @@ function disegnaTempo(){
   // la stessa stringa, quindi fermandolo si torna a quella senza scriverla a
   // mano una seconda volta.
   const cifre = document.getElementById('tempo-cifre');
-  if(cifre) cifre.textContent = m ? m.scriviCorsa(secondi) : '00:00';
+  if(cifre){
+    cifre.textContent = m ? m.scriviCorsa(secondi) : '00:00';
+    cifre.classList.toggle('lunghe', cifre.textContent.length > 5);
+  }
   // Quanto e' pieno il giro lo decide il cronometro, non chi lo disegna: la
   // regola (due ore a giro, e non si ricomincia) sta in tempo.js insieme al
   // perche'.
@@ -855,8 +858,11 @@ function disegnaTempo(){
   // Si scrive l'attributo e non una transizione CSS perche' su due ore di
   // corsa il passo e' di cinque centesimi di grado al secondo — scorre da
   // solo, e un'animazione sopra non avrebbe niente da ammorbidire.
+  // Dal 9 ottobre 2026 il quadrante e' la mezzaluna del timer da polso: la
+  // lancetta segna i MINUTI dell'ora in corso, 0 in basso, 30 a sinistra, 60
+  // in alto, cioe' da 180 a 360 gradi. Le ore le dice il display.
   const lanc = document.getElementById('tempo-lancetta');
-  if(lanc) lanc.setAttribute('transform', 'rotate(' + (giro * 3.6).toFixed(2) + ' 50 50)');
+  if(lanc) lanc.style.transform = 'rotate(' + (180 + ((secondi / 60) % 60) * 3).toFixed(2) + 'deg)';
   // La riga dell'esito torna vuota ad ogni ridisegno: chi ci scrive dentro
   // (tempoFerma, tempoScarta) lo fa DOPO aver chiamato di qui, e programma
   // lui il ridisegno che poi la ripulisce.

@@ -339,3 +339,89 @@ body.scena-open .tempo-capsula{display:none}
 /* "Sta contando": la sessione in corso e' gia' dentro il numero grande, e
    questa parola lo dice senza aggiungere una riga. */
 .tempo-sotto-grande em{font-style:normal;color:var(--ottone);opacity:.95}
+
+/* ── IL TIMER DA POLSO ──────────────────────────────────────────────────────
+   Dal 9 ottobre 2026 il comando della home non e' piu' il cronometro tondo:
+   e' un timer digitale-analogico anni Novanta, scelto da Giovanni per il suo
+   tasto START grande e per il quadrante a mezzaluna. E' una foto (vedi il
+   commento nel markup) appoggiata STORTA sul tavolo, di traverso sull'angolo
+   della mappa come ci stava il cronometro.
+   LE MISURE vengono dalla foto (330 x 1199, cinturino compreso) e sono in
+   percentuale, cosi' cambiare la larghezza (--w) non le sfasa:
+     cassa      0% / 38,1%   98,6% x 18,2%   (dell'orologio intero)
+     e dentro la cassa:
+     perno      30,8% / 51,4%   lancetta lunga il 13,9% della larghezza
+     display    40,2% / 59,8%   38,6% x 23,9%
+     START      57,8% / 16,9%   32,9% x 25,7%
+   Il perno sta nell'angolo interno della mezzaluna, dove il quadrante gira
+   attorno al display: e' li' che sta sull'orologio vero.
+   Se la foto cambia, sono questi i numeri da rimisurare.
+   IL POSTO NEL TAVOLO resta quello del cronometro (un quadrato di 108px, 92
+   sul telefono): l'orologio ci sta sopra in posizione assoluta, centrato
+   sulla cassa. Messo nel flusso, coi suoi 460px di cinturino in piedi,
+   avrebbe spinto giu' tutta la riga. */
+@font-face{
+  font-family:'DSEG7';
+  src:url('../font/dseg7-classic-bold.woff2') format('woff2');
+  font-display:swap;
+}
+.scriv-riga .tempo-posto{width:108px;height:108px;z-index:3}
+@media (max-width:520px){ .scriv-riga .tempo-posto{width:92px;height:92px} }
+.tempo-quadrante.casio,
+.tempo-quadrante.casio.corre,
+#screen-home .tempo-quadrante.casio{
+  --w:118px;
+  position:absolute;left:50%;top:50%;width:var(--w);height:auto;aspect-ratio:330/1199;
+  transform:translate(-48.7%,-47.2%) rotate(28deg);
+  background:url(../img/scrivania/timer.webp) center/100% 100% no-repeat;
+  border-radius:0;box-shadow:none;display:block;padding:0;
+  pointer-events:none;
+  filter:drop-shadow(0 2px 2px rgba(0,0,0,.45)) drop-shadow(0 10px 14px rgba(0,0,0,.35));
+}
+/* Il rimpicciolimento al tocco del cronometro qui sposterebbe tutto
+   l'orologio: a scendere e' il tasto, non il polso. */
+.tempo-quadrante.casio:active{transform:translate(-48.7%,-47.2%) rotate(28deg)}
+.tempo-quadrante.casio.carica::after{display:none}
+.casio-cassa{
+  position:absolute;left:0;top:38.1%;width:98.6%;height:18.2%;
+  pointer-events:auto;cursor:pointer;border-radius:30% 8% 8% 30%;
+}
+/* LA LANCETTA ARANCIONE gira sulla mezzaluna: 0 in basso, 30 a sinistra, 60
+   in alto, come la scala stampata. Segna i minuti dell'ora in corso; le ore
+   le dice il display. E' disegnata dal codice e non presa dalla foto perche'
+   e' l'unica cosa del quadrante che si muove. */
+.casio-lancetta{
+  position:absolute;left:30.8%;top:51.4%;width:2px;height:calc(var(--w) * .139);
+  margin:calc(var(--w) * -.139) 0 0 -1px;border-radius:1px;
+  background:#e86a2a;box-shadow:0 0 1px rgba(0,0,0,.35);
+  transform-origin:50% 100%;transform:rotate(180deg);transition:transform .9s linear;
+}
+.casio-lancetta::after{content:'';position:absolute;left:50%;bottom:-3px;width:6px;height:6px;
+  margin-left:-3px;border-radius:50%;background:#2a2622}
+/* IL DISPLAY. Cifre a sette segmenti (DSEG7, licenza libera OFL, vedi
+   font/dseg-LICENZA.txt): sono quelle dei display di quegli anni, e con
+   un carattere qualunque sembrerebbe un adesivo. Grigio-verde scuro come i
+   cristalli liquidi veri. */
+.casio-lcd{
+  position:absolute;left:40.2%;top:59.8%;width:38.6%;height:23.9%;
+  display:flex;align-items:center;justify-content:flex-end;padding-right:5%;overflow:hidden;
+}
+.tempo-quadrante.casio .tempo-cifre{
+  font-family:'DSEG7',monospace;font-weight:700;font-size:calc(var(--w) * .085);
+  color:#1f2a1c;opacity:.86;transform:none;letter-spacing:0;line-height:1;
+}
+/* Da un'ora in su le cifre sono sette e non cinque: si stringono. */
+.tempo-quadrante.casio .tempo-cifre.lunghe{font-size:calc(var(--w) * .064)}
+/* IN PAUSA LE CIFRE LAMPEGGIANO, come su ogni timer digitale fermo. */
+.tempo-quadrante.casio.ferma .tempo-cifre{animation:casio-lampeggia 1s steps(1) infinite;color:#1f2a1c}
+@keyframes casio-lampeggia{50%{opacity:.15}}
+/* IL TASTO START. E' nella foto; qui sopra c'e' solo l'ombra che lo fa
+   sembrare premuto: giu' mentre il tempo corre, e un attimo sotto il dito. */
+.casio-start{position:absolute;left:57.8%;top:16.9%;width:32.9%;height:25.7%;border-radius:10%;
+  transition:background .1s,box-shadow .1s}
+.tempo-quadrante.casio.corre .casio-start,
+.casio-cassa:active .casio-start{background:rgba(0,0,0,.16);box-shadow:inset 0 2px 3px rgba(0,0,0,.45)}
+/* La pressione lunga (chiudi o elimina la sessione) si vede sul tasto: si
+   scurisce piano per tutta l'attesa, al posto dell'anello del cronometro. */
+.tempo-quadrante.casio.carica .casio-start{animation:casio-carica .7s linear forwards}
+@keyframes casio-carica{from{background:rgba(0,0,0,.1)}to{background:rgba(120,40,20,.45)}}

@@ -606,10 +606,10 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
   const lancetta = await page.evaluate(async ()=>{
     await window.tempoTocca();                 // parte
     await new Promise(r=> setTimeout(r, 1300));
-    const arco = document.getElementById('tempo-arco');
     const g = document.getElementById('tempo-lancetta');
-    const giro = parseFloat((arco.style.strokeDasharray || '0').split(/[\s,]+/)[0]) || 0;
-    const gradi = parseFloat((g.getAttribute('transform') || 'rotate(0').replace('rotate(', '')) || 0;
+    const t = await import('/js/tempo.js');
+    const secondi = t.secondiCorrenti();
+    const gradi = parseFloat((g.style.transform || 'rotate(0').replace('rotate(', '')) || 0;
     const acceso = document.getElementById('tempo-avvia').classList.contains('corre');
     const cifre = document.getElementById('tempo-cifre').textContent;
     // SCARTARE CHIEDE CONFERMA, e qui non c'e' nessuno a premere: la promessa
@@ -621,15 +621,16 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
     const ok = document.getElementById('ink-confirm-ok');
     if(ok) ok.click();
     await new Promise(r=> setTimeout(r, 400));
-    return { giro, gradi, acceso, cifre,
+    return { secondi, gradi, acceso, cifre,
              dopo: document.getElementById('tempo-avvia').classList.contains('corre') };
   });
   ok('toccando il quadrante il cronometro parte', lancetta.acceso, lancetta);
   ok('e le cifre contano', /^00:0[0-9]$/.test(lancetta.cifre), lancetta);
-  // Cento centesimi di giro sono trecentosessanta gradi: la lancetta e la
-  // coda dell'arco devono indicare lo stesso punto del quadrante.
-  ok('la lancetta punta dove finisce l\'arco',
-     Math.abs(lancetta.gradi - lancetta.giro * 3.6) < 0.05, lancetta);
+  // LA MEZZALUNA DEL TIMER (9 ottobre 2026): 0 in basso, 60 in alto, cioe'
+  // da 180 a 360 gradi, tre gradi al minuto. La lancetta deve dire i minuti
+  // che dicono le cifre.
+  ok('la lancetta segna i minuti sulla mezzaluna',
+     Math.abs(lancetta.gradi - (180 + (lancetta.secondi / 60 % 60) * 3)) < 0.2, lancetta);
   ok('e scartando la sessione il quadrante si spegne', !lancetta.dopo, lancetta);
 
   console.log('\n── la scrivania: quello che si vede sul tavolo e\' dato vero ──');
