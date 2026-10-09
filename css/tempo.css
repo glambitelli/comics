@@ -390,7 +390,7 @@ body.scena-open .tempo-capsula{display:none}
 @media (max-width:520px){
   .tempo-quadrante.casio,.tempo-quadrante.casio.corre,#screen-home .tempo-quadrante.casio{--giro:21deg;margin-left:-22px}
 }
-.tempo-quadrante.casio.carica::after{display:none}
+.tempo-quadrante.casio.carica::after,.tempo-quadrante.casio.carica-elimina::after{display:none}
 .casio-cassa{
   position:absolute;left:0;top:38.1%;width:98.6%;height:18.2%;
   pointer-events:auto;cursor:pointer;border-radius:30% 8% 8% 30%;
@@ -438,7 +438,16 @@ body.scena-open .tempo-capsula{display:none}
   transition:transform .08s,filter .08s,box-shadow .08s}
 .tempo-quadrante.casio.corre .casio-start{transform:scale(.97);filter:brightness(.9);box-shadow:0 0 1px rgba(0,0,0,.5)}
 .casio-cassa:active .casio-start{transform:scale(.93);filter:brightness(.8);box-shadow:none}
-/* La pressione lunga (chiudi o elimina la sessione) si vede sul tasto: si
-   scurisce piano per tutta l'attesa, al posto dell'anello del cronometro. */
+/* La pressione lunga si vede sul tasto che si sta premendo: START si
+   scurisce piano per i 0,7 secondi della chiusura, il giallo per 1,2 secondi
+   dell'eliminazione. */
 .tempo-quadrante.casio.carica .casio-start{animation:casio-carica .7s linear forwards}
+.tempo-quadrante.casio.carica-elimina .casio-giallo{animation:casio-carica-giallo 1.2s linear forwards}
+@keyframes casio-carica-giallo{from{background:rgba(255,200,40,.25)}to{background:rgba(200,40,20,.85);box-shadow:0 0 6px 2px rgba(230,60,30,.6)}}
+/* IL TASTO GIALLO sul fianco destro della cassa (misure dalla foto: 93,5%
+   da sinistra, 62,4% dall'alto). Sulla foto e' un bottoncino di 3px: il
+   bersaglio per il dito e' molto piu' grande, ma sporge dalla parte del
+   legno, lontano da START. */
+.casio-giallo{position:absolute;left:93.5%;top:62.4%;width:4%;height:16.5%;border-radius:2px;cursor:pointer}
+.casio-giallo::after{content:'';position:absolute;inset:-12px -16px -12px -6px}
 @keyframes casio-carica{from{filter:brightness(.9)}to{filter:brightness(.55) sepia(.4)}}

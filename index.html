@@ -209,6 +209,10 @@
             <span class="casio-lancetta" id="tempo-lancetta"></span>
             <span class="casio-lcd"><span class="tempo-cifre" id="tempo-cifre">00:00</span></span>
             <span class="casio-start" aria-hidden="true"></span>
+            <!-- IL TASTO GIALLO sul fianco: tenuto premuto ELIMINA la sessione.
+                 E' un tasto a parte apposta, lontano da START, perche'
+                 eliminare non si disfa. -->
+            <span class="casio-giallo" id="tempo-elimina" role="button" aria-label="Tieni premuto per eliminare la sessione"></span>
           </span>
         </button>
         <!-- PREMERE STOP DEVE SEMPRE DIRE QUALCOSA, e prima lo diceva la scritta
@@ -692,12 +696,11 @@
       <button onclick="rifilaDaLightbox()" id="refs-lightbox-crop" class="refs-lightbox-link" aria-label="Ritaglia">
         <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><circle cx="6.5" cy="6.5" r="2.4" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="6.5" cy="17.5" r="2.4" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8.6 8.2 20 18 M8.6 15.8 20 6" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg>
       </button>
-      <!-- PROSPETTIVA. Accanto alle forbici perche' e' lo stesso genere di gesto:
-           si guarda l'immagine e ci si fa qualcosa sopra. L'icona e' un fascio
-           che converge su un punto — e' letteralmente quello che fa. -->
-      <button onclick="prospettivaDaLightbox()" id="refs-lightbox-prosp" class="refs-lightbox-link" aria-label="Studia la prospettiva" title="Studia la prospettiva">
-        <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M3 20 L19 8 M3 14 L19 8 M3 8 L19 8"/><circle cx="19.5" cy="8" r="1.7" fill="currentColor" stroke="none"/></svg>
-      </button>
+      <!-- LA PROSPETTIVA QUI NON C'E' PIU' (9 ottobre 2026). Stava accanto alle
+           forbici, ma lo studio della prospettiva e' uno strumento per leggere
+           come un autore costruisce le sue tavole: ha senso sulle pagine degli
+           albi, non sulle foto di riferimento come quelle di Hands (Giovanni:
+           "non ha senso averla li', deve essere solo per gli albi"). -->
       <button onclick="refsImageMenu(this)" class="refs-lightbox-more" aria-label="Altre azioni">
         <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
       </button>

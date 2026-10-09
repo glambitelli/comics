@@ -835,12 +835,14 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
     // L'anello si guarda a meta' strada: a pressione compiuta e' gia' stato
     // tolto (lo toglie chi apre il menu), quindi cercarlo dopo vorrebbe dire
     // cercarlo quando ha appena finito il suo mestiere.
-    const tieni = async (ms)=>{
-      b.dispatchEvent(new PointerEvent('pointerdown', { bubbles:true }));
+    const giallo = document.getElementById('tempo-elimina');
+    const tieni = async (ms, su = b)=>{
+      su.dispatchEvent(new PointerEvent('pointerdown', { bubbles:true }));
       await new Promise(r=> setTimeout(r, 300));
-      const anello = b.classList.contains('carica');
+      const anello = b.classList.contains('carica') || b.classList.contains('carica-elimina');
       await new Promise(r=> setTimeout(r, Math.max(0, ms - 300)));
-      b.dispatchEvent(new PointerEvent('pointerup', { bubbles:true }));
+      su.dispatchEvent(new PointerEvent('pointerup', { bubbles:true }));
+      su.dispatchEvent(new MouseEvent('click', { bubbles:true }));
       return anello;
     };
     m.ferma();
@@ -858,23 +860,29 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
     await tieni(950);
     await new Promise(r=> setTimeout(r, 150));
     const menuDaFermo = !!document.querySelector('.ink-action-menu');
-    // MENTRE CORRE la pressione lunga apre le due definitive.
+    // DAL 9 OTTOBRE 2026 NIENTE MENU: START tenuto premuto chiude e
+    // registra, il tasto giallo tenuto premuto elimina. Il menu bianco con le
+    // due voci, su un orologio appoggiato sul tavolo, era brutto (Giovanni).
     premi(); await new Promise(r=> setTimeout(r, 200));
     const anello = await tieni(950);
-    await new Promise(r=> setTimeout(r, 250));
-    const menu = document.querySelector('.ink-action-menu');
-    const voci = menu ? Array.from(menu.querySelectorAll('button,[role="menuitem"],div'))
-      .map(x=> x.textContent.trim()).filter(Boolean) : [];
-    // ELIMINA chiede prima: quei minuti non tornano.
-    const bottoni = menu ? Array.from(menu.querySelectorAll('button')) : [];
-    const elimina = bottoni.find(x=> /elimina/i.test(x.textContent));
-    if(elimina) elimina.click();
+    await new Promise(r=> setTimeout(r, 300));
+    const menu = !!document.querySelector('.ink-action-menu');
+    const chiusoDaStart = !m.acceso();
+    // Il giallo toccato e basta non fa niente.
+    premi(); await new Promise(r=> setTimeout(r, 200));
+    giallo.dispatchEvent(new MouseEvent('click', { bubbles:true }));
+    await new Promise(r=> setTimeout(r, 200));
+    const toccoGiallo = m.acceso() && !m.inPausa();
+    // Tenuto meno del necessario, nemmeno.
+    await tieni(800, giallo); await new Promise(r=> setTimeout(r, 200));
+    const pocoGiallo = m.acceso();
+    // Tenuto abbastanza, elimina: senza menu e senza finestra di conferma.
+    const anelloGiallo = await tieni(1450, giallo);
     await new Promise(r=> setTimeout(r, 400));
     const chiede = !!document.querySelector('.modal-overlay.open #ink-confirm-ok');
-    if(chiede) document.querySelector('.modal-overlay.open #ink-confirm-ok').click();
-    await new Promise(r=> setTimeout(r, 400));
-    return { soloLui, partito, inPausa, ripreso, menuDaFermo, anello,
-             voci, chiede, spento: !m.acceso() };
+    const spento = !m.acceso();
+    return { soloLui, partito, inPausa, ripreso, menuDaFermo, anello, menu,
+             chiusoDaStart, toccoGiallo, pocoGiallo, anelloGiallo, chiede, spento };
   });
   ok('sulla home si tocca solo l\'orologio',
      !quadrante.manca && quadrante.soloLui, quadrante);
@@ -885,13 +893,14 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
   ok('e un terzo riprende', !quadrante.manca && quadrante.ripreso, quadrante);
   ok('da fermo tenere premuto non apre niente',
      !quadrante.manca && !quadrante.menuDaFermo, quadrante);
-  ok('mentre corre, tenendo premuto l\'anello si stringe',
+  ok('mentre corre, tenendo premuto START il tasto si carica',
      !quadrante.manca && quadrante.anello, quadrante);
-  ok('e la pressione lunga offre di chiudere o di eliminare',
-     !quadrante.manca && quadrante.voci.some(t=> /chiudi e registra/i.test(t))
-     && quadrante.voci.some(t=> /elimina la sessione/i.test(t)), quadrante.voci);
-  ok('eliminare chiede prima, e poi spegne il cronometro',
-     !quadrante.manca && quadrante.chiede && quadrante.spento, quadrante);
+  ok('e chiude e registra, senza nessun menu',
+     !quadrante.manca && quadrante.chiusoDaStart && !quadrante.menu, quadrante);
+  ok('il tasto giallo toccato e basta non elimina niente',
+     !quadrante.manca && quadrante.toccoGiallo && quadrante.pocoGiallo, quadrante);
+  ok('tenuto premuto oltre un secondo elimina, senza chiedere con una finestra',
+     !quadrante.manca && quadrante.anelloGiallo && quadrante.spento && !quadrante.chiede, quadrante);
 
   // ── JOBS: IL TERZO SCAFFALE ──
   // Non e' un progetto con meno roba dentro: e' un lavoro su commissione,

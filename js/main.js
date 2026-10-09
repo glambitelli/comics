@@ -63,25 +63,6 @@ window.rifilaDaLightbox = ()=> window.apriRitaglio();
 // che si sta guardando davvero. Serve anche il globale per chiuderlo da fuori:
 // chiudendo il lettore o la galleria, il foglio di linee non deve restare
 // appeso sopra il nulla.
-window.prospettivaDaLightbox = function(){
-  const cella = document.querySelectorAll('#refs-lightbox .refs-lightbox-cell')[1];
-  const img = cella && cella.querySelector('img');
-  if(!img || !img.naturalWidth) return;
-  Promise.all([import('./prospettiva.js'), import('./refs.js')]).then(([m, refs])=>{
-    // Lo studio di un frammento finisce nella cartella del frammento: e' della
-    // stessa persona, e la domanda "dove lo metto" ha una risposta sola.
-    const r = refs.refAperto ? refs.refAperto() : null;
-    m.apriProspettiva(img, {
-      salva: async ({ blob, w, h, misure })=>{
-        await refs.addRefBlob(blob, {
-          folderId: r ? (r.folderId || null) : refs.getActiveFolderId(),
-          source: 'prospettiva', w, h, prosp: misure,
-          provenance: (r && r.provenance) || '',
-        });
-      },
-    });
-  }).catch(()=>{});
-};
 // La chiusura NON si definisce qui: se la mette addosso a window il modulo
 // stesso quando arriva (vedi in fondo a prospettiva.js). Definendola anche qui
 // si sarebbe sovrascritta quella vera con una che ricarica il modulo, e
@@ -912,32 +893,44 @@ window.tempoTocca = async ()=>{
 // un gesto che dura mezzo secondo prima di fare qualcosa e' indistinguibile
 // da un tocco che non ha funzionato.
 const LUNGA = 700;
+// Eliminare chiede di tenere premuto piu' a lungo di chiudere: e' l'unico
+// gesto che non si disfa.
+const LUNGA_ELIMINA = 1200;
+// ── I GESTI DEL TIMER ──
+// Tocco su START: parte, poi pausa, poi riprende.
+// START tenuto premuto: CHIUDE E REGISTRA, col suono di conferma.
+// Tasto GIALLO tenuto premuto: ELIMINA la sessione, col suono che scende.
+// Prima la pressione lunga apriva un menu con le due voci scritte per
+// esteso, e su un orologio appoggiato sul tavolo un menu bianco di app era
+// "abbastanza brutto" (Giovanni, 9 ottobre 2026). Adesso ogni gesto
+// definitivo ha il suo tasto, come su un timer vero, e la conferma e' la
+// pressione stessa: si tiene premuto finche' il tasto non si e' scurito.
+// Un tocco breve sul giallo non fa niente: eliminare per sbaglio un'ora di
+// lavoro con un colpetto e' l'errore da non permettere.
 function montaIlQuadrante(){
   const b = document.getElementById('tempo-avvia');
   if(!b || b.dataset.montato) return;
   b.dataset.montato = '1';
   let conto = null, scattata = false;
-  const molla = ()=>{ clearTimeout(conto); conto = null; b.classList.remove('carica'); };
-  b.addEventListener('pointerdown', async ()=>{
+  const molla = ()=>{ clearTimeout(conto); conto = null; b.classList.remove('carica', 'carica-elimina'); };
+  b.addEventListener('pointerdown', async (e)=>{
     scattata = false;
+    const giallo = !!(e.target && e.target.closest && e.target.closest('.casio-giallo'));
     const m = await tempo();
-    if(!m.acceso()) return;            // da fermo non c'e' niente da annullare
-    b.classList.add('carica');
-    conto = setTimeout(async ()=>{
-      scattata = true; molla(); haptic('tap');
-      const { actionMenu } = await import('./dialogs.js');
-      actionMenu(b, [
-        { label: 'Chiudi e registra', icon: 'tavola', onSelect: ()=> window.tempoFerma() },
-        { label: 'Elimina la sessione', icon: 'elimina', danger: true,
-          onSelect: ()=> window.tempoScarta() },
-      ]);
-    }, LUNGA);
+    if(!m.acceso()) return;            // da fermo non c'e' niente da chiudere ne' da buttare
+    b.classList.add(giallo ? 'carica-elimina' : 'carica');
+    conto = setTimeout(()=>{
+      scattata = true; molla();
+      if(giallo) window.tempoScarta(true);
+      else window.tempoFerma();
+    }, giallo ? LUNGA_ELIMINA : LUNGA);
   });
   for(const e of ['pointerup','pointercancel','pointerleave']) b.addEventListener(e, molla);
-  b.addEventListener('click', ()=>{
-    // Il tocco che CHIUDE la pressione lunga non deve anche fermare il
-    // cronometro: sarebbero due comandi per un gesto solo.
+  b.addEventListener('click', (e)=>{
+    // Il tocco che CHIUDE la pressione lunga non deve anche ripartire: sarebbero
+    // due comandi per un gesto solo. E il giallo, toccato e basta, tace.
     if(scattata){ scattata = false; return; }
+    if(e.target && e.target.closest && e.target.closest('.casio-giallo')) return;
     window.tempoTocca();
   });
 }
@@ -952,15 +945,20 @@ window.tempoPausa = async ()=>{
 // registrata dice quanto vale, e una eliminata dice che e' stata eliminata.
 // ELIMINARE CHIEDE PRIMA. Fermare per sbaglio non costa niente — il tempo
 // finisce comunque in archivio — ma eliminare si': quei minuti non tornano.
-window.tempoScarta = async ()=>{
+// Dal tasto giallo arriva gia' confermato (senzaChiedere): la pressione lunga
+// di oltre un secondo E' la conferma, e una finestra in piu' sarebbe il menu
+// appena tolto rientrato dalla finestra.
+window.tempoScarta = async (senzaChiedere)=>{
   const m = await tempo();
   if(!m.acceso()) return;
-  const quanto = m.scriviBreve(m.secondiCorrenti());
-  const { confirmModal } = await import('./dialogs.js');
-  const si = await confirmModal(
-    'Eliminare la sessione di ' + quanto + '? Non verrà registrata in archivio e non è recuperabile.',
-    { title: 'Elimina sessione', confirmLabel: 'Elimina' });
-  if(!si) return;
+  if(senzaChiedere !== true){
+    const quanto = m.scriviBreve(m.secondiCorrenti());
+    const { confirmModal } = await import('./dialogs.js');
+    const si = await confirmModal(
+      'Eliminare la sessione di ' + quanto + '? Non verrà registrata in archivio e non è recuperabile.',
+      { title: 'Elimina sessione', confirmLabel: 'Elimina' });
+    if(!si) return;
+  }
   m.scarta();
   disegnaTempo();
   // NIENTE SCRITTA. Prima qui compariva "Sessione eliminata" per due secondi
