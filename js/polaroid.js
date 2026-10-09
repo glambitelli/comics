@@ -18,6 +18,9 @@
 //   di taglio si vede un bordo, non una carta velina che sparisce.
 // - In orizzontale gira senza limiti; in verticale fino a 55 gradi, e
 //   lasciata andare torna piano dritta, come appoggiata su un palmo.
+// - NIENTE X E NIENTE ISTRUZIONI: c'erano una × in alto e la riga "Trascina
+//   per girarla", tolte lo stesso giorno ("non c'e' bisogno"). Si rimette
+//   giu' toccando fuori dalla foto, o col tasto Esc.
 // - Rimettendola giu' torna dritta e dal lato della foto, e solo allora la
 //   piccola ricompare: nessun momento con due polaroid sullo schermo.
 // La foto grande e' 640px di larghezza: la polaroid del tavolo (300px)
@@ -45,8 +48,7 @@ export function montaLaPolaroid(){
       <div class="pola-faccia pola-dietro"><div class="pola-luce"></div></div>
       <div class="pola-faccia pola-davanti"><div class="pola-luce"></div></div>
     </div>
-    <button class="pola-chiudi" type="button" aria-label="Rimetti giù la polaroid">×</button>
-    <p class="pola-aiuto">Trascina per girarla · tocca fuori per rimetterla giù</p>`;
+`;
   document.body.appendChild(scena);
   const foto = scena.querySelector('.pola-foto');
   const ombra = scena.querySelector('.pola-ombra');
@@ -134,7 +136,7 @@ export function montaLaPolaroid(){
   // Trascinare = girare. Un tocco fermo fuori dalla foto la rimette giu'.
   let giu = null, ultimo = null;
   scena.addEventListener('pointerdown', e=>{
-    if(!aperta || e.target.closest('.pola-chiudi')) return;
+    if(!aperta) return;
     cancelAnimationFrame(anim);
     const t = performance.now();
     giu = { x:e.clientX, y:e.clientY, t, mosso:false };
@@ -165,7 +167,6 @@ export function montaLaPolaroid(){
   };
   scena.addEventListener('pointerup', su);
   scena.addEventListener('pointercancel', su);
-  scena.querySelector('.pola-chiudi').addEventListener('click', chiudi);
   addEventListener('keydown', e=>{ if(e.key === 'Escape') chiudi(); });
   addEventListener('resize', ()=>{ if(aperta){ misura(); disegna(); } });
   // Se si cambia schermata con la foto in mano, la si rimette giu'.
