@@ -137,8 +137,9 @@ body.is-touch #screen-home .home-scroll{padding-bottom:calc(96px + var(--safe-bo
 .scriv-nastro,.scriv-foto{display:none}
 @media (min-width:820px){
   .scriv-nastro{
-    display:block;position:absolute;width:86px;height:26px;z-index:6;
-    background:rgba(238,228,198,.78);box-shadow:0 1px 3px rgba(0,0,0,.28);
+    display:block;position:absolute;width:92px;height:25px;z-index:6;
+    background:url(../img/scrivania/nastro.webp) center/100% 100% no-repeat;opacity:.94;
+    filter:drop-shadow(0 1px 2px rgba(0,0,0,.3));
   }
   /* Angoli diversi ai due capi: nessuno attacca due pezzi di scotch paralleli. */
   .scriv-nastro.a{left:-26px;top:-13px;transform:rotate(-38deg)}
@@ -270,8 +271,11 @@ body.is-touch #screen-home .home-scroll{padding-bottom:calc(96px + var(--safe-bo
   filter:drop-shadow(0 1px 1px rgba(0,0,0,.35)) drop-shadow(0 10px 14px rgba(0,0,0,.32));
   border:0;text-align:left;font:inherit;cursor:pointer;
 }
-/* IL FOGLIO ADESSO E' UNA FOTO, non piu' un rettangolo color crema: carta
-   con la grana e l'angolo in alto a sinistra arricciato, generata da
+/* IL FOGLIO ADESSO E' UNA FOTO, non piu' un rettangolo color crema. Dal 9
+   ottobre 2026 e' un foglio appallottolato e rispianato, con l'angolo in
+   alto a DESTRA piegato: il primo, liscio, "sembrava troppo finto"
+   (Giovanni). Prima ancora era carta con l'angolo in alto a sinistra
+   arricciato, generata da
    Giovanni ed e' il primo dei sette oggetti della scrivania che passano da
    disegno CSS a immagine (7 ottobre 2026). Due cose cambiano per via
    dell'angolo:
@@ -304,9 +308,14 @@ body.is-touch #screen-home .home-scroll{padding-bottom:calc(96px + var(--safe-bo
    salvarla, tenendo solo i pixel caldi (rosso piu' alto del blu di 12). */
 .scriv-biglietto[hidden]{display:none}
 .scriv-biglietto .nastro{
-  position:absolute;width:52px;height:16px;background:rgba(236,226,196,.6);
-  left:50%;margin-left:-26px;top:-7px;transform:rotate(-1.6deg);
+  position:absolute;width:58px;height:16px;
+  background:url(../img/scrivania/nastro.webp) center/100% 100% no-repeat;opacity:.94;
+  left:50%;margin-left:-29px;top:-7px;transform:rotate(-1.6deg);
+  filter:drop-shadow(0 1px 1px rgba(0,0,0,.25));
 }
+/* IL NASTRO E' UNA FOTO (9 ottobre 2026): nastro di carta con le estremita'
+   strappate, generato da Giovanni. Prima era un rettangolo color crema
+   semitrasparente. Lo stesso pezzo tiene la mappa agli angoli, sul computer. */
 .scriv-biglietto b{
   display:block;font-family:'Penna',cursive;font-size:18px;font-weight:400;
   color:#1d1a17;line-height:1.28;
