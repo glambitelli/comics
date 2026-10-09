@@ -1130,8 +1130,10 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
   });
   ok('la radiolina sta sul tavolo, coi suoi tre tasti',
      !radio.manca && radio.tasti, radio);
-  ok('da spenta lo dice e basta',
-     !radio.manca && radio.spenta.stato === 'spenta' && radio.spenta.nome === 'Radio', radio);
+  // Da spenta e senza brani la fessura resta vuota: la scritta "Radio" era
+  // un'etichetta in piu' su un walkman spento (Giovanni, 9 ottobre 2026).
+  ok('da spenta la fessura del titolo e\' vuota',
+     !radio.manca && radio.spenta.stato === 'spenta' && radio.spenta.nome === '', radio);
   // IL NOME SI LEGGE COME SU UNA RADIO: niente estensione e niente numero
   // d'ordine davanti. "03 - Notturno.mp3" su un vetrino largo cosi' sarebbe
   // tre quarti di rumore.
@@ -1201,9 +1203,16 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
     r.__metti('pausa');  document.getElementById('radio-onoff').click(); const daPausa = leggi();
     r.__metti('suona');  document.getElementById('radio-onoff').click(); const daSuona = leggi();
     document.getElementById('radio-succ').click(); const avanti = leggi();
+    // MENTRE CARICA il tasto arancione non riparte dall'accensione: niente
+    // cassetta, solo lo stop (e la richiesta di non partire quando arriva).
+    // Era il difetto del 9 ottobre: dopo "avanti" il tasto arancione
+    // rimetteva in play il brano vecchio.
+    r.__metti('carico'); document.getElementById('radio-onoff').click(); const daCarico = leggi();
     HTMLMediaElement.prototype.play = vero;
-    return { daPausa, daSuona, avanti };
+    return { daPausa, daSuona, avanti, daCarico };
   });
+  ok('e mentre carica il brano dopo, il tasto arancione fa lo stop e non rimette la cassetta',
+     rumori.daCarico.includes('stop.mp3') && !rumori.daCarico.includes('cassetta.mp3'), rumori);
   ok('play fa partire il motore, pausa fa lo stop, avanti lo scatto del tasto',
      rumori.daPausa.includes('play.mp3') && rumori.daSuona.includes('stop.mp3')
        && rumori.avanti.includes('tasto.mp3'), rumori);

@@ -62,6 +62,21 @@ function vibra(){ try{ if('vibrate' in navigator) navigator.vibrate(9); }catch(e
 // il rumore di "play" si aspetta lui, non il tocco, perche' fra il tocco e la
 // musica c'e' Drive che scarica il brano.
 let _motoreDaAvviare = false;
+// ── MENTRE CARICA ──
+// Avanti e indietro scaricano il brano nuovo da Drive, e per qualche secondo
+// la radio sta in "carico". In quello stato il tasto arancione non aveva un
+// posto suo e ripartiva dall'accensione: rumore della cassetta, il brano
+// VECCHIO rimesso in play, e poi il nuovo che partiva sopra (Giovanni, 9
+// ottobre 2026: "dopo avanti il tasto non funziona, comunque funziona male").
+// Adesso:
+//   - premendo avanti/indietro il nastro si ferma subito, come su un walkman
+//     vero quando si manda avanti; si sente di nuovo solo col brano nuovo;
+//   - il tasto arancione durante il caricamento dice "quando arriva, non
+//     partire" (o, ripremuto, "parti"): _vuoleSuonare;
+//   - _giro numera i caricamenti, e se ne arriva uno vecchio dopo uno nuovo
+//     (due "avanti" di fila) quello vecchio si butta.
+let _vuoleSuonare = true;
+let _giro = 0;
 
 const CHIAVE_BRANO = 'inkflow_radio_brano';
 let _brani = [];        // [{ id, name }]
@@ -112,10 +127,13 @@ function scriviTesto(){
   if(_stato === 'scollegata'){ n.textContent = 'Tocca \u25B6 per collegare Drive'; return; }
   if(_stato === 'senzaCartella'){ n.textContent = 'Manca la cartella Inkflow Radio'; return; }
   if(_stato === 'vuota'){ n.textContent = 'Inkflow Radio e\u0300 vuota'; return; }
-  if(_stato === 'spenta' && !_brani.length){ n.textContent = 'Radio'; return; }
+  // SENZA BRANI LA FESSURA E' VUOTA. C'era scritto "Radio", che su un walkman
+  // spento e' un'etichetta in piu': tolta su richiesta di Giovanni (9
+  // ottobre 2026). La fessura nera dice gia' che li' comparira' un titolo.
+  if(_stato === 'spenta' && !_brani.length){ n.textContent = ''; return; }
   if(_stato === 'errore'){ n.textContent = 'Drive non risponde'; return; }
   if(_stato === 'carico'){ n.textContent = 'Carico…'; return; }
-  n.textContent = titoloDi(_brani[_i]) || 'Radio';
+  n.textContent = titoloDi(_brani[_i]) || '';
 }
 
 // ── I COMANDI DELLA SCHERMATA DI BLOCCO ──
@@ -157,18 +175,23 @@ async function carica(i){
   if(!_brani.length) return;
   _i = ((i % _brani.length) + _brani.length) % _brani.length;
   try{ localStorage.setItem(CHIAVE_BRANO, String(_i)); }catch(e){}
+  const giro = ++_giro;
+  if(_audio && !_audio.paused) _audio.pause();
   _stato = 'carico'; scrivi();
   try{
     const blob = await d.getDriveAudio(_brani[_i].id);
+    if(giro !== _giro) return;            // nel frattempo e' partito un altro brano
     const a = creaAudio();
     // L'indirizzo di prima si butta: ogni Blob tenuto aperto e' memoria che
     // non torna piu' indietro finche' la pagina non si chiude.
     if(_url) URL.revokeObjectURL(_url);
     _url = URL.createObjectURL(blob);
     a.src = _url;
-    await a.play();
     dilloAlTelefono();
+    if(!_vuoleSuonare){ _stato = 'pausa'; scrivi(); return; }
+    await a.play();
   }catch(e){
+    if(giro !== _giro) return;
     console.warn('radio:', e && e.message);
     _stato = 'errore'; scrivi();
   }
@@ -211,7 +234,7 @@ export function spegni(){
   if(_url){ URL.revokeObjectURL(_url); _url = null; }
   _stato = 'spenta'; scrivi();
 }
-export function avanti(passo){ if(_brani.length) carica(_i + (passo || 1)); }
+export function avanti(passo){ if(_brani.length){ _vuoleSuonare = true; carica(_i + (passo || 1)); } }
 export function statoRadio(){ return { stato:_stato, quanti:_brani.length, i:_i,
                                        titolo: titoloDi(_brani[_i]) }; }
 // Per le prove: mette in tavola un elenco senza passare da Drive.
@@ -225,7 +248,15 @@ export function montaRadio(){
   el('radio-onoff').addEventListener('click', async ()=>{
     vibra();
     if(_stato === 'suona'){ meccanica('stop'); return pausa(); }
-    if(_stato === 'pausa'){ meccanica('play'); return suona(); }
+    if(_stato === 'pausa'){ meccanica('play'); _vuoleSuonare = true; return suona(); }
+    // STA CARICANDO: il tasto dice solo se, quando il brano arriva, deve
+    // partire o restare fermo. Niente cassetta, niente ripartenza.
+    if(_stato === 'carico'){
+      _vuoleSuonare = !_vuoleSuonare;
+      meccanica(_vuoleSuonare ? 'play' : 'stop');
+      return;
+    }
+    _vuoleSuonare = true;
     // Dalla prima accensione: la cassetta entra adesso, il motore partira'
     // quando arriva la musica.
     meccanica('cassetta');
