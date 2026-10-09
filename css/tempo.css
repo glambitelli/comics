@@ -443,11 +443,18 @@ body.scena-open .tempo-capsula{display:none}
    dell'eliminazione. */
 .tempo-quadrante.casio.carica .casio-start{animation:casio-carica .7s linear forwards}
 .tempo-quadrante.casio.carica-elimina .casio-giallo{animation:casio-carica-giallo 1.2s linear forwards}
-@keyframes casio-carica-giallo{from{background:rgba(255,200,40,.25)}to{background:rgba(200,40,20,.85);box-shadow:0 0 6px 2px rgba(230,60,30,.6)}}
+@keyframes casio-carica-giallo{from{filter:none}to{filter:hue-rotate(-40deg) saturate(1.6) brightness(.85);box-shadow:0 0 6px 2px rgba(230,60,30,.6)}}
 /* IL TASTO GIALLO sul fianco destro della cassa (misure dalla foto: 93,5%
    da sinistra, 62,4% dall'alto). Sulla foto e' un bottoncino di 3px: il
    bersaglio per il dito e' molto piu' grande, ma sporge dalla parte del
    legno, lontano da START. */
-.casio-giallo{position:absolute;left:93.5%;top:62.4%;width:4%;height:16.5%;border-radius:2px;cursor:pointer}
-.casio-giallo::after{content:'';position:absolute;inset:-12px -16px -12px -6px}
+/* DISEGNATO E PIU' GROSSO DI QUELLO DELLA FOTO: nella foto e' un bottoncino
+   di tre pixel, e Giovanni non lo trovava ("non vedo il tasto giallo"). Un
+   comando che non si vede non esiste. Sporge dal fianco, sotto START, con la
+   gomma gialla e l'ombra di un tasto vero. */
+.casio-giallo{position:absolute;left:92%;top:60%;width:calc(var(--w) * .07);height:22%;
+  border-radius:0 3px 3px 0;cursor:pointer;
+  background:linear-gradient(90deg,#b98a12,#f2c53a 45%,#e0b22a 70%,#9a7210);
+  box-shadow:1px 1px 2px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.35)}
+.casio-giallo::after{content:'';position:absolute;inset:-10px -14px -10px -4px}
 @keyframes casio-carica{from{filter:brightness(.9)}to{filter:brightness(.55) sepia(.4)}}
