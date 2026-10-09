@@ -1054,6 +1054,7 @@ export function openFolder(id){
   _folderTab = countAlbumsByFolder(id) > 0 ? 'albi'
     : (countRitagliInFolder(id) === 0 && countTavoleInFolder(id) > 0) ? 'tavole'
     : 'ritagli';
+  if(_folderTab === 'albi') rinnovaDriveAlTocco();
   renderRefsScreen();
 }
 
@@ -1164,10 +1165,36 @@ export function wireSwipeScaffali(){
   });
 }
 
+// ── IL COLLEGAMENTO A DRIVE SI RINNOVA DA SOLO, AL TOCCO ──
+// Il collegamento e' UNO per tutta l'app (albi, radio, archivio: stesso
+// token, vedi drive.js). Ma Google lo fa durare un'ora, e senza un server non
+// c'e' modo di allungarlo. Fino al 9 ottobre 2026 allo scadere compariva
+// "Google Drive non collegato — Ricollega", e a Giovanni sembrava di dover
+// collegare un account diverso per ogni cosa ("deve esserci un unico
+// collegamento a Drive e basta").
+// Adesso: quando tocchi qualcosa che ha bisogno di Drive (aprire una cartella
+// che parte dagli Albi, o la scheda Albi) e il collegamento e' scaduto, lo si
+// rinnova subito, dentro quel tocco. E' il rinnovo silenzioso: con la sessione
+// Google viva non mostra niente, al massimo un lampo della finestra di Google.
+// Solo dentro un tocco vero (userActivation): fuori da un gesto il browser
+// bloccherebbe la finestra, e partire da soli e' proprio quello che
+// ensureDriveConnected vieta (vedi la nota li').
+function rinnovaDriveAlTocco(){
+  if(!daRicollegare()) return;
+  const ua = navigator.userActivation;
+  if(ua && !ua.isActive) return;
+  ensureDriveConnected(true).then(ok=>{
+    if(!ok) return;
+    renderRefsScreen();
+    if(_view === 'folder' && _activeFolderId) syncDriveAlbumsForFolder(_activeFolderId);
+  }).catch(()=>{});
+}
+
 export function setFolderTab(tab){
   if(!SCAFFALI.includes(tab)) return;
   if(_folderTab === tab) return;
   _folderTab = tab;
+  if(tab === 'albi') rinnovaDriveAlTocco();
   // Niente haptic('tap') qui: la tab è un <button onclick>, già coperta dal
   // tick diffuso su pointerdown (sound.js) — chiamarlo anche qui suonava due
   // volte per un solo tocco (stesso motivo del pulsante ritaglia in albums.js).
@@ -1644,12 +1671,16 @@ function renderScaffaleDrive(){
     return;
   }
   if(btn) btn.hidden = false;
-  if(titolo) titolo.textContent = 'Google Drive non collegato';
+  // Scaduto non e' "non collegato": il collegamento c'e', e' Google che lo fa
+  // durare un'ora. Dirlo cosi' evita di pensare a un secondo account da fare.
+  if(titolo) titolo.textContent = daRicollegare() ? 'Collegamento a Drive scaduto' : 'Google Drive non collegato';
   // Collegato e tutto a posto: gli albi arrivano, e una riga che dice "tutto
   // bene" e' solo rumore.
   riga.hidden = collegato;
   if(riga.hidden){ esitoDrive(''); return; }
-  esitoDrive('Qui restano solo gli albi gia\' scaricati.');
+  esitoDrive(daRicollegare()
+    ? 'Google lo fa durare un\'ora. E\' lo stesso collegamento di tutta l\'app: rinnovalo e vale anche per la radio.'
+    : 'Qui restano solo gli albi gia\' scaricati.');
   // "Ricollega" a chi l'aveva gia' collegato: sentirsi proporre la prima
   // connessione quando l'hai gia' fatta sembra che l'app abbia perso i pezzi.
   if(btn) btn.textContent = daRicollegare() ? 'Ricollega' : 'Collega';

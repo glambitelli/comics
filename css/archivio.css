@@ -215,7 +215,14 @@
 #screen-refs .refs-breadcrumb-back{font-size:0!important}
 #screen-refs .refs-breadcrumb-back::before{font-size:16px}
 #screen-refs #refs-breadcrumb-name{text-transform:uppercase}
-#screen-refs .refs-sort-btn{background:none!important;border:1px solid var(--vga-bianco)!important;border-radius:0!important;box-shadow:none!important}
+/* IL TASTO "ORDINA" ALTO QUANTO UNA RIGA DI TESTO. Nei Frammenti sta sulla
+   riga del nome ed era un quadrato di 38px: passando da Albi (dove non c'e')
+   a Frammenti tutta la testata scendeva di colpo (Giovanni, 9 ottobre 2026).
+   Ora la riga del nome ha la stessa altezza con o senza il tasto. */
+#screen-refs .refs-sort-btn{background:none!important;border:1px solid var(--vga-bianco)!important;border-radius:0!important;box-shadow:none!important;
+  width:28px!important;height:20px!important;min-height:0!important;padding:0!important;display:inline-grid;place-items:center;flex:none}
+#screen-refs .refs-sort-btn svg{width:12px;height:12px}
+#screen-refs .refs-breadcrumb{min-height:24px;box-sizing:border-box;align-items:center}
 /* le immagini restano immagini: solo una cornice bianca da schermo */
 #screen-refs .refs-thumb{border-radius:0!important;box-shadow:none!important;outline:1px solid rgba(255,255,255,.6);background:#000010!important}
 #screen-refs .refs-thumb img{border-radius:0!important}
