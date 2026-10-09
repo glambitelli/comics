@@ -169,7 +169,13 @@
 .radio[data-stato="vuota"] .radio-nome,
 .radio[data-stato="senzaCartella"] .radio-nome,
 .radio[data-stato="scollegata"] .radio-nome{color:#ffb08f;text-shadow:0 0 5px rgba(255,140,100,.5)}
-.radio[data-stato="carico"] .radio-nome{animation:radio-respira 1.1s ease-in-out infinite}
+/* LOADING SCORRE COME UN TITOLO. Prima stava fermo e pulsava, ma "Loading..."
+   e' piu' lungo della fessura e restava tagliato a meta' (Giovanni, 9
+   ottobre 2026). Ora scorre come i titoli dei brani, e continua a pulsare
+   piano, cosi' si capisce che sta aspettando e non che e' un brano. */
+.radio[data-stato="carico"] .radio-nome{
+  top:0;animation:radio-scorre var(--dur, 8s) linear infinite, radio-respira 1.1s ease-in-out infinite;
+}
 @keyframes radio-respira{0%,100%{opacity:1}50%{opacity:.45}}
 
 /* SUI TELEFONI BASSI il walkman si rimpicciolisce un poco: e' il pezzo che

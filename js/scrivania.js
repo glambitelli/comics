@@ -23,6 +23,7 @@
 // appeso al tavolo, e questa e' la prima cosa che si vede aprendo l'app.
 import { projects } from './state.js';
 import { esc } from './testo.js';
+import { suonaRumore, preparaRumori } from './sound.js';
 
 // Quanti giorni ha il mese, e che giorno e' oggi. Tutto in ora locale: il
 // registro delle ore e' indicizzato per giorno locale (vedi giornoDi in
@@ -349,6 +350,12 @@ export function disegnaBiglietto(apriProgetto, apriIProgetti){
 // La scelta resta fra un'apertura e l'altra, perche' chi disegna di notte non
 // vuole riaccendere la luce ogni volta che apre.
 const CHIAVE_LUCE = 'inkflow_scrivania_luce';
+// IL CLIC DELL'INTERRUTTORE: due scatti diversi, uno per accendere e uno per
+// spegnere, presi dalla stessa registrazione che ha mandato Giovanni (9
+// ottobre 2026; il primo clic a 0,72 secondi, il secondo a 2,81, tagliati a
+// 0,22 secondi ciascuno). Prima l'interruttore faceva il tic del menu, che
+// su un oggetto del tavolo suonava come un pulsante dell'app.
+const CLIC_LUCE = { accendi:'./sfx/luce/accendi.mp3', spegni:'./sfx/luce/spegni.mp3' };
 // ── LA CIMA CHE SFUMA ──
 // Quando la home scorre, il bordo alto del tavolo si sfuma invece di tagliarsi
 // netto sotto l'intestazione (vedi .home-scroll.scorsa in scrivania.css). Solo
@@ -376,8 +383,10 @@ export function montaLaLuce(){
     b.title = dice;
   };
   applica();
+  window.addEventListener('pointerdown', ()=> preparaRumori(Object.values(CLIC_LUCE)), { once:true, passive:true });
   b.addEventListener('click', ()=>{
     spenta = !spenta;
+    suonaRumore(spenta ? CLIC_LUCE.spegni : CLIC_LUCE.accendi, .6);
     try{ localStorage.setItem(CHIAVE_LUCE, spenta ? 'spenta' : 'accesa'); }catch(e){}
     applica();
   });

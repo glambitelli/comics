@@ -161,6 +161,9 @@ function isInteractive(el){
   // E lo stesso i tasti della barra, che sono una macchina da scrivere e
   // suonano come tale (vedi colpoDiMacchina qui sotto).
   if(el.closest('.dune-nav-items, .home-fab-row')) return false;
+  // E l'interruttore della lampada, che fa il clic di un interruttore vero
+  // (vedi montaLaLuce in scrivania.js).
+  if(el.closest('#scriv-luce')) return false;
   return !!el.closest('button, a[href], [role="button"], [onclick], .refs-thumb, .album-card, .refs-folder-row, .step-item, .project-card');
 }
 // Suona al RILASCIO (non al tocco): appoggiare il dito su un elemento
@@ -345,3 +348,48 @@ document.addEventListener('pointerdown', e=>{
   const t = e.target;
   if(t && t.closest && t.closest('.dune-nav-items > .dune-btn, .home-fab-row > .home-fab')) colpoDiMacchina();
 }, { passive:true });
+
+// ── RUMORI DI OGGETTI: IL WALKMAN, L'INTERRUTTORE ──
+// Stessa strada dei colpi della macchina da scrivere: buffer decodificati
+// nel contesto audio gia' sbloccato, non un new Audio() per conto suo.
+// I rumori del walkman erano <audio> separati, e il 9 ottobre 2026 Giovanni,
+// tornato sulla home da Visual Archive, ha messo in pausa la musica senza
+// sentire il clac della pausa: sul telefono un <audio> nuovo che parte
+// mentre l'altro (la musica) si ferma puo' essere zittito o rifiutato, e
+// play() fallisce in silenzio. Il contesto WebAudio invece, ripreso a ogni
+// tocco qui sotto, suona sopra qualunque cosa.
+const _file = {};   // url -> AudioBuffer, o una Promise mentre arriva
+function bufferDi(url){
+  const ctx = getCtx();
+  if(!ctx) return Promise.resolve(null);
+  if(_file[url]) return Promise.resolve(_file[url]);
+  return (_file[url] = fetch(url)
+    .then(r=> r.ok ? r.arrayBuffer() : Promise.reject(r.status))
+    .then(b=> ctx.decodeAudioData(b))
+    .then(buf=> (_file[url] = buf))
+    .catch(()=>{ delete _file[url]; return null; }));   // la prossima volta si riprova
+}
+// Scarica in anticipo, cosi' il primo tocco ha gia' il suono pronto.
+export function preparaRumori(urls){ urls.forEach(u=> bufferDi(u)); }
+// Per le prove: quali rumori sono stati chiesti, in ordine (vedi la suite
+// navigazione, "i rumori del meccanismo").
+export const __rumoriChiesti = [];
+export function suonaRumore(url, volume = 1){
+  if(!isSoundEnabled()) return;
+  __rumoriChiesti.push(url.split('/').pop());
+  const ctx = getCtx();
+  if(!ctx) return;
+  // Questo gesto ha il suo rumore: niente tic del menu in piu'.
+  _soundedGesture = _gesture;
+  if(ctx.state === 'suspended') ctx.resume().catch(()=>{});
+  bufferDi(url).then(buf=>{
+    if(!buf) return;
+    try{
+      const src = ctx.createBufferSource();
+      src.buffer = buf;
+      const g = ctx.createGain(); g.gain.value = volume;
+      src.connect(g).connect(ctx.destination);
+      src.start(0);
+    }catch(e){}
+  });
+}

@@ -750,6 +750,8 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
   // notte non vuole rifarlo ad ogni apertura.
   const lampada = await page.evaluate(async ()=>{
     const b = document.getElementById('scriv-luce');
+    const { __rumoriChiesti } = await import('/js/sound.js');
+    __rumoriChiesti.splice(0);
     const tavolo = document.querySelector('.scriv-tavolo');
     const filtro = ()=> getComputedStyle(tavolo).filter;
     const prima = document.body.classList.contains('luce-spenta');
@@ -764,12 +766,17 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
     const luceSpento = getComputedStyle(b).filter;
     b.click(); await new Promise(r=> setTimeout(r, 600));   // la luce torna in 0,45s
     const luceAcceso = getComputedStyle(b).filter;
-    return { prima, dopo, salvato, filtroAcceso, filtroSpento, interruttoreFuori, luceSpento, luceAcceso,
+    const clic = __rumoriChiesti.splice(0);
+    return { prima, dopo, salvato, filtroAcceso, filtroSpento, interruttoreFuori, luceSpento, luceAcceso, clic,
              tornata: document.body.classList.contains('luce-spenta') };
   });
   ok('la lampada si spegne', lampada.prima === false && lampada.dopo === true, lampada);
   ok('e la scelta si ricorda', lampada.salvato === 'spenta', lampada);
   ok('e si riaccende', lampada.tornata === false, lampada);
+  // IL CLIC DI UN INTERRUTTORE VERO, uno per spegnere e uno per accendere, e
+  // nient'altro (Giovanni, 9 ottobre 2026: prima faceva il tic del menu).
+  ok('e fa il clic dell\'interruttore: prima spegni, poi accendi',
+     JSON.stringify(lampada.clic) === '["spegni.mp3","accendi.mp3"]', lampada.clic);
   // SPEGNE ANCHE LE COSE SUL TAVOLO, non solo il fondo. Prima la mappa restava
   // luminosa come se avesse luce propria, e un foglio di carta illuminato in
   // una stanza buia non esiste (Giovanni, 21 settembre 2026).
@@ -1198,15 +1205,11 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
   // I RUMORI DEL MECCANISMO. Ogni tasto ha il suo, tagliato dalla
   // registrazione di un lettore vero (9 ottobre 2026): play il motore che
   // parte, pausa lo stop, avanti e indietro lo scatto del tasto. Si guarda
-  // quale file parte, intercettando play() degli elementi audio.
+  // quale file viene chiesto al motore audio (non sono piu' <audio>: vedi
+  // suonaRumore in sound.js).
   const rumori = await page.evaluate(async ()=>{
     const r = await import('/js/radio.js');
-    const sentiti = [];
-    const vero = HTMLMediaElement.prototype.play;
-    HTMLMediaElement.prototype.play = function(){
-      if(/sfx\/walkman\//.test(this.src || '')) sentiti.push(this.src.split('/').pop());
-      return Promise.resolve();
-    };
+    const { __rumoriChiesti: sentiti } = await import('/js/sound.js');
     r.__seminaBrani([{id:'a',name:'Uno.mp3'},{id:'b',name:'Due.mp3'}]);
     const leggi = ()=> sentiti.splice(0);
     r.__metti('pausa');  document.getElementById('radio-onoff').click(); const daPausa = leggi();
@@ -1217,7 +1220,6 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
     // Era il difetto del 9 ottobre: dopo "avanti" il tasto arancione
     // rimetteva in play il brano vecchio.
     r.__metti('carico'); document.getElementById('radio-onoff').click(); const daCarico = leggi();
-    HTMLMediaElement.prototype.play = vero;
     return { daPausa, daSuona, avanti, daCarico };
   });
   ok('e mentre carica il brano dopo, il tasto arancione fa lo stop e non rimette la cassetta',

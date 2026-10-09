@@ -21,7 +21,7 @@
 // schermata, e' una cosa accesa in sottofondo mentre si lavora. Quindi niente
 // copertine, niente onde che ballano, niente elenco a tutto schermo: un
 // mobiletto, cosa sta suonando, e i tre tasti che si premono senza guardare.
-import { isSoundEnabled } from './sound.js';
+import { suonaRumore, preparaRumori } from './sound.js';
 
 // ── I RUMORI DEL MECCANISMO ──
 // Tagliati da una registrazione di un lettore a cassette che Giovanni ha
@@ -44,15 +44,10 @@ const RUMORI = {
   stop:     './sfx/walkman/stop.mp3',
   tasto:    './sfx/walkman/tasto.mp3',
 };
-const _rumori = {};
+// Suonano dal motore audio dei suoni (suonaRumore in sound.js), non da un
+// <audio> ciascuno: li' il perche'. Il volume resta a meta' come prima.
 function meccanica(nome){
-  if(!isSoundEnabled() || !RUMORI[nome]) return;
-  try{
-    let a = _rumori[nome];
-    if(!a){ a = _rumori[nome] = new Audio(RUMORI[nome]); a.preload = 'auto'; a.volume = .5; }
-    a.currentTime = 0;
-    const p = a.play(); if(p && p.catch) p.catch(()=>{});
-  }catch(e){}
+  if(RUMORI[nome]) suonaRumore(RUMORI[nome], .5);
 }
 // Il tasto del walkman vibra come gli altri tocchi, ma senza il "tic" del
 // menu: il suono lo fa gia' il meccanismo (vedi anche isInteractive in
@@ -246,6 +241,9 @@ export function montaRadio(){
   const corpo = el('radio');
   if(!corpo) return;
   _montata = true;
+  // I rumori si scaricano al primo tocco qualunque: al primo tasto premuto
+  // sono gia' pronti, e il contesto audio a quel punto esiste gia'.
+  window.addEventListener('pointerdown', ()=> preparaRumori(Object.values(RUMORI)), { once:true, passive:true });
   el('radio-onoff').addEventListener('click', async ()=>{
     vibra();
     if(_stato === 'suona'){ meccanica('stop'); return pausa(); }
