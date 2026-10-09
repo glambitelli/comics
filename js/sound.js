@@ -228,9 +228,16 @@ function isInteractive(el){
 // tocco, e non suona. La soglia è generosa abbastanza da non penalizzare il
 // naturale tremore di un tocco vero.
 const TAP_SLOP = 10;
-let _padX = 0, _padY = 0, _padId = null, _padTarget = null;
+let _padX = 0, _padY = 0, _padId = null, _padTarget = null, _padAt = 0;
+// UNA PRESSIONE LUNGA NON E' UN TOCCO. Tenendo premuto il tasto giallo del
+// timer (1,2 secondi) si elimina la sessione, col suo suono; ma al rilascio
+// partiva ANCHE il tic del tocco, che e' lo stesso del tasto START — due
+// suoni per un gesto (Giovanni, 9 ottobre 2026). Il rilascio dopo piu' di
+// mezzo secondo di pressione non ticchetta: chi tiene premuto ha gia' il
+// suono del suo comando.
+const TAP_MAX_MS = 550;
 document.addEventListener('pointerdown', e=>{
-  _padX = e.clientX; _padY = e.clientY; _padId = e.pointerId; _padTarget = e.target;
+  _padX = e.clientX; _padY = e.clientY; _padId = e.pointerId; _padTarget = e.target; _padAt = Date.now();
   // Comincia un gesto nuovo: quello di prima non ha piu' voce in capitolo.
   _gesture++; _gestureAt = Date.now();
   if(_pendingNav){ clearTimeout(_pendingNav); _pendingNav = null; }
@@ -240,6 +247,7 @@ document.addEventListener('pointerup', e=>{
   const target = _padTarget; _padTarget = null;
   const moved = Math.hypot(e.clientX - _padX, e.clientY - _padY);
   if(moved > TAP_SLOP) return; // scroll/trascinamento, non un tocco
+  if(Date.now() - _padAt > TAP_MAX_MS) return; // pressione lunga, non un tocco
   if(!isInteractive(target)) return;
   if(_soundedGesture === _gesture) return;   // questo gesto ha gia' suonato
   const g = _gesture;

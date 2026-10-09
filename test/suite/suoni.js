@@ -330,4 +330,21 @@ module.exports = () => suite("Suoni — un tocco, un suono", {"banco": "/test/ba
   });
   ok('ogni tasto della barra fa un colpo di macchina da scrivere, e niente tic del menu',
      tw.colpi.length === 2 && tw.colpi.every(ms=> ms > 100 && ms < 400) && tw.tic === 0, tw);
+
+  console.log('\n── una pressione lunga non e\' anche un tocco ──');
+  // Tenendo premuto il tasto giallo del timer si elimina la sessione, col
+  // suo suono. Al rilascio partiva ANCHE il tic del tocco — lo stesso del
+  // tasto START — e si sentivano due suoni (Giovanni, 9 ottobre 2026).
+  await page.evaluate(()=> window.azzera());
+  await page.evaluate(async ()=>{
+    const el = document.querySelector('#b1'); const r = el.getBoundingClientRect();
+    const x = r.left + r.width/2, y = r.top + r.height/2;
+    window.click1 = null;
+    el.dispatchEvent(new PointerEvent('pointerdown',{pointerId:1,clientX:x,clientY:y,bubbles:true}));
+    await new Promise(q=> setTimeout(q, 1250));
+    window.playSfx('cancel');                  // il comando della pressione lunga
+    el.dispatchEvent(new PointerEvent('pointerup',{pointerId:1,clientX:x,clientY:y,bubbles:true}));
+  });
+  const lunga = await conta();
+  ok('tenendo premuto suona solo il comando, senza il tic al rilascio', lunga.length === 1, lunga);
 });

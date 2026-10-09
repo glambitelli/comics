@@ -56,23 +56,41 @@
 /* LA POZZA DI LUCE. Larga e in alto, come la fa una lampada da tavolo: una
    macchia piccola al centro sembrava un faretto da museo. Sta sopra il legno e
    sotto gli oggetti (z-index), e non riceve tocchi. */
-#screen-home::after{
+/* LA LUCE ACCESA E LA LUCE SPENTA SONO DUE VELI, e si passa dall'uno
+   all'altro sfumando l'OPACITA'. Prima era un solo velo che cambiava
+   sfumatura: ma un browser non sa fare la transizione fra due gradienti, li
+   cambia di colpo. Accendendo, il legno diventava chiaro all'istante mentre
+   gli oggetti ci mettevano mezzo secondo a schiarire: per un attimo
+   restavano scuri su un tavolo gia' illuminato, come staccati, con un lampo
+   attorno (Giovanni, 9 ottobre 2026). Con due veli che si incrociano tavolo
+   e oggetti cambiano insieme, alla stessa velocita'. */
+#screen-home::after,
+#screen-home::before{
   content:'';position:absolute;inset:0;pointer-events:none;z-index:0;
-  transition:background .45s ease;
+  transition:opacity .45s ease;
+}
+#screen-home::after{
   background:
     radial-gradient(ellipse 66% 74% at 48% 30%,rgba(255,226,170,.30) 0%,rgba(255,220,160,.12) 38%,rgba(0,0,0,0) 72%),
     radial-gradient(ellipse 120% 100% at 50% 40%,rgba(0,0,0,0) 40%,rgba(0,0,0,.55) 100%);
 }
-body.luce-spenta #screen-home::after{
+#screen-home::before{
   background:radial-gradient(ellipse 120% 100% at 50% 42%,rgba(0,0,0,.30) 0%,rgba(0,0,0,.74) 100%);
+  opacity:0;
 }
+body.luce-spenta #screen-home::after{opacity:0}
+body.luce-spenta #screen-home::before{opacity:1}
 /* E SI SPENGONO ANCHE LE COSE SUL TAVOLO. Prima la lampada scuriva solo il
    fondo e la mappa restava luminosa come se avesse luce propria: un foglio di
    carta illuminato in una stanza buia non esiste. Adesso il tavolo si smorza
    tutto insieme.
    L'INTERRUTTORE RESTA FUORI dal filtro (sta in .scriv-fondo, non in
-   .scriv-tavolo): e' l'unica cosa che al buio devi riuscire a trovare. */
-.scriv-tavolo{transition:filter .45s ease}
+   .scriv-tavolo): e' l'unica cosa che al buio devi riuscire a trovare.
+   ACCESO IL FILTRO C'E' LO STESSO, a valori neutri, e non "none": passando
+   da un filtro a nessun filtro il browser, a fine transizione, ridisegna gli
+   oggetti e le loro ombre in un altro modo, e si vedeva un piccolo lampo
+   sotto ciascuno. */
+.scriv-tavolo{transition:filter .45s ease;filter:brightness(1) saturate(1)}
 body.luce-spenta .scriv-tavolo{filter:brightness(.4) saturate(.82)}
 /* L'intestazione e la barra in fondo stanno SOPRA la luce. */
 #screen-home .home-header,#screen-home .home-scroll{position:relative;z-index:2}
@@ -382,7 +400,7 @@ body.luce-spenta .scriv-luce .spia{background:#4a3a20;box-shadow:none}
    giorno, in una stanza buia — Giovanni l'ha notato subito. Si smorza quasi
    quanto il tavolo (il tavolo va a .4), un filo meno: abbastanza da
    ritrovarlo, non abbastanza da sembrare acceso. */
-.scriv-luce{transition:filter .45s ease}
+.scriv-luce{transition:filter .45s ease;filter:brightness(1) saturate(1)}
 body.luce-spenta .scriv-luce{filter:brightness(.5) saturate(.8)}
 /* LA SCRITTA "LUCE" NON C'E' PIU'. Un interruttore su un tavolo vero non ha
    scritto sopra cosa fa: si capisce da com'e' fatto, dalla spia accesa e dal
@@ -475,7 +493,10 @@ body.luce-spenta .scriv-luce{filter:brightness(.5) saturate(.8)}
      e spostate di dodici pixel, e la foto sembrava galleggiare un dito sopra
      il tavolo ("l'ombra sotto e' strana"). Una polaroid e' sottile: l'ombra
      e' corta, stretta e scura sul bordo. */
-  filter:drop-shadow(0 1px .5px rgba(0,0,0,.5)) drop-shadow(1px 3px 3px rgba(0,0,0,.28));
+  /* La stessa fila di filtri accesa e spenta, cambiano solo i valori: con
+     due file diverse il browser non sfuma, salta, e la polaroid si
+     accendeva di colpo prima del resto del tavolo. */
+  filter:brightness(1) saturate(1) drop-shadow(0 1px .5px rgba(0,0,0,.5)) drop-shadow(1px 3px 3px rgba(0,0,0,.28));
   transition:filter .45s ease;
 }
 /* IL RIFLESSO NON C'E'. Per un giorno sulla foto c'era una velatura lucida
@@ -483,7 +504,7 @@ body.luce-spenta .scriv-luce{filter:brightness(.5) saturate(.8)}
    tolto (Giovanni, 9 ottobre 2026). La foto della polaroid e' gia' lucida
    di suo nell'immagine. */
 body.luce-spenta .scriv-polaroid{
-  filter:brightness(.4) saturate(.82) drop-shadow(0 1px .5px rgba(0,0,0,.5));
+  filter:brightness(.4) saturate(.82) drop-shadow(0 1px .5px rgba(0,0,0,.5)) drop-shadow(1px 3px 3px rgba(0,0,0,.28));
 }
 @media (max-width:520px){
   .scriv-polaroid{width:118px;top:4px;right:-34px;transform:rotate(-10deg)}

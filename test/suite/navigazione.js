@@ -774,7 +774,7 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
   // luminosa come se avesse luce propria, e un foglio di carta illuminato in
   // una stanza buia non esiste (Giovanni, 21 settembre 2026).
   ok('e al buio si smorza anche quello che sta sul tavolo',
-     /none/i.test(lampada.filtroAcceso) && /brightness\(0?\.[0-5]/.test(lampada.filtroSpento),
+     /none|brightness\(1\)/i.test(lampada.filtroAcceso) && /brightness\(0?\.[0-5]/.test(lampada.filtroSpento),
      lampada);
   ok('ma l\'interruttore no: al buio devi poterlo trovare',
      lampada.interruttoreFuori, lampada);
@@ -782,7 +782,7 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
   // 2026) in una stanza buia sembrava illuminato da sé: si smorza un filo
   // meno del tavolo, e torna pieno quando si riaccende.
   ok('e a luce spenta si smorza anche lui, un filo meno del tavolo',
-     /brightness\(0?\.[4-6]/.test(lampada.luceSpento) && /none/i.test(lampada.luceAcceso), lampada);
+     /brightness\(0?\.[4-6]/.test(lampada.luceSpento) && /none|brightness\(1\)/i.test(lampada.luceAcceso), lampada);
 
   // E STA ALL'ANGOLO DELLO SCHERMO, non appeso al banco. Il banco e' largo al
   // massimo 860px e sta in mezzo alla pagina: col mouse l'interruttore gli
