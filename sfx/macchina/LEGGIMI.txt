@@ -1,9 +1,10 @@
 I tre colpi di macchina da scrivere dei tasti della barra.
 
 Vanno caricati qui a mano, con questi nomi esatti:
-  tasto1.mp3   tasto2.mp3   tasto3.mp3
+  tasto1.mp3   tasto3.mp3
+(tasto2.mp3 c'era ed e' stato tolto: troppo alto.)
 
 Ogni tasto della barra (luna, archivio, casa, progetti, impostazioni)
-suona uno dei tre, a caso, per non sentire sempre lo stesso colpo.
+suona uno dei due, a caso, per non sentire sempre lo stesso colpo.
 Finche' i file non ci sono, la barra fa il suono normale dei tocchi
 (vedi js/sound.js): non si rompe niente.

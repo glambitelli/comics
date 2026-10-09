@@ -325,5 +325,5 @@ module.exports = () => suite("Suoni — un tocco, un suono", {"banco": "/test/ba
     return { colpi, tic: window.__suoni.length };
   });
   ok('ogni tasto della barra fa un colpo di macchina da scrivere, e niente tic del menu',
-     tw.colpi.length === 2 && tw.colpi.every(c=> /^tasto[123]\.mp3$/.test(c)) && tw.tic === 0, tw);
+     tw.colpi.length === 2 && tw.colpi.every(c=> /^tasto[13]\.mp3$/.test(c)) && tw.tic === 0, tw);
 });

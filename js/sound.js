@@ -323,13 +323,15 @@ function emit(key){
 // mancano, il tasto fa il suono normale dei tocchi: e' il ripiego, non un
 // errore. Suona al pointerdown, cioe' quando il dito scende: e' li' che un
 // tasto di macchina da scrivere fa rumore, non quando lo lasci.
-const COLPI = ['./sfx/macchina/tasto1.mp3', './sfx/macchina/tasto2.mp3', './sfx/macchina/tasto3.mp3'];
+// tasto2 e' stato tolto: "troppo alto, non mi piace" (Giovanni, 9 ottobre
+// 2026). Ne restano due, che con la variazione di tono qui sotto bastano.
+const COLPI = ['./sfx/macchina/tasto1.mp3', './sfx/macchina/tasto3.mp3'];
 // IL VOLUME DI OGNI COLPO, misurato: tasto1 ha un volume medio di -24 dB,
 // tasto2 e tasto3 di -12,7 — quattro volte piu' forti. Al 70% per tutti,
 // come all'inizio, due colpi su tre "stonavano l'orecchio" (Giovanni, 9
 // ottobre 2026). Qui si pareggiano e si abbassano tutti: finiscono attorno ai
 // -31 dB, sotto il tic del menu, perche' un tasto si preme spesso.
-const VOLUMI = [0.45, 0.12, 0.12];
+const VOLUMI = [0.45, 0.12];
 const _colpi = COLPI.map(()=> null);
 let _colpiMancano = false;
 function colpoDiMacchina(){
