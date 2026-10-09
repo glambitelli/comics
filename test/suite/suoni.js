@@ -305,25 +305,29 @@ module.exports = () => suite("Suoni — un tocco, un suono", {"banco": "/test/ba
   // colpi in sfx/macchina/ (caricati da Giovanni il 9 ottobre 2026), UNO per
   // tocco, e niente tic del menu sopra — anche se l'azione chiama
   // haptic('tap'). Si guarda quali file partono intercettando play().
+  // Si contano i suoni che partono dal motore audio: ogni BufferSource
+  // avviato con un buffer lungo meno di mezzo secondo e diverso da quelli del
+  // menu e' un colpo di macchina.
   const tw = await page.evaluate(async ()=>{
     const fila = document.createElement('div'); fila.className = 'dune-nav-items';
     const b = document.createElement('button'); b.className = 'dune-btn'; b.id = 'tw1';
     b.onclick = ()=> window.playSfx('tap');
     fila.appendChild(b); document.body.appendChild(fila);
     const colpi = [];
-    const vero = HTMLMediaElement.prototype.play;
-    HTMLMediaElement.prototype.play = function(){
-      if(/sfx\/macchina\//.test(this.src || '')) colpi.push(this.src.split('/').pop());
-      return vero.call(this);
+    const vero = AudioBufferSourceNode.prototype.start;
+    AudioBufferSourceNode.prototype.start = function(...a){
+      if(this.playbackRate.value !== 1) colpi.push(Math.round(this.buffer.duration * 1000));
+      return vero.apply(this, a);
     };
     window.azzera();
     for(let k = 0; k < 2; k++){
       await window.tocca('#tw1', null, 30);
-      await new Promise(r=> setTimeout(r, 700));
+      await new Promise(r=> setTimeout(r, 900));
     }
-    HTMLMediaElement.prototype.play = vero;
-    return { colpi, tic: window.__suoni.length };
+    AudioBufferSourceNode.prototype.start = vero;
+    // Il banco conta ogni suono che parte, colpi compresi: il tic e' il resto.
+    return { colpi, tic: window.__suoni.length - colpi.length };
   });
   ok('ogni tasto della barra fa un colpo di macchina da scrivere, e niente tic del menu',
-     tw.colpi.length === 2 && tw.colpi.every(c=> /^tasto[13]\.mp3$/.test(c)) && tw.tic === 0, tw);
+     tw.colpi.length === 2 && tw.colpi.every(ms=> ms > 100 && ms < 400) && tw.tic === 0, tw);
 });

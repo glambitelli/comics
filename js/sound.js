@@ -332,31 +332,63 @@ const COLPI = ['./sfx/macchina/tasto1.mp3', './sfx/macchina/tasto3.mp3'];
 // ottobre 2026). Qui si pareggiano e si abbassano tutti: finiscono attorno ai
 // -31 dB, sotto il tic del menu, perche' un tasto si preme spesso.
 const VOLUMI = [0.45, 0.12];
+// PASSANO DAL MOTORE AUDIO DEGLI ALTRI SUONI, non da un <audio> per conto
+// loro. La prima versione usava new Audio(), e sul telefono di Giovanni non
+// si sentivano mai: il primo tocco sulla barra poteva arrivare prima che il
+// browser desse il permesso di suonare (sul tocco il permesso arriva quando
+// il dito si ALZA, e il colpo parte quando scende), play() veniva rifiutato,
+// e il codice segnava "i file mancano" per tutta la sessione — da li' in poi
+// solo il tic del menu, cioe' i suoni di Resident Evil. Con i buffer
+// decodificati nello stesso contesto dei suoni del menu, gia' sbloccato al
+// primo tocco ovunque nell'app, il colpo parte sempre.
+// "Mancano" si dice solo se il file risponde 404, non per un rifiuto a suonare.
 const _colpi = COLPI.map(()=> null);
-let _colpiMancano = false;
+let _colpiMancano = false, _colpiInArrivo = null;
+function caricaColpi(){
+  if(_colpiInArrivo) return _colpiInArrivo;
+  const ctx = getCtx();
+  if(!ctx) return Promise.resolve();
+  _colpiInArrivo = Promise.all(COLPI.map(async (url, i)=>{
+    try{
+      const r = await fetch(url);
+      if(r.status === 404){ _colpiMancano = true; return; }
+      if(!r.ok) return;
+      _colpi[i] = await ctx.decodeAudioData(await r.arrayBuffer());
+    }catch(e){}
+  })).then(()=>{ if(!_colpi.some(Boolean)) _colpiInArrivo = null; });   // niente di caricato: si riprova la volta dopo
+  return _colpiInArrivo;
+}
 function colpoDiMacchina(){
   if(!isSoundEnabled()) return;
   // Questo gesto ha gia' il suo suono: il tic che l'azione del tasto
   // chiederebbe dopo (un haptic('tap') nell'onclick) non deve sommarsi.
   _soundedGesture = _gesture;
   if(_colpiMancano){ emit('tap'); return; }
-  const i = Math.floor(Math.random() * COLPI.length);
-  try{
-    let a = _colpi[i];
-    if(!a){
-      a = _colpi[i] = new Audio(COLPI[i]); a.preload = 'auto'; a.volume = VOLUMI[i];
-      a.addEventListener('error', ()=>{ _colpiMancano = true; }, { once:true });
-    }
-    a.currentTime = 0;
-    // E OGNI COLPO UN FILO DIVERSO: tre file sono pochi, e a tasti premuti di
-    // fila si riconoscevano. Una velocita' che varia del 6% in su o in giu'
-    // cambia anche il tono, come due tasti veri che non suonano mai uguali.
-    a.preservesPitch = false; a.mozPreservesPitch = false; a.webkitPreservesPitch = false;
-    a.playbackRate = 0.94 + Math.random() * 0.12;
-    const p = a.play();
-    if(p && p.catch) p.catch(()=>{ _colpiMancano = true; emit('tap'); });
-  }catch(e){ emit('tap'); }
+  const ctx = getCtx();
+  if(!ctx){ return; }
+  if(ctx.state === 'suspended') ctx.resume().catch(()=>{});
+  const suona = ()=>{
+    const pronti = _colpi.map((b, i)=> b ? i : -1).filter(i=> i >= 0);
+    if(!pronti.length){ if(_colpiMancano) emit('tap'); return; }
+    const i = pronti[Math.floor(Math.random() * pronti.length)];
+    try{
+      const src = ctx.createBufferSource();
+      src.buffer = _colpi[i];
+      // E OGNI COLPO UN FILO DIVERSO: una velocita' che varia del 6% in su o
+      // in giu' cambia anche il tono, come due tasti veri che non suonano
+      // mai uguali.
+      src.playbackRate.value = 0.94 + Math.random() * 0.12;
+      const g = ctx.createGain(); g.gain.value = VOLUMI[i];
+      src.connect(g).connect(ctx.destination);
+      src.start(0);
+    }catch(e){}
+  };
+  if(_colpi.some(Boolean)) suona();
+  else caricaColpi().then(suona);
 }
+// Si scaricano appena c'e' un tocco qualunque, come gli altri suoni: cosi' il
+// primo colpo sulla barra e' gia' pronto.
+['pointerdown','keydown'].forEach(ev=> window.addEventListener(ev, ()=> caricaColpi(), { once:true, passive:true }));
 document.addEventListener('pointerdown', e=>{
   const t = e.target;
   if(t && t.closest && t.closest('.dune-nav-items > .dune-btn, .home-fab-row > .home-fab')) colpoDiMacchina();
