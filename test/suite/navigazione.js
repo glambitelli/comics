@@ -1230,6 +1230,42 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
   ok('e il tasto avanti cambia brano',
      !radio.manca && radio.dopo.i === 1 && radio.dopo.titolo === 'Pioggia', radio);
 
+  // ── LA POLAROID DI MAX SI PRENDE IN MANO ──
+  // Un tocco sulla polaroid dell'angolo la porta al centro, grande, e la si
+  // gira trascinando; un tocco fuori la rimette giu' (Giovanni, 9 ottobre
+  // 2026). Si guarda che la piccola sparisca mentre l'altra e' in mano (mai
+  // due polaroid insieme), che trascinando giri davvero, e che dopo tutto
+  // torni com'era.
+  const pola = await page.evaluate(async ()=>{
+    const piccola = document.querySelector('.scriv-polaroid');
+    if(!piccola) return { manca:true };
+    const pd = (el, x, y, tipo)=> el.dispatchEvent(new PointerEvent(tipo, { bubbles:true, clientX:x, clientY:y, pointerId:7, isPrimary:true }));
+    const r0 = piccola.getBoundingClientRect();
+    pd(piccola, r0.left + 20, r0.top + 20, 'pointerdown'); pd(piccola, r0.left + 20, r0.top + 20, 'pointerup');
+    await new Promise(r=> setTimeout(r, 700));
+    const scena = document.querySelector('.pola-scena');
+    const foto = scena && scena.querySelector('.pola-foto');
+    const fr = foto.getBoundingClientRect();
+    const aperta = { scena: scena.classList.contains('aperta'), piccolaVia: getComputedStyle(piccola).visibility === 'hidden',
+                     larga: Math.round(fr.width), alCentro: Math.abs((fr.left + fr.right) / 2 - innerWidth / 2) < 40 };
+    const prima = foto.style.transform;
+    pd(scena, 200, 400, 'pointerdown');
+    for(let i = 1; i <= 8; i++){ await new Promise(r=> setTimeout(r, 16)); pd(scena, 200 + i * 15, 400, 'pointermove'); }
+    pd(scena, 320, 400, 'pointerup');
+    const ry = v=> +((/rotateY\((-?[\d.]+)deg\)/.exec(v) || [0, 0])[1]);
+    const girata = Math.abs(ry(foto.style.transform) - ry(prima)) > 30;
+    await new Promise(r=> setTimeout(r, 300));
+    pd(scena, 6, innerHeight - 6, 'pointerdown'); pd(scena, 6, innerHeight - 6, 'pointerup');
+    await new Promise(r=> setTimeout(r, 700));
+    return { aperta, girata, chiusa: !scena.classList.contains('aperta'),
+             tornata: getComputedStyle(piccola).visibility === 'visible',
+             fotoVia: getComputedStyle(foto).visibility === 'hidden' };
+  });
+  ok('toccando la polaroid di Max viene al centro, grande, e la piccola sparisce',
+     !pola.manca && pola.aperta.scena && pola.aperta.piccolaVia && pola.aperta.larga > 200 && pola.aperta.alCentro, pola);
+  ok('trascinando il dito la polaroid gira', pola.girata, pola);
+  ok('e un tocco fuori la rimette giu\', al suo posto', pola.chiusa && pola.tornata && pola.fotoVia, pola);
+
   // ── IL WALKMAN NON SI SIEDE SULL'INTERRUTTORE ──
   // Messo a destra sotto il cronometro, sul telefono finiva sopra
   // l'interruttore della luce, che e' avvitato nell'angolo in basso a destra

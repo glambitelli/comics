@@ -483,7 +483,8 @@ body.luce-spenta .scriv-luce{filter:brightness(.5) saturate(.8)}
    Sul telefono e' piu' piccola e piu' fuori: il suo angolo e' lo spazio vuoto
    accanto al titolo, e non deve arrivare fino alla mappa. */
 .scriv-polaroid{
-  position:absolute;z-index:3;pointer-events:none;
+  position:absolute;z-index:3;cursor:pointer;-webkit-tap-highlight-color:transparent;
+  -webkit-touch-callout:none;user-select:none;-webkit-user-select:none;touch-action:manipulation;
   top:-4px;right:-46px;width:168px;aspect-ratio:300/370;
   background:url(../img/scrivania/polaroid.webp) center/100% 100% no-repeat;
   /* STORTA VERSO SINISTRA (antioraria): verso destra "non faceva
@@ -559,3 +560,35 @@ body.luce-spenta .scriv-polaroid{
 @media (min-width:521px){
   .scriv-tavolo.con-frase .radio{zoom:1.1;margin:-180px 0 0 43%;transform:rotate(5deg)}
 }
+
+/* ── LA POLAROID IN MANO (js/polaroid.js) ──
+   Sopra tutto tranne la tenda della sera (9800) e i modali (9700): mentre la
+   si guarda la barra in fondo e l'interruttore restano sotto il velo. */
+.scriv-polaroid.in-mano{visibility:hidden}
+.scriv-polaroid:focus-visible{outline:2px solid #f0e6d2;outline-offset:4px}
+.pola-scena{position:fixed;inset:0;z-index:9650;perspective:1100px;pointer-events:none;overflow:hidden;
+  touch-action:none;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
+.pola-scena.aperta{pointer-events:auto;cursor:grab}
+.pola-velo{position:absolute;inset:0;background:rgba(10,7,5,.72);opacity:0;transition:opacity .35s ease}
+.pola-scena.aperta .pola-velo{opacity:1}
+.pola-ombra{position:absolute;left:50%;top:50%;width:var(--pw);height:calc(var(--pw)*.3);border-radius:50%;
+  background:radial-gradient(closest-side,rgba(0,0,0,.55),transparent);filter:blur(6px);
+  opacity:0;transform:translate(-50%,calc(var(--pw)*.6));transition:opacity .35s}
+.pola-scena.aperta .pola-ombra{opacity:1}
+.pola-foto{position:absolute;left:0;top:0;width:var(--pw);aspect-ratio:640/790;
+  transform-style:preserve-3d;will-change:transform;visibility:hidden}
+.pola-scena.in-volo .pola-foto{visibility:visible}
+.pola-faccia{position:absolute;inset:0;border-radius:3px;overflow:hidden;
+  backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.pola-davanti{background:url(../img/scrivania/polaroid-grande.webp) center/100% 100% no-repeat}
+.pola-dietro{transform:translateZ(-2px) rotateY(180deg);
+  background:url(../img/scrivania/polaroid-retro.webp) center/100% 100% no-repeat}
+.pola-strato{position:absolute;inset:0;border-radius:3px;background:#d9d4c9}
+.pola-luce{position:absolute;inset:0;background:#000;opacity:0;pointer-events:none}
+.pola-chiudi{position:absolute;top:calc(14px + var(--safe-top,0px));right:14px;width:44px;height:44px;border-radius:50%;
+  border:1px solid rgba(255,255,255,.25);background:rgba(0,0,0,.35);color:#e9dfcf;font-size:22px;line-height:1;
+  cursor:pointer;opacity:0;transition:opacity .3s}
+.pola-scena.aperta .pola-chiudi{opacity:1}
+.pola-aiuto{position:absolute;left:16px;right:16px;bottom:calc(118px + var(--safe-bot,0px));margin:0;text-align:center;
+  font-family:'Nunito',sans-serif;font-size:13px;color:#e9dfcf;opacity:0;transition:opacity .4s .3s;pointer-events:none}
+.pola-scena.aperta .pola-aiuto{opacity:.75}
