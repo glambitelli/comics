@@ -761,8 +761,10 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
     // L'INTERRUTTORE NON SI SPEGNE CON IL RESTO: al buio e' l'unica cosa che
     // devi riuscire a trovare, quindi sta fuori dal contenitore che si smorza.
     const interruttoreFuori = !tavolo.contains(b);
-    b.click(); await new Promise(r=> setTimeout(r, 200));
-    return { prima, dopo, salvato, filtroAcceso, filtroSpento, interruttoreFuori,
+    const luceSpento = getComputedStyle(b).filter;
+    b.click(); await new Promise(r=> setTimeout(r, 600));   // la luce torna in 0,45s
+    const luceAcceso = getComputedStyle(b).filter;
+    return { prima, dopo, salvato, filtroAcceso, filtroSpento, interruttoreFuori, luceSpento, luceAcceso,
              tornata: document.body.classList.contains('luce-spenta') };
   });
   ok('la lampada si spegne', lampada.prima === false && lampada.dopo === true, lampada);
@@ -776,6 +778,11 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
      lampada);
   ok('ma l\'interruttore no: al buio devi poterlo trovare',
      lampada.interruttoreFuori, lampada);
+  // PERO' NON RESTA ACCESO COME DI GIORNO. Da quando e' una foto (9 ottobre
+  // 2026) in una stanza buia sembrava illuminato da sé: si smorza un filo
+  // meno del tavolo, e torna pieno quando si riaccende.
+  ok('e a luce spenta si smorza anche lui, un filo meno del tavolo',
+     /brightness\(0?\.[4-6]/.test(lampada.luceSpento) && /none/i.test(lampada.luceAcceso), lampada);
 
   // E STA ALL'ANGOLO DELLO SCHERMO, non appeso al banco. Il banco e' largo al
   // massimo 860px e sta in mezzo alla pagina: col mouse l'interruttore gli

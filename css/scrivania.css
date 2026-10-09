@@ -367,6 +367,14 @@ body.luce-spenta .scriv-luce .bil s::after{background:linear-gradient(0deg,rgba(
 .scriv-luce .spia{position:absolute;left:50%;top:84%;width:6px;height:6px;margin:-3px 0 0 -3px;border-radius:50%;
   background:#ffc447;box-shadow:0 0 7px 2px rgba(255,190,70,.65);transition:background .2s,box-shadow .2s}
 body.luce-spenta .scriv-luce .spia{background:#4a3a20;box-shadow:none}
+/* E A LUCE SPENTA SI SPEGNE ANCHE LUI. Sta fuori dal filtro del tavolo
+   apposta (vedi .scriv-tavolo), perche' e' la cosa che al buio devi trovare;
+   ma da quando e' una foto (9 ottobre 2026) restava illuminato come in pieno
+   giorno, in una stanza buia — Giovanni l'ha notato subito. Si smorza quasi
+   quanto il tavolo (il tavolo va a .4), un filo meno: abbastanza da
+   ritrovarlo, non abbastanza da sembrare acceso. */
+.scriv-luce{transition:filter .45s ease}
+body.luce-spenta .scriv-luce{filter:brightness(.5) saturate(.8)}
 /* LA SCRITTA "LUCE" NON C'E' PIU'. Un interruttore su un tavolo vero non ha
    scritto sopra cosa fa: si capisce da com'e' fatto, dalla spia accesa e dal
    fatto che al buio la si cerca proprio li'. Toglierla e' stata una richiesta
