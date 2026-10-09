@@ -147,7 +147,7 @@ module.exports = () => suite("Suoni — un tocco, un suono", {"banco": "/test/ba
   const indietro = await page.evaluate(async ()=>{
     const ctx = new (window.AudioContext||window.webkitAudioContext)();
     const atteso = +(await ctx.decodeAudioData(
-      await (await fetch('/sfx/cancel.wav')).arrayBuffer())).duration.toFixed(4);
+      await (await fetch('/sfx/survival/cancel.wav')).arrayBuffer())).duration.toFixed(4);
     const st = await import('/js/state.js?vero');
     window.azzera();
     let rimesso = false;
@@ -161,144 +161,26 @@ module.exports = () => suite("Suoni — un tocco, un suono", {"banco": "/test/ba
   ok('e rimette davvero a posto quello che era sparito',
      indietro.rimesso === true, indietro);
 
-  console.log('\n── il set di suoni ──');
-  // Quello che si prova qui e' che il file suonato dipenda dal SET SCELTO
-  // invece di essere scritto a mano da qualche parte.
-  const sets = await page.evaluate(async ()=>{
+  console.log('\n── un set solo, survival horror ──');
+  // DAL 9 OTTOBRE 2026 IL SET E' UNO SOLO: niente Final Fantasy VII, niente
+  // menu per sceglierlo, niente file propri dalle Impostazioni (Giovanni:
+  // "ormai e' deciso"). I file stanno in sfx/survival/; il premio non ha un
+  // suo file e suona la conferma — un comando muto sembrerebbe rotto.
+  const set = await page.evaluate(async ()=>{
     const m = await import('/js/sound.js');
-    return { elenco: m.SET_SUONI.map(x=>x.id), attivo: m.setSuoniAttivo() };
-  });
-  ok('c\'e\' almeno un set e uno e\' attivo',
-     sets.elenco.length >= 1 && sets.elenco.includes(sets.attivo), sets);
-
-  const scelta = await page.evaluate(async ()=>{
-    const m = await import('/js/sound.js');
-    localStorage.setItem('inkflow-sfx-pack', 'un-set-che-non-esiste');
-    return m.setSuoniAttivo();
-  });
-  ok('un set salvato che non esiste piu\' non zittisce l\'app',
-     scelta === sets.elenco[0], scelta);
-
-  await page.evaluate(()=>{ localStorage.removeItem('inkflow-sfx-pack'); window.azzera(); });
-  await page.evaluate(()=> window.playSfx('done'));
-  await page.waitForTimeout(400);
-  const dopoScelta = await page.evaluate(()=> window.__suoni);
-  ok('e i suoni continuano a uscire', dopoScelta.length === 1, dopoScelta);
-
-  // ── UN SET A CUI MANCA UN FILE NON RESTA MUTO ──
-  // Il ripiego sul set di serie vale per ogni comando scoperto: la cartella
-  // vuota, quella riempita a meta', o il file sbagliato di nome. Il silenzio
-  // si legge come un tocco che non ha funzionato, ed e' il difetto peggiore
-  // che un set incompleto possa avere.
-  //
-  // QUI SI PROVA SU UN BUCO VERO. Prima questo controllo pretendeva che la
-  // cartella sfx/survival/ fosse VUOTA — cioe' fotografava lo stato di quel
-  // giorno invece di una regola — e infatti e' caduto appena Giovanni ci ha
-  // messo i suoi tre file (25 settembre 2026). La regola vera e' un'altra:
-  // qualunque comando la cartella non copra, si sente quello di serie. Il
-  // premio, che un suono suo non ce l'ha, e' il buco su cui misurarlo.
-  const ripiego = await page.evaluate(async ()=>{
-    const m = await import('/js/sound.js');
-    const set = m.SET_SUONI.find(x=> x.id === 'survival');
-    if(!set) return { manca: true };
-    const via = set.cartella.replace(/^\.\//, '/');
-    const stati = {};
-    for(const n of ['nav.wav','done.wav','cancel.wav','reward.wav']){
-      stati[n] = (await fetch(via + n)).status;
-    }
-    const scoperto = Object.keys(stati).find(n => stati[n] !== 200);
-    m.setSuoniScegli('survival');
-    m.scordaISuoni();
+    const stato = async u => (await fetch(u)).status;
     window.azzera();
-    // Si suona l'intento che corrisponde al file mancante, se ce n'e' uno;
-    // se la cartella fosse completa il ripiego non si puo' provare qui, e il
-    // controllo lo dice invece di fingere.
-    const INTENTO = { 'nav.wav':'tap', 'done.wav':'done', 'cancel.wav':'cancel', 'reward.wav':'reward' };
-    window.playSfx(scoperto ? INTENTO[scoperto] : 'done');
+    window.playSfx('reward');
     await new Promise(r=> setTimeout(r, 900));
-    const usciti = window.__suoni.length;
-    m.setSuoniScegli(m.SET_SUONI[0].id);
-    m.scordaISuoni();
-    return { stati, scoperto, usciti };
-  });
-  ok('il set Survival Horror c\'è', !ripiego.manca, ripiego);
-  ok('e un comando che la sua cartella non copre si sente lo stesso',
-     !ripiego.manca && ripiego.usciti >= 1, ripiego);
-
-  console.log('\n── i tuoi file riempiono Survival Horror ──');
-  // PERCHE' ESISTE QUESTA STRADA. La cartella sfx/survival/ nel sito e'
-  // vuota, e riempirla voleva dire caricare i file sul repository dalla
-  // pagina di GitHub: dal telefono non e' un'operazione che si chiede a
-  // qualcuno, e infatti non arrivava in fondo — mentre il set sembrava rotto
-  // perche' suonava come quello di serie. Da qui i file si scelgono
-  // dall'app, e restano SUL DISPOSITIVO: niente rete, niente repository.
-  const miei = await page.evaluate(async ()=>{
-    const m = await import('/js/sound.js');
-    const s = await import('/js/suonimiei.js');
-    await s.svuotaSuoniMiei();
-    // SI CARICA UN FILE CHE DURA DIVERSO da quello di serie, e poi si guarda
-    // la DURATA di quello che esce. Senza questo trucco la prova non
-    // proverebbe niente: togliendo la lettura dal dispositivo, il suono
-    // ripiegherebbe su quello di serie e un controllo del tipo "e' uscito un
-    // suono" resterebbe verde lo stesso. Qui invece il premio (lungo) viene
-    // messo al posto del cursore (corto): se si sente il corto, i file sul
-    // dispositivo non vengono letti.
-    const ctx = new (window.AudioContext||window.webkitAudioContext)();
-    const durata = async v => (await ctx.decodeAudioData(
-      await (await fetch(v)).arrayBuffer())).duration;
-    const attesa = +(await durata('/sfx/reward.wav')).toFixed(4);
-    const diSerie = +(await durata('/sfx/nav.wav')).toFixed(4);
-    const blob = await (await fetch('/sfx/reward.wav')).blob();
-    const quali = await s.salvaSuoniMiei({ tap: blob });
-    const bytes = await s.leggiSuonoMio('tap');
-    // UN SOLO FILE CARICATO NON ZITTISCE GLI ALTRI TRE.
-    const mancante = await s.leggiSuonoMio('done');
-    m.setSuoniScegli('survival');
-    m.scordaISuoni();
-    window.azzera();
-    window.playSfx('done');
-    await new Promise(r=> setTimeout(r, 900));
-    const conRipiego = window.__suoni.length;
-    window.azzera();
-    window.playSfx('tap');
-    await new Promise(r=> setTimeout(r, 900));
-    const conIlMio = window.__suoni.length;
-    await s.svuotaSuoniMiei();
-    const dopo = s.haSuoniMiei();
-    m.setSuoniScegli(m.SET_SUONI[0].id);
-    m.scordaISuoni();
-    return { quali, byte: bytes ? bytes.byteLength : 0, mancante,
-             conRipiego, conIlMio, dopo, attesa, diSerie,
-             durataUscita: window.__suoni[0] };
-  });
-  ok('i file scelti restano sul dispositivo, rileggibili',
-     miei.quali.join() === 'tap' && miei.byte > 1000, miei);
-  ok('un comando che non hai coperto ripiega sul set di serie',
-     miei.mancante === null && miei.conRipiego >= 1, miei);
-  ok('e quello che hai caricato suona LUI, non quello di serie',
-     miei.conIlMio >= 1 && miei.durataUscita === miei.attesa
-     && miei.attesa !== miei.diSerie, miei);
-  ok('e si tolgono quando vuoi', miei.dopo === false, miei);
-
-  // A QUALE COMANDO VA OGNI FILE: prima il nome, poi l'ordine di scelta.
-  const nomi = await page.evaluate(async ()=>{
-    const s = await import('/js/suonimiei.js');
-    const f = n => ({ name: n });
-    const dimmi = m => Object.fromEntries(Object.entries(m).map(([k,v])=>[k, v.name]));
     return {
-      perNome: dimmi(s.assegnaFile([f('cursor.wav'), f('select.wav'), f('back.wav'), f('fanfare.wav')])),
-      aCaso:   dimmi(s.assegnaFile([f('1.wav'), f('2.wav'), f('3.wav'), f('4.wav')])),
-      misto:   dimmi(s.assegnaFile([f('boh.wav'), f('cancel.wav')])),
+      niente: !('SET_SUONI' in m) && !('setSuoniScegli' in m),
+      ff7: [await stato('/sfx/nav.wav'), await stato('/sfx/reward.wav')],
+      premio: window.__suoni.length,
     };
   });
-  ok('i nomi riconoscibili vanno al posto giusto',
-     nomi.perNome.tap === 'cursor.wav' && nomi.perNome.done === 'select.wav'
-     && nomi.perNome.cancel === 'back.wav' && nomi.perNome.reward === 'fanfare.wav', nomi);
-  ok('e quelli senza nome seguono l\'ordine in cui li hai scelti',
-     nomi.aCaso.tap === '1.wav' && nomi.aCaso.done === '2.wav', nomi);
-  ok('un nome riconosciuto si prende il suo posto anche in mezzo agli altri',
-     nomi.misto.cancel === 'cancel.wav' && nomi.misto.tap === 'boh.wav', nomi);
-
+  ok('non c\'e\' piu\' un elenco di set fra cui scegliere', set.niente, set);
+  ok('e i file di Final Fantasy VII non ci sono piu\'', set.ff7.every(s=> s === 404), set);
+  ok('il premio, che un file suo non ha, si sente lo stesso', set.premio >= 1, set);
 
   console.log('\n── un tasto della barra-macchina da scrivere ──');
   // I tasti della barra sono una macchina da scrivere: suonano uno dei tre

@@ -1238,32 +1238,9 @@
           <label class="settings-item" for="sound-toggle"><b>Suoni di menu</b></label>
           <input class="settings-toggle" type="checkbox" id="sound-toggle" onchange="onSoundToggle()"/>
         </div>
-        <div class="settings-row">
-          <span class="settings-ico"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg></span>
-          <label class="settings-item" for="sound-pack"><b>Set</b></label>
-          <!-- Una sola voce per ora: il menu esiste perché il giorno che se ne
-               aggiunge un secondo non ci sia niente da disegnare. -->
-          <select class="settings-time" id="sound-pack" onchange="onSoundPackChange()"></select>
-        </div>
-        <!-- ── I TUOI SUONI ──
-             Riempiono il set "Survival Horror", che nel sito ha la cartella
-             vuota. I file li scegli qui e restano SUL DISPOSITIVO
-             (IndexedDB, vedi js/suonimiei.js): non passano da GitHub, non
-             finiscono sul sito, non li vede nessun altro.
-             ESISTE PERCHE' L'ALTRA STRADA NON ANDAVA. Prima i file si
-             caricavano sul repository dalla pagina di GitHub: dal telefono,
-             con le mani messe male, non e' un'operazione che si chiede a
-             qualcuno — e infatti non e' mai arrivata in fondo, mentre il set
-             sembrava rotto perche' suonava come quello di serie.
-             LA RIGA DICE QUALI COMANDI HAI COPERTO, non un generico "fatto":
-             i file vanno su quattro comandi diversi, e quello che vuoi
-             sapere e' quale manca. -->
-        <div class="settings-row">
-          <span class="settings-ico"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14v5a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-5"/><path d="M12 15V4"/><path d="M8 8l4-4 4 4"/></svg></span>
-          <span class="settings-item"><b>I tuoi suoni</b><span id="sound-mine-stato"></span></span>
-          <button class="settings-time" id="sound-mine-btn" type="button" onclick="onSoundMineMenu(this)">Carica</button>
-        </div>
-        <input type="file" id="sound-mine-file" accept="audio/*" multiple hidden onchange="onSoundMineFiles(this)">
+        <!-- SOLO L'INTERRUTTORE. Qui c'erano anche il menu per scegliere il set
+             (Final Fantasy VII o Survival Horror) e la riga per caricare i
+             propri file: tolti il 9 ottobre 2026, lo stile e' uno solo. -->
       </div>
     </div>
 

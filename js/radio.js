@@ -132,7 +132,8 @@ function scriviTesto(){
   // ottobre 2026). La fessura nera dice gia' che li' comparira' un titolo.
   if(_stato === 'spenta' && !_brani.length){ n.textContent = ''; return; }
   if(_stato === 'errore'){ n.textContent = 'Drive non risponde'; return; }
-  if(_stato === 'carico'){ n.textContent = 'Carico…'; return; }
+  // In inglese, come i display di quei lettori (Giovanni, 9 ottobre 2026).
+  if(_stato === 'carico'){ n.textContent = 'Loading...'; return; }
   n.textContent = titoloDi(_brani[_i]) || '';
 }
 

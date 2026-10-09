@@ -1,6 +1,6 @@
 // ── SUONI INTERFACCIA ──────────────────────────────────────────────────────
-// Piccoli suoni di menu (pack "FFVII Menu Sounds", in realtà l'UI dello Steam
-// Deck) che scandiscono le azioni. Si agganciano al feedback già centralizzato
+// Piccoli suoni di menu, nello stile survival horror della scrivania (vedi
+// "UN SET SOLO" qui sotto), che scandiscono le azioni. Si agganciano al feedback già centralizzato
 // dell'app: haptic(intento) in state.js chiama playSfx(intento), così gli
 // stessi tre intenti che fanno vibrare il telefono fanno anche il suono, senza
 // disseminare chiamate in giro.
@@ -12,7 +12,6 @@
 // Filosofia: discreti (volume basso) e spegnibili (interruttore in
 // Impostazioni). Accesi di default; la preferenza vive in localStorage.
 
-import { leggiSuonoMio } from './suonimiei.js';
 
 const PREF_KEY = 'inkflow-sfx-enabled';
 // Volume per intento: il tick di navigazione resta discreto, conferma e
@@ -56,83 +55,28 @@ const NOMI = {
   cancel: 'cancel.wav',
 };
 
-// ── SET DI SUONI ──
-// Per ora ce n'è uno solo, e va benissimo così: quello che serviva era togliere
-// dal codice l'idea che ce ne sia UNO E BASTA. I nomi dei file sono gli stessi
-// per tutti i set (nav/done/reward/cancel), cambia solo la cartella — quindi
-// aggiungerne un secondo è copiare quattro .wav in sfx/<nome>/ e una riga qui,
-// senza toccare né il pannello né chi suona.
-//
-// Il set attuale sta in ./sfx/ e non in ./sfx/ff7/: spostarlo avrebbe rotto la
-// cache del Service Worker e i banchi di prova per un guadagno estetico. Il
-// campo `cartella` esiste apposta per non doverlo decidere adesso.
-export const SET_SUONI = [
-  { id: 'ff7', nome: 'Final Fantasy VII', cartella: './sfx/' },
-  // IL SET "SURVIVAL HORROR" legge da sfx/survival/, che nel repository e'
-  // una cartella VUOTA (c'e' solo un LEGGIMI). I file li mette Giovanni: sono
-  // suoni presi da un gioco, cioe' roba di chi il gioco l'ha fatto, e questo
-  // repository e' pubblico — chi lo pubblica se ne prende la responsabilita',
-  // e non tocca a chi scrive il codice deciderlo per lui.
-  // FINCHE' LA CARTELLA E' VUOTA il set suona esattamente come quello di
-  // serie: vedi il ripiego in bytesDi qui sotto. Cosi' comparire nel menu
-  // prima che i file ci siano non zittisce niente.
-  { id: 'survival', nome: 'Survival Horror', cartella: './sfx/survival/' },
-];
-const PACK_KEY = 'inkflow-sfx-pack';
+// ── UN SET SOLO: SURVIVAL HORROR ──
+// Dal 9 ottobre 2026 i suoni dell'app sono uno stile solo, quello survival
+// horror della scrivania di Jill: il set Final Fantasy VII, il menu per
+// sceglierlo e il caricamento dei propri file dalle Impostazioni sono stati
+// tolti (Giovanni: "ormai e' deciso"). Nelle Impostazioni resta solo
+// l'interruttore che li accende e li spegne.
+// I file stanno in sfx/survival/ e li ha caricati Giovanni: sono suoni presi
+// da un gioco, roba di chi il gioco l'ha fatto, in un repository pubblico.
+// Per il premio (reward) un file suo non c'e': suona la conferma, che e' il
+// suono piu' vicino. Un comando muto si leggerebbe come un tocco andato a
+// vuoto.
+const CARTELLA = './sfx/survival/';
+const RIPIEGO = { reward: 'done' };
 
-export function setSuoniAttivo(){
-  const v = localStorage.getItem(PACK_KEY);
-  return SET_SUONI.some(s=>s.id === v) ? v : SET_SUONI[0].id;
-}
-export function setSuoniScegli(id){
-  if(!SET_SUONI.some(s=>s.id === id)) return;
-  if(id === setSuoniAttivo()) return;
-  try{ localStorage.setItem(PACK_KEY, id); }catch(e){}
-  // I campioni già decodificati sono quelli VECCHI: si buttano, altrimenti si
-  // continuerebbe a sentire il set di prima fino alla ricarica della pagina.
-  Object.keys(_buffers).forEach(k=> delete _buffers[k]);
-  _loading = null;
-  unlockAudio();
-}
-// Lo stesso, senza cambiare set: lo chiamano le Impostazioni dopo che hai
-// caricato o tolto i tuoi file. Senza, si continuerebbe a sentire quello che
-// era gia' stato decodificato fino alla ricarica della pagina.
-export function scordaISuoni(){
-  Object.keys(_buffers).forEach(k=> delete _buffers[k]);
-  _loading = null;
-  unlockAudio();
-}
-
-function fileDi(intento){
-  const set = SET_SUONI.find(s=>s.id === setSuoniAttivo()) || SET_SUONI[0];
-  return set.cartella + NOMI[intento];
-}
-// I byte di un suono, da tre posti in fila.
-//
-// 1) I TUOI FILE, se ne hai caricati (Impostazioni > I tuoi suoni). Stanno
-//    sul dispositivo e non escono da li': ne' su GitHub, ne' sul sito.
-//    Vengono per primi perche' sono la scelta piu' esplicita che si possa
-//    fare — li hai messi tu, adesso, a mano.
-// 2) La cartella del set.
-// 3) IL RIPIEGO SUL SET DI SERIE. Un set a cui manca un file non deve
-//    restare muto su quel comando: vale per la cartella vuota come per
-//    quella riempita a meta'. Il silenzio si legge come un tocco che non ha
-//    funzionato, ed e' il difetto peggiore che un set incompleto possa avere.
 async function bytesDi(intento){
-  if(setSuoniAttivo() === 'survival'){
-    try{
-      const mio = await leggiSuonoMio(intento);
-      if(mio) return mio;
-    }catch(e){ /* niente di caricato, o database non disponibile */ }
-  }
-  const via = fileDi(intento);
   try{
-    const r = await fetch(via);
+    const r = await fetch(CARTELLA + NOMI[intento]);
     if(r.ok) return await r.arrayBuffer();
   }catch(e){ /* rete assente o file assente: si ripiega */ }
-  const serie = SET_SUONI[0].cartella + NOMI[intento];
-  if(via === serie) throw new Error('manca ' + via);
-  return fetch(serie).then(r=> r.ok ? r.arrayBuffer() : Promise.reject(r.status));
+  const altro = RIPIEGO[intento];
+  if(!altro) throw new Error('manca ' + intento);
+  return fetch(CARTELLA + NOMI[altro]).then(r=> r.ok ? r.arrayBuffer() : Promise.reject(r.status));
 }
 
 let _ctx = null;

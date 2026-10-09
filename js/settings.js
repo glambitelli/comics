@@ -2,8 +2,7 @@ import { projects, haptic } from './state.js';
 import { db, COL, saveUserData, setDoc, doc, bumpDataRev, collection, getDocs } from './firebase.js';
 import { getStreak } from './evening.js';
 import { restoreReminderUI } from './notifications.js';
-import { isSoundEnabled, setSoundEnabled, playSfx, SET_SUONI,
-         setSuoniAttivo, setSuoniScegli, scordaISuoni } from './sound.js';
+import { isSoundEnabled, setSoundEnabled, playSfx } from './sound.js';
 import { confirmModal, infoModal } from './dialogs.js';
 import { registro, registroTesto, svuotaRegistro } from './registro.js';
 
@@ -196,7 +195,6 @@ export function openSettings(){
   restoreReminderUI();
   const st = document.getElementById('sound-toggle');
   if(st) st.checked = isSoundEnabled();
-  riempiSetSuoni();
   mostraUltimoBackup();
   mostraRegistro();
   mostraAccount();
@@ -580,85 +578,6 @@ export async function copiaUid(){
   }
 }
 
-// Il menu dei set si costruisce dall'elenco in sound.js, non a mano
-// nell'HTML: aggiungerne uno deve restare una riga sola, in un posto solo.
-function riempiSetSuoni(){
-  const sel = document.getElementById('sound-pack');
-  if(!sel) return;
-  const attivo = setSuoniAttivo();
-  sel.innerHTML = SET_SUONI.map(s=>
-    `<option value="${s.id}"${s.id === attivo ? ' selected' : ''}>${s.nome}</option>`).join('');
-  // Con un set solo non c'è niente da scegliere: il menu resta visibile — dice
-  // COSA stai sentendo, ed è un'informazione — ma non si apre a vuoto.
-  sel.disabled = SET_SUONI.length < 2;
-  aggiornaStatoMiei();
-}
-
-// ── I TUOI SUONI ──
-// Riempiono il set "Survival Horror". Quali comandi hai coperto, detto per
-// nome: un "3 file caricati" non servirebbe: i quattro vanno su quattro
-// comandi diversi, e quello che vuoi sapere e' QUALE manca.
-const DETTO = { tap: 'cursore', done: 'conferma', cancel: 'indietro', reward: 'premio' };
-async function aggiornaStatoMiei(){
-  const nota = document.getElementById('sound-mine-stato');
-  const btn = document.getElementById('sound-mine-btn');
-  if(!nota) return;
-  const { quantiSuoniMiei, haSuoniMiei } = await import('./suonimiei.js');
-  const quali = quantiSuoniMiei();
-  if(!haSuoniMiei() || !quali.length){
-    nota.textContent = 'Nessuno: Survival Horror suona come quello di serie';
-    if(btn) btn.textContent = 'Carica';
-    return;
-  }
-  nota.textContent = 'Survival Horror: ' + quali.map(k=> DETTO[k] || k).join(', ');
-  if(btn) btn.textContent = 'Cambia';
-}
-
-// Il menu invece del solo selettore di file: da quando ce n'e' almeno uno
-// caricato servono DUE cose — sostituirli e toglierli — e due pulsanti in
-// fila su una riga di impostazioni sono uno di troppo.
-export async function onSoundMineMenu(btnEl){
-  const { actionMenu } = await import('./dialogs.js');
-  const { haSuoniMiei } = await import('./suonimiei.js');
-  const voci = [{ label: 'Scegli i file…', icon: 'piu',
-                  onSelect: ()=> document.getElementById('sound-mine-file').click() }];
-  if(haSuoniMiei()) voci.push({ label: 'Togli i tuoi suoni', icon: 'elimina', danger: true,
-                                onSelect: ()=> onSoundMineSvuota() });
-  if(voci.length === 1){ voci[0].onSelect(); return; }
-  actionMenu(btnEl, voci);
-}
-
-// I FILE NON ESCONO DA QUI: niente caricamento, niente Firestore, niente
-// repository. Restano sul dispositivo.
-export async function onSoundMineFiles(input){
-  const files = Array.from(input.files || []);
-  input.value = '';                       // cosi' riscegliere lo stesso file riparte
-  if(!files.length) return;
-  const { assegnaFile, salvaSuoniMiei } = await import('./suonimiei.js');
-  try{
-    await salvaSuoniMiei(assegnaFile(files));
-  }catch(e){
-    const { infoModal } = await import('./dialogs.js');
-    await infoModal('Non sono riuscito a tenere questi file sul dispositivo.', { title:'Suoni' });
-    return;
-  }
-  scordaISuoni();
-  setSuoniScegli('survival');             // appena li carichi, li vuoi sentire
-  riempiSetSuoni();
-  if(isSoundEnabled()) playSfx('done');   // e li senti subito
-}
-
-export async function onSoundMineSvuota(){
-  const { confirmModal } = await import('./dialogs.js');
-  const si = await confirmModal('Togliere i tuoi suoni? Survival Horror tornera\' a suonare come il set di serie.',
-                                { title:'I tuoi suoni', confirmLabel:'Togli' });
-  if(!si) return;
-  const { svuotaSuoniMiei } = await import('./suonimiei.js');
-  await svuotaSuoniMiei();
-  scordaISuoni();
-  riempiSetSuoni();
-}
-
 // Interruttore suoni: salva la preferenza e, se acceso, fa un piccolo suono
 // di conferma — così senti subito com'è (e serve anche a sbloccare l'audio).
 export function onSoundToggle(){
@@ -666,15 +585,6 @@ export function onSoundToggle(){
   const on = !!(st && st.checked);
   setSoundEnabled(on);
   if(on) playSfx('done');
-}
-
-// Cambio di set: come per l'interruttore, si sente subito com'è. Il suono parte
-// dopo il cambio, quindi è già quello nuovo.
-export function onSoundPackChange(){
-  const sel = document.getElementById('sound-pack');
-  if(!sel) return;
-  setSuoniScegli(sel.value);
-  if(isSoundEnabled()) playSfx('done');
 }
 
 // Chiude e basta, senza toccare la cronologia: la usa il tasto Indietro, che

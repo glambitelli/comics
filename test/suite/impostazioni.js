@@ -50,20 +50,15 @@ module.exports = () => suite("Impostazioni — il pannello dice solo quello che 
       spento: sel ? sel.disabled : null,
       quanti: sel ? sel.options.length : 0,
       visibile: sel ? getComputedStyle(sel).display !== 'none' : null,
+      miei: !!document.getElementById('sound-mine-btn'),
     };
   });
   ok('la riga dell\'interruttore ha solo il titolo',
      suoni.didascalie === 0 && suoni.testo === 'Suoni di menu', suoni);
-  ok('c\'è un menu per scegliere il set', suoni.visibile === true, suoni);
-  ok('e dentro c\'è il set attuale', /Final Fantasy VII/.test((suoni.opzioni||[]).join('|')), suoni);
-  // DUE SET: quello di serie e "Survival Horror", che legge da una cartella
-  // che nel repository e' vuota e finche' e' vuota suona come quello di serie
-  // (vedi sfx/survival/LEGGIMI.txt). Finche' ce n'era uno solo il menu
-  // restava spento — diceva cosa stavi sentendo senza aprirsi a vuoto.
-  ok('c\'è anche il set Survival Horror',
-     /Survival Horror/.test((suoni.opzioni||[]).join('|')), suoni);
-  ok('e con due set il menu si apre',
-     suoni.quanti >= 2 && suoni.spento === false, suoni);
+  // Il menu dei set e la riga dei propri file non ci sono piu' (9 ottobre
+  // 2026): lo stile dei suoni e' uno solo, resta l'interruttore.
+  ok('e niente menu dei set ne\' file propri: solo l\'interruttore',
+     suoni.opzioni === null && !suoni.miei, suoni);
 
   sezione('sotto "Promemoria" si scrive quello che l\'interruttore NON dice');
   const spento = await page.evaluate(async ()=>{
