@@ -466,15 +466,46 @@ body.luce-spenta .scriv-luce{filter:brightness(.5) saturate(.8)}
    accanto al titolo, e non deve arrivare fino alla mappa. */
 .scriv-polaroid{
   position:absolute;z-index:3;pointer-events:none;
-  top:-6px;right:-40px;width:168px;aspect-ratio:300/370;
+  top:-4px;right:-46px;width:168px;aspect-ratio:300/370;
   background:url(../img/scrivania/polaroid.webp) center/100% 100% no-repeat;
-  transform:rotate(12deg);
-  filter:drop-shadow(0 2px 2px rgba(0,0,0,.4)) drop-shadow(0 12px 18px rgba(0,0,0,.35));
+  /* STORTA VERSO SINISTRA (antioraria): verso destra "non faceva
+     impazzire" (Giovanni, 9 ottobre 2026). */
+  transform:rotate(-9deg);
+  /* L'OMBRA DI UNA COSA APPOGGIATA, non sospesa. Prima erano due ombre larghe
+     e spostate di dodici pixel, e la foto sembrava galleggiare un dito sopra
+     il tavolo ("l'ombra sotto e' strana"). Una polaroid e' sottile: l'ombra
+     e' corta, stretta e scura sul bordo. */
+  filter:drop-shadow(0 1px .5px rgba(0,0,0,.5)) drop-shadow(1px 3px 3px rgba(0,0,0,.28));
   transition:filter .45s ease;
 }
+/* ── LA PATINA LUCIDA ──
+   Solo sulla foto, non sulla cornice: e' la foto di una polaroid che riflette,
+   il bordo e' carta opaca. Il riflesso viene dalla lampada in alto a sinistra,
+   e' una striscia diagonale chiara; quando la luce si accende ci scorre
+   sopra una volta, come quando inclini una polaroid sotto la lampada. Con la
+   luce spenta non c'e': al buio una foto non brilla. Le misure della foto
+   dentro la cornice vengono dall'immagine (5,5% / 5,4%, 89,1% x 75,5%). */
+.scriv-polaroid::before{
+  content:'';position:absolute;left:5.5%;top:5.4%;width:89.1%;height:75.5%;
+  background:
+    linear-gradient(118deg, rgba(255,255,255,0) 32%, rgba(255,250,235,.30) 44%,
+                    rgba(255,250,235,.10) 52%, rgba(255,255,255,0) 62%),
+    linear-gradient(180deg, rgba(255,245,225,.10), rgba(255,255,255,0) 45%);
+  background-size:260% 100%, 100% 100%;
+  background-position:100% 0, 0 0;
+  mix-blend-mode:screen;
+  animation:polaroid-riflesso 1.6s ease-out .2s both;
+  transition:opacity .45s ease;
+}
+@keyframes polaroid-riflesso{
+  from{background-position:100% 0, 0 0}
+  to{background-position:22% 0, 0 0}
+}
+body.luce-spenta .scriv-polaroid::before{opacity:0;animation:none}
 body.luce-spenta .scriv-polaroid{
-  filter:brightness(.4) saturate(.82) drop-shadow(0 2px 2px rgba(0,0,0,.4));
+  filter:brightness(.4) saturate(.82) drop-shadow(0 1px .5px rgba(0,0,0,.5));
 }
 @media (max-width:520px){
-  .scriv-polaroid{width:118px;top:-2px;right:-28px;transform:rotate(14deg)}
+  .scriv-polaroid{width:118px;top:4px;right:-34px;transform:rotate(-10deg)}
 }
+
