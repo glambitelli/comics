@@ -1,0 +1,25 @@
+GNU Unifont — il carattere bitmap 8x16 dello schermo dell'archivio
+(font/unifont-arch.woff). Ne sono tenuti solo i caratteri latini, le frecce
+e i caratteri per disegnare riquadri: le forme dei glifi non sono modificate.
+
+Copyright (C) 1998-2019 Roman Czyborra, Paul Hardy, Qianqian Fang,
+Andrew Miller, Johnnie Weaver, David Corbett, Luis Alejandro Gonzalez
+Miranda, Jungshik Shin e altri contributori.
+https://unifoundry.com/unifont/
+
+Licenza: GNU General Public License, versione 2 o successiva, con la
+GNU font embedding exception:
+
+  As a special exception, if you create a document which uses this font,
+  and embed this font or unaltered portions of this font into the
+  document, this font does not by itself cause the resulting document to
+  be covered by the GNU General Public License. This exception does not
+  however invalidate any other reasons why the document might be covered
+  by the GNU General Public License. If you modify this font, you may
+  extend this exception to your version of the font, but you are not
+  obligated to do so. If you do not wish to do so, delete this exception
+  statement from your version.
+
+Dalla versione 13.0.04 Unifont e' distribuito anche con la SIL Open Font
+License 1.1 (doppia licenza, a scelta).
+Testo della GPL: https://www.gnu.org/licenses/old-licenses/gpl-2.0.html

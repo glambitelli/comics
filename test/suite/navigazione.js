@@ -193,12 +193,17 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
   // l'imbottitura resta identica su tutte e sei — lo controlla la riga qui
   // sopra. Gli angoli e il filo colorato restano uguali fra le cinque
   // schermate di carta.
-  const carta = chiavi.filter(k=> k !== 'home');
+  // E DAL 9 OTTOBRE 2026 ANCHE REFERENCES: l'archivio e' un monitor
+  // appoggiato su una scrivania nell'ufficio blu (css/archivio.css), e il
+  // marchio e' scritto sul muro come quello della home sul legno.
+  const carta = chiavi.filter(k=> k !== 'home' && k !== 'refs');
   const ugualiCarta = campo => new Set(carta.map(k=> testate[k][campo])).size === 1;
   ok('stessi angoli in basso, fra le schermate di carta', ugualiCarta('angoli'), testate);
   ok('stesso filo colorato sotto', ugualiCarta('filo'), testate);
   ok('e la home invece non e\' un foglio: niente lastra bianca sul legno',
      testate.home.angoli === '0px' && /^0px/.test(testate.home.filo), testate.home);
+  ok('e nemmeno References: il marchio sta sul muro, sopra il monitor',
+     testate.refs.angoli === '0px' && /^0px/.test(testate.refs.filo), testate.refs);
   ok('e il marchio comincia sempre alla stessa distanza dal bordo',
      new Set(testate.marchi.filter(x=> x !== null)).size === 1, testate.marchi);
 
@@ -415,7 +420,9 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
   // il fondo del body — sabbia chiara — invece di quello della schermata: due
   // tacche piu' chiare ai lati, che si notano proprio perche' stanno ai bordi.
   const fondi = await page.evaluate(()=>{
-    const quali = ['screen-projects','screen-idee','screen-refs','screen-stats','screen-project'];
+    // References non c'e': il suo fondo e' il muro, e il contenuto sta dentro
+    // lo schermo blu del monitor (lo controlla "l'archivio e' un terminale").
+    const quali = ['screen-projects','screen-idee','screen-stats','screen-project'];
     const scroll = { 'screen-projects':'.projects-scroll', 'screen-idee':'.idee-scroll',
                      'screen-refs':'.refs-scroll', 'screen-stats':'.stats-scroll',
                      'screen-project':'.proj-scroll' };
@@ -451,6 +458,53 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
 
   ok('e nessuna resta trasparente sul body',
      fondi.every(f=> f.schermata && !/rgba\(0, 0, 0, 0\)/.test(f.schermata)), fondi);
+
+  console.log('\n── l\'archivio e\' un terminale ──');
+  // Dal 9 ottobre 2026 References e' lo schermo di un PC di fine anni '90
+  // (css/archivio.css): fondo blu VGA, un carattere bitmap solo, a una misura
+  // sola, tutto bianco; il monitor appoggia su una scrivania; il tasto tondo lo
+  // spegne e lo riaccende; aprendo una cartella lo schermo "legge" per un
+  // istante. Qui si controlla che il vestito ci sia e che non rompa niente.
+  const terminale = await page.evaluate(async ()=>{
+    document.querySelectorAll('.screen').forEach(x=> x.classList.remove('active'));
+    document.getElementById('screen-refs').classList.add('active');
+    window.setArchivio && window.setArchivio('artists');
+    await new Promise(r=> setTimeout(r, 400));
+    const crt = document.getElementById('arch-crt');
+    const mon = document.getElementById('arch-monitor');
+    const scr = document.querySelector('.arch-scrivania');
+    const testi = [...crt.querySelectorAll('.refs-folder-row, .seg-tab, .arch-testata, .refs-search')]
+      .filter(e=> e.offsetParent);
+    const misure = new Set(testi.map(e=> getComputedStyle(e).fontSize));
+    const colori = new Set([...crt.querySelectorAll('.refs-folder-row:not(.scelta) .refs-folder-name, .seg-tab:not(.active), .arch-testata')]
+      .filter(e=> e.offsetParent).map(e=> getComputedStyle(e).color));
+    const rm = mon.getBoundingClientRect(), rs = scr.getBoundingClientRect();
+    const dentro = ['refs-folder-browser','refs-axis','refs-folder-search-input','refs-scelta']
+      .every(id=> crt.contains(document.getElementById(id)));
+    // il tasto di accensione
+    const power = document.getElementById('arch-power');
+    power.click(); await new Promise(r=> setTimeout(r, 600));
+    const spento = mon.classList.contains('spento');
+    power.click(); await new Promise(r=> setTimeout(r, 100));
+    const riacceso = !mon.classList.contains('spento');
+    return {
+      blu: getComputedStyle(crt).backgroundColor,
+      carattere: getComputedStyle(crt).fontFamily,
+      misure: [...misure], colori: [...colori], dentro, spento, riacceso,
+      appoggiato: Math.abs(rm.bottom - rs.top) < 60 && rm.bottom > rs.top, basso: Math.round(rm.bottom), tavolo: Math.round(rs.top), alto: innerHeight, largo: innerWidth,
+      cornice: getComputedStyle(document.querySelector('.arch-cornice')).borderImageSource,
+    };
+  });
+  ok('lo schermo e\' blu VGA, col carattere bitmap',
+     terminale.blu === 'rgb(0, 0, 170)' && /Unifont/.test(terminale.carattere), terminale);
+  ok('un carattere a una misura sola: 16px, come lo schermo VGA',
+     terminale.misure.length === 1 && terminale.misure[0] === '16px', terminale.misure);
+  ok('e solo bianco: niente giallo, azzurro o rosso del BIOS originale',
+     terminale.colori.length === 1 && terminale.colori[0] === 'rgb(255, 255, 255)', terminale.colori);
+  ok('elenco, schede, ricerca e barra della scelta stanno dentro lo schermo', terminale.dentro, terminale);
+  ok('il monitor appoggia sulla scrivania, non fluttua', terminale.appoggiato, terminale);
+  ok('la cornice e\' la foto del monitor', /cornice\.webp/.test(terminale.cornice), terminale.cornice);
+  ok('il tasto tondo spegne il monitor e lo riaccende', terminale.spento && terminale.riacceso, terminale);
 
   console.log('\n── il quarto tondo porta a Projects, e il taccuino e\' sceso in Impostazioni ──');
   // I cinque tondi sono per quello che si tocca ogni volta che si apre l'app.

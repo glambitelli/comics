@@ -1,0 +1,229 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   L'ARCHIVIO E' UN TERMINALE (9 ottobre 2026)
+   ══════════════════════════════════════════════════════════════════════════
+   References non e' piu' un foglio di carta: e' lo schermo di un PC di fine
+   anni '90, appoggiato su una scrivania nell'ufficio blu di Resident Evil.
+
+   COME CI SI E' ARRIVATI, perche' le strade sbagliate sono state tante:
+   - Prima un'interfaccia "da gioco": caselle d'acciaio, piastre di metallo,
+     icone dell'inventario di RE2 fatte con Firefly. Giovanni: "sembra un gioco,
+     e anche brutto". Un menu di videogioco non e' un computer.
+   - Poi i riferimenti giusti, mandati da lui: il CMOS Setup di un BIOS Award.
+     Fondo blu pieno, un carattere solo, linee doppie, la voce scelta
+     evidenziata. E' un PC vero, ed e' anche pulito.
+   - Poi "usiamo soltanto il bianco, se no si crea confusione": niente giallo,
+     azzurro e rosso del BIOS originale. La voce scelta si INVERTE (fondo
+     bianco, testo blu), come facevano i BIOS a due colori.
+   - Niente riga di aiuto in fondo ("Tocca : Apri"...): toglieva pulizia.
+
+   COSA E' FOTOGRAFICO E COSA NO. Il monitor, il riflesso del vetro e la parete
+   sono immagini di Firefly (img/archivio/). Lo schermo invece e' testo vero:
+   i nomi cambiano, si cerca, si scorre, si tocca. E' lo stesso principio della
+   macchina da scrivere della barra: oggetto fotografico, comandi veri.
+
+   UN CARATTERE SOLO, A UNA MISURA SOLA: GNU Unifont, bitmap 8x16 come lo
+   schermo VGA (licenza in font/unifont-LICENZA.txt). 16px e non 15 o 18: a
+   misure che non sono multipli di 16 i pixel del carattere si sfocano, ed e'
+   proprio la nitidezza a blocchetti che lo fa sembrare uno schermo vero. Nel
+   BIOS non ci sono titoli piu' grandi ne' grassetti: qui nemmeno.
+
+   Tutto e' scritto per #screen-refs e solo li': il lettore degli albi, la
+   lightbox e il ritaglio restano come sono, perche' li' si guardano tavole e
+   un filtro anni '90 darebbe solo fastidio.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+@font-face{font-family:'Unifont';src:url(../font/unifont-arch.woff) format('woff');font-display:swap}
+
+#screen-refs{
+  --vga-blu:#0000aa; --vga-bianco:#ffffff;
+  --bios:'Unifont', 'Courier New', monospace;
+  /* Scala della cornice del monitor. L'immagine e' larga 880px; tagliata in
+     nove pezzi (border-image), gli angoli restano fermi e i lati si allungano,
+     cosi' lo stesso monitor riempie un telefono in verticale e un computer in
+     orizzontale senza deformarsi. --k dice quanto e' grande la plastica. */
+  --k:.44;
+  --scrivania:22vh;
+  background:#141c2c url(../img/archivio/parete-v.webp) center top/cover no-repeat;
+}
+@media (min-aspect-ratio:1/1){
+  #screen-refs{background-image:url(../img/archivio/parete-o.webp);--k:.6}
+}
+
+/* L'intestazione resta dov'e' e con le stesse misure di tutte le altre (il
+   marchio non deve saltare cambiando schermata), ma non e' piu' una lastra
+   bianca: e' scritta sul muro, come quella della home sul legno. */
+#screen-refs .refs-header{background:transparent;border-bottom:0;border-radius:0;position:relative;z-index:2}
+#screen-refs .refs-header::before{display:none}
+#screen-refs .refs-header .section-title{color:#f4ecd8;text-shadow:0 2px 10px rgba(0,0,0,.6)}
+#screen-refs .refs-header .section-sub{color:#f4ecd8;opacity:.6}
+
+/* ── LA SCRIVANIA ──
+   Il monitor fluttuava davanti al muro ("e' orribile", Giovanni): adesso
+   appoggia su un tavolo. E' il legno della home alla sua grandezza vera; la
+   prima prova lo stendeva su un piano in prospettiva e diventava una macchia.
+   La barra della macchina da scrivere ci sta sopra, davanti al monitor. */
+.arch-scrivania{position:absolute;left:0;right:0;bottom:0;height:var(--scrivania);z-index:0;pointer-events:none;
+  background:linear-gradient(180deg,rgba(0,0,0,.7),rgba(0,0,0,.15) 30%,rgba(0,0,0,.25)),
+             radial-gradient(70% 90% at 15% 0%,rgba(255,190,110,.18),transparent 70%),
+             #3d2c1e url(../img/scrivania/legno.webp) center 30%/cover no-repeat}
+
+/* ── IL MONITOR ── */
+.arch-monitor{position:relative;z-index:1;flex:1;min-height:0;width:calc(100% - 12px);max-width:820px;
+  margin:0 auto calc(var(--scrivania) - 26px)}
+@media (min-aspect-ratio:1/1){
+  /* margin-top:auto lo spinge giu' fino alla scrivania qualunque sia l'altezza
+     della finestra: senza, su uno schermo alto restava sospeso a mezz'aria */
+  .arch-monitor{flex:none;width:auto;height:calc(100% - var(--scrivania) - 120px);max-height:calc(100% - var(--scrivania) - 120px);
+    aspect-ratio:880/700;max-width:calc(100% - 24px);margin-top:auto}
+}
+/* l'ombra sul tavolo e il piedistallo (preso dalla stessa foto del monitor) */
+.arch-monitor::after{content:'';position:absolute;left:4%;right:4%;bottom:-24px;height:30px;border-radius:50%;z-index:-1;
+  background:radial-gradient(closest-side,rgba(0,0,0,.75),transparent);pointer-events:none}
+.arch-base{position:absolute;left:13%;right:13%;bottom:calc(-48px*var(--k));height:calc(48px*var(--k));
+  background:url(../img/archivio/base.webp) center/100% 100%;filter:brightness(.9)}
+.arch-cornice{position:absolute;inset:0;pointer-events:none;z-index:5;border-style:solid;
+  border-width:calc(120px*var(--k)) calc(165px*var(--k)) calc(138px*var(--k)) calc(110px*var(--k));
+  border-image:url(../img/archivio/cornice.webp) 120 165 138 110 stretch;
+  filter:drop-shadow(0 10px 18px rgba(0,0,0,.5))}
+/* Le feritoie stanno nel pezzo di sotto, che si allunga: staccate e rimesse
+   sopra a parte, cosi' non si deformano. */
+.arch-feritoie{position:absolute;z-index:6;left:50%;bottom:calc(8px*var(--k));width:calc(142px*var(--k));pointer-events:none}
+.arch-power{position:absolute;z-index:7;right:calc(112px*var(--k));bottom:calc(22px*var(--k));width:calc(40px*var(--k));height:calc(40px*var(--k));
+  border-radius:50%;border:0;background:transparent;cursor:pointer;padding:0;-webkit-tap-highlight-color:transparent}
+.arch-power::after{content:'';position:absolute;inset:-12px}
+.arch-power:active{background:rgba(0,0,0,.18)}
+.arch-power:focus-visible{outline:2px solid #f0c020;outline-offset:2px}
+.arch-led{position:absolute;z-index:7;right:calc(87px*var(--k));bottom:calc(40px*var(--k));width:calc(9px*var(--k));height:calc(9px*var(--k));border-radius:50%;
+  background:#ff5a48;box-shadow:0 0 4px 1px rgba(255,70,50,.8),0 0 12px rgba(255,70,50,.4);pointer-events:none}
+.arch-led.arch-lavora{animation:arch-led .12s steps(1) infinite}
+@keyframes arch-led{50%{background:#5a1a14;box-shadow:none}}
+.arch-monitor.spento .arch-led{background:#5a1a14;box-shadow:none}
+
+/* ── LO SCHERMO ──
+   Sta sotto la cornice, un filo piu' grande del vetro: gli angoli del
+   rettangolo li copre la plastica, che e' bombata. */
+.arch-crt{position:absolute;z-index:1;overflow:hidden;display:flex;flex-direction:column;
+  top:calc(90px*var(--k));left:calc(74px*var(--k));right:calc(79px*var(--k));bottom:calc(117px*var(--k));
+  padding:10px 12px 6px;background:var(--vga-blu);transform-origin:50% 50%;
+  font:16px/16px var(--bios);color:var(--vga-bianco);-webkit-font-smoothing:none}
+/* le righe di scansione e il bordo piu' scuro del tubo, sopra a tutto ma senza
+   prendere i tocchi */
+.arch-crt::before{content:'';position:absolute;inset:0;z-index:20;pointer-events:none;
+  background:repeating-linear-gradient(180deg,rgba(0,0,0,.16) 0 1px,transparent 1px 3px)}
+.arch-crt::after{content:'';position:absolute;inset:0;z-index:20;pointer-events:none;
+  background:radial-gradient(130% 110% at 50% 50%,transparent 60%,rgba(0,0,20,.55) 100%)}
+.arch-riflesso{position:absolute;inset:0;width:100%;height:100%;z-index:21;pointer-events:none;mix-blend-mode:screen;opacity:.6}
+
+/* accensione: una riga bianca al centro che si apre; spegnimento: si chiude in
+   un punto. Il tasto tondo sotto lo schermo le fa a comando. */
+.arch-monitor.accensione .arch-crt{animation:arch-accendi .85s cubic-bezier(.2,.7,.2,1)}
+@keyframes arch-accendi{0%{transform:scale(.02,.004);filter:brightness(6)}35%{transform:scale(1,.006);filter:brightness(4)}70%{transform:scale(1,1);filter:brightness(1.6)}100%{transform:none;filter:none}}
+.arch-monitor.spegnimento .arch-crt{animation:arch-spegni .42s ease-in forwards}
+@keyframes arch-spegni{0%{transform:none;filter:none}50%{transform:scale(1,.006);filter:brightness(4)}100%{transform:scale(0,0);filter:brightness(8)}}
+.arch-monitor.spento .arch-crt{background:#0b0d12}
+.arch-monitor.spento .arch-crt > *:not(.arch-riflesso){visibility:hidden}
+/* ogni tanto l'immagine trema per un attimo (js/archivio.js decide quando) */
+.arch-monitor.sfarfallio .arch-crt{animation:arch-sfarfalla .16s steps(2) 1}
+@keyframes arch-sfarfalla{0%{filter:brightness(1.3);transform:translateX(2px)}50%{filter:brightness(.85);transform:translateX(-1px)}100%{filter:none;transform:none}}
+@media (prefers-reduced-motion:reduce){
+  .arch-monitor .arch-crt{animation:none!important}
+  .arch-led.arch-lavora{animation:none}
+}
+
+/* la testata e la riga di stato, come in cima e in fondo al CMOS Setup */
+.arch-testata{flex-shrink:0;text-align:center;line-height:20px;margin-bottom:6px}
+.arch-stato{flex-shrink:0;text-align:center;padding:6px 0 2px;border-top:4px double var(--vga-bianco);margin-top:2px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.arch-stato:empty{display:none}
+
+/* L'APERTURA DI UNA CARTELLA: per un istante lo schermo si svuota e scrive il
+   nome e "Lettura in corso....." (vedi js/archivio.js). Non prende i tocchi. */
+.arch-lettura{position:absolute;inset:0;z-index:15;background:var(--vga-blu);padding:30% 24px 0;white-space:pre;line-height:22px;pointer-events:none}
+
+/* ══ IL VESTITO DA BIOS ══
+   Tutto quello che c'era dentro, con gli stessi id e lo stesso funzionamento:
+   un carattere, bianco su blu, linee bianche, la scelta al contrario. */
+#screen-refs .arch-crt *{font-family:var(--bios)!important;font-size:16px!important;font-weight:400!important;
+  letter-spacing:0!important;font-style:normal!important;text-transform:none}
+#screen-refs .arch-crt :is(div,span,button,a,label,p,b,input){color:var(--vga-bianco)}
+#screen-refs .arch-crt svg{color:var(--vga-bianco)}
+
+/* le strisce fisse e lo scorrimento: niente piu' carta, e' tutto schermo */
+#screen-refs .refs-scroll,
+#screen-refs .refs-breadcrumb,#screen-refs .refs-axis,#screen-refs .refs-tabs,
+#screen-refs #refs-folder-toolbar,#screen-refs .refs-scelta,#screen-refs .refs-per-progetto,#screen-refs .refs-upload-status{
+  background:transparent!important;border:0;box-shadow:none}
+#screen-refs .refs-scroll{position:relative;z-index:1;padding:6px 4px 10px;border-top:2px solid var(--vga-bianco);margin-top:6px;scrollbar-width:none}
+#screen-refs .refs-scroll::-webkit-scrollbar{display:none}
+#screen-refs .refs-axis,#screen-refs .refs-tabs{padding:6px 0 2px}
+#screen-refs .refs-breadcrumb{padding:4px 0 2px}
+
+/* LA RICERCA: "► Cerca :" e il campo, senza riquadro arrotondato */
+#screen-refs .refs-toolbar{margin:0}
+#screen-refs .refs-search{background:transparent!important;border:0!important;box-shadow:none!important;border-radius:0;padding:4px 0;gap:8px}
+#screen-refs .refs-search svg{display:none}
+#screen-refs .refs-search::before{content:'► Cerca :';white-space:pre;flex-shrink:0}
+#screen-refs .refs-search input{background:transparent;color:var(--vga-bianco);caret-color:var(--vga-bianco);text-transform:uppercase;padding:0}
+#screen-refs .refs-search input::placeholder{color:var(--vga-bianco);opacity:.5}
+
+/* LE SCHEDE (Artists/References, e dentro una cartella Albi, Frammenti…):
+   niente vasca e niente cursore che scorre; quella attiva e' al contrario. */
+#screen-refs .seg-vasca{background:none!important;padding:0;border-radius:0;gap:16px;justify-content:flex-start}
+#screen-refs .seg-cursore{display:none}
+#screen-refs .seg-tab{flex:none;padding:2px 4px;line-height:16px;border-radius:0;transition:none;white-space:nowrap}
+#screen-refs .seg-tab.active{background:var(--vga-bianco);color:var(--vga-blu)!important}
+#screen-refs .seg-tab.active *{color:var(--vga-blu)!important}
+#screen-refs .refs-tab-n{opacity:.7;margin-left:2px}
+#screen-refs .refs-tabs .seg-vasca{flex-wrap:wrap;gap:6px 12px}
+
+/* LE CARTELLE: "► COGNOME" e sotto il nome, come le voci del BIOS */
+#screen-refs .refs-scheda{background:none!important;border:0!important;box-shadow:none!important;border-radius:0!important;margin:0 0 6px;overflow:visible}
+#screen-refs .refs-sec{padding:6px 0 2px;border:0}
+#screen-refs .refs-scheda::before,#screen-refs .refs-scheda::after{display:none}
+#screen-refs .refs-sec-nome{text-transform:uppercase}
+#screen-refs .refs-sec-nome::before{content:'── '}
+#screen-refs .refs-folder-row{background:none!important;border:0!important;border-radius:0;padding:4px 4px;margin:2px 0;min-height:0;gap:8px;align-items:flex-start}
+#screen-refs .refs-folder-row::before{display:none}
+#screen-refs .refs-mono{background:none!important;box-shadow:none!important;border:0!important;width:auto;height:auto;min-width:0;border-radius:0;
+  font-size:0!important;flex:none;line-height:16px}
+#screen-refs .refs-mono::before{content:'►';font-size:16px}
+#screen-refs .refs-folder-name{line-height:16px}
+#screen-refs .rf-cognome{display:block;text-transform:uppercase;line-height:18px!important}
+#screen-refs .rf-nome{display:block;line-height:18px!important;margin:0}
+#screen-refs .refs-folder-row:active,
+#screen-refs .refs-folder-row.scelta,
+#screen-refs .refs-folder-row.arch-su{background:var(--vga-bianco)!important}
+#screen-refs .refs-folder-row:active *,
+#screen-refs .refs-folder-row.scelta *,
+#screen-refs .refs-folder-row.arch-su *{color:var(--vga-blu)!important}
+/* la spunta della scelta: una casella fatta di caratteri */
+#screen-refs .refs-spunta{border:2px solid currentColor!important;background:none!important;border-radius:0;width:12px;height:12px;box-shadow:none}
+#screen-refs .refs-spunta.on{background:currentColor!important}
+/* l'aggiunta e la categoria nuova: un "+" bianco, senza dischi */
+#screen-refs .refs-add-row,#screen-refs .refs-cat-nuova{background:none!important;border:0!important;box-shadow:none!important;padding:4px;justify-content:flex-start}
+#screen-refs .refs-add-cerchio{background:none!important;border:0!important;box-shadow:none!important;width:auto;height:auto}
+#screen-refs .refs-add-cerchio svg{width:14px;height:14px}
+/* il tasto per aggiungere immagini dentro una cartella: era un disco bianco,
+   qui e' un riquadro di linea come i tasti del BIOS */
+#screen-refs .refs-inline-add{background:none!important;box-shadow:none!important}
+#screen-refs .refs-inline-add-circle{background:none!important;border:2px solid var(--vga-bianco)!important;border-radius:0!important;box-shadow:none!important}
+#screen-refs .refs-folders-empty,#screen-refs .refs-empty-state,#screen-refs .refs-empty-sub{color:var(--vga-bianco)!important;opacity:1}
+#screen-refs .refs-empty-state svg{display:none}
+
+/* DENTRO UNA CARTELLA: "‹ OTOMO", poi le schede, poi la griglia */
+#screen-refs .refs-breadcrumb-back::before{content:'◄ '}
+#screen-refs .refs-breadcrumb-back{font-size:0!important}
+#screen-refs .refs-breadcrumb-back::before{font-size:16px}
+#screen-refs #refs-breadcrumb-name{text-transform:uppercase}
+#screen-refs .refs-sort-btn{background:none!important;border:1px solid var(--vga-bianco)!important;border-radius:0!important;box-shadow:none!important}
+/* le immagini restano immagini: solo una cornice bianca da schermo */
+#screen-refs .refs-thumb{border-radius:0!important;box-shadow:none!important;outline:1px solid rgba(255,255,255,.6);background:#000010!important}
+#screen-refs .refs-thumb img{border-radius:0!important}
+#screen-refs .album-card,#screen-refs .album-cover,#screen-refs .album-nocover{border-radius:0!important;box-shadow:none!important}
+#screen-refs .album-title,#screen-refs .album-pages{color:var(--vga-bianco)!important}
+#screen-refs .albums-drive{background:none!important;border:2px solid var(--vga-bianco)!important;border-radius:0!important;box-shadow:none!important}
+#screen-refs .albums-drive-btn,#screen-refs .refs-pp-fine{background:var(--vga-bianco)!important;color:var(--vga-blu)!important;border:0!important;border-radius:0!important;box-shadow:none!important}
+
+/* la barra della scelta e la striscia "Aggiungi a…": bianche su blu */
+#screen-refs .refs-scelta-btn{background:none!important;border:1px solid var(--vga-bianco)!important;border-radius:0!important;box-shadow:none!important;color:var(--vga-bianco)!important}
+#screen-refs .refs-scelta-btn.rosso{border-style:double!important;border-width:3px!important}

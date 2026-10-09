@@ -13,6 +13,7 @@ ascoltaErrori();
 import { openSettings, closeSettings, closeSettingsUI, azzeraTempoConferma, apriAiuto, resetStarsConfirm, closeStarsConfirm, doResetStars, exportBackup, importBackup, resetStreakConfirm, closeStreakConfirm, doResetStreak, onSoundToggle, accountTocca, driveTocca, copiaUid, copiaRegistro, svuotaRegistroUI } from './settings.js';
 window.onSoundToggle=onSoundToggle;
 import { montaLaPolaroid } from './polaroid.js';
+import { montaArchivio } from './archivio.js';
 import { disegnaMappa, disegnaBiglietto, travasaLaFrase, montaLaLuce, sfumaLaCima } from './scrivania.js';
 import { renderHome, openNewModal, closeModal, createProject, openCardMenu, exportProjectJSON, confirmDeleteProject, openColorPicker, closeColorPicker, selectProjectColor, filterProjects, attachCardDrag, applyProjectOrder, startSandstorm, getScriptment } from './home.js';
 import { openProject, restoreProject, goHome, confirmDeleteCurrent, closeConfirm, confirmMicrotask } from './project.js';
@@ -1030,6 +1031,9 @@ window.dallaScenaAllaHome = ()=>{
 })();
 
 initNotifications();
+// Il terminale dell'archivio (js/archivio.js): tasto di accensione, tubo che
+// si accende entrando, schermo che "legge" la cartella aperta.
+montaArchivio();
 
 // LA VERSIONE CHE STA GIRANDO DAVVERO, e dove si vede.
 //

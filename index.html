@@ -39,12 +39,14 @@
 <link rel="stylesheet" href="css/scriptment.css" media="print" onload="this.media='all'">
 <link rel="stylesheet" href="css/refs.css" media="print" onload="this.media='all'">
 <link rel="stylesheet" href="css/albums.css" media="print" onload="this.media='all'">
+<link rel="stylesheet" href="css/archivio.css" media="print" onload="this.media='all'">
 <!-- Lo studio della prospettiva si apre da dentro il lettore o la galleria:
      quando serve, quei due fogli sono gia' arrivati da un pezzo. -->
 <link rel="stylesheet" href="css/prospettiva.css" media="print" onload="this.media='all'">
 <noscript>
   <link rel="stylesheet" href="css/albums.css">
   <link rel="stylesheet" href="css/refs.css">
+  <link rel="stylesheet" href="css/archivio.css">
   <link rel="stylesheet" href="css/scriptment.css">
   <link rel="stylesheet" href="css/stats.css">
   <link rel="stylesheet" href="css/prospettiva.css">
@@ -491,6 +493,16 @@
     <div class="section-sub">visual archive</div>
     <input type="file" id="refs-file-input" accept="image/*" multiple style="display:none"/>
   </div>
+  <!-- IL TERMINALE (9 ottobre 2026). L'archivio non e' piu' un foglio di carta:
+       e' lo schermo di un PC di fine anni '90, appoggiato su una scrivania
+       nell'ufficio blu (vedi css/archivio.css e js/archivio.js, dove sta il
+       perche' di ogni scelta). Tutto quello che c'era sotto l'intestazione sta
+       dentro .arch-crt, lo schermo: stessi elementi, stessi id, vestiti da BIOS. -->
+  <div class="arch-scrivania" aria-hidden="true"></div>
+  <div class="arch-monitor" id="arch-monitor">
+   <div class="arch-base" aria-hidden="true"></div>
+   <div class="arch-crt" id="arch-crt">
+  <div class="arch-testata" aria-hidden="true">Visual Archive Utility<br><span>(C) 1998 Inkflow Data Systems</span></div>
   <div id="refs-upload-status" class="refs-upload-status"></div>
   <!-- ORDINA STA QUI, in fondo alla riga del nome, e non piu' sopra la griglia.
        Sopra la griglia occupava una riga intera nel punto in cui si arriva per
@@ -663,6 +675,15 @@
       </div>
      </div>
     </div>
+  </div>
+  <div class="arch-stato" id="arch-stato" aria-live="polite"></div>
+  <div class="arch-lettura" id="arch-lettura" hidden></div>
+  <img class="arch-riflesso" src="img/archivio/riflesso.webp" alt="" aria-hidden="true">
+   </div>
+   <div class="arch-cornice" aria-hidden="true"></div>
+   <img class="arch-feritoie" src="img/archivio/feritoie.webp" alt="" aria-hidden="true">
+   <button class="arch-power" id="arch-power" type="button" aria-label="Spegni il monitor"></button>
+   <span class="arch-led" id="arch-led" aria-hidden="true"></span>
   </div>
 </div>
 
