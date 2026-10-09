@@ -207,7 +207,7 @@
    richiesta: copriva troppo l'inizio della seconda riga del compito.
    Sta sopra il biglietto (z-index): e' l'ultimo oggetto appoggiato. */
 @media (max-width:520px){
-  .radio{zoom:1.04;margin:-30px 0 0 -10px;transform:rotate(-9deg);z-index:3}
+  .radio{zoom:1.12;margin:-14px 0 0 -10px;transform:rotate(-9deg);z-index:3}
 }
 /* Sui telefoni piu' corti ancora (360x740) con una frase di cinque righe
    restavano 8px sotto la barra: lo si stringe di un altro poco. */

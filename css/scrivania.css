@@ -528,7 +528,7 @@ body.luce-spenta .scriv-polaroid{
    ogni 8,55% della larghezza — e sono legate a --lw, la larghezza del
    foglio, cosi' cambiandola si ridimensiona tutto insieme. */
 .scriv-legenda{
-  --lw:250px;
+  --lw:234px;
   width:var(--lw);max-width:none;aspect-ratio:560/503;box-sizing:border-box;
   margin:-38px 0 0 -24px;
   padding:calc(var(--lw)*.2) calc(var(--lw)*.06) 0 calc(var(--lw)*.165);
@@ -547,7 +547,7 @@ body.luce-spenta .scriv-polaroid{
 /* Con la frase il biglietto scende sul foglio giallo e ne copre il fondo. */
 .scriv-tavolo.con-frase .scriv-biglietto{margin-top:-16px;margin-left:10%;transform:rotate(3deg)}
 @media (max-width:520px){
-  .scriv-legenda{--lw:214px;margin:-34px 0 0 -22px;padding:calc(var(--lw)*.2) calc(var(--lw)*.06) 0 calc(var(--lw)*.165)}
+  .scriv-legenda{--lw:200px;margin:-34px 0 0 -22px;padding:calc(var(--lw)*.2) calc(var(--lw)*.06) 0 calc(var(--lw)*.165)}
   .scriv-legenda .cit{line-height:calc(var(--lw)*.0855)}
   .scriv-legenda .aut{margin-top:calc(var(--lw)*.01)}
   .scriv-tavolo.con-frase .scriv-biglietto{margin-top:-12px;margin-left:9%;transform:rotate(3deg)}
@@ -557,5 +557,5 @@ body.luce-spenta .scriv-polaroid{
    walkman finiva sotto la barra in fondo. Accanto al biglietto c'e' legno
    vuoto fra il biglietto e l'orologio: ci sta, un filo storto. */
 @media (min-width:521px){
-  .scriv-tavolo.con-frase .radio{margin:-196px 0 0 47%;transform:rotate(5deg)}
+  .scriv-tavolo.con-frase .radio{zoom:1.1;margin:-180px 0 0 43%;transform:rotate(5deg)}
 }
