@@ -81,6 +81,7 @@ const VERDERAME = '#5ff4ff';  // le linee tracciate, il fascio e il punto di fug
 const SABBIA    = '#5ff4ff';  // il mirino intorno alla vignetta riquadrata (ciano)
 
 import { iconaPixel } from './germano.js';
+import { playSfx } from './sound.js';
 
 // ── I TRE VOLTI DEL TASTO SALVA ──
 //
@@ -1288,7 +1289,15 @@ function disegnaSuTela(sorgente){
   // Il fascio e l'orizzonte stanno dentro la VIGNETTA, come a schermo: sono la
   // prospettiva di lei, non di quello che le sta intorno.
   c.save(); c.beginPath(); c.rect(q0.x, q0.y, q1.x - q0.x, q1.y - q0.y); c.clip();
-  c.globalAlpha = .38; c.strokeStyle = VERDERAME; c.lineWidth = u; c.setLineDash([]);
+  // IL FASCIO NELLO STUDIO SALVATO SI DEVE VEDERE (10 ottobre 2026). Era un
+  // filo ciano a un terzo d'opacita', largo un pixel: a schermo, sul blu e
+  // dietro il vetro del lucido, si leggeva; nell'immagine salvata, sulla carta
+  // bianca, spariva — "la griglia prospettica non si vede quando l'ho
+  // salvata" (Giovanni). Adesso ogni raggio ha sotto un filo scuro, come le
+  // linee tracciate, e sopra il ciano quasi pieno: si stacca sul bianco della
+  // carta e sul nero dell'inchiostro.
+  c.setLineDash([]); c.lineCap = 'round';
+  const raggi = [];
   for(const f of fuochi){
     const cc = P(f);
     for(let i = 0; i < RAGGI; i++){
@@ -1297,9 +1306,12 @@ function disegnaSuTela(sorgente){
               : lato === 1 ? { x:q1.x, y:q0.y + g*(q1.y-q0.y) }
               : lato === 2 ? { x:q0.x + (1-g)*(q1.x-q0.x), y:q1.y }
               : { x:q0.x, y:q0.y + (1-g)*(q1.y-q0.y) };
-      c.beginPath(); c.moveTo(cc.x, cc.y);
-      c.lineTo(cc.x + (b.x - cc.x) * 3, cc.y + (b.y - cc.y) * 3); c.stroke();
+      raggi.push([cc.x, cc.y, cc.x + (b.x - cc.x) * 3, cc.y + (b.y - cc.y) * 3]);
     }
+  }
+  for(const [colore, spessore] of [['rgba(0,0,40,.55)', 2.6], [VERDERAME, 1.3]]){
+    c.strokeStyle = colore; c.lineWidth = spessore * u; c.globalAlpha = colore === VERDERAME ? .85 : 1;
+    for(const [x0, y0, x1, y1] of raggi){ c.beginPath(); c.moveTo(x0, y0); c.lineTo(x1, y1); c.stroke(); }
   }
   c.globalAlpha = 1;
   c.restore();
@@ -1387,12 +1399,19 @@ async function salva(){
     const blob = await new Promise(res=> fatto.tela.toBlob(res, 'image/webp', 0.9));
     await _salvataggio({ blob, w: fatto.W, h: fatto.H, misure });
     vestiSalva(btn, 'fatto', 'Salvato');
+    // IL SUONO DELLA CONFERMA, quando lo studio e' davvero arrivato in
+    // archivio — non al tocco: il caricamento dura qualche secondo, e un
+    // suono suonato subito direbbe "fatto" anche quando poi non lo e'
+    // (Giovanni, 10 ottobre 2026: "vorrei che quando salvo venga fatto un
+    // suono di conferma, invece non sento niente").
+    playSfx('done');
     // Chi salva ha finito di studiare QUESTA vignetta: si chiude da solo dopo
     // un attimo, se no resta un foglio di linee su una cosa gia' archiviata e
     // il gesto successivo e' sempre "chiudi".
     setTimeout(()=>{ if(prospettivaAperta()) chiudiProspettiva(); }, 700);
   }catch(e){
     vestiSalva(btn, 'no', 'Non riuscito');
+    playSfx('cancel');
     setTimeout(()=>{ vestiSalva(btn, 'salva', 'Salva'); btn.disabled = false; }, 2200);
   }finally{ _salvando = false; }
 }
