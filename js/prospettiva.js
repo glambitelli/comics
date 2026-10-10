@@ -728,6 +728,7 @@ function agganciaTratto(svg){
     // Col dito giu' la riga di scansione del mirino si spegne: e' l'unica
     // cosa che si muove da sola, e mentre si traccia si guarda la linea.
     _ov.classList.add('prosp-tocco');
+    _agganciato.clear();
     try{ svg.setPointerCapture(e.pointerId); }catch(err){}
     e.preventDefault();
     // Il secondo dito annulla il tratto appena cominciato: chi apre due dita
@@ -799,12 +800,14 @@ function agganciaTratto(svg){
       const p = aImmagine(e.clientX, e.clientY, t);
       const px = p.x - _trascinaRiq.sx, py = p.y - _trascinaRiq.sy;
       if(_trascinaRiq.mx){
-        const nx = versoIlFermo(px, _trascinaRiq.fx, RIQ_MIN);
+        let nx = versoIlFermo(px, _trascinaRiq.fx, RIQ_MIN);
+        nx = calamita('x', nx, nx < _trascinaRiq.fx ? -1 : 1, _riquadro.y, _riquadro.y + _riquadro.h, t);
         _riquadro.x = Math.min(nx, _trascinaRiq.fx);
         _riquadro.w = Math.abs(nx - _trascinaRiq.fx);
       }
       if(_trascinaRiq.my){
-        const ny = versoIlFermo(py, _trascinaRiq.fy, RIQ_MIN);
+        let ny = versoIlFermo(py, _trascinaRiq.fy, RIQ_MIN);
+        ny = calamita('y', ny, ny < _trascinaRiq.fy ? -1 : 1, _riquadro.x, _riquadro.x + _riquadro.w, t);
         _riquadro.y = Math.min(ny, _trascinaRiq.fy);
         _riquadro.h = Math.abs(ny - _trascinaRiq.fy);
       }
@@ -852,6 +855,7 @@ function agganciaTratto(svg){
           x: Math.min(_bozzaRiq.a.x, _bozzaRiq.b.x), y: Math.min(_bozzaRiq.a.y, _bozzaRiq.b.y),
           w: Math.abs(_bozzaRiq.b.x - _bozzaRiq.a.x), h: Math.abs(_bozzaRiq.b.y - _bozzaRiq.a.y),
         };
+        _riquadro = calamitaRiquadro(_riquadro, t);
         prendiIlTavolo();
       }
       _bozzaRiq = null;
@@ -1229,6 +1233,114 @@ function strisciaDati(c, W, y, h, misure){
 // Quindi, per il solo disegno da salvare, l'immagine si scarica di nuovo
 // chiedendola "in chiaro" (CORS: Cloudinary lo permette) e si disegna quella.
 // L'<img> a schermo resta la stessa: serve a misurare dove sono le linee.
+// ── IL MAGNETE DEL RIQUADRO (10 ottobre 2026) ──
+// "Mi piacerebbe che quando vado a ritagliare la vignetta venga riconosciuta
+// la forma del quadrato sotto, e il ritaglio si adatti — un magnete non troppo
+// forte — invece di stare la' ad aggiustare il millimetro" (Giovanni).
+// COME SI TROVA UN BORDO DI VIGNETTA. Il bordo e' una riga d'inchiostro
+// LUNGA e DRITTA: corre per tutto il lato della vignetta. Un palazzo, un
+// braccio, una scritta hanno tratti scuri anche loro, ma non tengono la
+// stessa colonna per tutta l'altezza del riquadro. Quindi, per un lato
+// verticale, si guarda ogni colonna vicina al lato e si conta che frazione
+// della sua altezza — l'altezza del riquadro, non della pagina — e' scura:
+// il bordo vero sta sopra SOGLIA_BORDO, quasi tutto il resto sotto.
+// NON TROPPO FORTE: aggancia solo entro RAGGIO_MAGNETE pixel di SCHERMO dal
+// dito (con lo zoom la presa resta la stessa sotto il polpastrello), e solo a
+// righe che superano la soglia; altrimenti il lato va dove lo porti.
+// E SI PRENDE IL BORDO INTERO: se l'inchiostro e' largo piu' colonne si
+// scivola fino all'ultima verso l'esterno, cosi' la vignetta salvata ha la
+// sua cornice tutta, non mezza.
+// La pagina si legge una volta sola, all'apertura, ridotta a LATO_MAPPA pixel:
+// una matrice di "scuro si / scuro no" da qualche centinaio di KB, e ogni
+// aggancio poi costa poche migliaia di letture. Se l'immagine arriva da un
+// altro dominio e non si lascia leggere (vedi sorgentePulita), il magnete
+// semplicemente non c'e'.
+const LATO_MAPPA = 900, RAGGIO_MAGNETE = 14, SOGLIA_BORDO = .55, SCURO = 110;
+let _mappa = null;   // { W, H, scuro: Uint8Array }
+let _mappaDi = null; // l'immagine a cui si riferisce
+async function preparaMagnete(img){
+  if(_mappaDi === img && _mappa) return;
+  _mappa = null; _mappaDi = img;
+  try{
+    const NW = img.naturalWidth, NH = img.naturalHeight;
+    if(!NW || !NH) return;
+    const k = Math.min(1, LATO_MAPPA / Math.max(NW, NH));
+    const W = Math.max(1, Math.round(NW * k)), H = Math.max(1, Math.round(NH * k));
+    const tela = document.createElement('canvas'); tela.width = W; tela.height = H;
+    const c = tela.getContext('2d', { willReadFrequently:true });
+    let d;
+    try{ c.drawImage(img, 0, 0, W, H); d = c.getImageData(0, 0, W, H).data; }
+    catch(e){ const pulita = await sorgentePulita(); if(_mappaDi !== img) return;
+              c.clearRect(0, 0, W, H); c.drawImage(pulita, 0, 0, W, H); d = c.getImageData(0, 0, W, H).data; }
+    const scuro = new Uint8Array(W * H);
+    for(let i = 0, j = 0; j < scuro.length; i += 4, j++){
+      scuro[j] = (d[i] * .3 + d[i+1] * .59 + d[i+2] * .11) < SCURO ? 1 : 0;
+    }
+    if(_mappaDi === img) _mappa = { W, H, scuro };
+  }catch(e){ _mappa = null; }
+}
+// Quanto e' scura una riga (asse 'x': la colonna c, fra le righe r0 e r1;
+// asse 'y': la riga c, fra le colonne r0 e r1), da 0 a 1.
+function scurezza(asse, c, r0, r1){
+  const M = _mappa;
+  const lim = asse === 'x' ? M.W : M.H;
+  if(c < 0 || c >= lim) return 0;
+  const passo = Math.max(1, Math.floor((r1 - r0) / 240));
+  let n = 0, sc = 0;
+  for(let r = r0; r < r1; r += passo){
+    n++; sc += asse === 'x' ? M.scuro[r * M.W + c] : M.scuro[c * M.W + r];
+  }
+  return n ? sc / n : 0;
+}
+// Dove andrebbe un lato a 'pos' (in frazioni d'immagine) con il magnete:
+// verso = -1 per il lato sinistro/alto, +1 per il destro/basso; da..a e' il
+// tratto del lato opposto (lo stesso riquadro) su cui si misura la riga.
+function calamita(asse, pos, verso, da, a, t){
+  const M = _mappa;
+  if(!M || !t || !(a > da)) return pos;
+  const o = aSchermo({ x:0, y:0 }, t), u = aSchermo({ x:1, y:1 }, t);
+  const schermoPerUnita = asse === 'x' ? (u.x - o.x) : (u.y - o.y);
+  const lungo = asse === 'x' ? M.W : M.H, largo = asse === 'x' ? M.H : M.W;
+  if(!(schermoPerUnita > 0)) return pos;
+  const raggio = Math.max(1, Math.round(RAGGIO_MAGNETE / schermoPerUnita * lungo));
+  // Si misura sul tratto centrale del lato: gli angoli di una vignetta sono
+  // il posto dove si incrociano i bordi dell'altra direzione.
+  const marg = (a - da) * .12;
+  const r0 = Math.max(0, Math.floor((da + marg) * largo)), r1 = Math.min(largo, Math.ceil((a - marg) * largo));
+  if(r1 - r0 < 6) return pos;
+  const c0 = Math.round(pos * lungo);
+  let meglio = -1, valore = SOGLIA_BORDO;
+  for(let c = c0 - raggio; c <= c0 + raggio; c++){
+    // a parita' di scurezza vince la piu' vicina al dito
+    const v = scurezza(asse, c, r0, r1) - Math.abs(c - c0) / (raggio * 40);
+    if(v > valore){ valore = v; meglio = c; }
+  }
+  if(meglio < 0) return pos;
+  // fino in fondo all'inchiostro, verso l'esterno
+  let c = meglio;
+  while(scurezza(asse, c + verso, r0, r1) > SOGLIA_BORDO * .8 && Math.abs(c + verso - meglio) < 12) c += verso;
+  const nuovo = (c + (verso > 0 ? 1 : 0)) / lungo;
+  if(Math.abs(nuovo - pos) > 1e-6 && !_agganciato.has(asse + verso)){
+    _agganciato.add(asse + verso);
+    try{ navigator.vibrate && navigator.vibrate(6); }catch(e){}
+  }
+  return nuovo;
+}
+// Un colpetto di vibrazione quando il lato si attacca, uno solo per lato e
+// per trascinamento: si azzera a ogni dito che si appoggia.
+const _agganciato = new Set();
+// Il riquadro appena disegnato: tutti e quattro i lati, perche' anche il
+// punto da cui si e' partiti era a occhio.
+function calamitaRiquadro(r, t){
+  if(!_mappa) return r;
+  const x0 = calamita('x', r.x, -1, r.y, r.y + r.h, t);
+  const x1 = calamita('x', r.x + r.w, 1, r.y, r.y + r.h, t);
+  const y0 = calamita('y', r.y, -1, x0, x1, t);
+  const y1 = calamita('y', r.y + r.h, 1, x0, x1, t);
+  if(x1 - x0 < RIQ_MIN || y1 - y0 < RIQ_MIN) return r;
+  return { x:x0, y:y0, w:x1 - x0, h:y1 - y0 };
+}
+
 async function sorgentePulita(){
   const src = _img.currentSrc || _img.src || '';
   let altro = false;
@@ -1458,6 +1570,7 @@ export function apriProspettiva(img, opzioni){
   // fin dal primo istante, invece di restare appesi a come il lettore la
   // stava mostrando (vedi la nota sopra trasforma()).
   prendiIlTavolo();
+  preparaMagnete(img);
   window.addEventListener('resize', riadatta);
   window.addEventListener('orientationchange', riadatta);
   document.addEventListener('keydown', tasti);

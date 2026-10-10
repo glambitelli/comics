@@ -1150,6 +1150,42 @@ module.exports = () => suite("Prospettiva — il righello per leggere l'orizzont
      sulMirino.lato.w > sulMirino.angolo.w + 0.02 && Math.abs(sulMirino.lato.y - sulMirino.angolo.y) < 1e-9, sulMirino);
   ok('e nessuna linea parte per sbaglio', sulMirino.linee === 0, sulMirino);
 
+  sezione('il magnete: il riquadro si attacca al bordo della vignetta');
+  // CHIESTO DA GIOVANNI IL 10 OTTOBRE 2026: "che venga riconosciuta la forma
+  // del quadrato sotto, e il ritaglio si adatti — un magnete non troppo forte".
+  // Una pagina bianca con UNA vignetta: un rettangolo d'inchiostro spesso
+  // 6px, da 0.2 a 0.7 in larghezza e da 0.2 a 0.6 in altezza. Si disegna il
+  // riquadro a occhio, un po' dentro, e si guarda dove finisce.
+  const magnete = await page.evaluate(async ()=>{
+    const P = window.P;
+    const c = document.createElement('canvas'); c.width = 900; c.height = 1200;
+    const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, 900, 1200);
+    x.strokeStyle = '#000'; x.lineWidth = 6; x.strokeRect(180, 240, 450, 480);
+    const im = new Image(); im.src = c.toDataURL('image/png'); await im.decode();
+    im.style.cssText = 'position:fixed;left:0;top:0;width:300px;opacity:0'; document.body.appendChild(im);
+    P.chiudiProspettiva();
+    P.apriProspettiva(im);
+    await new Promise(r=> setTimeout(r, 300));
+    const svg = document.querySelector('.prosp-svg');
+    const r = document.querySelector('.prosp-tavolo').getBoundingClientRect();
+    const a = (fx, fy)=> [r.left + r.width * fx, r.top + r.height * fy];
+    const tocco = (tipo, [cx, cy])=> svg.dispatchEvent(new PointerEvent(tipo, {
+      pointerId: 51, clientX: cx, clientY: cy, bubbles:true, cancelable:true }));
+    tocco('pointerdown', a(0.212, 0.212));
+    tocco('pointermove', a(0.5, 0.4));
+    tocco('pointermove', a(0.69, 0.59));
+    tocco('pointerup',   a(0.69, 0.59));
+    await new Promise(res=> setTimeout(res, 60));
+    const riq = { ...P.corniceAttiva() };
+    P.chiudiProspettiva(); im.remove();
+    return { riq, larghezzaASchermo: r.width };
+  });
+  const vicino = (v, atteso)=> Math.abs(v - atteso) < 0.008;
+  ok('il lato sinistro si attacca al bordo', vicino(magnete.riq.x, 177/900), magnete);
+  ok('quello in alto anche', vicino(magnete.riq.y, 237/1200), magnete);
+  ok('e quelli a destra e in basso, col bordo dentro',
+     vicino(magnete.riq.x + magnete.riq.w, 633/900) && vicino(magnete.riq.y + magnete.riq.h, 723/1200), magnete);
+
   sezione('e un lato solo si stringe senza toccare gli altri tre, gia\' giusti');
   // IL CASO PRECISO SEGNALATO DA GIOVANNI IL 16 SETTEMBRE 2026: un riquadro
   // giusto su tre lati e un filo troppo largo sul quarto (si vedeva ancora un
