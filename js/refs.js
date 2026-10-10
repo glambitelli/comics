@@ -2449,9 +2449,13 @@ export function refsImageMenu(anchorEl, imageId){
   // la stessa cartella. Restano corte apposta: l'icona accanto fa il resto,
   // e nessuna voce di questo menu supera i venti caratteri.
   voci.push({ label:'Cambia cartella', icon:'cartella', onSelect:()=>promptMoveImage(id, anchorEl) });
-  voci.push({ label: eTavola ? 'Segna come frammento' : 'Segna come tavola',
-      icon: eTavola ? 'ritaglio' : 'tavola',
-      onSelect:()=>{ setRefTavola(id, !eTavola); haptic('done'); } });
+  // UNO STUDIO DI PROSPETTIVA NON E' NE' UN FRAMMENTO NE' UNA TAVOLA: sta nel
+  // suo scaffale per quello che e' (vedi isProspettiva), e "Segna come
+  // tavola" su di lui non voleva dire niente (Giovanni, 10 ottobre 2026).
+  if(!isProspettiva(r))
+    voci.push({ label: eTavola ? 'Segna come frammento' : 'Segna come tavola',
+        icon: eTavola ? 'ritaglio' : 'tavola',
+        onSelect:()=>{ setRefTavola(id, !eTavola); haptic('done'); } });
   voci.push({ label:'Elimina', icon:'elimina', danger:true, onSelect:()=>deleteRefImageWithUndo(id) });
   actionMenu(anchorEl, voci);
 }

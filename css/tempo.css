@@ -458,3 +458,38 @@ body.scena-open .tempo-capsula{display:none}
   box-shadow:1px 1px 2px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.35)}
 .casio-giallo::after{content:'';position:absolute;inset:-10px -14px -10px -4px}
 @keyframes casio-carica{from{filter:brightness(.9)}to{filter:brightness(.55) sepia(.4)}}
+
+/* ══ IL CRONOMETRO DENTRO QUACK (10 ottobre 2026) ══
+   La capsula col punto d'oro che pulsa, in basso al centro, andava bene sulla
+   carta della scrivania; sopra il terminale dell'archivio o sopra il lettore
+   "e' brutta, e come stile non c'entra piu' niente" (Giovanni). Il
+   cronometro resta uno solo: e' la stessa capsula, che li' dentro cambia
+   vestito. Diventa l'orologio di sistema del software: un cronometro a pixel
+   come il germano, le cifre nel carattere del BIOS, in alto a destra come
+   l'ora nell'angolo di uno schermo. Resta solo la pausa; chiudere o buttare
+   via la sessione si fa dal quadrante sulla home, tenendolo premuto. */
+.tempo-ico{display:none}
+:is(body.refs-lightbox-open, body.album-reading, body:has(#screen-refs.active)) .tempo-capsula{
+  top:calc(10px + var(--safe-top,0px));bottom:auto;right:10px;left:auto;transform:none;
+  gap:6px;padding:3px 4px 3px 8px;border-radius:0;border:none;
+  background:rgba(0,0,40,.78);box-shadow:inset 0 0 0 2px #126d8c,0 0 10px rgba(95,244,255,.2);
+  backdrop-filter:none;-webkit-backdrop-filter:none;
+}
+:is(body.refs-lightbox-open, body.album-reading, body:has(#screen-refs.active)) .tempo-punto,
+:is(body.refs-lightbox-open, body.album-reading, body:has(#screen-refs.active)) .tempo-scarta,
+:is(body.refs-lightbox-open, body.album-reading, body:has(#screen-refs.active)) .tempo-stop{display:none}
+:is(body.refs-lightbox-open, body.album-reading, body:has(#screen-refs.active)) .tempo-ico{display:block}
+:is(body.refs-lightbox-open, body.album-reading, body:has(#screen-refs.active)) .tempo-ico .px-ico{display:block}
+/* in pausa l'orologio si spegne a meta', come un LED */
+:is(body.refs-lightbox-open, body.album-reading, body:has(#screen-refs.active)) .tempo-capsula.ferma .tempo-ico{opacity:.45}
+:is(body.refs-lightbox-open, body.album-reading, body:has(#screen-refs.active)) .tempo-corsa{
+  font-family:'Unifont','Courier New',monospace;font-size:16px;font-weight:400;letter-spacing:0;min-width:0;
+  color:#5ff4ff;text-shadow:0 0 4px rgba(95,244,255,.8),0 0 10px rgba(95,244,255,.35);-webkit-font-smoothing:none;
+}
+:is(body.refs-lightbox-open, body.album-reading, body:has(#screen-refs.active)) .tempo-capsula.ferma .tempo-corsa{animation:tempo-lampeggio 1s steps(1) infinite}
+@keyframes tempo-lampeggio{50%{opacity:.25}}
+:is(body.refs-lightbox-open, body.album-reading, body:has(#screen-refs.active)) .tempo-btn{
+  width:26px;height:26px;border-radius:0;border:none;background:none;color:#5ff4ff;
+}
+:is(body.refs-lightbox-open, body.album-reading, body:has(#screen-refs.active)) .tempo-btn:active{background:rgba(95,244,255,.18)}
+@media (prefers-reduced-motion:reduce){ .tempo-capsula.ferma .tempo-corsa{animation:none} }

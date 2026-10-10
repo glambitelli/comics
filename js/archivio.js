@@ -43,6 +43,8 @@ export function montaArchivio(){
   _montato = true;
   // La galleria delle immagini si veste da Quack anche lei: icone a pixel.
   vestiPixel(document.getElementById('refs-lightbox'));
+  // E il cronometro, che dentro Quack si mostra col suo orologio a pixel.
+  vestiPixel(document.getElementById('tempo-capsula'));
   const led = document.getElementById('arch-led');
   const power = document.getElementById('arch-power');
   const lettura = document.getElementById('arch-lettura');

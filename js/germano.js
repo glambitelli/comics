@@ -171,6 +171,8 @@ const GRIGLIE = {
   fatto:  righe(['.........aa','........aa.','.......aa..','aa....aa...','.aa..aa....','..aaaa.....','...aa......']),
   avviso: righe(['.....a.....','....aaa....','....a.a....','...a.a.a...','...a.a.a...','..a..a..a..','..a.....a..','.a...a...a.','aaaaaaaaaaa']),
   riquadro:righe(['aa.aa.aa.aa','a.........a','..mmmmmmm..','a.mmmmmmm.a','a.mmmmmmm.a','..mmmmmmm..','a.........a','aa.aa.aa.aa']),
+  // il cronometro della capsula del tempo, quando la si vede dentro Quack
+  cronometro:righe(['...aaaaa...','.....a.....','..aaaaaaa.a','.a.......aa','a....a....a','a....a....a','a....aaa..a','a.........a','.a.......a.','..aaaaaaa..']),
   prosp: (()=>{ const g = vuota(13, 11);
     linea(g, 0, 0, 9, 5); linea(g, 0, 5, 9, 5); linea(g, 0, 10, 9, 5);
     [[10,4],[11,4],[10,5],[11,5],[10,6],[11,6],[12,5]].forEach(([x, y])=> punto(g, x, y));
