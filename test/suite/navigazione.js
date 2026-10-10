@@ -1345,6 +1345,31 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
   ok('trascinando il dito la polaroid gira', pola.girata, pola);
   ok('e un tocco fuori la rimette giu\', al suo posto', pola.chiusa && pola.tornata && pola.fotoVia, pola);
 
+  // ── I DUE FOGLI SI PRENDONO SOLO TENENDO PREMUTO ──
+  // Il biglietto col tocco apre il progetto di stasera: un tocco breve deve
+  // fare solo quello, e solo la pressione lunga lo porta in mano senza aprire
+  // niente (Giovanni, 10 ottobre 2026: "il rischio e' aprirli per sbaglio").
+  const fogli = await page.evaluate(async ()=>{
+    const big = document.getElementById('scriv-biglietto');
+    if(!big || big.hidden) return { manca:true };
+    const pd = (t)=> big.dispatchEvent(new PointerEvent(t, { bubbles:true, clientX:10, clientY:10, pointerId:9, isPrimary:true }));
+    const aperte = ()=> document.querySelectorAll('.pola-scena.aperta').length;
+    let cliccato = 0; const vecchio = big.onclick; big.onclick = ()=>{ cliccato++; };
+    pd('pointerdown'); await new Promise(r=> setTimeout(r, 120)); pd('pointerup');
+    const breve = aperte();
+    pd('pointerdown'); await new Promise(r=> setTimeout(r, 750));
+    const lungo = aperte(); pd('pointerup'); big.click();
+    const dopoLungo = cliccato;
+    const sc = document.querySelector('.pola-scena.aperta');
+    if(sc){ sc.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,clientX:2,clientY:innerHeight-2,pointerId:9})); sc.dispatchEvent(new PointerEvent('pointerup',{bubbles:true,clientX:2,clientY:innerHeight-2,pointerId:9})); }
+    await new Promise(r=> setTimeout(r, 600));
+    big.onclick = vecchio;
+    return { breve, lungo, dopoLungo, chiuso: aperte() === 0 };
+  });
+  ok('un tocco breve sul biglietto non lo prende in mano', fogli.manca || fogli.breve === 0, fogli);
+  ok('tenendolo premuto si prende in mano', fogli.manca || fogli.lungo === 1, fogli);
+  ok('e la pressione lunga non apre anche il progetto', fogli.manca || fogli.dopoLungo === 0, fogli);
+
   // ── IL WALKMAN NON SI SIEDE SULL'INTERRUTTORE ──
   // Messo a destra sotto il cronometro, sul telefono finiva sopra
   // l'interruttore della luce, che e' avvitato nell'angolo in basso a destra

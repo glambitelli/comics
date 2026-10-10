@@ -564,7 +564,10 @@ body.luce-spenta .scriv-polaroid{
 /* ── LA POLAROID IN MANO (js/polaroid.js) ──
    Sopra tutto tranne la tenda della sera (9800) e i modali (9700): mentre la
    si guarda la barra in fondo e l'interruttore restano sotto il velo. */
-.scriv-polaroid.in-mano{visibility:hidden}
+.scriv-polaroid.in-mano,.scriv-biglietto.in-mano,.scriv-legenda.in-mano{visibility:hidden}
+/* i due fogli si prendono tenendo premuto: niente selezione del testo ne'
+   menu del telefono durante la pressione */
+.scriv-biglietto,.scriv-legenda{-webkit-touch-callout:none;user-select:none;-webkit-user-select:none}
 .scriv-polaroid:focus-visible{outline:2px solid #f0e6d2;outline-offset:4px}
 .pola-scena{position:fixed;inset:0;z-index:9650;perspective:1100px;pointer-events:none;overflow:hidden;
   touch-action:none;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
@@ -580,8 +583,14 @@ body.luce-spenta .scriv-polaroid{
 .pola-scena.in-volo .pola-foto{visibility:visible}
 .pola-faccia{position:absolute;inset:0;border-radius:3px;overflow:hidden;
   backface-visibility:hidden;-webkit-backface-visibility:hidden}
-.pola-davanti{background:url(../img/scrivania/polaroid-grande.webp) center/100% 100% no-repeat}
-.pola-dietro{transform:translateZ(-2px) rotateY(180deg);
-  background:url(../img/scrivania/polaroid-retro.webp) center/100% 100% no-repeat}
+.pola-polaroid .pola-davanti{background:url(../img/scrivania/polaroid-grande.webp) center/100% 100% no-repeat}
+.pola-dietro{transform:translateZ(-2px) rotateY(180deg)}
+.pola-polaroid .pola-dietro{background:url(../img/scrivania/polaroid-retro.webp) center/100% 100% no-repeat}
+/* I FOGLI: carta senza spessore e senza angoli tondi; il retro e' la stessa
+   carta specchiata, schiarita come il dorso di un foglio scritto da un lato. */
+.pola-frase .pola-faccia,.pola-stasera .pola-faccia{border-radius:0;overflow:visible}
+.pola-frase .pola-dietro,.pola-stasera .pola-dietro{transform:translateZ(-.5px) rotateY(180deg)}
+.pola-retro{position:absolute;inset:0;background:center/100% 100% no-repeat;transform:scaleX(-1);filter:brightness(1.08) contrast(.62) saturate(.8) blur(.4px)}
+.pola-frase .pola-luce,.pola-stasera .pola-luce{display:none}
 .pola-strato{position:absolute;inset:0;border-radius:3px;background:#d9d4c9}
 .pola-luce{position:absolute;inset:0;background:#000;opacity:0;pointer-events:none}
