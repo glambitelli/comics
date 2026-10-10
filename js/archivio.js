@@ -16,6 +16,11 @@ import { suonaRumore, preparaRumori } from './sound.js';
 //                      lavora: e' il rumore della "Lettura in corso".
 // I tocchi sulle voci restano i suoni dei menu di Resident Evil di tutta
 // l'app (sound.js): qui suona solo la macchina.
+// A VOLUME PIENO, e tagliati sotto i 200 Hz. La prima versione suonava a
+// meta' volume ed era 15 dB sotto i suoni del menu: sul telefono di Giovanni
+// "non sento i suoni nuovi". In piu' quasi tutta l'energia stava nei bassi
+// (ventola, ronzio del tubo) che l'altoparlante di un telefono non rende:
+// tolti quelli, compressi e alzati, si sentono lo scatto, il beep e il disco.
 const RUMORI = {
   accendi: './sfx/monitor/accendi.mp3',
   spegni:  './sfx/monitor/spegni.mp3',
@@ -63,7 +68,7 @@ export function montaArchivio(){
     clearInterval(_bootTimer);
     let n = 0;
     boot.textContent = ''; boot.hidden = false;
-    setTimeout(()=> suonaRumore(RUMORI.boot, .4), 350);
+    setTimeout(()=> suonaRumore(RUMORI.boot, 1), 350);
     _bootTimer = setInterval(()=>{
       n++;
       boot.textContent = RIGHE.slice(0, n).join('\n') + (n % 2 ? '_' : '');
@@ -75,7 +80,7 @@ export function montaArchivio(){
   // schermo, come un CRT vero, con lo scatto e il fischio del tubo. Solo
   // quando la schermata diventa attiva, non a ogni ridisegno dell'elenco.
   const accendi = (conAvvio)=>{
-    suonaRumore(RUMORI.accendi, .55);
+    suonaRumore(RUMORI.accendi, 1);
     if(conAvvio && !ridotto()) avvia();
     if(ridotto()) return;
     mon.classList.remove('accensione'); void mon.offsetWidth;
@@ -98,7 +103,7 @@ export function montaArchivio(){
       accendi(true);
     } else {
       power.setAttribute('aria-label', 'Accendi il monitor');
-      suonaRumore(RUMORI.spegni, .55);
+      suonaRumore(RUMORI.spegni, 1);
       clearInterval(_bootTimer); boot.hidden = true;
       if(ridotto()){ mon.classList.add('spento'); return; }
       mon.classList.add('spegnimento');
@@ -135,7 +140,7 @@ export function montaArchivio(){
     scrivi(); lettura.hidden = false; led && led.classList.add('arch-lavora');
     // un attimo dopo il tocco: prima il tic del menu di Resident Evil, poi il
     // disco che lavora (suonati insieme, il secondo zittiva il primo)
-    setTimeout(()=> suonaRumore(RUMORI.disco, .4), 140);
+    setTimeout(()=> suonaRumore(RUMORI.disco, .8), 140);
     timer = setInterval(()=>{
       p++; scrivi();
       if(p >= 8){
