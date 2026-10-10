@@ -2008,9 +2008,19 @@ function renderBarraScelta(){
   // segnalazione di Giovanni, 18 settembre 2026.
   // Il genere segue quello che si sta selezionando: un artista e' maschile,
   // un'immagine femminile.
-  if(conto) conto.textContent = suCartelle
+  // A SCHERMO SOLO IL NUMERO E "SEL." (10 ottobre 2026). Dentro il terminale
+  // i tasti squadrati sono piu' larghi, e "1 selezionata" non ci stava piu'
+  // sulla stessa riga: prima finiva sotto i tasti, poi su una riga sua sopra
+  // — e "cosi' non mi piace" (Giovanni). Abbreviato come su un display, e la
+  // parola intera resta per chi legge con la voce e per il suggerimento.
+  const perEsteso = suCartelle
     ? (n === 1 ? '1 selezionato' : `${n} selezionati`)
     : (n === 1 ? '1 selezionata' : `${n} selezionate`);
+  if(conto){
+    conto.textContent = n + ' sel.';
+    conto.setAttribute('aria-label', perEsteso);
+    conto.title = perEsteso;
+  }
   // Rinominare vale per le cartelle; per un'immagine sola la barra porta invece
   // i tre puntini col menu di sempre — tag, ritaglio, cambia cartella, segna
   // come tavola. Nessuna di quelle azioni si perde: cambia solo da dove si

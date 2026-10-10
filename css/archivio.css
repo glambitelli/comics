@@ -329,9 +329,10 @@
 /* LA BARRA DELLA SCELTA DENTRO LO SCHERMO (10 ottobre 2026). Coi tasti
    squadrati del terminale cinque bottoni da 40px e la scritta "1
    selezionata" non stavano sulla stessa riga dello schermo del telefono: la
-   scritta si schiacciava a zero, andava a capo e finiva SOTTO i tasti. Ora la
-   scritta ha una riga sua sopra, e i tasti — un filo piu' piccoli — la riga
-   sotto, allineati a destra. */
-#screen-refs .refs-scelta.show{flex-wrap:wrap;justify-content:flex-end;row-gap:4px;column-gap:6px;padding:4px 0 6px}
-#screen-refs .refs-scelta-conto{flex:1 0 100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#screen-refs .refs-scelta-btn{width:36px;height:34px}
+   scritta si schiacciava a zero, andava a capo e finiva SOTTO i tasti. Messa
+   su una riga sua sopra i tasti non piaceva ("cosi' non mi piace"): adesso
+   e' una riga sola, la scritta e' abbreviata in "1 sel." (vedi refs.js) e i
+   tasti sono un filo piu' piccoli. */
+#screen-refs .refs-scelta.show{gap:6px;padding:4px 0 6px}
+#screen-refs .refs-scelta-conto{white-space:nowrap}
+#screen-refs .refs-scelta-btn{width:34px;height:32px}

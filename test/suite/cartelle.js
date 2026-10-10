@@ -466,7 +466,7 @@ module.exports = () => suite("References — artisti e menu contestuali", {"banc
     return {
       barraVisibile: getComputedStyle(barra).display !== 'none',
       assiVisibili: getComputedStyle(assi).display !== 'none',
-      conto: document.getElementById('refs-scelta-conto').textContent.trim(),
+      conto: document.getElementById('refs-scelta-conto').getAttribute('aria-label'),
       rinominaSpento: document.getElementById('refs-scelta-rinomina').disabled,
       spunte: Array.from(document.querySelectorAll('.refs-spunta'))
                 .filter(e=> getComputedStyle(e).display !== 'none').length,
@@ -489,7 +489,7 @@ module.exports = () => suite("References — artisti e menu contestuali", {"banc
     await new Promise(r=>setTimeout(r,200));
     return {
       quanti: window.refs.scelti().length,
-      conto: document.getElementById('refs-scelta-conto').textContent.trim(),
+      conto: document.getElementById('refs-scelta-conto').getAttribute('aria-label'),
       rinominaSpento: document.getElementById('refs-scelta-rinomina').disabled,
       galleria: document.getElementById('refs-gallery-view').style.display !== 'none',
     };
@@ -774,7 +774,7 @@ module.exports = () => suite("References — artisti e menu contestuali", {"banc
     const b = document.getElementById('refs-scelta');
     return {
       accesa: b.classList.contains('show'),
-      conto: document.getElementById('refs-scelta-conto').textContent,
+      conto: document.getElementById('refs-scelta-conto').getAttribute('aria-label'),
       // Per un'immagine sola i tre puntini portano il menu di sempre; per una
       // cartella al loro posto c'e' "Rinomina".
       menu: !document.getElementById('refs-scelta-menu').hidden,
@@ -791,7 +791,7 @@ module.exports = () => suite("References — artisti e menu contestuali", {"banc
     await new Promise(r=>setTimeout(r,200));
     return {
       scelte: document.querySelectorAll('.refs-thumb.scelta').length,
-      conto: document.getElementById('refs-scelta-conto').textContent,
+      conto: document.getElementById('refs-scelta-conto').getAttribute('aria-label'),
       // Con due scelte i tre puntini si spengono: quel menu vale per una sola.
       menu: document.getElementById('refs-scelta-menu').disabled,
       lightbox: document.getElementById('refs-lightbox').classList.contains('open'),
