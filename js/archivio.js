@@ -10,9 +10,11 @@ import { suonaRumore, preparaRumori } from './sound.js';
 // mandate da Giovanni:
 //   accendi / spegni — lo scatto e il fischio di un televisore CRT (da 2,03 e
 //                      da 3,63 secondi), col fruscio di fondo attenuato;
-//   boot             — l'avvio di un PC anni '90 fino al beep del BIOS
-//                      (da 0,1 a 3,95 secondi): la ventola che parte e il
-//                      beep, e li' finisce;
+//   boot             — l'avvio di un PC anni '90 (da 0,1 a 4,7 secondi): la
+//                      ventola che parte, il beep del BIOS a 3,62 e poi la
+//                      sfumatura finale. Per un giorno era tagliato secco
+//                      subito dopo il beep; la sfumatura e' tornata perche'
+//                      "lo rende piu' realistico" (Giovanni);
 // I tocchi sulle voci restano i suoni dei menu di Resident Evil di tutta
 // l'app (sound.js): qui suona solo la macchina.
 // A VOLUME PIENO, e tagliati sotto i 200 Hz. La prima versione suonava a
@@ -169,7 +171,7 @@ export function montaArchivio(){
       ga.fillStyle = ANATRA_TONI[c]; ga.fillRect(x, y, 1, 1);
     } });
   };
-  let _passi = 0;
+  let _passi = 0, _arrivo = 0;
   const RIGHE = [
     'Inkflow BIOS v1.0',
     '(C) 1998 Inkflow Data Systems',
@@ -192,9 +194,15 @@ export function montaArchivio(){
     clearInterval(_bootTimer); clearTimeout(_bootFine);
     let n = 0;
     bootTesto.textContent = ''; boot.hidden = false;
-    // il germano cammina sotto le righe finche' l'avvio dura
-    clearInterval(_passi); let passo = 0; disegnaAnatra(0);
-    _passi = setInterval(()=> disegnaAnatra(++passo), ANATRA_PASSO);
+    // IL GERMANO ARRIVA ALLA FINE, quando le righe sono gia' tutte scritte, e
+    // cammina li' sotto fino al beep. Sta in un punto fisso dello schermo: la
+    // prima versione partiva subito e scendeva riga dopo riga insieme al
+    // testo (Giovanni: "non mi piace che scorra verso il basso").
+    clearInterval(_passi); clearTimeout(_arrivo); anatra.hidden = true;
+    _arrivo = setTimeout(()=>{
+      let passo = 0; disegnaAnatra(0); anatra.hidden = false;
+      _passi = setInterval(()=> disegnaAnatra(++passo), ANATRA_PASSO);
+    }, RIGHE.length * 320 + 250);
     setTimeout(()=> suonaRumore(RUMORI.boot, 1), SUONO_DOPO);
     _bootTimer = setInterval(()=>{
       n++;
@@ -233,7 +241,7 @@ export function montaArchivio(){
     } else {
       power.setAttribute('aria-label', 'Accendi il monitor');
       suonaRumore(RUMORI.spegni, 1);
-      clearInterval(_bootTimer); clearTimeout(_bootFine); clearInterval(_passi); boot.hidden = true;
+      clearInterval(_bootTimer); clearTimeout(_bootFine); clearInterval(_passi); clearTimeout(_arrivo); boot.hidden = true;
       if(ridotto()){ mon.classList.add('spento'); return; }
       mon.classList.add('spegnimento');
       setTimeout(()=>{ mon.classList.remove('spegnimento'); mon.classList.add('spento'); }, 420);

@@ -157,10 +157,12 @@
 .arch-lettura{position:absolute;inset:0;z-index:15;background:var(--vga-blu);padding:30% 24px 0;white-space:pre;line-height:22px;pointer-events:none}
 
 /* l'avvio: le righe del BIOS che compaiono una alla volta (js/archivio.js) */
+.arch-anatra[hidden]{display:none}
 .arch-boot{position:absolute;inset:0;z-index:16;background:var(--vga-blu);padding:16px 14px;white-space:pre;line-height:20px;pointer-events:none}
-/* il germano di Inkflow sotto le righe dell'avvio: pixel netti, ingranditi
-   quattro volte, con il bagliore al neon del Pip-Boy */
-.arch-anatra{display:block;margin:28px auto 0;width:calc(var(--aw,34px)*4);image-rendering:pixelated;
+/* il germano di Inkflow sotto le righe dell'avvio: in un punto fisso dello
+   schermo (non scende col testo), pixel netti ingranditi tre volte (quattro
+   era "leggermente" troppo), col bagliore al neon del Pip-Boy */
+.arch-anatra{position:absolute;left:50%;top:62%;transform:translateX(-50%);width:calc(var(--aw,34px)*3);image-rendering:pixelated;
   filter:drop-shadow(0 0 2px rgba(95,244,255,.9)) drop-shadow(0 0 8px rgba(95,244,255,.45)) drop-shadow(0 0 18px rgba(95,244,255,.2))}
 
 /* ══ IL VESTITO DA BIOS ══
