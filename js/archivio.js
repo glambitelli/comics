@@ -15,16 +15,10 @@ import { ANATRA, ANATRA_PASSO, disegnaGermano, vestiPixel } from './germano.js';
 //                      ventola che parte, il beep del BIOS a 3,62 e poi la
 //                      sfumatura finale. Per un giorno era tagliato secco
 //                      subito dopo il beep; la sfumatura e' tornata perche'
-//                      "lo rende piu' realistico" (Giovanni). E in coda,
-//                      a 3,9 secondi, appena finito il beep, il QUACK del
-//                      germano (10 ottobre 2026): un verso solo, un quarto
-//                      di secondo, tagliato da una registrazione mandata da
-//                      Giovanni e "digitalizzato" — ricampionato a 11 kHz e
-//                      ridotto a 6 bit, come da un campionatore anni '90 —
-//                      scelto fra due prove ("8 bit"; l'altra, a 6 kHz e 4
-//                      bit, sembrava un chip sonoro). E' mixato DENTRO
-//                      boot.mp3, non suonato a parte: cosi' arriva sempre
-//                      esattamente dopo il beep, senza un secondo timer;
+//                      "lo rende piu' realistico" (Giovanni). Il 10 ottobre
+//                      2026 c'e' stato per un'ora, in coda dopo il beep, il
+//                      quack del germano "digitalizzato" a 8 bit: tolto,
+//                      "non mi piace sto quack alla fine del beep";
 // I tocchi sulle voci restano i suoni dei menu di Resident Evil di tutta
 // l'app (sound.js): qui suona solo la macchina.
 // A VOLUME PIENO, e tagliati sotto i 200 Hz. La prima versione suonava a
