@@ -41,6 +41,13 @@
 // spessore a strati: e' carta, e gli strati sarebbero rettangoli pieni sotto
 // i bordi stropicciati, dove la carta non c'e'.
 
+import { suonaRumore, preparaRumori } from './sound.js';
+
+// IL RUMORE DELLA CARTA PRESA IN MANO (10 ottobre 2026), da una registrazione
+// mandata da Giovanni: per la polaroid il pezzo a 7,4 secondi, carta piu'
+// rigida; per i due fogli quello a 1,25 secondi, carta morbida.
+const CARTA = { polaroid:'./sfx/carta/polaroid.mp3', foglio:'./sfx/carta/foglio.mp3' };
+
 const MAX_PITCH = 55;
 let _montata = false;
 
@@ -49,6 +56,7 @@ export function montaLaPolaroid(){
   const pol = document.querySelector('.scriv-polaroid');
   if(!pol) return;
   _montata = true;
+  window.addEventListener('pointerdown', ()=> preparaRumori(Object.values(CARTA)), { once:true, passive:true });
   // La polaroid per prima: la sua scena e' la prima .pola-scena del documento.
   prendibile(pol, { proporzione: ()=> 790 / 640, classe:'pola-polaroid', strati:4, larghezza:340 });
   const leg = document.getElementById('scriv-legenda');
@@ -131,6 +139,7 @@ function prendibile(piccola, o){
   function apri(){
     if(aperta) return;
     aperta = true;
+    suonaRumore(o.foglio ? CARTA.foglio : CARTA.polaroid, 1);
     misura();
     vesti();
     ry = 0; rx = 0; vy = 0; vx = 0;
