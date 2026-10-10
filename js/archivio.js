@@ -10,8 +10,9 @@ import { suonaRumore, preparaRumori } from './sound.js';
 // mandate da Giovanni:
 //   accendi / spegni — lo scatto e il fischio di un televisore CRT (da 2,03 e
 //                      da 3,63 secondi), col fruscio di fondo attenuato;
-//   boot             — i primi 4,6 secondi dell'avvio di un PC anni '90:
-//                      la ventola che parte e il beep del BIOS;
+//   boot             — l'avvio di un PC anni '90 fino al beep del BIOS
+//                      (da 0,1 a 3,95 secondi): la ventola che parte e il
+//                      beep, e li' finisce;
 // I tocchi sulle voci restano i suoni dei menu di Resident Evil di tutta
 // l'app (sound.js): qui suona solo la macchina.
 // A VOLUME PIENO, e tagliati sotto i 200 Hz. La prima versione suonava a
@@ -40,12 +41,12 @@ export function montaArchivio(){
 
   window.addEventListener('pointerdown', ()=> preparaRumori(Object.values(RUMORI)), { once:true, passive:true });
 
-  // L'AVVIO: la prima volta che si entra nell'archivio, e ogni volta che lo si
-  // riaccende col tasto, lo schermo fa un avvio da PC vero, rapido: tre
-  // secondi di righe del BIOS col beep e la ventola, poi l'elenco. Le volte
-  // dopo, entrando, solo lo scatto del tubo: un avvio a ogni ingresso
-  // stancherebbe alla terza volta. Non prende i tocchi: chi ha fretta tocca
-  // gia' l'elenco sotto.
+  // L'AVVIO. Il computer e' SPENTO quando si apre Inkflow (Giovanni, 10
+  // ottobre 2026: "aprendo da zero il computer deve risultare spento, poi lo
+  // accendo e mi fa il boot"). Si accende col tasto tondo — o toccando lo
+  // schermo nero, che col dito e' un bersaglio molto piu' grande — e fa un
+  // avvio da PC vero, rapido: righe del BIOS, la ventola e il beep, tre
+  // secondi. Non prende i tocchi: chi ha fretta tocca gia' l'elenco sotto.
   const crt = document.getElementById('arch-crt');
   const boot = document.createElement('div');
   boot.className = 'arch-boot'; boot.hidden = true; boot.setAttribute('aria-hidden', 'true');
@@ -59,49 +60,58 @@ export function montaArchivio(){
     '',
     "Avvio dell'archivio visivo...",
   ];
-  let _avviato = false, _bootTimer = 0;
+  let _bootTimer = 0;
+  // IL MENU COMPARE SUL BEEP. Il beep del BIOS sta a 3,62 secondi dall'inizio
+  // di boot.mp3, e il suono parte 350 ms dopo lo scatto del tubo: l'elenco
+  // arriva quindi a 3,97 secondi, nell'istante del beep, non prima (Giovanni:
+  // "non fa niente che perdo qualche secondino"). Fino a li' le righe del BIOS
+  // e il cursore che lampeggia. Il suono finisce subito dopo il beep, senza la
+  // lunga sfumatura che c'era prima.
+  const SUONO_DOPO = 350, BEEP = 3620;
+  let _bootFine = 0;
   const avvia = ()=>{
-    _avviato = true;
-    clearInterval(_bootTimer);
+    clearInterval(_bootTimer); clearTimeout(_bootFine);
     let n = 0;
     boot.textContent = ''; boot.hidden = false;
-    setTimeout(()=> suonaRumore(RUMORI.boot, 1), 350);
+    setTimeout(()=> suonaRumore(RUMORI.boot, 1), SUONO_DOPO);
     _bootTimer = setInterval(()=>{
       n++;
-      boot.textContent = RIGHE.slice(0, n).join('\n') + (n % 2 ? '_' : '');
-      if(n > RIGHE.length + 3){ clearInterval(_bootTimer); boot.hidden = true; }
+      boot.textContent = RIGHE.slice(0, Math.min(n, RIGHE.length)).join('\n') + (n % 2 ? '_' : '');
     }, 320);
+    _bootFine = setTimeout(()=>{ clearInterval(_bootTimer); boot.hidden = true; }, SUONO_DOPO + BEEP);
   };
 
-  // ENTRANDO SI ACCENDE: una riga bianca al centro che si apre su tutto lo
-  // schermo, come un CRT vero, con lo scatto e il fischio del tubo. Solo
-  // quando la schermata diventa attiva, non a ogni ridisegno dell'elenco.
-  const accendi = (conAvvio)=>{
+  // L'ACCENSIONE: una riga bianca al centro che si apre su tutto lo schermo,
+  // come un CRT vero, con lo scatto del tubo e poi l'avvio.
+  // E POI RESTA ACCESO. Prima si riaccendeva (riga bianca e scatto) a ogni
+  // ingresso nell'archivio; ma un computer vero, se vai in un'altra stanza e
+  // torni, lo ritrovi acceso com'era. Ora cambiare sezione non lo tocca: si
+  // spegne solo col tasto.
+  const accendi = ()=>{
     suonaRumore(RUMORI.accendi, 1);
-    if(conAvvio && !ridotto()) avvia();
     if(ridotto()) return;
+    avvia();
     mon.classList.remove('accensione'); void mon.offsetWidth;
     mon.classList.add('accensione');
     setTimeout(()=> mon.classList.remove('accensione'), 900);
   };
-  let attiva = scr.classList.contains('active');
-  new MutationObserver(()=>{
-    const ora = scr.classList.contains('active');
-    if(ora && !attiva && !mon.classList.contains('spento')) accendi(!_avviato);
-    attiva = ora;
-  }).observe(scr, { attributes:true, attributeFilter:['class'] });
+  const accendiDaSpento = ()=>{
+    if(!mon.classList.contains('spento')) return;
+    mon.classList.remove('spento');
+    power.setAttribute('aria-label', 'Spegni il monitor');
+    accendi();
+  };
+  if(crt) crt.addEventListener('click', accendiDaSpento);
 
   // IL TASTO DI ACCENSIONE sotto lo schermo: lo spegne chiudendolo in un punto,
   // e lo riaccende con l'avvio. La spia rossa va con lui.
   power.addEventListener('click', ()=>{
     if(mon.classList.contains('spento')){
-      mon.classList.remove('spento');
-      power.setAttribute('aria-label', 'Spegni il monitor');
-      accendi(true);
+      accendiDaSpento();
     } else {
       power.setAttribute('aria-label', 'Accendi il monitor');
       suonaRumore(RUMORI.spegni, 1);
-      clearInterval(_bootTimer); boot.hidden = true;
+      clearInterval(_bootTimer); clearTimeout(_bootFine); boot.hidden = true;
       if(ridotto()){ mon.classList.add('spento'); return; }
       mon.classList.add('spegnimento');
       setTimeout(()=>{ mon.classList.remove('spegnimento'); mon.classList.add('spento'); }, 420);

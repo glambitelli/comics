@@ -120,7 +120,9 @@
 @keyframes arch-accendi{0%{transform:scale(.02,.004);filter:brightness(6)}35%{transform:scale(1,.006);filter:brightness(4)}70%{transform:scale(1,1);filter:brightness(1.6)}100%{transform:none;filter:none}}
 .arch-monitor.spegnimento .arch-crt{animation:arch-spegni .42s ease-in forwards}
 @keyframes arch-spegni{0%{transform:none;filter:none}50%{transform:scale(1,.006);filter:brightness(4)}100%{transform:scale(0,0);filter:brightness(8)}}
-.arch-monitor.spento .arch-crt{background:#0b0d12}
+.arch-monitor.spento .arch-crt{background:#0b0d12;cursor:pointer}
+/* Aprendo Inkflow il monitor e' spento (vedi js/archivio.js): si accende col
+   tasto tondo o toccando lo schermo nero. */
 .arch-monitor.spento .arch-crt > *:not(.arch-riflesso){visibility:hidden}
 /* ogni tanto l'immagine trema per un attimo (js/archivio.js decide quando) */
 .arch-monitor.sfarfallio .arch-crt{animation:arch-sfarfalla .16s steps(2) 1}

@@ -482,21 +482,32 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
     const dentro = ['refs-folder-browser','refs-axis','refs-folder-search-input','refs-scelta']
       .every(id=> crt.contains(document.getElementById(id)));
     // il tasto di accensione
+    // APRENDO INKFLOW IL COMPUTER E' SPENTO; acceso, resta acceso cambiando
+    // sezione (Giovanni, 10 ottobre 2026).
     const power = document.getElementById('arch-power');
     const { __rumoriChiesti } = await import('/js/sound.js');
     __rumoriChiesti.splice(0);
+    const spentoAllInizio = mon.classList.contains('spento');
+    power.click(); await new Promise(r=> setTimeout(r, 500));
+    const riacceso = !mon.classList.contains('spento');
+    const rumoreAcceso = __rumoriChiesti.splice(0);
+    const avvio = !document.querySelector('.arch-boot').hidden;
+    // via e ritorno: niente riaccensione, niente scatto
+    document.getElementById('screen-refs').classList.remove('active');
+    await new Promise(r=> setTimeout(r, 100));
+    document.getElementById('screen-refs').classList.add('active');
+    await new Promise(r=> setTimeout(r, 300));
+    const restaAcceso = !mon.classList.contains('spento') && !mon.classList.contains('accensione') && __rumoriChiesti.length === 0;
     power.click(); await new Promise(r=> setTimeout(r, 600));
     const rumoreSpento = __rumoriChiesti.splice(0);
     const spento = mon.classList.contains('spento');
-    power.click(); await new Promise(r=> setTimeout(r, 100));
-    const riacceso = !mon.classList.contains('spento');
-    await new Promise(r=> setTimeout(r, 500));
-    const rumoreAcceso = __rumoriChiesti.splice(0);
-    const avvio = !document.querySelector('.arch-boot').hidden;
+    // e toccando lo schermo nero si riaccende
+    crt.click(); await new Promise(r=> setTimeout(r, 100));
+    const toccoSchermo = !mon.classList.contains('spento');
     return {
       blu: getComputedStyle(crt).backgroundColor,
       carattere: getComputedStyle(crt).fontFamily,
-      misure: [...misure], colori: [...colori], dentro, spento, riacceso, rumoreSpento, rumoreAcceso, avvio,
+      misure: [...misure], colori: [...colori], dentro, spento, riacceso, rumoreSpento, rumoreAcceso, avvio, spentoAllInizio, restaAcceso, toccoSchermo,
       appoggiato: Math.abs(rm.bottom - rs.top) < 60 && rm.bottom > rs.top, basso: Math.round(rm.bottom), tavolo: Math.round(rs.top), alto: innerHeight, largo: innerWidth,
       cornice: getComputedStyle(document.querySelector('.arch-cornice')).borderImageSource,
     };
@@ -510,7 +521,10 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
   ok('elenco, schede, ricerca e barra della scelta stanno dentro lo schermo', terminale.dentro, terminale);
   ok('il monitor appoggia sulla scrivania, non fluttua', terminale.appoggiato, terminale);
   ok('la cornice e\' la foto del monitor', /cornice\.webp/.test(terminale.cornice), terminale.cornice);
-  ok('il tasto tondo spegne il monitor e lo riaccende', terminale.spento && terminale.riacceso, terminale);
+  ok('aprendo Inkflow il computer e\' spento', terminale.spentoAllInizio, terminale);
+  ok('il tasto tondo lo accende e lo spegne', terminale.spento && terminale.riacceso, terminale);
+  ok('cambiando sezione e tornando resta acceso, senza riaccendersi', terminale.restaAcceso, terminale);
+  ok('e toccando lo schermo nero si accende', terminale.toccoSchermo, terminale);
   // I RUMORI DELLA MACCHINA (10 ottobre 2026): lo scatto del tubo spegnendo,
   // e riaccendendo lo scatto piu' l'avvio del PC col beep del BIOS.
   ok('spegnendo fa lo scatto del tubo', JSON.stringify(terminale.rumoreSpento) === '["spegni.mp3"]', terminale.rumoreSpento);
