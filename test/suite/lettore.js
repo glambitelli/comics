@@ -76,6 +76,19 @@ module.exports = () => suite("Lettore — nastro, sfoglio, zoom, ritaglio", {"ba
   ok('prima della pagina 1 non c\'è niente da preparare', s.pages[0] === 0, s.pages);
   ok('nessuna cella resta in attesa', s.pending.every(p => !p), s.pending);
   ok('il contatore parte da 01 / 12', s.counter === '01 / 12', s.counter);
+
+  // IL VESTITO DI QUACK (10 ottobre 2026): stesso lettore, colori e icone del
+  // germano. Il fondo e' blu, le icone sono a pixel e l'attesa e' il germano.
+  const veste = await page.evaluate(() => {
+    const ar = document.getElementById('album-reader');
+    const ico = ['.ar-tutta','.ar-prosp','.ar-clip','[data-act=first]','[data-act=last]'].map(q => !!ar.querySelector(q + ' svg.px-ico rect'));
+    return { fondo: getComputedStyle(ar).backgroundColor, ico, germano: !!ar.querySelector('.ar-loading-glyph canvas.ar-germano'),
+             stella: !!ar.querySelector('.ar-loading-glyph .star-fill'), carattere: getComputedStyle(ar.querySelector('.ar-counter')).fontFamily };
+  });
+  ok('il fondo del lettore è il blu del PC', veste.fondo === 'rgb(0, 0, 140)', veste.fondo);
+  ok('le icone dei comandi sono a pixel', veste.ico.every(Boolean), veste.ico);
+  ok('nell\'attesa c\'è il germano, non più la stella', veste.germano && !veste.stella, veste);
+  ok('il contatore è nel carattere del BIOS', /Unifont/.test(veste.carattere), veste.carattere);
   const tids0 = s.tids.slice().sort().join();
 
   console.log('\n── avanti e indietro da tastiera ──');

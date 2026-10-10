@@ -5,6 +5,7 @@
 // riga di stato in fondo.
 import { getRefs } from './refs.js';
 import { suonaRumore, preparaRumori } from './sound.js';
+import { ANATRA, ANATRA_PASSO, disegnaGermano } from './germano.js';
 
 // I RUMORI DEL COMPUTER (10 ottobre 2026), tagliati da due registrazioni
 // mandate da Giovanni:
@@ -22,109 +23,6 @@ import { suonaRumore, preparaRumori } from './sound.js';
 // "non sento i suoni nuovi". In piu' quasi tutta l'energia stava nei bassi
 // (ventola, ronzio del tubo) che l'altoparlante di un telefono non rende:
 // tolti quelli, compressi e alzati, si sentono lo scatto e il beep.
-// IL GERMANO DI INKFLOW (10 ottobre 2026): il logo, un'anatra in pixel art
-// azzurra nello stile del Pip-Boy, che cammina sotto le righe dell'avvio.
-// Quattro passi, disegnati a parte e scelti da Giovanni fra una decina di
-// prove; qui c'e' il risultato pixel per pixel: a contorno acceso, m tono
-// medio (testa e collo), s spento (corpo), o l'occhio (un buco nello schermo,
-// sempre nello stesso punto della testa: quando si spostava per conto suo
-// "faceva venire mal di testa").
-const ANATRA = [
-  ['.......................aaa.....',
-   '.....................aammma....',
-   '....................ammmmoma...',
-   '....................ammmmmmaaaa',
-   '.....................ammmaaaaaa',
-   '.....................amma......',
-   '.....................ama.......',
-   '.....................ama.......',
-   '....................aaaa.......',
-   '..................aasssa.......',
-   '....a...aaaaaaaaaassssa........',
-   '..aasaaasssssssssssssssa.......',
-   'aassssssssssssaaaasssssa.......',
-   'asssssaaaaaaaaassssssssa.......',
-   '.asssssssssssssssssssssa.......',
-   '.assssssssssssssssssssa........',
-   '.assssssssssssssssssssa........',
-   '..assssssssssssssssaaa.........',
-   '...aaassssssssssaaa............',
-   '......aaaaaaaaaa...............',
-   '.........a....a................',
-   '........aa....aa...............',
-   '........aaaa...aaa.............'],
-  ['...............................',
-   '......................aaa......',
-   '....................aammma.....',
-   '...................ammmmoma....',
-   '...................ammmmmmaaaa.',
-   '....................ammmaaaaaa.',
-   '....................amma.......',
-   '....................ama........',
-   '....................ama........',
-   '....................aaa........',
-   '..................aassa........',
-   '....a...aaaaaaaaaassssa........',
-   '..aasaaasssssssssssssssa.......',
-   'aassssssssssssaaaasssssa.......',
-   'asssssaaaaaaaaassssssssa.......',
-   '.asssssssssssssssssssssa.......',
-   '.assssssssssssssssssssa........',
-   '.assssssssssssssssssssa........',
-   '..assssssssssssssssaaa.........',
-   '...aaasssaassaasaaa............',
-   '......aaaaaaaaaa...............',
-   '.........aa..aa................',
-   '.........aaaa.aaa..............'],
-  ['.....................aaa.......',
-   '...................aammma......',
-   '..................ammmmoma.....',
-   '..................ammmmmmaaaa..',
-   '...................ammmaaaaaa..',
-   '...................amma........',
-   '...................ama.........',
-   '...................ama.........',
-   '...................aaa.........',
-   '..................assa.........',
-   '....a...aaaaaaaaaassssa........',
-   '..aasaaasssssssssssssssa.......',
-   'aassssssssssssaaaasssssa.......',
-   'asssssaaaaaaaaassssssssa.......',
-   '.asssssssssssssssssssssa.......',
-   '.assssssssssssssssssssa........',
-   '.assssssssssssssssssssa........',
-   '..assssssssssssssssaaa.........',
-   '...aaassssssssssaaa............',
-   '......aaaaaaaaaa...............',
-   '..........a..a.................',
-   '..........aaaa.................',
-   '...........aaaaa...............'],
-  ['...............................',
-   '......................aaa......',
-   '....................aammma.....',
-   '...................ammmmoma....',
-   '...................ammmmmmaaaa.',
-   '....................ammmaaaaaa.',
-   '....................amma.......',
-   '....................ama........',
-   '....................ama........',
-   '....................aaa........',
-   '..................aassa........',
-   '....a...aaaaaaaaaassssa........',
-   '..aasaaasssssssssssssssa.......',
-   'aassssssssssssaaaasssssa.......',
-   'asssssaaaaaaaaassssssssa.......',
-   '.asssssssssssssssssssssa.......',
-   '.assssssssssssssssssssa........',
-   '.assssssssssssssssssssa........',
-   '..assssssssssssssssaaa.........',
-   '...aaasssaassaasaaa............',
-   '......aaaaaaaaaa...............',
-   '.........aa..aa................',
-   '..........aaaaaaa..............']
-];
-const ANATRA_TONI = { a:'#5ff4ff', m:'#2bb6d6', s:'#126d8c' };
-const ANATRA_PASSO = 167;   // ms per passo: sei al secondo, come nella prova scelta
 
 const RUMORI = {
   accendi: './sfx/monitor/accendi.mp3',
@@ -180,13 +78,7 @@ export function montaArchivio(){
   }, 700 + Math.random() * 1200); };
   crt && crt.appendChild(boot);
   const ga = anatra.getContext('2d');
-  const disegnaAnatra = i=>{
-    ga.clearRect(0, 0, anatra.width, anatra.height);
-    ANATRA[i % ANATRA.length].forEach((r, y)=>{ for(let x = 0; x < r.length; x++){
-      const c = r[x]; if(c === '.' || c === 'o') continue;
-      ga.fillStyle = ANATRA_TONI[c]; ga.fillRect(x, y, 1, 1);
-    } });
-  };
+  const disegnaAnatra = i=> disegnaGermano(ga, i);
   let _passi = 0;
   const RIGHE = [
     'Inkflow BIOS v1.0',

@@ -38,6 +38,7 @@ import { openRemoteZipSource, openBlobZipSource } from './zipremote.js';
 import { haptic } from './state.js';
 import { escAttr } from './testo.js';
 import { actionMenu, promptModal } from './dialogs.js';
+import { iconaPixel, disegnaGermano, ANATRA, ANATRA_PASSO } from './germano.js';
 import { accostaFrecce } from './frecce.js';
 import {
   ZOOM_IN, ZOOM_MAX, panGain, edgeSpring, EDGE_COMMIT, EDGE_HANDOFF,
@@ -169,21 +170,8 @@ function toast(msg, isError, persistent, durata){
       const glyph = _reader.querySelector('.ar-loading-glyph');
       if(glyph){
         const on = !!persistent && !isError && !_clipMode;
-        // Il riempimento si ferma pieno a fine corsa (vedi CSS): riaprendolo
-        // per un albo successivo va fatto ripartire da vuoto esplicitamente,
-        // altrimenti lo si ritroverebbe già pieno dalla volta prima.
-        if(on && !glyph.classList.contains('show')){
-          fitLoadingGlyphFill();
-          if(!_glyphFitted && document.fonts && document.fonts.ready){
-            // Font non ancora pronto: rimisura appena arriva, il glifo resta
-            // comunque visibile nel frattempo.
-            document.fonts.ready.then(fitLoadingGlyphFill);
-          }
-          glyph.classList.add('reset');
-          void glyph.offsetWidth;
-          glyph.classList.remove('reset');
-        }
         glyph.classList.toggle('show', on);
+        camminaGermano(on);
       }
     }
     return;
@@ -191,29 +179,27 @@ function toast(msg, isError, persistent, durata){
   console[isError ? 'warn' : 'log']('[albi]', msg);
 }
 
-// Il rettangolo che "riempie" il glifo era fisso a 0,0 100×100, ma il ✦ di
-// Castoro NON sta in quel riquadro: la sua punta superiore arriva a y≈-23 e la
-// base si ferma a y≈77. Risultato, la punta restava fuori dal clip e non si
-// riempiva MAI, e il primo quinto dell'animazione scorreva a vuoto sotto la
-// base. Qui il rettangolo si misura sul glifo vero — a font caricato, perché
-// col serif di ripiego le metriche sono altre — così il riempimento parte
-// esattamente dalla base e arriva esattamente alla punta.
-let _glyphFitted = false;
-function fitLoadingGlyphFill(){
-  if(_glyphFitted || !_reader) return;
-  const ghost = _reader.querySelector('.ar-loading-glyph .star-ghost');
-  const rect  = _reader.querySelector('.ar-loading-glyph .fill-rect');
-  if(!ghost || !rect) return;
-  let b;
-  try{ b = ghost.getBBox(); }catch(e){ return; }
-  if(!b || !b.height) return;
-  // Un filo di margine: gli angoli arrotondati del tratto possono sbordare di
-  // una frazione di unità, e mezzo pixel non riempito si vede.
-  rect.setAttribute('x', b.x - 1);
-  rect.setAttribute('y', b.y - 1);
-  rect.setAttribute('width',  b.width  + 2);
-  rect.setAttribute('height', b.height + 2);
-  _glyphFitted = true;
+// L'ATTESA E' IL GERMANO CHE CAMMINA (10 ottobre 2026). Prima era il "✦"
+// degli header che si riempiva d'oro dal basso e poi respirava; da quando il
+// lettore veste i colori di Quack (vedi in fondo a css/albums.css) al centro
+// dello schermo vuoto cammina il germano del terminale, coi suoi sei passi al
+// secondo. Il disegno e' un canvas da 31x23: ridisegnarlo sei volte al
+// secondo costa niente, e quando il glifo sparisce il timer si ferma — non
+// gira a vuoto mentre si sfoglia.
+let _germanoTimer = 0;
+function camminaGermano(on){
+  // Il banner dei MB si aggiorna di continuo e ripassa di qui ogni volta: se
+  // il germano sta gia' camminando lo si lascia stare, altrimenti ripartirebbe
+  // dal primo passo a ogni aggiornamento e sembrerebbe inciampare.
+  if(on && _germanoTimer) return;
+  clearInterval(_germanoTimer); _germanoTimer = 0;
+  const cv = _reader && _reader.querySelector('.ar-germano');
+  if(!on || !cv) return;
+  const ctx = cv.getContext('2d');
+  let passo = 0;
+  disegnaGermano(ctx, 0);
+  if(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  _germanoTimer = setInterval(()=> disegnaGermano(ctx, ++passo), ANATRA_PASSO);
 }
 
 function clearPages(){
@@ -912,7 +898,7 @@ function buildReaderDOM(){
   ov.innerHTML = `
     <div class="ar-topbar">
       <button class="ar-btn ar-close" aria-label="Chiudi" data-act="close">
-        <svg viewBox="0 0 24 24" width="17" height="17"><path d="M6.5 6.5 17.5 17.5 M17.5 6.5 6.5 17.5" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"/></svg>
+        ${iconaPixel('chiudi')}
       </button>
     </div>
     <div class="ar-stage">
@@ -923,13 +909,7 @@ function buildReaderDOM(){
       </div>
       <div class="ar-toast"></div>
       <div class="ar-loading-glyph" aria-hidden="true">
-        <svg class="ff-glyph" viewBox="0 0 100 100">
-          <defs><clipPath id="ar-loading-fill-clip" clipPathUnits="userSpaceOnUse">
-            <rect x="0" y="0" width="100" height="100" class="fill-rect"/>
-          </clipPath></defs>
-          <text x="50" y="58" text-anchor="middle" font-size="90" class="star-ghost">✦</text>
-          <text x="50" y="58" text-anchor="middle" font-size="90" class="star-fill" clip-path="url(#ar-loading-fill-clip)">✦</text>
-        </svg>
+        <canvas class="ar-germano" width="${ANATRA[0][0].length}" height="${ANATRA[0].length}"></canvas>
       </div>
       <button class="ar-cancel-dl" type="button" data-act="canceldl" hidden>Annulla scaricamento</button>
       <div class="ar-cliplayer" hidden>
@@ -945,10 +925,10 @@ function buildReaderDOM(){
         </div>
       </div>
       <button class="ar-nav ar-prev" aria-label="Precedente" data-act="prev">
-        <svg viewBox="0 0 24 24" width="22" height="22"><path d="M15 5 L8 12 L15 19" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        ${iconaPixel('prec', 3)}
       </button>
       <button class="ar-nav ar-next" aria-label="Successiva" data-act="next">
-        <svg viewBox="0 0 24 24" width="22" height="22"><path d="M9 5 L16 12 L9 19" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        ${iconaPixel('succ', 3)}
       </button>
     </div>
     <div class="ar-bottombar">
@@ -961,11 +941,11 @@ function buildReaderDOM(){
            sparirebbero con lei proprio i comandi del ritaglio. -->
       <div class="ar-top-actions">
         <button class="ar-btn ar-retry" data-act="retryclip" title="Ridisegna il riquadro" hidden>
-          <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.6-5.9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M20 4v4.6h-4.6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          ${iconaPixel('riprova')}
           <span>Riprova</span>
         </button>
         <button class="ar-btn ar-tutta" data-act="tuttalatavola" aria-label="Salva tutta la tavola" title="Tutta la tavola">
-          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V5.6A1.6 1.6 0 0 1 5.6 4H9"/><path d="M15 4h3.4A1.6 1.6 0 0 1 20 5.6V9"/><path d="M20 15v3.4a1.6 1.6 0 0 1-1.6 1.6H15"/><path d="M9 20H5.6A1.6 1.6 0 0 1 4 18.4V15"/></svg>
+          ${iconaPixel('tutta')}
         </button>
         <!-- PROSPETTIVA. Sta accanto alle forbici perche' e' lo stesso genere
              di gesto — si guarda la tavola e ci si fa qualcosa sopra — e
@@ -973,20 +953,20 @@ function buildReaderDOM(){
              ritaglia la vignetta che interessa, e su quella si studia dove
              cade l'orizzonte. L'icona e' un fascio che converge su un punto. -->
         <button class="ar-btn ar-prosp" aria-label="Studia la prospettiva" title="Studia la prospettiva" data-act="prosp">
-          <svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M3 20 L19 8 M3 14 L19 8 M3 8 L19 8"/><circle cx="19.5" cy="8" r="1.8" fill="currentColor" stroke="none"/></svg>
+          ${iconaPixel('prosp')}
         </button>
         <button class="ar-btn ar-clip" aria-label="Ritaglia" data-act="clip">
-          <svg viewBox="0 0 24 24" width="20" height="20"><circle cx="6.5" cy="6.5" r="2.4" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="6.5" cy="17.5" r="2.4" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8.6 8.2 20 18 M8.6 15.8 20 6" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg>
+          ${iconaPixel('forbici')}
         </button>
       </div>
       <div class="ar-controls">
         <div class="ar-seek-row">
           <button class="ar-jump" data-act="first" aria-label="Prima pagina" title="Prima pagina">
-            <svg viewBox="0 0 24 24" width="20" height="20"><path d="M18 5 L10 12 L18 19" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/><path d="M7 5.5v13" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"/></svg>
+            ${iconaPixel('prima')}
           </button>
           <input class="ar-seek" type="range" min="0" value="0" step="1" aria-label="Vai alla pagina">
           <button class="ar-jump" data-act="last" aria-label="Ultima pagina" title="Ultima pagina">
-            <svg viewBox="0 0 24 24" width="20" height="20"><path d="M6 5 L14 12 L6 19" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/><path d="M17 5.5v13" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"/></svg>
+            ${iconaPixel('ultima')}
           </button>
         </div>
         <div class="ar-controls-row">
