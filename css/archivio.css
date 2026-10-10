@@ -258,8 +258,14 @@
    Il pupazzo di Mr. Raccoon (Firefly, 10 ottobre 2026), appoggiato in primo
    piano nell'angolo in basso a sinistra, davanti al monitor. Giovanni: "si
    deve vedere e non vedere". Quindi:
+   - IN PROSPETTIVA: la prima versione era fotografata all'altezza degli
+     occhi, e nella scena sembrava incollato ("chiaramente non e' in
+     prospettiva"). Sta sul tavolo davanti e in basso, quindi lo si vede
+     dall'alto: la base e' un'ellisse vista da sopra. Rifatto cosi' su
+     Firefly il 10 ottobre 2026.
    - IN OMBRA: la lampada sta in alto a sinistra e lui e' davanti, in basso,
-     fuori dal suo cerchio: scurito e un filo spento di colori.
+     fuori dal suo cerchio. L'ombra c'e' gia' nella foto; qui solo un filo
+     piu' scuro.
    - UN PO' SFOCATO, come un oggetto vicinissimo alla macchina fotografica,
      mentre il fuoco e' sullo schermo.
    - SI SOVRAPPONE DECISO all'angolo della cornice (niente bordi che si
@@ -270,5 +276,5 @@
    mettono nello stesso punto rispetto al PC. */
 .arch-procione{position:absolute;z-index:8;pointer-events:none;
   left:-12%;bottom:-22%;height:52%;width:auto;
-  filter:brightness(.42) saturate(.7) contrast(.95) blur(.6px) drop-shadow(4px 8px 10px rgba(0,0,0,.6))}
+  filter:brightness(.7) saturate(.85) blur(.5px) drop-shadow(4px 8px 10px rgba(0,0,0,.6))}
 @media (min-aspect-ratio:1/1){ .arch-procione{left:-10%;bottom:-16%;height:48%} }
