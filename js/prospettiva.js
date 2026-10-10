@@ -67,15 +67,18 @@
 // E POI E' ARRIVATO QUACK (10 ottobre 2026). L'archivio e' diventato un
 // terminale e il lettore ha preso i colori del germano; questo strumento, che
 // si apre dal lettore, era rimasto oro e sabbia, "dettagli del precedente
-// Inkflow" (Giovanni). La regola di sopra resta, cambiano i colori: il fascio
-// e le linee prendono il ciano del germano, e l'orizzonte — che deve saltare
-// all'occhio PER PRIMO — il magenta al neon, l'unico colore che col ciano fa
-// stacco netto restando nella stessa famiglia da schermo retroilluminato.
+// Inkflow" (Giovanni). La regola di sopra resta, cambiano i colori. La prima
+// prova — fascio ciano e orizzonte magenta — e' durata un pomeriggio: "i
+// colori della linea prospettica manco mi piacciono". Fra tre proposte
+// (monocromo, fosforo verde, ciano e rosso) e' stato scelto il MONOCROMO:
+// fascio e linee ciano, l'orizzonte BIANCO acceso, piu' spesso, con l'alone
+// ciano. Lo stacco che prima faceva la tinta lo fanno luce e spessore: il
+// bianco e' la cosa piu' chiara sullo schermo, e l'occhio ci va per primo.
 // I nomi delle costanti restano quelli di prima, cosi' ogni riga che le usa
 // racconta ancora a cosa servono.
-const ORO       = '#ff4fd8';  // l'orizzonte, e il numero che lo accompagna (magenta)
+const ORO       = '#ffffff';  // l'orizzonte, e il numero che lo accompagna (bianco)
 const VERDERAME = '#5ff4ff';  // le linee tracciate, il fascio e il punto di fuga (ciano)
-const SABBIA    = '#2bb6d6';  // il bordo della vignetta riquadrata (ciano spento)
+const SABBIA    = '#5ff4ff';  // il mirino intorno alla vignetta riquadrata (ciano)
 
 import { iconaPixel } from './germano.js';
 
@@ -471,15 +474,16 @@ function costruisci(){
            Quello che sborda dalla vignetta lo taglia il contenitore. -->
       <div class="prosp-tavolo" hidden><img alt=""></div>
       <svg class="prosp-svg" aria-hidden="true">
-        <defs><clipPath id="prosp-clip"><rect class="prosp-clip-rect" x="0" y="0" width="0" height="0"/></clipPath></defs>
+        <defs><linearGradient id="prosp-scansione" x1="0" x2="1"><stop offset="0" stop-color="#5ff4ff" stop-opacity="0"/><stop offset=".5" stop-color="#5ff4ff" stop-opacity=".55"/><stop offset="1" stop-color="#5ff4ff" stop-opacity="0"/></linearGradient><clipPath id="prosp-clip"><rect class="prosp-clip-rect" x="0" y="0" width="0" height="0"/></clipPath></defs>
         <!-- Fuori dalla vignetta si scurisce: la tavola intorno resta visibile —
              serve a capire dove sta l'inquadratura nella pagina — ma smette di
              contendere l'attenzione a quella che si sta misurando. -->
-        <path class="prosp-velo" fill="rgba(0,0,0,.5)" fill-rule="evenodd"></path>
+        <path class="prosp-velo" fill="rgba(0,0,50,.55)" fill-rule="evenodd"></path>
         <!-- Il bordo prende SABBIA dalla costante invece di riscriverlo a
              mano: cambiando tavolozza, nel 2026, questo rect era l'unico
              posto rimasto indietro col colore vecchio. -->
-        <rect class="prosp-cornice" fill="none" stroke="${SABBIA}" stroke-width="1.5" stroke-dasharray="7 5" opacity=".85"></rect>
+        <rect class="prosp-cornice" fill="none" stroke="${SABBIA}" stroke-width="1" stroke-dasharray="2 3" opacity=".6"></rect>
+        <rect class="prosp-scan" x="0" y="0" width="0" height="3" fill="url(#prosp-scansione)"></rect>
         <g class="prosp-fascio" clip-path="url(#prosp-clip)"></g>
         <!-- L'ORIZZONTE NON SI TAGLIA, il fascio si.
              Il fascio e' la struttura di QUESTA vignetta: sparso su tutto lo
@@ -539,7 +543,7 @@ function costruisci(){
            in barra nello stesso momento. -->
       <div class="prosp-fila">
         <button class="prosp-btn prosp-ico prosp-tutta" data-act="tutta" type="button" aria-label="Tutta l'immagine" title="Tutta l'immagine">
-          ${iconaPixel('riquadro')}
+          ${iconaPixel('tutta')}
         </button>
         <button class="prosp-btn prosp-ico" data-act="indietro" type="button" aria-label="Torna indietro" title="Torna indietro">
           ${iconaPixel('indietro')}
@@ -924,6 +928,12 @@ export function disegna(){
   bordo.setAttribute('x', q.x); bordo.setAttribute('y', q.y);
   bordo.setAttribute('width', mostraBordo ? Math.max(0, q.w) : 0);
   bordo.setAttribute('height', mostraBordo ? Math.max(0, q.h) : 0);
+  // La riga di scansione del mirino: corre su e giu' dentro la vignetta (la
+  // corsa e' in css/prospettiva.css, qui si dice solo quanto e' alta).
+  const scan = _ov.querySelector('.prosp-scan');
+  scan.setAttribute('x', q.x); scan.setAttribute('y', q.y);
+  scan.setAttribute('width', mostraBordo ? Math.max(0, q.w) : 0);
+  scan.style.setProperty('--corsa', Math.max(0, q.h - 3) + 'px');
 
   const linee = _bozza ? _linee.concat([_bozza]) : _linee;
   const fuochi = fuochiDa(linee);
@@ -973,14 +983,13 @@ export function disegna(){
 
   _ov.querySelector('.prosp-orizzonte').innerHTML = orizzonte
     ? (()=>{ const a = aSchermo(orizzonte.a, t), b = aSchermo(orizzonte.b, t);
-             return tratto(a.x, a.y, b.x, b.y, ORO, 3); })()
+             return `<g class="prosp-alone">${tratto(a.x, a.y, b.x, b.y, ORO, 3.2)}</g>`; })()
     : '';
 
   let punti = '';
   for(const f of fuochi){
     const c = aSchermo(f, t);
-    punti += `<circle cx="${c.x}" cy="${c.y}" r="7" fill="rgba(0,0,0,.6)"/>`
-          +  `<circle cx="${c.x}" cy="${c.y}" r="4.5" fill="${VERDERAME}"/>`;
+    punti += `<rect class="prosp-alone" x="${c.x-6}" y="${c.y-6}" width="12" height="12" fill="${ORO}" stroke="#000" stroke-width="1.5"/>`;
   }
   _ov.querySelector('.prosp-punti').innerHTML = punti;
 
@@ -994,23 +1003,38 @@ export function disegna(){
   for(const l of _linee){
     for(const estremo of ['a', 'b']){
       const c = aSchermo(l[estremo], t);
-      maniglie += `<circle cx="${c.x}" cy="${c.y}" r="8" fill="rgba(0,0,0,.4)" stroke="${VERDERAME}" stroke-width="1.6" opacity=".85"/>`;
+      maniglie += `<rect x="${c.x-6}" y="${c.y-6}" width="12" height="12" fill="rgba(0,0,0,.45)" stroke="${VERDERAME}" stroke-width="2"/>`;
     }
   }
-  if(_riquadro){
-    // Angoli E meta' dei lati: un angolo sposta due bordi insieme, un punto
-    // di mezzo lato ne stringe uno solo — serve proprio quando il riquadro e'
-    // giusto ovunque tranne che su UN lato. E stanno tutte FUORI dal bordo,
-    // nel margine scuro: vedi FUORI sopra trovaManigliaRiq, e' quello che
-    // impedisce di ridimensionare la vignetta mentre si voleva tracciare.
-    for(const cand of manigliaRiq(cornice())){
-      const p = aSchermoManiglia(cand, t);
-      maniglie += `<rect x="${p.x-6}" y="${p.y-6}" width="12" height="12" fill="rgba(0,0,0,.5)" stroke="${VERDERAME}" stroke-width="2" opacity=".95"/>`;
-    }
-  }
+  // IL MIRINO (10 ottobre 2026). Al posto degli otto quadratini sparsi nel
+  // margine — "funziona, ma e' brutto: rendiamolo piu' figo, piu' sci-fi"
+  // (Giovanni) — un mirino: angoli a squadra luminosi, tacche a meta' dei
+  // lati, una crocetta al centro, la sigla e le misure in pixel della
+  // vignetta scritte a lato. Le maniglie restano dov'erano e come erano (la
+  // presa e' un conto di distanza: vedi FUORI e trovaManigliaRiq): cambia
+  // solo il segno, e le squadre stanno a 10px dal bordo, dentro il raggio di
+  // presa delle maniglie degli angoli.
+  if(_riquadro || _bozzaRiq) maniglie += mirino(q, riq);
   _ov.querySelector('.prosp-maniglie').innerHTML = maniglie;
 
   scriviBarra(linee, fuochi, orizzonte);
+}
+
+function mirino(q, riq){
+  if(q.w < 4 || q.h < 4) return '';
+  const S = 10, L = Math.min(22, q.w / 3, q.h / 3), T = 3;
+  const squadra = (x, y, sx, sy)=>
+    `<path d="M${x} ${y + sy*L} V${y} H${x + sx*L}" fill="none" stroke="#126d8c" stroke-width="${T}" transform="translate(1.5 1.5)"/>`
+    + `<path class="prosp-alone" d="M${x} ${y + sy*L} V${y} H${x + sx*L}" fill="none" stroke="${SABBIA}" stroke-width="${T}" stroke-linecap="square"/>`;
+  const tacca = (x1, y1, x2, y2)=> `<line class="prosp-alone" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${SABBIA}" stroke-width="${T}"/>`;
+  const x0 = q.x - S, y0 = q.y - S, x1 = q.x + q.w + S, y1 = q.y + q.h + S, mx = q.x + q.w/2, my = q.y + q.h/2;
+  const pw = _img && _img.naturalWidth ? Math.round(riq.w * _img.naturalWidth) : 0;
+  const ph = _img && _img.naturalHeight ? Math.round(riq.h * _img.naturalHeight) : 0;
+  return squadra(x0, y0, 1, 1) + squadra(x1, y0, -1, 1) + squadra(x0, y1, 1, -1) + squadra(x1, y1, -1, -1)
+    + tacca(mx - 8, y0, mx + 8, y0) + tacca(mx - 8, y1, mx + 8, y1) + tacca(x0, my - 8, x0, my + 8) + tacca(x1, my - 8, x1, my + 8)
+    + `<g stroke="${SABBIA}" stroke-width="1" opacity=".5"><line x1="${mx-6}" y1="${my}" x2="${mx+6}" y2="${my}"/><line x1="${mx}" y1="${my-6}" x2="${mx}" y2="${my+6}"/></g>`
+    + `<text class="prosp-sigla" x="${x0}" y="${y0 - 8}">VIGN</text>`
+    + (pw ? `<text class="prosp-sigla" x="${x1}" y="${y1 + 18}" text-anchor="end">${pw}×${ph}</text>` : '');
 }
 
 // Quello che c'e' scritto in basso, in tre stati: riquadra, traccia, leggi.
@@ -1144,7 +1168,9 @@ function strisciaDati(c, W, y, h, misure){
   // carattere di Android invece che con quello di Inkflow — l'unico posto in
   // tutta l'app dove succedeva. Non era una scelta tipografica, era
   // l'assenza di una scelta, e si vedeva.
-  const corpo = n => '800 ' + n + 'px Nunito, system-ui, sans-serif';
+  // Dal 10 ottobre 2026 e' il carattere del BIOS, come la barra a schermo:
+  // stessa regola, il carattere di Inkflow — che li', adesso, e' quello di Quack.
+  const corpo = n => n + "px Unifont, 'Courier New', monospace";
   c.font = corpo(fs);
   while(fs > 8 && campi.some(([, v])=> c.measureText(v).width > largo - bordo * 0.5)){
     fs -= 1;
@@ -1152,7 +1178,7 @@ function strisciaDati(c, W, y, h, misure){
   }
   campi.forEach(([et, valore, acceso], i)=>{
     const x = bordo + largo * i;
-    c.font = '700 ' + Math.max(7, Math.round(fs * 0.62)) + 'px Nunito, system-ui, sans-serif';
+    c.font = Math.max(7, Math.round(fs * 0.62)) + "px Unifont, 'Courier New', monospace";
     c.fillStyle = 'rgba(95,244,255,.55)';
     c.fillText(et, x, y + h * 0.33);
     c.font = corpo(fs);
@@ -1267,12 +1293,17 @@ function disegnaSuTela(sorgente){
   c.restore();
   // L'orizzonte FUORI dal ritaglio del fascio, per la ragione detta sopra:
   // quando cade fuori dalla vignetta e' li' fuori che lo si vuole vedere.
-  if(orizzonte) riga(P(orizzonte.a), P(orizzonte.b), ORO, 3);
+  if(orizzonte){
+    // bianco con l'alone ciano, come a schermo
+    c.save(); c.shadowColor = 'rgba(95,244,255,.9)'; c.shadowBlur = 6 * u;
+    riga(P(orizzonte.a), P(orizzonte.b), ORO, 3.2);
+    c.restore();
+  }
 
   // Il bordo della vignetta, ma solo se intorno c'e' altro: sulla vignetta sola
   // sarebbe una cornice disegnata sul bordo dell'immagine, cioe' niente.
   if(A.w > riq.w * 1.02 || A.h > riq.h * 1.02){
-    c.setLineDash([7*u, 5*u]); c.lineWidth = 1.5 * u; c.strokeStyle = SABBIA;
+    c.setLineDash([2*u, 3*u]); c.lineWidth = 1.2 * u; c.strokeStyle = SABBIA;
     c.strokeRect(q0.x, q0.y, q1.x - q0.x, q1.y - q0.y);
     c.setLineDash([]);
   }
@@ -1289,8 +1320,8 @@ function disegnaSuTela(sorgente){
   c.setLineDash([]);
   for(const f of fuochi){
     const cc = P(f);
-    c.fillStyle = 'rgba(0,0,0,.6)'; c.beginPath(); c.arc(cc.x, cc.y, 7*u, 0, 7); c.fill();
-    c.fillStyle = VERDERAME; c.beginPath(); c.arc(cc.x, cc.y, 4.5*u, 0, 7); c.fill();
+    c.fillStyle = '#000'; c.fillRect(cc.x - 7*u, cc.y - 7*u, 14*u, 14*u);
+    c.fillStyle = ORO; c.fillRect(cc.x - 5.5*u, cc.y - 5.5*u, 11*u, 11*u);
   }
 
   const misure = misureStudio();
@@ -1333,7 +1364,7 @@ async function salva(){
   // ancora arrivato non fa attendere: ripiega in silenzio su quello di
   // sistema, e lo studio esce scritto in Roboto senza che nessuno se ne
   // accorga fino a quando non lo si riapre fra un mese.
-  try{ await document.fonts.load('800 40px Nunito'); }catch(e){}
+  try{ await document.fonts.load('40px Unifont'); }catch(e){}
   const misure = misureStudio();
   const fatto = disegnaSuTela(await sorgentePulita());
   if(!misure || !fatto) return;

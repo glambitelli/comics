@@ -15,7 +15,10 @@ module.exports = () => suite("Prospettiva — il righello per leggere l'orizzont
   // da provare.
   await page.evaluate(async ()=>{
     const c = document.createElement('canvas'); c.width = 900; c.height = 1200;
-    const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0,0,900,1200);
+    // GRIGIA, non bianca (10 ottobre 2026): da quando l'orizzonte e' bianco,
+    // su una tavola bianca le prove che lo vanno a cercare nell'immagine
+    // salvata non potrebbero distinguerlo dalla carta.
+    const x = c.getContext('2d'); x.fillStyle = '#808080'; x.fillRect(0,0,900,1200);
     const wrap = document.createElement('div');
     wrap.style.cssText = 'position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#141414';
     const im = document.createElement('img');
@@ -265,7 +268,7 @@ module.exports = () => suite("Prospettiva — il righello per leggere l'orizzont
       inclinazione: ov.querySelector('.prosp-incl').textContent,
       targaVisibile: !ov.querySelector('.prosp-targa').hidden,
       raggi: ov.querySelectorAll('.prosp-fascio line').length,
-      punti: ov.querySelectorAll('.prosp-punti circle').length,
+      punti: ov.querySelectorAll('.prosp-punti rect').length,
       orizzonteTagliato: ov.querySelector('.prosp-orizzonte').getAttribute('clip-path'),
       fascioTagliato: ov.querySelector('.prosp-fascio').getAttribute('clip-path'),
       clipSuImmagine: Math.abs(parseFloat(clip.getAttribute('height')) - r.height) < 1.5
@@ -283,7 +286,8 @@ module.exports = () => suite("Prospettiva — il righello per leggere l'orizzont
   ok('con accanto gli altri due campi, sempre gli stessi',
      schermo.targaVisibile && schermo.campoPunti === '1' && schermo.inclinazione === '0°', schermo);
   ok('il fascio c\'e\'', schermo.raggi === 12, schermo);
-  ok('e la fuga e\' segnata con un punto', schermo.punti === 2, schermo);
+  // un quadratino bianco solo (fino al 10 ottobre 2026 erano due cerchi, ombra e pallino)
+  ok('e la fuga e\' segnata con un punto', schermo.punti === 1, schermo);
   // IL FASCIO SI TAGLIA, L'ORIZZONTE NO, e sono due decisioni diverse.
   // Il fascio e' la struttura di QUESTA vignetta: sparso su tutto lo schermo
   // sarebbe rumore. L'orizzonte e' l'altezza dell'occhio, e quando cade fuori
@@ -515,7 +519,7 @@ module.exports = () => suite("Prospettiva — il righello per leggere l'orizzont
     P.__perLeProveTraccia({ a:{x:0.12,y:0.20}, b:{x:0.70,y:0.245} });
     P.__perLeProveTraccia({ a:{x:0.12,y:0.44}, b:{x:0.70,y:0.335} });
     await new Promise(r=> setTimeout(r, 60));
-    const dovE = ()=> document.querySelector('.prosp-punti circle').getBoundingClientRect();
+    const dovE = ()=> document.querySelector('.prosp-punti rect').getBoundingClientRect();
     const stretta = { vignetta: document.querySelector('.prosp-tavolo').getBoundingClientRect().width,
                       fuga: dovE().left, schermo: window.innerWidth };
     const bottone = document.querySelector('.prosp-veduta');
@@ -684,10 +688,11 @@ module.exports = () => suite("Prospettiva — il righello per leggere l'orizzont
   // L'INVITO RESTA, MA COME MICRO-SCRITTA: si legge una volta sola, e alla
   // seconda vignetta un titolo in oro pieno e' gia' rumore.
   // Dal 10 ottobre 2026 e' nel carattere del BIOS, come tutto Quack: il
-  // maiuscoletto non c'e' piu', resta piccolo (non piu' di una riga di 14px).
+  // maiuscoletto non c'e' piu', resta piccolo: una riga sola, alla misura
+  // vera del carattere (16px: piu' piccolo l'8x16 si impasta).
   ok('l\'invito c\'e\' ancora, piccolo e nel carattere del BIOS',
      /riquadra/i.test(muta.riquadra.invito.testo)
-     && muta.riquadra.invito.corpo <= 14
+     && muta.riquadra.invito.corpo <= 16
      && /Unifont/.test(muta.riquadra.invito.font || ''), muta.riquadra.invito);
   // LA TARGA NON SI TOCCA: e' l'unica cosa che si LEGGE, ed e' il motivo per
   // cui lo strumento esiste.
@@ -1278,7 +1283,7 @@ module.exports = () => suite("Prospettiva — il righello per leggere l'orizzont
       const d = cx.getImageData(0, 0, cv.width, Math.round(cv.height * 0.88)).data;
       let n = 0;
       for(let i = 0; i < d.length; i += 4){
-        if(d[i] > 200 && d[i+1] < 140 && d[i+2] > 160) n++;   // il magenta dell'orizzonte (era oro fino al 10 ottobre 2026)
+        if(d[i] > 235 && d[i+1] > 235 && d[i+2] > 235) n++;   // il bianco dell'orizzonte (era oro, poi per un giorno magenta)
       }
       return n;
     };
@@ -1388,7 +1393,7 @@ module.exports = () => suite("Prospettiva — il righello per leggere l'orizzont
     const d = cx.getImageData(0, 0, cv.width, Math.round(cv.height * 0.88)).data;
     let oro = 0;
     for(let i = 0; i < d.length; i += 4){
-      if(d[i] > 200 && d[i+1] < 140 && d[i+2] > 160) oro++;   // il magenta dell'orizzonte (era oro fino al 10 ottobre 2026)
+      if(d[i] > 235 && d[i+1] > 235 && d[i+2] > 235) oro++;   // il bianco dell'orizzonte (era oro, poi per un giorno magenta)
     }
     return { ristretto, w: im.width, h: im.height, oro };
   });
@@ -1423,11 +1428,11 @@ module.exports = () => suite("Prospettiva — il righello per leggere l'orizzont
     let scuri = 0, oro = 0;
     for(let i = 0; i < d.length; i += 4){
       if(d[i] < 60 && d[i+1] < 60 && d[i+2] < 60) scuri++;
-      if(d[i] > 200 && d[i+1] < 140 && d[i+2] > 160) oro++;   // il magenta (era oro)
+      if(d[i] > 235 && d[i+1] > 235 && d[i+2] > 235) oro++;   // il bianco (era oro)
     }
     return { larghezza: cv.width, punti: d.length/4, scuri, oro, altezza: cv.height };
   });
   ok('sotto l\'immagine c\'e\' una striscia scura',
      striscia.scuri > striscia.punti * 0.6, striscia);
-  ok('e dentro ci sono scritti i numeri, l\'orizzonte in magenta', striscia.oro > 20, striscia);
+  ok('e dentro ci sono scritti i numeri, l\'orizzonte in bianco', striscia.oro > 20, striscia);
 });

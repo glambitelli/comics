@@ -202,39 +202,58 @@ body.prosp-aperta .refs-lightbox-nav{display:none !important}
 /* ══ ALLA QUACK (10 ottobre 2026) ══
    Lo strumento si apre dal lettore, che da oggi veste i colori del germano, e
    qui erano rimasti l'oro, la sabbia e il rame del vecchio Inkflow ("vanno
-   tolti quei dettagli in oro, in color sabbia", Giovanni). Il fondo resta
-   NERO, non il blu del lettore: qui si misura una vignetta, e il nero pieno
-   la stacca meglio di qualunque colore ("per una questione di chiarezza").
-   Barra in vetro nero con il filo ciano e gli angoli tondi come la barra del
-   lettore, tasti squadrati con le icone a pixel, scritte nel carattere del
-   BIOS. I colori delle linee stanno in js/prospettiva.js (ORO e VERDERAME:
-   ora magenta e ciano). */
+   tolti quei dettagli in oro, in color sabbia", Giovanni).
+   LA SECONDA VERSIONE, dello stesso giorno. La prima aveva il fondo nero anche
+   mentre si lavora e una fila di tasti chiusi ciascuno nel suo riquadro:
+   "terribili", e del nero Giovanni intendeva un'altra cosa — nero deve essere
+   lo studio SALVATO (vedi FONDO in js/prospettiva.js), non lo schermo su cui
+   lo si fa. Quindi adesso e' vestito esattamente come il lettore da cui si
+   apre: lo stesso blu con le righe di scansione, le icone a pixel in una
+   pastiglia SOPRA il pannello e senza riquadro intorno a ciascuna, il
+   pannello con gli angoli tondi. Il riquadro della vignetta e' un mirino
+   (disegnato in js/prospettiva.js, la funzione mirino). Scelto da un
+   bozzetto con tre proposte di colore: il monocromo, ciano e bianco. */
 .prosp{
-  --q-ciano:#5ff4ff; --q-medio:#2bb6d6; --q-spento:#126d8c; --q-notte:#00005a; --q-magenta:#ff4fd8;
-  --q-bios:'Unifont','Courier New',monospace;
+  --q-ciano:#5ff4ff; --q-medio:#2bb6d6; --q-spento:#126d8c; --q-notte:#00005a;
+  --q-vetro:rgba(0,0,40,.62); --q-bios:'Unifont','Courier New',monospace;
 }
-body.prosp-tavolo-aperto .prosp{background:#000}
-.prosp-barra{background:rgba(0,0,0,.86);border:none;border-radius:24px;padding:8px 13px;gap:7px;
-  box-shadow:inset 0 0 0 2px var(--q-spento),0 0 12px rgba(95,244,255,.15);font-family:var(--q-bios)}
-.prosp-invito{font-family:var(--q-bios);font-size:14px;font-weight:400;letter-spacing:0;text-transform:none;color:var(--q-ciano);
-  text-shadow:0 0 6px rgba(95,244,255,.45);-webkit-font-smoothing:none}
-.prosp-targa{background:rgba(95,244,255,.05);border-radius:0;box-shadow:inset 0 0 0 2px var(--q-spento)}
+body.prosp-tavolo-aperto .prosp{
+  background:
+    repeating-linear-gradient(180deg,rgba(0,0,0,.18) 0 1px,transparent 1px 3px),
+    radial-gradient(130% 100% at 50% 45%,transparent 55%,rgba(0,0,30,.6)),
+    #00008c;
+}
+.prosp-alone{filter:drop-shadow(0 0 3px rgba(95,244,255,.9))}
+.prosp-sigla{fill:var(--q-ciano);font:12px var(--q-bios);-webkit-font-smoothing:none}
+/* la riga di scansione del mirino: su e giu' dentro la vignetta */
+.prosp-scan{animation:prosp-scan 3.2s ease-in-out infinite alternate;pointer-events:none}
+@keyframes prosp-scan{from{transform:translateY(0)}to{transform:translateY(var(--corsa,0px))}}
+@media (prefers-reduced-motion:reduce){.prosp-scan{animation:none;opacity:0}}
+/* la barra: pastiglia dei tasti sopra, pannello tondo sotto, come nel lettore */
+.prosp-barra{background:none;border:none;border-radius:0;padding:0;gap:6px;flex-direction:column-reverse;
+  backdrop-filter:none;-webkit-backdrop-filter:none;font-family:var(--q-bios)}
+.prosp-lettura{border-radius:24px;background:var(--q-vetro);box-shadow:inset 0 0 0 2px var(--q-spento),0 0 12px rgba(95,244,255,.18);
+  padding:6px 14px;min-height:28px;justify-content:center}
+.prosp-fila{align-self:center;flex-wrap:nowrap;gap:14px;padding:4px 8px;background:var(--q-vetro);
+  box-shadow:inset 0 0 0 2px var(--q-spento),0 0 12px rgba(95,244,255,.18)}
+.prosp-invito{font-family:var(--q-bios);font-size:16px;font-weight:400;letter-spacing:0;text-transform:none;color:var(--q-ciano);
+  text-shadow:0 0 6px rgba(95,244,255,.45);-webkit-font-smoothing:none;line-height:16px}
+.prosp-targa{background:rgba(95,244,255,.04);border-radius:0;padding:4px 4px}
 .prosp-targa span{border-left:2px solid var(--q-spento)}
 .prosp-targa span:first-child{border-left:0}
-.prosp-targa i{font-size:12px;font-weight:400;letter-spacing:0;text-transform:none;color:var(--q-medio);-webkit-font-smoothing:none}
-.prosp-targa b{font-size:16px;font-weight:400;color:#cfe9ff;-webkit-font-smoothing:none}
-.prosp-targa .prosp-oriz{color:var(--q-magenta);text-shadow:0 0 6px rgba(255,79,216,.5)}
-.prosp-btn,.prosp-fila .prosp-btn{border-radius:0;background:none;border:2px solid var(--q-spento);color:var(--q-ciano);font-family:var(--q-bios);font-weight:400}
-.prosp-btn:active,.prosp-fila .prosp-btn:active{background:rgba(95,244,255,.15)}
-/* Il peso dei tasti resta, detto coi colori di Quack: Salva (lascia un
-   segno) e la veduta accesa si invertono, ciano pieno col disegno blu notte;
-   Chiudi e' un tasto come gli altri; un salvataggio andato male si accende di
-   rosso. */
-.prosp-fila .prosp-salva,.prosp-fila .prosp-veduta.acceso,.prosp-fila .prosp-salva.prosp-fatto{background:var(--q-ciano);border-color:var(--q-ciano);box-shadow:0 0 10px rgba(95,244,255,.5)}
-.prosp-fila .prosp-salva .px-ico,.prosp-fila .prosp-veduta.acceso .px-ico{filter:none}
-.prosp-fila .prosp-salva .px-a,.prosp-fila .prosp-veduta.acceso .px-a{fill:var(--q-notte)}
-.prosp-fila .prosp-salva .px-s,.prosp-fila .prosp-veduta.acceso .px-s,.prosp-fila .prosp-salva .px-m,.prosp-fila .prosp-veduta.acceso .px-m{fill:var(--q-medio)}
-.prosp-fila .prosp-esci{background:none;border-color:var(--q-spento)}
-.prosp-fila .prosp-salva.prosp-guaio{background:none;border-color:#ff6a5a;box-shadow:0 0 10px rgba(255,106,90,.5)}
+.prosp-targa i{font-size:12px;font-weight:400;letter-spacing:0;text-transform:none;color:var(--q-medio);-webkit-font-smoothing:none;line-height:14px}
+.prosp-targa b{font-size:16px;font-weight:400;color:#cfe9ff;-webkit-font-smoothing:none;line-height:18px}
+.prosp-targa .prosp-oriz{color:#fff;text-shadow:0 0 6px rgba(95,244,255,.8)}
+.prosp-btn,.prosp-fila .prosp-btn,.prosp-fila .prosp-salva,.prosp-fila .prosp-esci{border:none;border-radius:0;background:none;color:var(--q-ciano);font-family:var(--q-bios);font-weight:400;box-shadow:none}
+.prosp-fila .prosp-ico{flex:0 0 38px;width:38px;height:38px}
+.prosp-btn:active,.prosp-fila .prosp-btn:active{background:rgba(95,244,255,.18)}
+/* acceso si inverte, come le forbici del lettore: la veduta larga, e il
+   dischetto per un attimo quando lo studio e' salvato; un salvataggio andato
+   male si accende di rosso */
+.prosp-fila .prosp-veduta.acceso,.prosp-fila .prosp-salva.prosp-fatto{background:var(--q-ciano);box-shadow:0 0 10px rgba(95,244,255,.6)}
+.prosp-fila .prosp-veduta.acceso .px-ico,.prosp-fila .prosp-salva.prosp-fatto .px-ico{filter:none}
+.prosp-fila .prosp-veduta.acceso .px-a,.prosp-fila .prosp-salva.prosp-fatto .px-a{fill:var(--q-notte)}
+.prosp-fila .prosp-veduta.acceso :is(.px-s,.px-m),.prosp-fila .prosp-salva.prosp-fatto :is(.px-s,.px-m){fill:var(--q-medio)}
+.prosp-fila .prosp-salva.prosp-guaio{background:none;box-shadow:inset 0 0 0 2px #ff6a5a}
 .prosp-fila .prosp-salva.prosp-guaio .px-a{fill:#ff6a5a}
 .prosp-fila .prosp-salva.prosp-guaio .px-ico{filter:none}
