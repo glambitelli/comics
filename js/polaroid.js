@@ -45,8 +45,12 @@ import { suonaRumore, preparaRumori } from './sound.js';
 
 // IL RUMORE DELLA CARTA PRESA IN MANO (10 ottobre 2026), da una registrazione
 // mandata da Giovanni: per la polaroid il pezzo a 7,4 secondi, carta piu'
-// rigida; per i due fogli quello a 1,25 secondi, carta morbida.
-const CARTA = { polaroid:'./sfx/carta/polaroid.mp3', foglio:'./sfx/carta/foglio.mp3' };
+// rigida. Per i fogli due pezzi diversi e brevi (5,86 e 8,46 secondi, meno di
+// due decimi di suono): la prima scelta, uguale per tutti e due e lunga
+// mezzo secondo, era "troppo forte, sembra carta spiegazzata". Questi sono
+// solo il fruscio di un foglio sollevato, piu' bassi e coi crepitii acuti
+// smussati (lowpass a 7 kHz).
+const CARTA = { polaroid:'./sfx/carta/polaroid.mp3', stasera:'./sfx/carta/stasera.mp3', frase:'./sfx/carta/frase.mp3' };
 
 const MAX_PITCH = 55;
 let _montata = false;
@@ -60,9 +64,9 @@ export function montaLaPolaroid(){
   // La polaroid per prima: la sua scena e' la prima .pola-scena del documento.
   prendibile(pol, { proporzione: ()=> 790 / 640, classe:'pola-polaroid', strati:4, larghezza:340 });
   const leg = document.getElementById('scriv-legenda');
-  if(leg) prendibile(leg, { foglio:true, soloTenendo:true, larghezza:440, classe:'pola-frase' });
+  if(leg) prendibile(leg, { foglio:true, soloTenendo:true, larghezza:440, classe:'pola-frase', suono:'frase' });
   const big = document.getElementById('scriv-biglietto');
-  if(big) prendibile(big, { foglio:true, soloTenendo:true, larghezza:420, classe:'pola-stasera' });
+  if(big) prendibile(big, { foglio:true, soloTenendo:true, larghezza:420, classe:'pola-stasera', suono:'stasera' });
 }
 
 function prendibile(piccola, o){
@@ -139,7 +143,7 @@ function prendibile(piccola, o){
   function apri(){
     if(aperta) return;
     aperta = true;
-    suonaRumore(o.foglio ? CARTA.foglio : CARTA.polaroid, 1);
+    suonaRumore(CARTA[o.suono] || CARTA.polaroid, o.foglio ? .7 : 1);
     misura();
     vesti();
     ry = 0; rx = 0; vy = 0; vx = 0;
