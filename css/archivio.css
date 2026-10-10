@@ -275,6 +275,6 @@
    E' agganciato all'angolo del monitor, cosi' telefono e computer lo
    mettono nello stesso punto rispetto al PC. */
 .arch-procione{position:absolute;z-index:8;pointer-events:none;
-  left:-12%;bottom:-22%;height:52%;width:auto;
+  left:-3%;bottom:-35%;height:42%;width:auto;
   filter:brightness(.7) saturate(.85) blur(.5px) drop-shadow(4px 8px 10px rgba(0,0,0,.6))}
 @media (min-aspect-ratio:1/1){ .arch-procione{left:-10%;bottom:-16%;height:48%} }
