@@ -156,17 +156,23 @@
    nome e "Lettura in corso....." (vedi js/archivio.js). Non prende i tocchi. */
 .arch-lettura{position:absolute;inset:0;z-index:15;background:var(--vga-blu);padding:30% 24px 0;white-space:pre;line-height:22px;pointer-events:none}
 
-/* l'avvio: le righe del BIOS che compaiono una alla volta (js/archivio.js) */
+/* l'avvio: le righe del BIOS che compaiono una alla volta (js/archivio.js).
+   STRETTE E PICCOLE (10 ottobre 2026): a scala .72 e righe da 20px l'ultima
+   riga, "Avvio dell'archivio visivo...", arrivava a toccare il germano sul
+   telefono di Giovanni — misurato: 2px d'aria a 393x720, 32px SOVRAPPOSTA a
+   360x640. Ora righe da 14px, scala .64 e un filo meno di margine in alto:
+   10px d'aria anche sul 360x640, 44px sul 393x720. Il germano e QUACK non si
+   spostano: li' erano stati messi apposta. */
 .arch-anatra[hidden]{display:none}
-.arch-boot{position:absolute;inset:0;z-index:16;background:var(--vga-blu);padding:14px 12px;white-space:pre;line-height:20px;pointer-events:none}
-.arch-boot > div:first-child{transform:scale(.72);transform-origin:0 0}
+.arch-boot{position:absolute;inset:0;z-index:16;background:var(--vga-blu);padding:10px 12px;white-space:pre;line-height:14px;pointer-events:none}
+.arch-boot > div:first-child{transform:scale(.64);transform-origin:0 0}
 /* il germano di Inkflow sotto le righe dell'avvio: in un punto fisso dello
    schermo (non scende col testo), pixel netti ingranditi tre volte (quattro
    era "leggermente" troppo), col bagliore al neon del Pip-Boy */
 .arch-anatra{display:block;margin:0 auto;width:calc(var(--aw,34px)*3);image-rendering:pixelated;
   filter:drop-shadow(0 0 2px rgba(95,244,255,.9)) drop-shadow(0 0 8px rgba(95,244,255,.45)) drop-shadow(0 0 18px rgba(95,244,255,.2))}
 /* IL MARCHIO: germano, QUACK e le righe piccole, in un blocco fisso in basso.
-   Le righe del BIOS sopra sono un filo piu' piccole (scala .85) perche' ci
+   Le righe del BIOS sopra sono piu' piccole (vedi .arch-boot) perche' ci
    stia tutto: e' rimpicciolito il blocco, non il carattere, cosi' resta lo
    stesso 8x16 del resto dello schermo. */
 .arch-marchio{position:absolute;left:0;right:0;top:54%;transform:translateY(-50%);display:flex;flex-direction:column;align-items:center;gap:4px;white-space:normal}

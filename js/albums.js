@@ -196,10 +196,16 @@ function camminaGermano(on){
   const cv = _reader && _reader.querySelector('.ar-germano');
   if(!on || !cv) return;
   const ctx = cv.getContext('2d');
+  // Sotto, "Loading" coi puntini che crescono col passo (Giovanni: "mi piace
+  // molto l'anatra, pero' sotto ci scriverei loading, in maniera tale da
+  // capire che si sta caricando"). Un puntino ogni due passi: a sei passi al
+  // secondo, uno per passo correva troppo.
+  const scritta = _reader.querySelector('.ar-germano-scritta');
+  const passa = p=>{ disegnaGermano(ctx, p); if(scritta) scritta.textContent = 'Loading' + '.'.repeat((p >> 1) % 4); };
   let passo = 0;
-  disegnaGermano(ctx, 0);
-  if(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  _germanoTimer = setInterval(()=> disegnaGermano(ctx, ++passo), ANATRA_PASSO);
+  passa(0);
+  if(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches){ if(scritta) scritta.textContent = 'Loading...'; return; }
+  _germanoTimer = setInterval(()=> passa(++passo), ANATRA_PASSO);
 }
 
 function clearPages(){
@@ -910,6 +916,7 @@ function buildReaderDOM(){
       <div class="ar-toast"></div>
       <div class="ar-loading-glyph" aria-hidden="true">
         <canvas class="ar-germano" width="${ANATRA[0][0].length}" height="${ANATRA[0].length}"></canvas>
+        <div class="ar-germano-scritta">Loading</div>
       </div>
       <button class="ar-cancel-dl" type="button" data-act="canceldl" hidden>Annulla scaricamento</button>
       <div class="ar-cliplayer" hidden>

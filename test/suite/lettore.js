@@ -82,12 +82,12 @@ module.exports = () => suite("Lettore — nastro, sfoglio, zoom, ritaglio", {"ba
   const veste = await page.evaluate(() => {
     const ar = document.getElementById('album-reader');
     const ico = ['.ar-tutta','.ar-prosp','.ar-clip','[data-act=first]','[data-act=last]'].map(q => !!ar.querySelector(q + ' svg.px-ico rect'));
-    return { fondo: getComputedStyle(ar).backgroundColor, ico, germano: !!ar.querySelector('.ar-loading-glyph canvas.ar-germano'),
+    return { fondo: getComputedStyle(ar).backgroundColor, ico, germano: !!ar.querySelector('.ar-loading-glyph canvas.ar-germano') && /^Loading/.test(ar.querySelector('.ar-germano-scritta').textContent),
              stella: !!ar.querySelector('.ar-loading-glyph .star-fill'), carattere: getComputedStyle(ar.querySelector('.ar-counter')).fontFamily };
   });
   ok('il fondo del lettore è il blu del PC', veste.fondo === 'rgb(0, 0, 140)', veste.fondo);
   ok('le icone dei comandi sono a pixel', veste.ico.every(Boolean), veste.ico);
-  ok('nell\'attesa c\'è il germano, non più la stella', veste.germano && !veste.stella, veste);
+  ok('nell\'attesa c\'è il germano con Loading sotto, non più la stella', veste.germano && !veste.stella, veste);
   ok('il contatore è nel carattere del BIOS', /Unifont/.test(veste.carattere), veste.carattere);
   const tids0 = s.tids.slice().sort().join();
 
