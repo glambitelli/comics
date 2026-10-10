@@ -164,7 +164,10 @@ const GRIGLIE = {
   altro:  righe(['aa..aa..aa','aa..aa..aa']),
   indietro:righe(['...a........','..aa........','.aaaaaaaaa..','..aa......a.','...a.......a','...........a','..........a.','....aaaaaa..']),
   pulisci:righe(['....aaaaaaa','...a.....aa','..a.....a.a','.aaaaaaa..a','.a.....a.a.','.a.....aa..','.aaaaaaa...','...........','aaaaaaaaaaa']),
-  salva:  righe(['....aa....','....aa....','....aa....','.aa.aa.aa.','..aaaaaa..','...aaaa...','....aa....','a........a','a........a','aaaaaaaaaa']),
+  // Salva e' un dischetto, non una freccia che scende: la freccia diceva
+  // "scarica sul telefono", e lo studio invece va nell'archivio — Giovanni
+  // l'ha cercato fra i download e non l'ha trovato.
+  salva:  righe(['aaaaaaaaa..','a.mmmmm.aa.','a.mm.mm.a.a','a.mmmmm...a','a.........a','a.aaaaaaa.a','a.a.....a.a','a.a.....a.a','a.a.....a.a','aaaaaaaaaaa']),
   fatto:  righe(['.........aa','........aa.','.......aa..','aa....aa...','.aa..aa....','..aaaa.....','...aa......']),
   avviso: righe(['.....a.....','....aaa....','....a.a....','...a.a.a...','...a.a.a...','..a..a..a..','..a.....a..','.a...a...a.','aaaaaaaaaaa']),
   riquadro:righe(['aa.aa.aa.aa','a.........a','..mmmmmmm..','a.mmmmmmm.a','a.mmmmmmm.a','..mmmmmmm..','a.........a','aa.aa.aa.aa']),

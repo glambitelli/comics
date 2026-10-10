@@ -276,6 +276,10 @@ export async function addRefBlob(blob, opts={}){
   }
 }
 
+// Perche' l'ultimo caricamento e' andato storto, per chi deve dirlo a voce
+// (addRefBlob non lancia: torna null e lascia scritto qui il motivo).
+export function ultimoErroreCaricamento(){ return _lastUploadError || ''; }
+
 // Espone la cartella attualmente aperta (autore), così un ritaglio finisce
 // automaticamente tra i Frammenti di quell'autore. Fuori da una cartella vera
 // (viste "All"/"senza cartella") torna null e il frammento resta non archiviato.

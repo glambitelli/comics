@@ -30,6 +30,7 @@ import {
   updateAlbumLastPage, updateAlbumSourceName, getAlbumById, findAlbumByDriveId,
   completaAlbumDoc,
   clipDestinations, clipCategories, getFolderName, rememberClipDest, tagSuggeriti,
+  ultimoErroreCaricamento,
 } from './refs.js';
 import { uploadToCloudinary } from './cloudinary.js';
 import { albumGiaScaricato, getDriveAlbumFile, ensureDriveConnected, isDownloadCancelled,
@@ -1025,12 +1026,22 @@ function buildReaderDOM(){
         const albo = _currentAlbumId ? getAlbumById(_currentAlbumId) : null;
         const pagina = String(_idx + 1).padStart(String(_pages.length).length, '0');
         import('./prospettiva.js').then(m=> m.apriProspettiva(cella.img, {
+          // IL SALVATAGGIO DICE LA VERITA' (10 ottobre 2026). addRefBlob non
+          // lancia mai: se il caricamento fallisce torna null. Qui il null
+          // veniva ignorato e il tasto diventava comunque la spunta di
+          // "Salvato" — Giovanni ha salvato uno studio, ha visto la spunta e
+          // poi lo studio non c'era. Ora un null e' un errore, e il tasto lo
+          // dice; e quando va bene, il lettore scrive DOVE e' finito.
           salva: async ({ blob, w, h, misure })=>{
-            await addRefBlob(blob, {
-              folderId: albo ? albo.folderId : getActiveFolderId(),
+            const cartella = albo ? albo.folderId : getActiveFolderId();
+            const esito = await addRefBlob(blob, {
+              folderId: cartella,
               source: 'prospettiva', w, h, prosp: misure,
               provenance: (albo ? (albo.title || '') : _albumName) + ' · p. ' + pagina,
             });
+            if(!esito) throw new Error(ultimoErroreCaricamento() || 'caricamento non riuscito');
+            const nome = cartella ? getFolderName(cartella) : '';
+            toast(nome ? 'Studio salvato in ' + nome + ' › Prospettiva' : 'Studio salvato, fuori dalle cartelle', false, false, 3200);
           },
         })).catch(()=>{});
       } else {

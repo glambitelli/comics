@@ -21,6 +21,7 @@ export function addRefBlob(blob, opts = {}){
     }, 30);
   });
 }
+export function ultimoErroreCaricamento(){ return window.__erroreCaricamento || ''; }
 export function getActiveFolderId(){ return window.__folderId || null; }
 export function findExactAlbumMatch(){ return null; }
 // Annota le schede create, cosi' una prova puo' verificare COSA e' finito
