@@ -161,7 +161,23 @@ export function montaArchivio(){
   anatra.className = 'arch-anatra';
   anatra.width = ANATRA[0][0].length; anatra.height = ANATRA[0].length;
   anatra.style.setProperty('--aw', anatra.width + 'px');
-  boot.append(bootTesto, anatra);
+  // IL MARCHIO DEL SISTEMA (10 ottobre 2026): sotto il germano la scritta
+  // QUACK, il nome di questo sistema operativo inventato, e due righe da
+  // marchio vero. Germano, scritta e righe stanno in un blocco fisso in basso;
+  // le righe del BIOS scendono sopra, una alla volta.
+  const marchio = document.createElement('div');
+  marchio.className = 'arch-marchio';
+  marchio.innerHTML = '<div class="arch-quack" data-t="QUACK">QUACK</div>'
+    + '<div class="arch-quack-tm">QUACK OS&trade; v1.0<br>&copy; 2026 INKFLOW DATA SYSTEMS</div>';
+  marchio.prepend(anatra);
+  boot.append(bootTesto, marchio);
+  const quack = marchio.querySelector('.arch-quack');
+  let _glitch = 0;
+  const glitch = ()=>{ _glitch = setTimeout(()=>{
+    if(boot.hidden) return;
+    quack.classList.add('glitch'); setTimeout(()=> quack.classList.remove('glitch'), 120);
+    glitch();
+  }, 700 + Math.random() * 1200); };
   crt && crt.appendChild(boot);
   const ga = anatra.getContext('2d');
   const disegnaAnatra = i=>{
@@ -171,7 +187,7 @@ export function montaArchivio(){
       ga.fillStyle = ANATRA_TONI[c]; ga.fillRect(x, y, 1, 1);
     } });
   };
-  let _passi = 0, _arrivo = 0;
+  let _passi = 0;
   const RIGHE = [
     'Inkflow BIOS v1.0',
     '(C) 1998 Inkflow Data Systems',
@@ -194,21 +210,19 @@ export function montaArchivio(){
     clearInterval(_bootTimer); clearTimeout(_bootFine);
     let n = 0;
     bootTesto.textContent = ''; boot.hidden = false;
-    // IL GERMANO ARRIVA ALLA FINE, quando le righe sono gia' tutte scritte, e
-    // cammina li' sotto fino al beep. Sta in un punto fisso dello schermo: la
-    // prima versione partiva subito e scendeva riga dopo riga insieme al
-    // testo (Giovanni: "non mi piace che scorra verso il basso").
-    clearInterval(_passi); clearTimeout(_arrivo); anatra.hidden = true;
-    _arrivo = setTimeout(()=>{
-      let passo = 0; disegnaAnatra(0); anatra.hidden = false;
-      _passi = setInterval(()=> disegnaAnatra(++passo), ANATRA_PASSO);
-    }, RIGHE.length * 320 + 250);
+    // IL GERMANO C'E' DA SUBITO: si accende il monitor e lui e' gia' li' che
+    // cammina, col suo marchio sotto, mentre le righe scendono sopra (prima
+    // arrivava solo alla fine, e lo si vedeva troppo poco).
+    clearInterval(_passi); clearTimeout(_glitch);
+    let passo = 0; disegnaAnatra(0);
+    _passi = setInterval(()=> disegnaAnatra(++passo), ANATRA_PASSO);
+    glitch();
     setTimeout(()=> suonaRumore(RUMORI.boot, 1), SUONO_DOPO);
     _bootTimer = setInterval(()=>{
       n++;
       bootTesto.textContent = RIGHE.slice(0, Math.min(n, RIGHE.length)).join('\n') + (n % 2 ? '_' : '');
     }, 320);
-    _bootFine = setTimeout(()=>{ clearInterval(_bootTimer); clearInterval(_passi); boot.hidden = true; }, SUONO_DOPO + BEEP);
+    _bootFine = setTimeout(()=>{ clearInterval(_bootTimer); clearInterval(_passi); clearTimeout(_glitch); boot.hidden = true; }, SUONO_DOPO + BEEP);
   };
 
   // L'ACCENSIONE: una riga bianca al centro che si apre su tutto lo schermo,
@@ -241,7 +255,7 @@ export function montaArchivio(){
     } else {
       power.setAttribute('aria-label', 'Accendi il monitor');
       suonaRumore(RUMORI.spegni, 1);
-      clearInterval(_bootTimer); clearTimeout(_bootFine); clearInterval(_passi); clearTimeout(_arrivo); boot.hidden = true;
+      clearInterval(_bootTimer); clearTimeout(_bootFine); clearInterval(_passi); clearTimeout(_glitch); boot.hidden = true;
       if(ridotto()){ mon.classList.add('spento'); return; }
       mon.classList.add('spegnimento');
       setTimeout(()=>{ mon.classList.remove('spegnimento'); mon.classList.add('spento'); }, 420);

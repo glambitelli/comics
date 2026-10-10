@@ -158,12 +158,36 @@
 
 /* l'avvio: le righe del BIOS che compaiono una alla volta (js/archivio.js) */
 .arch-anatra[hidden]{display:none}
-.arch-boot{position:absolute;inset:0;z-index:16;background:var(--vga-blu);padding:16px 14px;white-space:pre;line-height:20px;pointer-events:none}
+.arch-boot{position:absolute;inset:0;z-index:16;background:var(--vga-blu);padding:14px 12px;white-space:pre;line-height:20px;pointer-events:none}
+.arch-boot > div:first-child{transform:scale(.85);transform-origin:0 0}
 /* il germano di Inkflow sotto le righe dell'avvio: in un punto fisso dello
    schermo (non scende col testo), pixel netti ingranditi tre volte (quattro
    era "leggermente" troppo), col bagliore al neon del Pip-Boy */
-.arch-anatra{position:absolute;left:50%;top:62%;transform:translateX(-50%);width:calc(var(--aw,34px)*3);image-rendering:pixelated;
+.arch-anatra{display:block;margin:0 auto;width:calc(var(--aw,34px)*3);image-rendering:pixelated;
   filter:drop-shadow(0 0 2px rgba(95,244,255,.9)) drop-shadow(0 0 8px rgba(95,244,255,.45)) drop-shadow(0 0 18px rgba(95,244,255,.2))}
+/* IL MARCHIO: germano, QUACK e le righe piccole, in un blocco fisso in basso.
+   Le righe del BIOS sopra sono un filo piu' piccole (scala .85) perche' ci
+   stia tutto: e' rimpicciolito il blocco, non il carattere, cosi' resta lo
+   stesso 8x16 del resto dello schermo. */
+.arch-marchio{position:absolute;left:0;right:0;bottom:9%;display:flex;flex-direction:column;align-items:center;gap:4px;white-space:normal}
+@font-face{font-family:'Quack Titolo';src:url(../font/russo-one-quack.woff2) format('woff2');font-display:block}
+/* QUACK, alla Blade Runner: inclinata, tagliata da righe orizzontali in basso
+   come i titoli anni '80, azzurra al neon come il germano; ogni tanto due
+   fette scivolano di lato (il glitch, js/archivio.js). Carattere: Russo One
+   (licenza in font/russo-one-LICENZA.txt), scelto fra sei da Giovanni. */
+#screen-refs .arch-crt .arch-quack{position:relative;font-family:'Quack Titolo',sans-serif!important;font-size:42px!important;line-height:1;letter-spacing:.04em!important;
+  color:#5ff4ff;transform:skewX(-12deg);margin-top:4px;
+  text-shadow:0 0 4px rgba(95,244,255,.9),0 0 14px rgba(95,244,255,.55),0 0 30px rgba(95,244,255,.3);
+  -webkit-mask:linear-gradient(180deg,#000 0 55%,transparent 55% 59%,#000 59% 70%,transparent 70% 73%,#000 73% 82%,transparent 82% 84%,#000 84%);
+          mask:linear-gradient(180deg,#000 0 55%,transparent 55% 59%,#000 59% 70%,transparent 70% 73%,#000 73% 82%,transparent 82% 84%,#000 84%)}
+.arch-quack::before,.arch-quack::after{content:attr(data-t);position:absolute;inset:0;opacity:0}
+.arch-quack::before{color:#bff9ff;clip-path:inset(18% 0 62% 0)}
+.arch-quack::after{color:#2bb6d6;clip-path:inset(62% 0 14% 0)}
+.arch-quack.glitch{filter:brightness(1.25)}
+.arch-quack.glitch::before{opacity:1;transform:translateX(5px)}
+.arch-quack.glitch::after{opacity:1;transform:translateX(-4px)}
+#screen-refs .arch-crt .arch-quack-tm{font-size:16px!important;line-height:16px;letter-spacing:.06em!important;text-align:center;color:#2bb6d6;
+  text-shadow:0 0 4px rgba(95,244,255,.5);transform:scale(.8);margin-top:2px}
 
 /* ══ IL VESTITO DA BIOS ══
    Tutto quello che c'era dentro, con gli stessi id e lo stesso funzionamento:
