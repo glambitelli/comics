@@ -158,6 +158,10 @@
 
 /* l'avvio: le righe del BIOS che compaiono una alla volta (js/archivio.js) */
 .arch-boot{position:absolute;inset:0;z-index:16;background:var(--vga-blu);padding:16px 14px;white-space:pre;line-height:20px;pointer-events:none}
+/* il germano di Inkflow sotto le righe dell'avvio: pixel netti, ingranditi
+   quattro volte, con il bagliore al neon del Pip-Boy */
+.arch-anatra{display:block;margin:28px auto 0;width:calc(var(--aw,34px)*4);image-rendering:pixelated;
+  filter:drop-shadow(0 0 2px rgba(95,244,255,.9)) drop-shadow(0 0 8px rgba(95,244,255,.45)) drop-shadow(0 0 18px rgba(95,244,255,.2))}
 
 /* ══ IL VESTITO DA BIOS ══
    Tutto quello che c'era dentro, con gli stessi id e lo stesso funzionamento:
@@ -278,3 +282,14 @@
   left:-3%;bottom:-35%;height:42%;width:auto;
   filter:brightness(.7) saturate(.85) blur(.5px) drop-shadow(4px 8px 10px rgba(0,0,0,.6))}
 @media (min-aspect-ratio:1/1){ .arch-procione{left:-10%;bottom:-16%;height:48%} }
+
+/* NEGLI ALBI, IL TASTO "ORDINA" E "APRI UN ALBO" NON SI TOCCANO. Ordina stava
+   a destra sulla riga della ricerca e il suo bordo cadeva a filo sopra il
+   bordo destro del pulsante grande sotto: una bad tangent (Giovanni, 10
+   ottobre 2026). Ora fra le due righe c'e' aria, e "Apri un albo" e' un
+   tasto da BIOS, squadrato e largo quanto la sua scritta, a sinistra: i due
+   bordi destri non stanno piu' sulla stessa verticale. */
+#screen-refs #refs-albums-pane .refs-toolbar{margin-bottom:14px}
+#screen-refs .albums-open-btn{width:auto!important;display:inline-flex!important;align-self:flex-start;
+  border-radius:0!important;border:2px solid var(--vga-bianco)!important;background:none!important;box-shadow:none!important;
+  padding:4px 10px!important;margin:0 0 12px!important;color:var(--vga-bianco)!important}

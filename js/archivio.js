@@ -20,6 +20,110 @@ import { suonaRumore, preparaRumori } from './sound.js';
 // "non sento i suoni nuovi". In piu' quasi tutta l'energia stava nei bassi
 // (ventola, ronzio del tubo) che l'altoparlante di un telefono non rende:
 // tolti quelli, compressi e alzati, si sentono lo scatto e il beep.
+// IL GERMANO DI INKFLOW (10 ottobre 2026): il logo, un'anatra in pixel art
+// azzurra nello stile del Pip-Boy, che cammina sotto le righe dell'avvio.
+// Quattro passi, disegnati a parte e scelti da Giovanni fra una decina di
+// prove; qui c'e' il risultato pixel per pixel: a contorno acceso, m tono
+// medio (testa e collo), s spento (corpo), o l'occhio (un buco nello schermo,
+// sempre nello stesso punto della testa: quando si spostava per conto suo
+// "faceva venire mal di testa").
+const ANATRA = [
+  ['.......................aaa.....',
+   '.....................aammma....',
+   '....................ammmmoma...',
+   '....................ammmmmmaaaa',
+   '.....................ammmaaaaaa',
+   '.....................amma......',
+   '.....................ama.......',
+   '.....................ama.......',
+   '....................aaaa.......',
+   '..................aasssa.......',
+   '....a...aaaaaaaaaassssa........',
+   '..aasaaasssssssssssssssa.......',
+   'aassssssssssssaaaasssssa.......',
+   'asssssaaaaaaaaassssssssa.......',
+   '.asssssssssssssssssssssa.......',
+   '.assssssssssssssssssssa........',
+   '.assssssssssssssssssssa........',
+   '..assssssssssssssssaaa.........',
+   '...aaassssssssssaaa............',
+   '......aaaaaaaaaa...............',
+   '.........a....a................',
+   '........aa....aa...............',
+   '........aaaa...aaa.............'],
+  ['...............................',
+   '......................aaa......',
+   '....................aammma.....',
+   '...................ammmmoma....',
+   '...................ammmmmmaaaa.',
+   '....................ammmaaaaaa.',
+   '....................amma.......',
+   '....................ama........',
+   '....................ama........',
+   '....................aaa........',
+   '..................aassa........',
+   '....a...aaaaaaaaaassssa........',
+   '..aasaaasssssssssssssssa.......',
+   'aassssssssssssaaaasssssa.......',
+   'asssssaaaaaaaaassssssssa.......',
+   '.asssssssssssssssssssssa.......',
+   '.assssssssssssssssssssa........',
+   '.assssssssssssssssssssa........',
+   '..assssssssssssssssaaa.........',
+   '...aaasssaassaasaaa............',
+   '......aaaaaaaaaa...............',
+   '.........aa..aa................',
+   '.........aaaa.aaa..............'],
+  ['.....................aaa.......',
+   '...................aammma......',
+   '..................ammmmoma.....',
+   '..................ammmmmmaaaa..',
+   '...................ammmaaaaaa..',
+   '...................amma........',
+   '...................ama.........',
+   '...................ama.........',
+   '...................aaa.........',
+   '..................assa.........',
+   '....a...aaaaaaaaaassssa........',
+   '..aasaaasssssssssssssssa.......',
+   'aassssssssssssaaaasssssa.......',
+   'asssssaaaaaaaaassssssssa.......',
+   '.asssssssssssssssssssssa.......',
+   '.assssssssssssssssssssa........',
+   '.assssssssssssssssssssa........',
+   '..assssssssssssssssaaa.........',
+   '...aaassssssssssaaa............',
+   '......aaaaaaaaaa...............',
+   '..........a..a.................',
+   '..........aaaa.................',
+   '...........aaaaa...............'],
+  ['...............................',
+   '......................aaa......',
+   '....................aammma.....',
+   '...................ammmmoma....',
+   '...................ammmmmmaaaa.',
+   '....................ammmaaaaaa.',
+   '....................amma.......',
+   '....................ama........',
+   '....................ama........',
+   '....................aaa........',
+   '..................aassa........',
+   '....a...aaaaaaaaaassssa........',
+   '..aasaaasssssssssssssssa.......',
+   'aassssssssssssaaaasssssa.......',
+   'asssssaaaaaaaaassssssssa.......',
+   '.asssssssssssssssssssssa.......',
+   '.assssssssssssssssssssa........',
+   '.assssssssssssssssssssa........',
+   '..assssssssssssssssaaa.........',
+   '...aaasssaassaasaaa............',
+   '......aaaaaaaaaa...............',
+   '.........aa..aa................',
+   '..........aaaaaaa..............']
+];
+const ANATRA_TONI = { a:'#5ff4ff', m:'#2bb6d6', s:'#126d8c' };
+const ANATRA_PASSO = 167;   // ms per passo: sei al secondo, come nella prova scelta
+
 const RUMORI = {
   accendi: './sfx/monitor/accendi.mp3',
   spegni:  './sfx/monitor/spegni.mp3',
@@ -50,7 +154,22 @@ export function montaArchivio(){
   const crt = document.getElementById('arch-crt');
   const boot = document.createElement('div');
   boot.className = 'arch-boot'; boot.hidden = true; boot.setAttribute('aria-hidden', 'true');
+  const bootTesto = document.createElement('div');
+  const anatra = document.createElement('canvas');
+  anatra.className = 'arch-anatra';
+  anatra.width = ANATRA[0][0].length; anatra.height = ANATRA[0].length;
+  anatra.style.setProperty('--aw', anatra.width + 'px');
+  boot.append(bootTesto, anatra);
   crt && crt.appendChild(boot);
+  const ga = anatra.getContext('2d');
+  const disegnaAnatra = i=>{
+    ga.clearRect(0, 0, anatra.width, anatra.height);
+    ANATRA[i % ANATRA.length].forEach((r, y)=>{ for(let x = 0; x < r.length; x++){
+      const c = r[x]; if(c === '.' || c === 'o') continue;
+      ga.fillStyle = ANATRA_TONI[c]; ga.fillRect(x, y, 1, 1);
+    } });
+  };
+  let _passi = 0;
   const RIGHE = [
     'Inkflow BIOS v1.0',
     '(C) 1998 Inkflow Data Systems',
@@ -72,13 +191,16 @@ export function montaArchivio(){
   const avvia = ()=>{
     clearInterval(_bootTimer); clearTimeout(_bootFine);
     let n = 0;
-    boot.textContent = ''; boot.hidden = false;
+    bootTesto.textContent = ''; boot.hidden = false;
+    // il germano cammina sotto le righe finche' l'avvio dura
+    clearInterval(_passi); let passo = 0; disegnaAnatra(0);
+    _passi = setInterval(()=> disegnaAnatra(++passo), ANATRA_PASSO);
     setTimeout(()=> suonaRumore(RUMORI.boot, 1), SUONO_DOPO);
     _bootTimer = setInterval(()=>{
       n++;
-      boot.textContent = RIGHE.slice(0, Math.min(n, RIGHE.length)).join('\n') + (n % 2 ? '_' : '');
+      bootTesto.textContent = RIGHE.slice(0, Math.min(n, RIGHE.length)).join('\n') + (n % 2 ? '_' : '');
     }, 320);
-    _bootFine = setTimeout(()=>{ clearInterval(_bootTimer); boot.hidden = true; }, SUONO_DOPO + BEEP);
+    _bootFine = setTimeout(()=>{ clearInterval(_bootTimer); clearInterval(_passi); boot.hidden = true; }, SUONO_DOPO + BEEP);
   };
 
   // L'ACCENSIONE: una riga bianca al centro che si apre su tutto lo schermo,
@@ -111,7 +233,7 @@ export function montaArchivio(){
     } else {
       power.setAttribute('aria-label', 'Accendi il monitor');
       suonaRumore(RUMORI.spegni, 1);
-      clearInterval(_bootTimer); clearTimeout(_bootFine); boot.hidden = true;
+      clearInterval(_bootTimer); clearTimeout(_bootFine); clearInterval(_passi); boot.hidden = true;
       if(ridotto()){ mon.classList.add('spento'); return; }
       mon.classList.add('spegnimento');
       setTimeout(()=>{ mon.classList.remove('spegnimento'); mon.classList.add('spento'); }, 420);
