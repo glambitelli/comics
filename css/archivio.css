@@ -159,7 +159,7 @@
 /* l'avvio: le righe del BIOS che compaiono una alla volta (js/archivio.js) */
 .arch-anatra[hidden]{display:none}
 .arch-boot{position:absolute;inset:0;z-index:16;background:var(--vga-blu);padding:14px 12px;white-space:pre;line-height:20px;pointer-events:none}
-.arch-boot > div:first-child{transform:scale(.85);transform-origin:0 0}
+.arch-boot > div:first-child{transform:scale(.72);transform-origin:0 0}
 /* il germano di Inkflow sotto le righe dell'avvio: in un punto fisso dello
    schermo (non scende col testo), pixel netti ingranditi tre volte (quattro
    era "leggermente" troppo), col bagliore al neon del Pip-Boy */
@@ -169,7 +169,7 @@
    Le righe del BIOS sopra sono un filo piu' piccole (scala .85) perche' ci
    stia tutto: e' rimpicciolito il blocco, non il carattere, cosi' resta lo
    stesso 8x16 del resto dello schermo. */
-.arch-marchio{position:absolute;left:0;right:0;bottom:9%;display:flex;flex-direction:column;align-items:center;gap:4px;white-space:normal}
+.arch-marchio{position:absolute;left:0;right:0;top:54%;transform:translateY(-50%);display:flex;flex-direction:column;align-items:center;gap:4px;white-space:normal}
 @font-face{font-family:'Quack Titolo';src:url(../font/russo-one-quack.woff2) format('woff2');font-display:block}
 /* QUACK, alla Blade Runner: inclinata, tagliata da righe orizzontali in basso
    come i titoli anni '80, azzurra al neon come il germano; ogni tanto due
