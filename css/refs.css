@@ -859,3 +859,8 @@ body.is-touch .refs-lightbox-nav{display:none}
 .rifila-hint{font-family:var(--q-bios);font-size:14px;color:var(--q-medio);-webkit-font-smoothing:none}
 .rifila-btn{font-family:var(--q-bios);font-size:16px;font-weight:400;border-radius:0;border:2px solid var(--q-medio);color:var(--q-ciano);background:none;-webkit-font-smoothing:none}
 .rifila-ok{background:var(--q-ciano);border-color:var(--q-ciano);color:var(--q-notte);box-shadow:0 0 10px rgba(95,244,255,.5)}
+/* il titolo nel filo della barra, come nel lettore (vedi le scritte di
+   sistema in fondo a css/albums.css) */
+.refs-lightbox-pill{position:relative}
+.refs-lightbox-pill::before{content:'QUACK VIEWER';position:absolute;top:-8px;left:22px;padding:0 6px;background:#000;
+  font:12px/16px var(--q-bios);color:var(--q-medio);-webkit-font-smoothing:none;pointer-events:none}

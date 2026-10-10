@@ -667,3 +667,48 @@ body.is-touch .ar-nav{display:none} /* su mobile si naviga con swipe/tap */
 /* la cella che aspetta la sua tavola: un quadrato ciano che pulsa, al posto
    della stellina d'oro */
 .ar-cell.pending::after{content:'';width:12px;height:12px;background:var(--q-ciano);box-shadow:2px 2px 0 var(--q-spento),0 0 10px rgba(95,244,255,.8)}
+
+/* ══ LE SCRITTE DI SISTEMA (10 ottobre 2026) ══
+   "Qualche piccolo dettaglio per far capire che e' un sistema integrato in
+   Quack: scritte piccole, copyright, trademark, date, come per il
+   terminale" (Giovanni). Le stesse che il terminale ha nell'avvio, qui sulla
+   barra in basso:
+   - il nome del programma e la versione incastrati nel filo della barra, come
+     il titolo di una finestra del BIOS;
+   - sotto, il marchio del sistema, piccolo e spento;
+   - i tasti funzione accanto alle icone dei comandi (e al computer F1, F2, F3
+     funzionano davvero: vedi il keydown in js/albums.js);
+   - PAG davanti al contatore, il cursore che lampeggia dopo il titolo, e il
+     binario del cursore con le tacche ogni decimo, come un righello.
+   Tutto in Unifont a 12px: la misura vera del carattere e' 16, ma a 12 resta
+   ancora leggibile e sta un gradino sotto le scritte che contano. */
+.ar-bottombar{gap:10px}
+.ar-controls{position:relative}
+.ar-controls::before,.ar-controls::after{position:absolute;top:-8px;padding:0 6px;background:var(--q-blu);
+  font:12px/16px var(--q-bios);color:var(--q-medio);-webkit-font-smoothing:none;pointer-events:none}
+.ar-controls::before{content:'QUACK VIEWER';left:22px}
+.ar-controls::after{content:'v1.0';right:22px}
+.ar-bottombar::after{content:'QUACK OS\2122  v1.0 \00b7  \00a9  2026 INKFLOW DATA SYSTEMS';white-space:pre;
+  font:12px/12px var(--q-bios);color:var(--q-medio);opacity:.7;-webkit-font-smoothing:none;margin-top:-4px;pointer-events:none}
+/* in ritaglio la barra e' la riga delle destinazioni: stesso titolo */
+.ar-clip-hint{position:relative}
+.ar-clip-hint::before{content:'QUACK VIEWER \00b7  RITAGLIO';position:absolute;top:-8px;left:22px;padding:0 6px;background:var(--q-blu);
+  font:12px/16px var(--q-bios);color:var(--q-medio);text-shadow:none;-webkit-font-smoothing:none;pointer-events:none}
+.ar-top-actions .ar-btn{position:relative}
+.ar-top-actions .ar-btn::after{position:absolute;right:-3px;bottom:-1px;font:12px/12px var(--q-bios);color:var(--q-medio);
+  -webkit-font-smoothing:none;transform:scale(.75);transform-origin:100% 100%;pointer-events:none}
+.ar-top-actions .ar-tutta::after{content:'F1'}
+.ar-top-actions .ar-prosp::after{content:'F2'}
+.ar-top-actions .ar-clip::after{content:'F3'}
+.ar-top-actions .ar-clip.active::after{color:var(--q-notte)}
+.ar-counter::before{content:'PAG\00a0';color:var(--q-medio);text-shadow:none}
+.ar-title::after{content:'_';color:var(--q-ciano);animation:q-cursore 1s steps(1) infinite}
+@keyframes q-cursore{50%{opacity:0}}
+@media (prefers-reduced-motion:reduce){.ar-title::after{animation:none}}
+.ar-seek::-webkit-slider-runnable-track{height:8px;background:
+  linear-gradient(var(--q-medio),var(--q-medio)) 0 50%/100% 2px no-repeat,
+  repeating-linear-gradient(90deg,var(--q-medio) 0 2px,transparent 2px 10%)}
+.ar-seek::-moz-range-track{height:8px;background:
+  linear-gradient(var(--q-medio),var(--q-medio)) 0 50%/100% 2px no-repeat,
+  repeating-linear-gradient(90deg,var(--q-medio) 0 2px,transparent 2px 10%)}
+.ar-seek::-webkit-slider-thumb{margin-top:-2px}

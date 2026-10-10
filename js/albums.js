@@ -1075,6 +1075,15 @@ function buildReaderDOM(){
     if(e.key === 'ArrowRight' || e.key === ' ') stepPage(1);
     else if(e.key === 'ArrowLeft') stepPage(-1);
     else if(e.key === 'Escape'){ if(_clipMode) toggleClip(false); else closeReader(); }
+    // I TASTI FUNZIONE scritti accanto alle icone (vedi le scritte di sistema
+    // in fondo a css/albums.css): al computer funzionano davvero. F1 tutta la
+    // tavola, F2 la prospettiva, F3 le forbici. preventDefault perche' F1 nel
+    // browser aprirebbe l'aiuto.
+    else if(e.key === 'F1' || e.key === 'F2' || e.key === 'F3'){
+      e.preventDefault();
+      const b = ov.querySelector({ F1:'.ar-tutta', F2:'.ar-prosp', F3:'.ar-clip' }[e.key]);
+      if(b) b.click();
+    }
   });
 
   wireSeek(ov);
