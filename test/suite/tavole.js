@@ -500,7 +500,7 @@ module.exports = () => suite("References — Frammenti e Tavole dentro una carte
       prese: Array.from(document.querySelectorAll('.refs-thumb.scelta')).map(e=> e.dataset.id),
       inGriglia: Array.from(document.querySelectorAll('.refs-thumb')).map(e=> e.dataset.id),
       barra: document.getElementById('refs-scelta').classList.contains('show'),
-      conto: (document.getElementById('refs-scelta-conto')||{}).textContent,
+      conto: (document.getElementById('refs-scelta-conto')||{getAttribute(){}}).getAttribute('aria-label'),
       sposta: vede('refs-scelta-sposta'),
       elimina: vede('refs-scelta-elimina'),
       rinomina: vede('refs-scelta-rinomina'),
@@ -620,7 +620,7 @@ module.exports = () => suite("References — Frammenti e Tavole dentro una carte
   ok('scegliendo una cartella la barra si apre lo stesso', fraLeCartelle, fraLeCartelle);
   ok('ma il pulsante "tutte" li\' non c\'e\'', t && !t.visibile, t);
   const contoCartelle = await page.evaluate(()=>
-    (document.getElementById('refs-scelta-conto')||{}).textContent);
+    (document.getElementById('refs-scelta-conto')||{getAttribute(){}}).getAttribute('aria-label'));
   ok('e il conto va al maschile: "1 selezionato"',
      /^1 selezionato$/.test((contoCartelle||'').trim()), contoCartelle);
 });
