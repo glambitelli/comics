@@ -63,9 +63,21 @@
 // l'ombra scura sotto ogni tratto (vedi la nota qui sopra): sono chiari
 // abbastanza da staccare sul nero pieno, e sul bianco e' l'ombra a fargli da
 // bordo.
-const ORO       = '#d9a417';  // --oro: l'orizzonte, e il numero che lo accompagna
-const VERDERAME = '#57ab97';  // le linee tracciate, il fascio e il punto di fuga
-const SABBIA    = '#c2a869';  // --oro-sabbia: il bordo della vignetta riquadrata
+//
+// E POI E' ARRIVATO QUACK (10 ottobre 2026). L'archivio e' diventato un
+// terminale e il lettore ha preso i colori del germano; questo strumento, che
+// si apre dal lettore, era rimasto oro e sabbia, "dettagli del precedente
+// Inkflow" (Giovanni). La regola di sopra resta, cambiano i colori: il fascio
+// e le linee prendono il ciano del germano, e l'orizzonte — che deve saltare
+// all'occhio PER PRIMO — il magenta al neon, l'unico colore che col ciano fa
+// stacco netto restando nella stessa famiglia da schermo retroilluminato.
+// I nomi delle costanti restano quelli di prima, cosi' ogni riga che le usa
+// racconta ancora a cosa servono.
+const ORO       = '#ff4fd8';  // l'orizzonte, e il numero che lo accompagna (magenta)
+const VERDERAME = '#5ff4ff';  // le linee tracciate, il fascio e il punto di fuga (ciano)
+const SABBIA    = '#2bb6d6';  // il bordo della vignetta riquadrata (ciano spento)
+
+import { iconaPixel } from './germano.js';
 
 // ── I TRE VOLTI DEL TASTO SALVA ──
 //
@@ -79,9 +91,9 @@ const SABBIA    = '#c2a869';  // --oro-sabbia: il bordo della vignetta riquadrat
 // nel cassetto mentre si aspetta, la spunta quando e' andata, il triangolo
 // quando no.
 const SEGNO_SALVA = {
-  salva: '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5v10.5"/><path d="m7.8 10 4.2 4.2 4.2-4.2"/><path d="M4.5 16.5v2.2a1.8 1.8 0 0 0 1.8 1.8h11.4a1.8 1.8 0 0 0 1.8-1.8v-2.2"/></svg>',
-  fatto: '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.6 4.6L19 7.5"/></svg>',
-  no:    '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4.6 21 20H3Z"/><path d="M12 10.4v4"/><path d="M12 17.2h.01"/></svg>',
+  salva: iconaPixel('salva'),
+  fatto: iconaPixel('fatto'),
+  no:    iconaPixel('avviso'),
 };
 // Cambiare faccia e nome insieme: separarli vorrebbe dire una spunta che per
 // chi non vede continua a chiamarsi "Salva".
@@ -527,10 +539,10 @@ function costruisci(){
            in barra nello stesso momento. -->
       <div class="prosp-fila">
         <button class="prosp-btn prosp-ico prosp-tutta" data-act="tutta" type="button" aria-label="Tutta l'immagine" title="Tutta l'immagine">
-          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><rect x="2.6" y="4.4" width="18.8" height="15.2" rx="1.8" stroke-dasharray="3.2 2.6"/><rect x="5.6" y="7.4" width="12.8" height="9.2" rx="1" fill="currentColor" stroke="none" opacity=".62"/></svg>
+          ${iconaPixel('riquadro')}
         </button>
         <button class="prosp-btn prosp-ico" data-act="indietro" type="button" aria-label="Torna indietro" title="Torna indietro">
-          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9h11a4.5 4.5 0 0 1 0 9H9"/><path d="M8 5 4 9l4 4"/></svg>
+          ${iconaPixel('indietro')}
         </button>
         <!-- ALLARGA LA VEDUTA. Quando la fuga cade due larghezze fuori dalla
              vignetta — il caso interessante — a schermo non c'e' modo di
@@ -539,18 +551,18 @@ function costruisci(){
              vignetta sola. Compare solo quando c'e' una fuga da andare a
              cercare. -->
         <button class="prosp-btn prosp-ico prosp-veduta" data-act="veduta" type="button" aria-label="Allarga la veduta" title="Allarga la veduta">
-          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3H4.5A1.5 1.5 0 0 0 3 4.5V9"/><path d="M15 3h4.5A1.5 1.5 0 0 1 21 4.5V9"/><path d="M21 15v4.5a1.5 1.5 0 0 1-1.5 1.5H15"/><path d="M3 15v4.5A1.5 1.5 0 0 0 4.5 21H9"/></svg>
+          ${iconaPixel('tutta')}
         </button>
         <!-- LA GOMMA cancella TUTTO, la freccia qui accanto solo l'ultimo
              tratto. Sono due gesti vicini e vale la pena saperlo: se in uso
              si confondono, la gomma diventa un cestino, che dice "via tutto"
              in modo piu' netto. -->
         <button class="prosp-btn prosp-ico" data-act="pulisci" type="button" aria-label="Pulisci" title="Pulisci: via linee e riquadro">
-          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.5 4.8 19.2 10.5a1.6 1.6 0 0 1 0 2.3l-5.4 5.4H9.6l-4.3-4.3a1.6 1.6 0 0 1 0-2.3l6-6a1.6 1.6 0 0 1 2.2 0Z"/><path d="M8.4 8.4 15 15"/><path d="M6 20.4h13.5"/></svg>
+          ${iconaPixel('pulisci')}
         </button>
         <button class="prosp-btn prosp-ico prosp-salva" data-act="salva" type="button" aria-label="Salva" title="Salva">${SEGNO_SALVA.salva}</button>
         <button class="prosp-btn prosp-ico prosp-esci" data-act="esci" type="button" aria-label="Chiudi" title="Chiudi">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" aria-hidden="true"><path d="M6.5 6.5 17.5 17.5 M17.5 6.5 6.5 17.5"/></svg>
+          ${iconaPixel('chiudi')}
         </button>
       </div>
     </div>`;
@@ -993,7 +1005,7 @@ export function disegna(){
     // impedisce di ridimensionare la vignetta mentre si voleva tracciare.
     for(const cand of manigliaRiq(cornice())){
       const p = aSchermoManiglia(cand, t);
-      maniglie += `<rect x="${p.x-6}" y="${p.y-6}" width="12" height="12" rx="2" fill="rgba(0,0,0,.5)" stroke="${SABBIA}" stroke-width="1.6" opacity=".9"/>`;
+      maniglie += `<rect x="${p.x-6}" y="${p.y-6}" width="12" height="12" fill="rgba(0,0,0,.5)" stroke="${VERDERAME}" stroke-width="2" opacity=".95"/>`;
     }
   }
   _ov.querySelector('.prosp-maniglie').innerHTML = maniglie;
@@ -1048,7 +1060,7 @@ function scriviBarra(linee, fuochi, orizzonte){
 // che si stava studiando, ed e' quello che si vuole poter mettere accanto a
 // un'altra fra un mese.
 const LATO_MAX = 1600;       // oltre, il file cresce senza che si veda di piu'
-const FONDO = '#16120c';     // il fondo del tavolo, dove la pagina non arriva
+const FONDO = '#000000';     // il fondo del tavolo, dove la pagina non arriva
 
 // ── LA CARTA DA LUCIDO ──
 //
@@ -1113,7 +1125,7 @@ function areaDaSalvare(){
 // studi che scrivono le stesse cose negli stessi posti si confrontano con un
 // colpo d'occhio: e' tutto il motivo per cui i campi sono fissi.
 function strisciaDati(c, W, y, h, misure){
-  c.fillStyle = 'rgba(12,9,5,.96)';
+  c.fillStyle = 'rgba(0,0,0,.96)';
   c.fillRect(0, y, W, h);
   c.textBaseline = 'middle';
   const bordo = h * 0.3;
@@ -1141,10 +1153,10 @@ function strisciaDati(c, W, y, h, misure){
   campi.forEach(([et, valore, acceso], i)=>{
     const x = bordo + largo * i;
     c.font = '700 ' + Math.max(7, Math.round(fs * 0.62)) + 'px Nunito, system-ui, sans-serif';
-    c.fillStyle = 'rgba(240,232,216,.42)';
+    c.fillStyle = 'rgba(95,244,255,.55)';
     c.fillText(et, x, y + h * 0.33);
     c.font = corpo(fs);
-    c.fillStyle = acceso ? ORO : 'rgba(240,232,216,.88)';
+    c.fillStyle = acceso ? ORO : '#cfe9ff';
     c.fillText(valore, x, y + h * 0.7);
   });
 }

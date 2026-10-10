@@ -5,7 +5,7 @@
 // riga di stato in fondo.
 import { getRefs } from './refs.js';
 import { suonaRumore, preparaRumori } from './sound.js';
-import { ANATRA, ANATRA_PASSO, disegnaGermano } from './germano.js';
+import { ANATRA, ANATRA_PASSO, disegnaGermano, vestiPixel } from './germano.js';
 
 // I RUMORI DEL COMPUTER (10 ottobre 2026), tagliati da due registrazioni
 // mandate da Giovanni:
@@ -38,6 +38,8 @@ export function montaArchivio(){
   const mon = document.getElementById('arch-monitor');
   if(_montato || !scr || !mon) return;
   _montato = true;
+  // La galleria delle immagini si veste da Quack anche lei: icone a pixel.
+  vestiPixel(document.getElementById('refs-lightbox'));
   const led = document.getElementById('arch-led');
   const power = document.getElementById('arch-power');
   const lettura = document.getElementById('arch-lettura');

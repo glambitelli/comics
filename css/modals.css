@@ -178,3 +178,54 @@
 }
 body.is-touch .ink-action-menu button{padding:12px 13px;font-size:14.5px}
 body.is-touch .ink-action-menu button.stacca{padding-top:15px}
+
+/* ══ DENTRO IL MONDO DI QUACK (10 ottobre 2026) ══
+   Menu e finestre sono gli stessi per tutta l'app, ma quando si aprono
+   sopra l'archivio-terminale, il lettore degli albi, la galleria delle
+   immagini o lo studio della prospettiva il foglio crema col filo d'oro
+   sembrava "di un'altra applicazione": c'erano ancora "quei dettagli in oro,
+   in color sabbia" del vecchio Inkflow (Giovanni). Li' prendono il vestito del
+   germano: nero, filo ciano, carattere del BIOS, angoli dritti. Altrove,
+   nella home e nei progetti, restano come sono. */
+:is(body.refs-lightbox-open, body.album-reading, body.prosp-aperta, body:has(#screen-refs.active)) .ink-action-menu{
+  background:#000;border:2px solid #126d8c;border-radius:0;box-shadow:0 0 14px rgba(95,244,255,.2);padding:4px;
+}
+:is(body.refs-lightbox-open, body.album-reading, body.prosp-aperta, body:has(#screen-refs.active)) .ink-action-menu button{
+  border-radius:0;font-family:'Unifont','Courier New',monospace;font-weight:400;font-size:16px;color:#cfe9ff;-webkit-font-smoothing:none;
+}
+:is(body.refs-lightbox-open, body.album-reading, body.prosp-aperta, body:has(#screen-refs.active)) .ink-action-menu button svg{color:#5ff4ff}
+:is(body.refs-lightbox-open, body.album-reading, body.prosp-aperta, body:has(#screen-refs.active)) .ink-action-menu button.danger,
+:is(body.refs-lightbox-open, body.album-reading, body.prosp-aperta, body:has(#screen-refs.active)) .ink-action-menu button.danger svg{color:#ff6a5a}
+:is(body.refs-lightbox-open, body.album-reading, body.prosp-aperta, body:has(#screen-refs.active)) .ink-action-menu button.stacca{border-top:2px solid #126d8c;border-radius:0}
+:is(body.refs-lightbox-open, body.album-reading, body.prosp-aperta, body:has(#screen-refs.active)) .ink-action-menu button:active{background:rgba(95,244,255,.15)}
+@media (hover:hover){
+  :is(body.refs-lightbox-open, body.album-reading, body.prosp-aperta, body:has(#screen-refs.active)) .ink-action-menu button:hover{background:rgba(95,244,255,.12)}
+  :is(body.refs-lightbox-open, body.album-reading, body.prosp-aperta, body:has(#screen-refs.active)) .ink-action-menu button.danger:hover{background:rgba(255,106,90,.14)}
+}
+:is(body.refs-lightbox-open, body.album-reading, body.prosp-aperta, body:has(#screen-refs.active)) .modal-overlay{background:rgba(0,0,0,.7)}
+:is(body.refs-lightbox-open, body.album-reading, body.prosp-aperta, body:has(#screen-refs.active)) .modal{
+  background:#000;border-radius:0;box-shadow:inset 0 0 0 2px #126d8c,0 0 18px rgba(95,244,255,.2);
+  font-family:'Unifont','Courier New',monospace;-webkit-font-smoothing:none;
+}
+:is(body.refs-lightbox-open, body.album-reading, body.prosp-aperta, body:has(#screen-refs.active)) .modal::before{display:none}
+:is(body.refs-lightbox-open, body.album-reading, body.prosp-aperta, body:has(#screen-refs.active)) .modal-head h3{font-family:inherit;font-weight:400;font-size:18px;color:#5ff4ff;text-shadow:0 0 6px rgba(95,244,255,.45)}
+:is(body.refs-lightbox-open, body.album-reading, body.prosp-aperta, body:has(#screen-refs.active)) :is(.modal-head p,.modal-nota,.field-label){font-family:inherit;color:#cfe9ff}
+:is(body.refs-lightbox-open, body.album-reading, body.prosp-aperta, body:has(#screen-refs.active)) .field-label{font-weight:400;font-size:13px;letter-spacing:0;text-transform:none;color:#2bb6d6}
+:is(body.refs-lightbox-open, body.album-reading, body.prosp-aperta, body:has(#screen-refs.active)) :is(.modal-nota,.field-input){
+  background:rgba(95,244,255,.05);border:2px solid #126d8c;border-radius:0;font-family:inherit;font-weight:400;color:#cfe9ff;
+}
+:is(body.refs-lightbox-open, body.album-reading, body.prosp-aperta, body:has(#screen-refs.active)) .field-input:focus{border-color:#5ff4ff;box-shadow:0 0 8px rgba(95,244,255,.4)}
+:is(body.refs-lightbox-open, body.album-reading, body.prosp-aperta, body:has(#screen-refs.active)) :is(.btn-cancel,.btn-create,.btn-danger){
+  border-radius:0;font-family:inherit;font-weight:400;font-size:16px;box-shadow:none;
+}
+:is(body.refs-lightbox-open, body.album-reading, body.prosp-aperta, body:has(#screen-refs.active)) .btn-cancel{border:2px solid #2bb6d6;color:#5ff4ff;background:none}
+:is(body.refs-lightbox-open, body.album-reading, body.prosp-aperta, body:has(#screen-refs.active)) .btn-create{background:#5ff4ff;color:#00005a;box-shadow:0 0 10px rgba(95,244,255,.5)}
+:is(body.refs-lightbox-open, body.album-reading, body.prosp-aperta, body:has(#screen-refs.active)) .btn-danger{background:#ff6a5a;color:#000}
+/* e la striscia "Annulla" dopo una cancellazione */
+:is(body.refs-lightbox-open, body.album-reading, body.prosp-aperta, body:has(#screen-refs.active)) #undo-toast{
+  background:#000;border-radius:0;box-shadow:inset 0 0 0 2px #126d8c,0 0 14px rgba(95,244,255,.2);
+  font-family:'Unifont','Courier New',monospace;font-weight:400;font-size:16px;color:#cfe9ff;-webkit-font-smoothing:none;
+}
+:is(body.refs-lightbox-open, body.album-reading, body.prosp-aperta, body:has(#screen-refs.active)) #undo-toast button{
+  font-family:inherit;font-weight:400;font-size:16px;color:#5ff4ff;text-shadow:0 0 6px rgba(95,244,255,.5)
+}

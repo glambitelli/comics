@@ -815,3 +815,47 @@ body.is-touch .refs-lightbox-nav{display:none}
    colpo d'occhio si vede quante e quali sono senza contare le spunte. */
 .refs-thumb.scelta{outline:2.5px solid var(--oro);outline-offset:-2.5px}
 .refs-thumb.scelta img{opacity:.72}
+
+/* ══ LA GALLERIA E LA RIFILATURA, ALLA QUACK (10 ottobre 2026) ══
+   Come il lettore degli albi: stessi comandi di prima, il vestito del germano.
+   Il fondo pero' e' NERO pieno, non il blu del lettore e non piu' il vetro
+   bruno sfocato: qui si guarda una foto o un frammento da studiare, e il nero
+   la stacca meglio di tutto ("per una questione di chiarezza", Giovanni). Col
+   nero opaco non serve piu' nemmeno la sfocatura, che c'era solo per non far
+   leggere la griglia dell'archivio dietro la trasparenza (vedi sopra): via
+   tutte e due insieme, come chiedeva quella nota.
+   Icone a pixel (js/germano.js, messe al posto delle vecchie da vestiPixel in
+   js/archivio.js), barra coi bordi tondi e il filo ciano, scritte nel
+   carattere del BIOS, niente oro e niente sabbia. */
+.refs-lightbox,.rifila-overlay{
+  --q-ciano:#5ff4ff; --q-medio:#2bb6d6; --q-spento:#126d8c; --q-notte:#00005a;
+  --q-bios:'Unifont','Courier New',monospace;
+}
+.refs-lightbox{background:#000;backdrop-filter:none;-webkit-backdrop-filter:none}
+.refs-lightbox-close,.refs-lightbox-nav{border-radius:0;background:none;color:var(--q-ciano)}
+.refs-lightbox-close:hover,.refs-lightbox-close:active{background:rgba(95,244,255,.15)}
+.refs-lightbox-pill{background:rgba(0,0,40,.5);border:none;border-radius:24px;
+  box-shadow:inset 0 0 0 2px var(--q-spento),0 0 12px rgba(95,244,255,.15);backdrop-filter:none;-webkit-backdrop-filter:none}
+.refs-lightbox-counter,.refs-lightbox-prov{font-family:var(--q-bios);font-size:16px;font-weight:400;letter-spacing:0;-webkit-font-smoothing:none}
+.refs-lightbox-counter{color:var(--q-ciano);text-shadow:0 0 4px rgba(95,244,255,.8),0 0 12px rgba(95,244,255,.35)}
+.refs-lightbox-prov{color:#cfe9ff}
+.refs-lightbox-divider{background:var(--q-spento);width:2px}
+.refs-lightbox-more,.refs-lightbox-link{border-radius:0;background:none;border:none;color:var(--q-ciano)}
+.refs-lightbox-more:active,.refs-lightbox-link:active{background:rgba(95,244,255,.15)}
+.refs-lightbox-more svg.px-ico{fill:none}
+/* collegato a un progetto: il tasto prende il colore del progetto, la
+   catena diventa scura sopra */
+.refs-lightbox-link.linked{background:var(--proj,#4ab8d8)}
+.refs-lightbox-link.linked .px-ico{filter:none}
+.refs-lightbox-link.linked .px-a{fill:#000028}
+.refs-lightbox-link.linked .px-s{fill:rgba(0,0,0,.35)}
+
+.rifila-overlay{background:#000}
+.rifila-box{border:2px dashed var(--q-ciano);background:rgba(95,244,255,.08)}
+.rifila-handle::after{border-color:var(--q-ciano);filter:drop-shadow(0 0 1px #00005a) drop-shadow(0 0 3px rgba(95,244,255,.8))}
+.rifila-mid::after{border-top-color:var(--q-ciano)}
+.rifila-handle[data-angolo="w"]::after,.rifila-handle[data-angolo="e"]::after{border-left-color:var(--q-ciano)}
+.rifila-barra{background:#000;border-top:2px solid var(--q-spento)}
+.rifila-hint{font-family:var(--q-bios);font-size:14px;color:var(--q-medio);-webkit-font-smoothing:none}
+.rifila-btn{font-family:var(--q-bios);font-size:16px;font-weight:400;border-radius:0;border:2px solid var(--q-medio);color:var(--q-ciano);background:none;-webkit-font-smoothing:none}
+.rifila-ok{background:var(--q-ciano);border-color:var(--q-ciano);color:var(--q-notte);box-shadow:0 0 10px rgba(95,244,255,.5)}

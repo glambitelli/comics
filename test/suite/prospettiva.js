@@ -638,7 +638,8 @@ module.exports = () => suite("Prospettiva — il righello per leggere l'orizzont
     const riquadra = foto();
     riquadra.invito = { testo: ov.querySelector('.prosp-invito').textContent,
       corpo: Math.round(parseFloat(getComputedStyle(ov.querySelector('.prosp-invito')).fontSize)),
-      maiuscolo: getComputedStyle(ov.querySelector('.prosp-invito')).textTransform };
+      maiuscolo: getComputedStyle(ov.querySelector('.prosp-invito')).textTransform,
+      font: getComputedStyle(ov.querySelector('.prosp-invito')).fontFamily };
     // La fuga cade a y=0.306, e il riquadro comincia piu' in basso: cosi'
     // l'orizzonte e' "sopra la vignetta", il testo piu' lungo dei tre campi.
     P.__perLeProveRiquadro({ x:0.1, y:0.35, w:0.8, h:0.55 });
@@ -682,10 +683,12 @@ module.exports = () => suite("Prospettiva — il righello per leggere l'orizzont
      muta.riquadra.barra.h < 90, muta.riquadra.barra);
   // L'INVITO RESTA, MA COME MICRO-SCRITTA: si legge una volta sola, e alla
   // seconda vignetta un titolo in oro pieno e' gia' rumore.
-  ok('l\'invito c\'e\' ancora, ma piccolo e maiuscoletto',
+  // Dal 10 ottobre 2026 e' nel carattere del BIOS, come tutto Quack: il
+  // maiuscoletto non c'e' piu', resta piccolo (non piu' di una riga di 14px).
+  ok('l\'invito c\'e\' ancora, piccolo e nel carattere del BIOS',
      /riquadra/i.test(muta.riquadra.invito.testo)
-     && muta.riquadra.invito.corpo <= 10
-     && muta.riquadra.invito.maiuscolo === 'uppercase', muta.riquadra.invito);
+     && muta.riquadra.invito.corpo <= 14
+     && /Unifont/.test(muta.riquadra.invito.font || ''), muta.riquadra.invito);
   // LA TARGA NON SI TOCCA: e' l'unica cosa che si LEGGE, ed e' il motivo per
   // cui lo strumento esiste.
   ok('la targa dei numeri resta, con un fondo suo',
@@ -1266,7 +1269,7 @@ module.exports = () => suite("Prospettiva — il righello per leggere l'orizzont
       const im = new Image(); im.onload = ()=> res(im); im.src = URL.createObjectURL(b);
     });
     const senzaToccareNiente = await leggi(preso[0].blob);
-    // Nell'immagine si va a cercare l'oro dell'orizzonte: se c'e', la riga e'
+    // Nell'immagine si va a cercare il colore dell'orizzonte: se c'e', la riga e'
     // finita dentro davvero.
     const cercaOro = (im)=>{
       const cv = document.createElement('canvas');
@@ -1275,7 +1278,7 @@ module.exports = () => suite("Prospettiva — il righello per leggere l'orizzont
       const d = cx.getImageData(0, 0, cv.width, Math.round(cv.height * 0.88)).data;
       let n = 0;
       for(let i = 0; i < d.length; i += 4){
-        if(d[i] > 200 && d[i+1] > 150 && d[i+1] < 220 && d[i+2] < 90) n++;
+        if(d[i] > 200 && d[i+1] < 140 && d[i+2] > 160) n++;   // il magenta dell'orizzonte (era oro fino al 10 ottobre 2026)
       }
       return n;
     };
@@ -1385,7 +1388,7 @@ module.exports = () => suite("Prospettiva — il righello per leggere l'orizzont
     const d = cx.getImageData(0, 0, cv.width, Math.round(cv.height * 0.88)).data;
     let oro = 0;
     for(let i = 0; i < d.length; i += 4){
-      if(d[i] > 200 && d[i+1] > 150 && d[i+1] < 220 && d[i+2] < 90) oro++;
+      if(d[i] > 200 && d[i+1] < 140 && d[i+2] > 160) oro++;   // il magenta dell'orizzonte (era oro fino al 10 ottobre 2026)
     }
     return { ristretto, w: im.width, h: im.height, oro };
   });
@@ -1420,11 +1423,11 @@ module.exports = () => suite("Prospettiva — il righello per leggere l'orizzont
     let scuri = 0, oro = 0;
     for(let i = 0; i < d.length; i += 4){
       if(d[i] < 60 && d[i+1] < 60 && d[i+2] < 60) scuri++;
-      if(d[i] > 200 && d[i+1] > 150 && d[i+2] < 90) oro++;
+      if(d[i] > 200 && d[i+1] < 140 && d[i+2] > 160) oro++;   // il magenta (era oro)
     }
     return { larghezza: cv.width, punti: d.length/4, scuri, oro, altezza: cv.height };
   });
   ok('sotto l\'immagine c\'e\' una striscia scura',
      striscia.scuri > striscia.punti * 0.6, striscia);
-  ok('e dentro ci sono scritti i numeri, in oro', striscia.oro > 20, striscia);
+  ok('e dentro ci sono scritti i numeri, l\'orizzonte in magenta', striscia.oro > 20, striscia);
 });

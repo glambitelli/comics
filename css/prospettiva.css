@@ -198,3 +198,43 @@ body.prosp-aperta .refs-lightbox-nav{display:none !important}
      gia' larga al massimo 560px, e le azioni a parti uguali dentro 560px
      hanno la misura giusta da sole. */
 }
+
+/* ══ ALLA QUACK (10 ottobre 2026) ══
+   Lo strumento si apre dal lettore, che da oggi veste i colori del germano, e
+   qui erano rimasti l'oro, la sabbia e il rame del vecchio Inkflow ("vanno
+   tolti quei dettagli in oro, in color sabbia", Giovanni). Il fondo resta
+   NERO, non il blu del lettore: qui si misura una vignetta, e il nero pieno
+   la stacca meglio di qualunque colore ("per una questione di chiarezza").
+   Barra in vetro nero con il filo ciano e gli angoli tondi come la barra del
+   lettore, tasti squadrati con le icone a pixel, scritte nel carattere del
+   BIOS. I colori delle linee stanno in js/prospettiva.js (ORO e VERDERAME:
+   ora magenta e ciano). */
+.prosp{
+  --q-ciano:#5ff4ff; --q-medio:#2bb6d6; --q-spento:#126d8c; --q-notte:#00005a; --q-magenta:#ff4fd8;
+  --q-bios:'Unifont','Courier New',monospace;
+}
+body.prosp-tavolo-aperto .prosp{background:#000}
+.prosp-barra{background:rgba(0,0,0,.86);border:none;border-radius:24px;padding:8px 13px;gap:7px;
+  box-shadow:inset 0 0 0 2px var(--q-spento),0 0 12px rgba(95,244,255,.15);font-family:var(--q-bios)}
+.prosp-invito{font-family:var(--q-bios);font-size:14px;font-weight:400;letter-spacing:0;text-transform:none;color:var(--q-ciano);
+  text-shadow:0 0 6px rgba(95,244,255,.45);-webkit-font-smoothing:none}
+.prosp-targa{background:rgba(95,244,255,.05);border-radius:0;box-shadow:inset 0 0 0 2px var(--q-spento)}
+.prosp-targa span{border-left:2px solid var(--q-spento)}
+.prosp-targa span:first-child{border-left:0}
+.prosp-targa i{font-size:12px;font-weight:400;letter-spacing:0;text-transform:none;color:var(--q-medio);-webkit-font-smoothing:none}
+.prosp-targa b{font-size:16px;font-weight:400;color:#cfe9ff;-webkit-font-smoothing:none}
+.prosp-targa .prosp-oriz{color:var(--q-magenta);text-shadow:0 0 6px rgba(255,79,216,.5)}
+.prosp-btn,.prosp-fila .prosp-btn{border-radius:0;background:none;border:2px solid var(--q-spento);color:var(--q-ciano);font-family:var(--q-bios);font-weight:400}
+.prosp-btn:active,.prosp-fila .prosp-btn:active{background:rgba(95,244,255,.15)}
+/* Il peso dei tasti resta, detto coi colori di Quack: Salva (lascia un
+   segno) e la veduta accesa si invertono, ciano pieno col disegno blu notte;
+   Chiudi e' un tasto come gli altri; un salvataggio andato male si accende di
+   rosso. */
+.prosp-fila .prosp-salva,.prosp-fila .prosp-veduta.acceso,.prosp-fila .prosp-salva.prosp-fatto{background:var(--q-ciano);border-color:var(--q-ciano);box-shadow:0 0 10px rgba(95,244,255,.5)}
+.prosp-fila .prosp-salva .px-ico,.prosp-fila .prosp-veduta.acceso .px-ico{filter:none}
+.prosp-fila .prosp-salva .px-a,.prosp-fila .prosp-veduta.acceso .px-a{fill:var(--q-notte)}
+.prosp-fila .prosp-salva .px-s,.prosp-fila .prosp-veduta.acceso .px-s,.prosp-fila .prosp-salva .px-m,.prosp-fila .prosp-veduta.acceso .px-m{fill:var(--q-medio)}
+.prosp-fila .prosp-esci{background:none;border-color:var(--q-spento)}
+.prosp-fila .prosp-salva.prosp-guaio{background:none;border-color:#ff6a5a;box-shadow:0 0 10px rgba(255,106,90,.5)}
+.prosp-fila .prosp-salva.prosp-guaio .px-a{fill:#ff6a5a}
+.prosp-fila .prosp-salva.prosp-guaio .px-ico{filter:none}

@@ -154,6 +154,20 @@ const GRIGLIE = {
   ultima: righe(['aa.....aa','.aa....aa','..aa...aa','...aa..aa','....aa.aa','...aa..aa','..aa...aa','.aa....aa','aa.....aa']),
   tutta:  righe(['aaaa...aaaa','a.........a','a.........a','a.........a','...........','...........','...........','a.........a','a.........a','a.........a','aaaa...aaaa']),
   riprova:righe(['..aaaa.a..','.aa..aaa..','aa...aaa..','a.........','a........a','aa......aa','.aa....aa.','..aaaaaa..']),
+  // Quelle che seguono vestono la galleria delle immagini e lo strumento della
+  // prospettiva: stesse regole, e 'm' (il tono medio del collo del germano)
+  // per le parti piene che devono stare un gradino sotto il tratto.
+  collega:(()=>{ const g = vuota(14, 8);
+    const anello = (x, y, w, h)=>{ for(let i = 1; i < w - 1; i++){ punto(g, x + i, y); punto(g, x + i, y + h - 1); }
+      for(let j = 1; j < h - 1; j++){ punto(g, x, y + j); punto(g, x + w - 1, y + j); } };
+    anello(0, 0, 8, 5); anello(6, 3, 8, 5); return g; })(),
+  altro:  righe(['aa..aa..aa','aa..aa..aa']),
+  indietro:righe(['...a........','..aa........','.aaaaaaaaa..','..aa......a.','...a.......a','...........a','..........a.','....aaaaaa..']),
+  pulisci:righe(['....aaaaaaa','...a.....aa','..a.....a.a','.aaaaaaa..a','.a.....a.a.','.a.....aa..','.aaaaaaa...','...........','aaaaaaaaaaa']),
+  salva:  righe(['....aa....','....aa....','....aa....','.aa.aa.aa.','..aaaaaa..','...aaaa...','....aa....','a........a','a........a','aaaaaaaaaa']),
+  fatto:  righe(['.........aa','........aa.','.......aa..','aa....aa...','.aa..aa....','..aaaa.....','...aa......']),
+  avviso: righe(['.....a.....','....aaa....','....a.a....','...a.a.a...','...a.a.a...','..a..a..a..','..a.....a..','.a...a...a.','aaaaaaaaaaa']),
+  riquadro:righe(['aa.aa.aa.aa','a.........a','..mmmmmmm..','a.mmmmmmm.a','a.mmmmmmm.a','..mmmmmmm..','a.........a','aa.aa.aa.aa']),
   prosp: (()=>{ const g = vuota(13, 11);
     linea(g, 0, 0, 9, 5); linea(g, 0, 5, 9, 5); linea(g, 0, 10, 9, 5);
     [[10,4],[11,4],[10,5],[11,5],[10,6],[11,6],[12,5]].forEach(([x, y])=> punto(g, x, y));
@@ -173,4 +187,16 @@ export function iconaPixel(nome, px = 2){
     if(c !== '.') pix += `<rect class="px-${c}" x="${x}" y="${y}" width="1.02" height="1.02"/>`;
   }));
   return `<svg class="px-ico" viewBox="0 0 ${w + 1} ${h + 1}" width="${(w + 1) * px}" height="${(h + 1) * px}" shape-rendering="crispEdges" aria-hidden="true">${pix}</svg>`;
+}
+
+// I tasti scritti a mano in index.html (la galleria delle immagini) dicono con
+// data-pixel="nome" quale icona vogliono: qui la loro vecchia icona disegnata
+// a tratto lascia il posto a quella a pixel. data-px per la grandezza del
+// pixel, se non e' la solita.
+export function vestiPixel(radice = document){
+  radice.querySelectorAll('[data-pixel]').forEach(el=>{
+    const vecchia = el.querySelector('svg');
+    const nuova = iconaPixel(el.dataset.pixel, +(el.dataset.px || 2));
+    if(vecchia) vecchia.outerHTML = nuova; else el.insertAdjacentHTML('afterbegin', nuova);
+  });
 }

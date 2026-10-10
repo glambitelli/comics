@@ -690,11 +690,11 @@
 
 <!-- LIGHTBOX RIFERIMENTI -->
 <div id="refs-lightbox" class="refs-lightbox">
-  <button onclick="closeRefLightbox()" class="refs-lightbox-close" aria-label="Chiudi">
+  <button onclick="closeRefLightbox()" class="refs-lightbox-close" aria-label="Chiudi" data-pixel="chiudi">
     <svg viewBox="0 0 24 24" width="17" height="17"><path d="M6.5 6.5 17.5 17.5 M17.5 6.5 6.5 17.5" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"/></svg>
   </button>
   <div class="refs-lightbox-body" id="refs-lightbox-body">
-    <button onclick="prevRefImage()" id="refs-lightbox-prev" class="refs-lightbox-nav refs-lightbox-nav-prev" aria-label="Precedente">
+    <button onclick="prevRefImage()" id="refs-lightbox-prev" class="refs-lightbox-nav refs-lightbox-nav-prev" aria-label="Precedente" data-pixel="prec" data-px="3">
       <svg viewBox="0 0 24 24" width="22" height="22"><path d="M15 5 L8 12 L15 19" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </button>
     <div class="refs-lightbox-track" id="refs-lightbox-track">
@@ -702,7 +702,7 @@
       <div class="refs-lightbox-cell"><img class="refs-lightbox-img" alt=""/></div>
       <div class="refs-lightbox-cell"><img class="refs-lightbox-img" alt=""/></div>
     </div>
-    <button onclick="nextRefImage()" id="refs-lightbox-next" class="refs-lightbox-nav refs-lightbox-nav-next" aria-label="Successiva">
+    <button onclick="nextRefImage()" id="refs-lightbox-next" class="refs-lightbox-nav refs-lightbox-nav-next" aria-label="Successiva" data-pixel="succ" data-px="3">
       <svg viewBox="0 0 24 24" width="22" height="22"><path d="M9 5 L16 12 L9 19" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </button>
   </div>
@@ -713,7 +713,7 @@
         <span class="refs-lightbox-divider" aria-hidden="true"></span>
         <span id="refs-lightbox-prov" class="refs-lightbox-prov"></span>
       </span>
-      <button onclick="promptLinkProjectFromLightbox(this)" id="refs-lightbox-link" class="refs-lightbox-link" aria-label="Collega a un progetto">
+      <button onclick="promptLinkProjectFromLightbox(this)" id="refs-lightbox-link" class="refs-lightbox-link" aria-label="Collega a un progetto" data-pixel="collega">
         <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path d="M10.2 13.8a3.6 3.6 0 0 0 5.2.3l2.4-2.4a3.6 3.6 0 1 0-5.1-5.1l-1.4 1.4" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/><path d="M13.8 10.2a3.6 3.6 0 0 0-5.2-.3l-2.4 2.4a3.6 3.6 0 1 0 5.1 5.1l1.4-1.4" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>
       </button>
       <!-- RITAGLIA STA QUI, non nel menu. E' un gesto che si fa spesso — uno
@@ -721,7 +721,7 @@
            e nel lettore degli albi il ritaglio e' gia' un pulsante in barra:
            nasconderlo dietro i tre puntini avrebbe voluto dire due gesti
            diversi per la stessa cosa. Stessa icona delle forbici del lettore. -->
-      <button onclick="rifilaDaLightbox()" id="refs-lightbox-crop" class="refs-lightbox-link" aria-label="Ritaglia">
+      <button onclick="rifilaDaLightbox()" id="refs-lightbox-crop" class="refs-lightbox-link" aria-label="Ritaglia" data-pixel="forbici">
         <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><circle cx="6.5" cy="6.5" r="2.4" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="6.5" cy="17.5" r="2.4" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8.6 8.2 20 18 M8.6 15.8 20 6" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg>
       </button>
       <!-- LA PROSPETTIVA QUI NON C'E' PIU' (9 ottobre 2026). Stava accanto alle
@@ -729,7 +729,7 @@
            come un autore costruisce le sue tavole: ha senso sulle pagine degli
            albi, non sulle foto di riferimento come quelle di Hands (Giovanni:
            "non ha senso averla li', deve essere solo per gli albi"). -->
-      <button onclick="refsImageMenu(this)" class="refs-lightbox-more" aria-label="Altre azioni">
+      <button onclick="refsImageMenu(this)" class="refs-lightbox-more" aria-label="Altre azioni" data-pixel="altro">
         <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
       </button>
     </div>
