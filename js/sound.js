@@ -164,6 +164,9 @@ function isInteractive(el){
   // E l'interruttore della lampada, che fa il clic di un interruttore vero
   // (vedi montaLaLuce in scrivania.js).
   if(el.closest('#scriv-luce')) return false;
+  // E il tasto di accensione del monitor dell'archivio: ha lo scatto del tubo
+  // (vedi js/archivio.js).
+  if(el.closest('#arch-power')) return false;
   return !!el.closest('button, a[href], [role="button"], [onclick], .refs-thumb, .album-card, .refs-folder-row, .step-item, .project-card');
 }
 // Suona al RILASCIO (non al tocco): appoggiare il dito su un elemento

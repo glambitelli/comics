@@ -483,14 +483,20 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
       .every(id=> crt.contains(document.getElementById(id)));
     // il tasto di accensione
     const power = document.getElementById('arch-power');
+    const { __rumoriChiesti } = await import('/js/sound.js');
+    __rumoriChiesti.splice(0);
     power.click(); await new Promise(r=> setTimeout(r, 600));
+    const rumoreSpento = __rumoriChiesti.splice(0);
     const spento = mon.classList.contains('spento');
     power.click(); await new Promise(r=> setTimeout(r, 100));
     const riacceso = !mon.classList.contains('spento');
+    await new Promise(r=> setTimeout(r, 500));
+    const rumoreAcceso = __rumoriChiesti.splice(0);
+    const avvio = !document.querySelector('.arch-boot').hidden;
     return {
       blu: getComputedStyle(crt).backgroundColor,
       carattere: getComputedStyle(crt).fontFamily,
-      misure: [...misure], colori: [...colori], dentro, spento, riacceso,
+      misure: [...misure], colori: [...colori], dentro, spento, riacceso, rumoreSpento, rumoreAcceso, avvio,
       appoggiato: Math.abs(rm.bottom - rs.top) < 60 && rm.bottom > rs.top, basso: Math.round(rm.bottom), tavolo: Math.round(rs.top), alto: innerHeight, largo: innerWidth,
       cornice: getComputedStyle(document.querySelector('.arch-cornice')).borderImageSource,
     };
@@ -505,6 +511,11 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
   ok('il monitor appoggia sulla scrivania, non fluttua', terminale.appoggiato, terminale);
   ok('la cornice e\' la foto del monitor', /cornice\.webp/.test(terminale.cornice), terminale.cornice);
   ok('il tasto tondo spegne il monitor e lo riaccende', terminale.spento && terminale.riacceso, terminale);
+  // I RUMORI DELLA MACCHINA (10 ottobre 2026): lo scatto del tubo spegnendo,
+  // e riaccendendo lo scatto piu' l'avvio del PC col beep del BIOS.
+  ok('spegnendo fa lo scatto del tubo', JSON.stringify(terminale.rumoreSpento) === '["spegni.mp3"]', terminale.rumoreSpento);
+  ok('e riaccendendo lo scatto e l\'avvio, con le righe del BIOS',
+     terminale.rumoreAcceso.includes('accendi.mp3') && terminale.rumoreAcceso.includes('boot.mp3') && terminale.avvio, terminale);
 
   console.log('\n── il quarto tondo porta a Projects, e il taccuino e\' sceso in Impostazioni ──');
   // I cinque tondi sono per quello che si tocca ogni volta che si apre l'app.

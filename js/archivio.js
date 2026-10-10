@@ -4,6 +4,24 @@
 // tremolio di tanto in tanto, lo schermo che "legge" la cartella aperta, e la
 // riga di stato in fondo.
 import { getRefs } from './refs.js';
+import { suonaRumore, preparaRumori } from './sound.js';
+
+// I RUMORI DEL COMPUTER (10 ottobre 2026), tagliati da due registrazioni
+// mandate da Giovanni:
+//   accendi / spegni — lo scatto e il fischio di un televisore CRT (da 2,03 e
+//                      da 3,63 secondi), col fruscio di fondo attenuato;
+//   boot             — i primi 4,6 secondi dell'avvio di un PC anni '90:
+//                      la ventola che parte e il beep del BIOS;
+//   disco            — un secondo dello stesso file, dove il disco fisso
+//                      lavora: e' il rumore della "Lettura in corso".
+// I tocchi sulle voci restano i suoni dei menu di Resident Evil di tutta
+// l'app (sound.js): qui suona solo la macchina.
+const RUMORI = {
+  accendi: './sfx/monitor/accendi.mp3',
+  spegni:  './sfx/monitor/spegni.mp3',
+  boot:    './sfx/monitor/boot.mp3',
+  disco:   './sfx/monitor/disco.mp3',
+};
 
 const ridotto = ()=> window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
 let _montato = false;
@@ -18,10 +36,47 @@ export function montaArchivio(){
   const lettura = document.getElementById('arch-lettura');
   const stato = document.getElementById('arch-stato');
 
+  window.addEventListener('pointerdown', ()=> preparaRumori(Object.values(RUMORI)), { once:true, passive:true });
+
+  // L'AVVIO: la prima volta che si entra nell'archivio, e ogni volta che lo si
+  // riaccende col tasto, lo schermo fa un avvio da PC vero, rapido: tre
+  // secondi di righe del BIOS col beep e la ventola, poi l'elenco. Le volte
+  // dopo, entrando, solo lo scatto del tubo: un avvio a ogni ingresso
+  // stancherebbe alla terza volta. Non prende i tocchi: chi ha fretta tocca
+  // gia' l'elenco sotto.
+  const crt = document.getElementById('arch-crt');
+  const boot = document.createElement('div');
+  boot.className = 'arch-boot'; boot.hidden = true; boot.setAttribute('aria-hidden', 'true');
+  crt && crt.appendChild(boot);
+  const RIGHE = [
+    'Inkflow BIOS v1.0',
+    '(C) 1998 Inkflow Data Systems',
+    '',
+    'Memoria ........ 640K OK',
+    'Disco fisso .... C: OK',
+    '',
+    "Avvio dell'archivio visivo...",
+  ];
+  let _avviato = false, _bootTimer = 0;
+  const avvia = ()=>{
+    _avviato = true;
+    clearInterval(_bootTimer);
+    let n = 0;
+    boot.textContent = ''; boot.hidden = false;
+    setTimeout(()=> suonaRumore(RUMORI.boot, .4), 350);
+    _bootTimer = setInterval(()=>{
+      n++;
+      boot.textContent = RIGHE.slice(0, n).join('\n') + (n % 2 ? '_' : '');
+      if(n > RIGHE.length + 3){ clearInterval(_bootTimer); boot.hidden = true; }
+    }, 320);
+  };
+
   // ENTRANDO SI ACCENDE: una riga bianca al centro che si apre su tutto lo
-  // schermo, come un CRT vero. Solo quando la schermata diventa attiva, non a
-  // ogni ridisegno dell'elenco.
-  const accendi = ()=>{
+  // schermo, come un CRT vero, con lo scatto e il fischio del tubo. Solo
+  // quando la schermata diventa attiva, non a ogni ridisegno dell'elenco.
+  const accendi = (conAvvio)=>{
+    suonaRumore(RUMORI.accendi, .55);
+    if(conAvvio && !ridotto()) avvia();
     if(ridotto()) return;
     mon.classList.remove('accensione'); void mon.offsetWidth;
     mon.classList.add('accensione');
@@ -30,19 +85,21 @@ export function montaArchivio(){
   let attiva = scr.classList.contains('active');
   new MutationObserver(()=>{
     const ora = scr.classList.contains('active');
-    if(ora && !attiva && !mon.classList.contains('spento')) accendi();
+    if(ora && !attiva && !mon.classList.contains('spento')) accendi(!_avviato);
     attiva = ora;
   }).observe(scr, { attributes:true, attributeFilter:['class'] });
 
   // IL TASTO DI ACCENSIONE sotto lo schermo: lo spegne chiudendolo in un punto,
-  // e lo riaccende. La spia rossa va con lui.
+  // e lo riaccende con l'avvio. La spia rossa va con lui.
   power.addEventListener('click', ()=>{
     if(mon.classList.contains('spento')){
       mon.classList.remove('spento');
       power.setAttribute('aria-label', 'Spegni il monitor');
-      accendi();
+      accendi(true);
     } else {
       power.setAttribute('aria-label', 'Accendi il monitor');
+      suonaRumore(RUMORI.spegni, .55);
+      clearInterval(_bootTimer); boot.hidden = true;
       if(ridotto()){ mon.classList.add('spento'); return; }
       mon.classList.add('spegnimento');
       setTimeout(()=>{ mon.classList.remove('spegnimento'); mon.classList.add('spento'); }, 420);
@@ -76,6 +133,9 @@ export function montaArchivio(){
       lettura.textContent = `${nome.toUpperCase()}\nArchivio visivo.\n\nLettura in corso${'.'.repeat(Math.min(p, 5))}${p % 2 ? '_' : ' '}`;
     };
     scrivi(); lettura.hidden = false; led && led.classList.add('arch-lavora');
+    // un attimo dopo il tocco: prima il tic del menu di Resident Evil, poi il
+    // disco che lavora (suonati insieme, il secondo zittiva il primo)
+    setTimeout(()=> suonaRumore(RUMORI.disco, .4), 140);
     timer = setInterval(()=>{
       p++; scrivi();
       if(p >= 8){
@@ -116,7 +176,6 @@ export function montaArchivio(){
   };
   let attesa = 0;
   const presto = ()=>{ clearTimeout(attesa); attesa = setTimeout(aggiorna, 60); };
-  const crt = document.getElementById('arch-crt');
   if(crt) new MutationObserver(presto).observe(crt, { childList:true, subtree:true, attributes:true, attributeFilter:['style'] });
   aggiorna();
 }

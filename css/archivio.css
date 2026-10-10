@@ -140,6 +140,9 @@
    nome e "Lettura in corso....." (vedi js/archivio.js). Non prende i tocchi. */
 .arch-lettura{position:absolute;inset:0;z-index:15;background:var(--vga-blu);padding:30% 24px 0;white-space:pre;line-height:22px;pointer-events:none}
 
+/* l'avvio: le righe del BIOS che compaiono una alla volta (js/archivio.js) */
+.arch-boot{position:absolute;inset:0;z-index:16;background:var(--vga-blu);padding:16px 14px;white-space:pre;line-height:20px;pointer-events:none}
+
 /* ══ IL VESTITO DA BIOS ══
    Tutto quello che c'era dentro, con gli stessi id e lo stesso funzionamento:
    un carattere, bianco su blu, linee bianche, la scelta al contrario. */
