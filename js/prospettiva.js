@@ -655,10 +655,6 @@ function trovaEstremo(cx, cy, t){
 // (17px di scostamento e 26 di raggio) la zona arrivava ancora nove pixel
 // dentro il riquadro, e il fraintendimento restava esattamente dov'era.
 const FUORI = 24;
-// Il raggio di presa delle maniglie del riquadro, piu' piccolo di quello dei
-// capi di linea: quelle si prendono da fuori, dove non c'e' concorrenza, e
-// allargarlo vorrebbe solo dire farlo rientrare nel disegno.
-const RAGGIO_RIQ = 22;
 function manigliaRiq(r){
   return [
     { punto:{x:r.x,       y:r.y      }, fx:r.x+r.w, fy:r.y+r.h, mx:true,  my:true,  dx:-1, dy:-1 },
@@ -671,20 +667,36 @@ function manigliaRiq(r){
     { punto:{x:r.x+r.w/2, y:r.y+r.h  }, fx:null,    fy:r.y,     mx:false, my:true,  dx: 0, dy: 1 },
   ];
 }
-// Dove sta a schermo una maniglia: il suo punto sul bordo, spostato in fuori.
-function aSchermoManiglia(cand, t){
-  const p = aSchermo(cand.punto, t);
-  return { x: p.x + cand.dx * FUORI, y: p.y + cand.dy * FUORI };
-}
+// LA PRESA E' TUTTO IL MARGINE INTORNO AL MIRINO (10 ottobre 2026). Fino a
+// ieri le maniglie erano otto PUNTI, 24px fuori, ciascuno con 22px di raggio:
+// fra un punto e l'altro restava un buco. Col mirino il buco si e' visto:
+// Giovanni toccava la squadra disegnata — a 10px dal bordo, lunga 22px — o il
+// filo fra due tacche, e il dito cadeva fra due prese: partiva una linea di
+// prospettiva al posto del ridimensionamento ("il riquadro e' bellissimo, ma
+// funziona una chiavica").
+// Adesso conta DOVE sta il dito rispetto al riquadro, non quanto e' vicino a
+// un punto: tutta la fascia FUORI dal bordo, fino a BANDA pixel, e' presa.
+// Fuori da un angolo si prende l'angolo; fuori da un lato si prende il lato,
+// tranne nei primi ANGOLO pixel vicino agli spigoli, dove stanno le squadre e
+// si prende ancora l'angolo. DENTRO il riquadro invece non si prende mai
+// niente: e' la regola del 18 settembre (vedi FUORI qui sopra), quella che
+// lascia tracciare una linea partendo proprio dallo spigolo di un palazzo.
+const BANDA = 48, ANGOLO = 40;
 function trovaManigliaRiq(cx, cy, t){
   if(!_riquadro) return null;
-  let migliore = null, meglioDist = RAGGIO_RIQ;
-  for(const cand of manigliaRiq(_riquadro)){
-    const p = aSchermoManiglia(cand, t);
-    const d = Math.hypot(p.x - cx, p.y - cy);
-    if(d < meglioDist){ meglioDist = d; migliore = cand; }
-  }
-  return migliore;
+  const a0 = aSchermo({ x:_riquadro.x, y:_riquadro.y }, t);
+  const a1 = aSchermo({ x:_riquadro.x + _riquadro.w, y:_riquadro.y + _riquadro.h }, t);
+  const fx = cx < a0.x ? a0.x - cx : cx > a1.x ? cx - a1.x : 0;
+  const fy = cy < a0.y ? a0.y - cy : cy > a1.y ? cy - a1.y : 0;
+  if(!fx && !fy) return null;                 // dentro: si traccia
+  if(fx > BANDA || fy > BANDA) return null;   // troppo lontano dal mirino
+  let dx = cx < a0.x ? -1 : cx > a1.x ? 1 : 0;
+  let dy = cy < a0.y ? -1 : cy > a1.y ? 1 : 0;
+  // lungo un lato, vicino allo spigolo, si prende l'angolo (le squadre)
+  const lw = a1.x - a0.x, lh = a1.y - a0.y;
+  if(!dx && dy){ if(cx - a0.x < Math.min(ANGOLO, lw / 3)) dx = -1; else if(a1.x - cx < Math.min(ANGOLO, lw / 3)) dx = 1; }
+  if(!dy && dx){ if(cy - a0.y < Math.min(ANGOLO, lh / 3)) dy = -1; else if(a1.y - cy < Math.min(ANGOLO, lh / 3)) dy = 1; }
+  return manigliaRiq(_riquadro).find(c=> c.dx === dx && c.dy === dy) || null;
 }
 // Sotto quanto non si lascia stringere un lato: un riquadro a fetta di
 // carta non misurerebbe piu' niente.

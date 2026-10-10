@@ -1111,6 +1111,44 @@ module.exports = () => suite("Prospettiva — il righello per leggere l'orizzont
      Math.abs((fuoriDalBordo.dopo.x + fuoriDalBordo.dopo.w)
             - (fuoriDalBordo.prima.x + fuoriDalBordo.prima.w)) < 1e-9, fuoriDalBordo);
 
+  sezione('il mirino si prende dove e\' disegnato, non solo in otto punti');
+  // SEGNALATO DA GIOVANNI IL 10 OTTOBRE 2026: "vado a cliccare sul riquadro
+  // per spostarlo e anziche' fare questo mi viene tracciata una linea". Le
+  // maniglie erano otto punti a 24px dal bordo: toccando la squadra disegnata
+  // a 10px, o il margine fra due tacche, il dito cadeva in un buco e partiva
+  // una linea. Qui si tocca proprio li': sulla squadra in alto a sinistra
+  // verso la punta del braccio, e a un quarto del lato destro, 10px fuori.
+  const sulMirino = await page.evaluate(async ()=>{
+    const P = window.P;
+    const svg = document.querySelector('.prosp-svg');
+    P.chiudiProspettiva();
+    P.apriProspettiva(window.__img);
+    P.__perLeProveRiquadro({ x:0.2, y:0.2, w:0.5, h:0.5 });
+    await new Promise(r=> setTimeout(r, 60));
+    const r = document.querySelector('.prosp-tavolo').getBoundingClientRect();
+    const tocco = (tipo, cx, cy, id)=> svg.dispatchEvent(new PointerEvent(tipo, {
+      pointerId: id, clientX: cx, clientY: cy, bubbles:true, cancelable:true }));
+    const prima = { ...P.corniceAttiva() };
+    // la punta del braccio orizzontale della squadra: 10px sopra il bordo, 30px dentro dallo spigolo
+    tocco('pointerdown', r.left + 30, r.top - 10, 41);
+    tocco('pointermove', r.left + 30 - r.width*0.1, r.top - 10 - r.height*0.1, 41);
+    tocco('pointerup',   r.left + 30 - r.width*0.1, r.top - 10 - r.height*0.1, 41);
+    await new Promise(res=> setTimeout(res, 60));
+    const angolo = { ...P.corniceAttiva() };
+    // il lato destro, a un quarto dell'altezza, 10px fuori
+    tocco('pointerdown', r.left + r.width + 10, r.top + r.height*0.25, 42);
+    tocco('pointermove', r.left + r.width + 10 + 40, r.top + r.height*0.25, 42);
+    tocco('pointerup',   r.left + r.width + 10 + 40, r.top + r.height*0.25, 42);
+    await new Promise(res=> setTimeout(res, 60));
+    const lato = { ...P.corniceAttiva() };
+    return { prima, angolo, lato, linee: P.__perLeProve().linee.length };
+  });
+  ok('toccando la squadra si tira l\'angolo', sulMirino.angolo.x < sulMirino.prima.x - 0.02
+     && sulMirino.angolo.y < sulMirino.prima.y - 0.02, sulMirino);
+  ok('toccando fuori dal lato, lontano dalla tacca, si tira il lato',
+     sulMirino.lato.w > sulMirino.angolo.w + 0.02 && Math.abs(sulMirino.lato.y - sulMirino.angolo.y) < 1e-9, sulMirino);
+  ok('e nessuna linea parte per sbaglio', sulMirino.linee === 0, sulMirino);
+
   sezione('e un lato solo si stringe senza toccare gli altri tre, gia\' giusti');
   // IL CASO PRECISO SEGNALATO DA GIOVANNI IL 16 SETTEMBRE 2026: un riquadro
   // giusto su tre lati e un filo troppo largo sul quarto (si vedeva ancora un
