@@ -12,20 +12,17 @@ import { suonaRumore, preparaRumori } from './sound.js';
 //                      da 3,63 secondi), col fruscio di fondo attenuato;
 //   boot             — i primi 4,6 secondi dell'avvio di un PC anni '90:
 //                      la ventola che parte e il beep del BIOS;
-//   disco            — un secondo dello stesso file, dove il disco fisso
-//                      lavora: e' il rumore della "Lettura in corso".
 // I tocchi sulle voci restano i suoni dei menu di Resident Evil di tutta
 // l'app (sound.js): qui suona solo la macchina.
 // A VOLUME PIENO, e tagliati sotto i 200 Hz. La prima versione suonava a
 // meta' volume ed era 15 dB sotto i suoni del menu: sul telefono di Giovanni
 // "non sento i suoni nuovi". In piu' quasi tutta l'energia stava nei bassi
 // (ventola, ronzio del tubo) che l'altoparlante di un telefono non rende:
-// tolti quelli, compressi e alzati, si sentono lo scatto, il beep e il disco.
+// tolti quelli, compressi e alzati, si sentono lo scatto e il beep.
 const RUMORI = {
   accendi: './sfx/monitor/accendi.mp3',
   spegni:  './sfx/monitor/spegni.mp3',
   boot:    './sfx/monitor/boot.mp3',
-  disco:   './sfx/monitor/disco.mp3',
 };
 
 const ridotto = ()=> window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -138,9 +135,9 @@ export function montaArchivio(){
       lettura.textContent = `${nome.toUpperCase()}\nArchivio visivo.\n\nLettura in corso${'.'.repeat(Math.min(p, 5))}${p % 2 ? '_' : ' '}`;
     };
     scrivi(); lettura.hidden = false; led && led.classList.add('arch-lavora');
-    // un attimo dopo il tocco: prima il tic del menu di Resident Evil, poi il
-    // disco che lavora (suonati insieme, il secondo zittiva il primo)
-    setTimeout(()=> suonaRumore(RUMORI.disco, .8), 140);
+    // Nessun rumore suo: c'era il disco fisso che lavora, preso dall'avvio del
+    // PC, e Giovanni l'ha trovato "terrificante" (10 ottobre 2026). Resta il
+    // suono del menu di Resident Evil che fa ogni tocco (sound.js).
     timer = setInterval(()=>{
       p++; scrivi();
       if(p >= 8){
