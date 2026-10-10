@@ -43,10 +43,19 @@
      orizzontale senza deformarsi. --k dice quanto e' grande la plastica. */
   --k:.44;
   --scrivania:22vh;
-  background:#141c2c url(../img/archivio/parete-v.webp) center top/cover no-repeat;
+  /* SUL TELEFONO la stanza e' una foto sola (Firefly, 10 ottobre 2026): muro,
+     boiserie e il piano del tavolo in prospettiva, che va verso il muro
+     dallo stesso punto di vista del monitor. Prima il tavolo era il legno
+     della home steso piatto in fondo, e il monitor sembrava appoggiato su una
+     striscia ("non e' in prospettiva, non mi piace"). Ancorata in basso:
+     il bordo posteriore del tavolo sta al 70% dell'altezza, quello davanti
+     al 91%, e il monitor appoggia a meta'. */
+  background:#141c2c url(../img/archivio/scrivania-v.webp) center bottom/cover no-repeat;
 }
 @media (min-aspect-ratio:1/1){
-  #screen-refs{background-image:url(../img/archivio/parete-o.webp);--k:.6}
+  /* Sul computer per ora la parete orizzontale col legno steso sotto:
+     la scrivania larga in prospettiva e' il prossimo passo di Firefly. */
+  #screen-refs{background-image:url(../img/archivio/parete-o.webp);background-position:center top;--k:.6}
 }
 
 /* L'intestazione resta dov'e' e con le stesse misure di tutte le altre (il
@@ -67,9 +76,14 @@
              radial-gradient(70% 90% at 15% 0%,rgba(255,190,110,.18),transparent 70%),
              #3d2c1e url(../img/scrivania/legno.webp) center 30%/cover no-repeat}
 
+@media (max-aspect-ratio:1/1){ .arch-scrivania{display:none} }
+
 /* ── IL MONITOR ── */
 .arch-monitor{position:relative;z-index:1;flex:1;min-height:0;width:calc(100% - 12px);max-width:820px;
   margin:0 auto calc(var(--scrivania) - 26px)}
+/* sul telefono il piedistallo appoggia a meta' del tavolo della foto (80%
+   dell'altezza): il bordo della cornice sta un piedistallo piu' su */
+@media (max-aspect-ratio:1/1){ .arch-monitor{margin-bottom:calc(20vh + 48px*var(--k))} }
 @media (min-aspect-ratio:1/1){
   /* margin-top:auto lo spinge giu' fino alla scrivania qualunque sia l'altezza
      della finestra: senza, su uno schermo alto restava sospeso a mezz'aria */
@@ -239,3 +253,22 @@
 /* la barra della scelta e la striscia "Aggiungi a…": bianche su blu */
 #screen-refs .refs-scelta-btn{background:none!important;border:1px solid var(--vga-bianco)!important;border-radius:0!important;box-shadow:none!important;color:var(--vga-bianco)!important}
 #screen-refs .refs-scelta-btn.rosso{border-style:double!important;border-width:3px!important}
+
+/* ── IL PROCIONE ──
+   Il pupazzo di Mr. Raccoon (Firefly, 10 ottobre 2026), appoggiato in primo
+   piano nell'angolo in basso a sinistra, davanti al monitor. Giovanni: "si
+   deve vedere e non vedere". Quindi:
+   - IN OMBRA: la lampada sta in alto a sinistra e lui e' davanti, in basso,
+     fuori dal suo cerchio: scurito e un filo spento di colori.
+   - UN PO' SFOCATO, come un oggetto vicinissimo alla macchina fotografica,
+     mentre il fuoco e' sullo schermo.
+   - SI SOVRAPPONE DECISO all'angolo della cornice (niente bordi che si
+     sfiorano: la testa entra nella plastica bianca per un buon tratto) e sul
+     telefono esce in parte dal bordo dello schermo.
+   - Non prende i tocchi: e' un oggetto sul tavolo, non un comando.
+   E' agganciato all'angolo del monitor, cosi' telefono e computer lo
+   mettono nello stesso punto rispetto al PC. */
+.arch-procione{position:absolute;z-index:8;pointer-events:none;
+  left:-12%;bottom:-22%;height:52%;width:auto;
+  filter:brightness(.42) saturate(.7) contrast(.95) blur(.6px) drop-shadow(4px 8px 10px rgba(0,0,0,.6))}
+@media (min-aspect-ratio:1/1){ .arch-procione{left:-10%;bottom:-16%;height:48%} }
