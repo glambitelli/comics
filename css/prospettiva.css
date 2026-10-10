@@ -223,12 +223,12 @@ body.prosp-tavolo-aperto .prosp{
     radial-gradient(130% 100% at 50% 45%,transparent 55%,rgba(0,0,30,.6)),
     #00008c;
 }
-.prosp-alone{filter:drop-shadow(0 0 3px rgba(95,244,255,.9))}
 .prosp-sigla{fill:var(--q-ciano);font:12px var(--q-bios);-webkit-font-smoothing:none}
 /* la riga di scansione del mirino: su e giu' dentro la vignetta */
 .prosp-scan{animation:prosp-scan 3.2s ease-in-out infinite alternate;pointer-events:none}
 @keyframes prosp-scan{from{transform:translateY(0)}to{transform:translateY(var(--corsa,0px))}}
 @media (prefers-reduced-motion:reduce){.prosp-scan{animation:none;opacity:0}}
+.prosp-tocco .prosp-scan{animation:none;opacity:0}
 /* la barra: pastiglia dei tasti sopra, pannello tondo sotto, come nel lettore */
 .prosp-barra{background:none;border:none;border-radius:0;padding:0;gap:6px;flex-direction:column-reverse;
   backdrop-filter:none;-webkit-backdrop-filter:none;font-family:var(--q-bios)}

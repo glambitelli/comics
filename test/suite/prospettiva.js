@@ -286,8 +286,9 @@ module.exports = () => suite("Prospettiva — il righello per leggere l'orizzont
   ok('con accanto gli altri due campi, sempre gli stessi',
      schermo.targaVisibile && schermo.campoPunti === '1' && schermo.inclinazione === '0°', schermo);
   ok('il fascio c\'e\'', schermo.raggi === 12, schermo);
-  // un quadratino bianco solo (fino al 10 ottobre 2026 erano due cerchi, ombra e pallino)
-  ok('e la fuga e\' segnata con un punto', schermo.punti === 1, schermo);
+  // un quadratino bianco col suo alone, due rettangoli centrati sullo stesso
+  // punto (fino al 10 ottobre 2026 erano due cerchi, ombra e pallino)
+  ok('e la fuga e\' segnata con un punto', schermo.punti === 2, schermo);
   // IL FASCIO SI TAGLIA, L'ORIZZONTE NO, e sono due decisioni diverse.
   // Il fascio e' la struttura di QUESTA vignetta: sparso su tutto lo schermo
   // sarebbe rumore. L'orizzonte e' l'altezza dell'occhio, e quando cade fuori

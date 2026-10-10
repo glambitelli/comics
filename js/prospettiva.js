@@ -725,6 +725,9 @@ function agganciaTratto(svg){
   svg.addEventListener('pointerdown', e=>{
     const t = trasforma(); if(!t) return;
     dita.set(e.pointerId, { x:e.clientX, y:e.clientY });
+    // Col dito giu' la riga di scansione del mirino si spegne: e' l'unica
+    // cosa che si muove da sola, e mentre si traccia si guarda la linea.
+    _ov.classList.add('prosp-tocco');
     try{ svg.setPointerCapture(e.pointerId); }catch(err){}
     e.preventDefault();
     // Il secondo dito annulla il tratto appena cominciato: chi apre due dita
@@ -817,6 +820,7 @@ function agganciaTratto(svg){
 
   const finisci = e=>{
     dita.delete(e.pointerId);
+    if(!dita.size) _ov.classList.remove('prosp-tocco');
     if(dita.size < 2) pizzico = null;
     if(attivo !== e.pointerId) return;
     attivo = null;
@@ -882,6 +886,18 @@ function agganciaTratto(svg){
 
 // Ogni tratto due volte: l'ombra scura sotto e il colore sopra (vedi la nota
 // in cima). Senza l'ombra, su una retinatura nera il verderame sparisce.
+// L'ALONE E' UN TRATTO IN PIU', NON UN FILTRO (10 ottobre 2026). La prima
+// versione del vestito di Quack dava il bagliore a orizzonte, fuga e mirino
+// con un filter:drop-shadow in CSS. Ma questo disegno si rifa' da capo a ogni
+// movimento del dito, e sul telefono di Giovanni, mentre tirava una linea,
+// lo schermo lampeggiava: il filtro va ricalcolato ogni volta da zero, e il
+// telefono non sempre faceva in tempo a ridisegnare prima di mostrare.
+// Un filo largo e mezzo trasparente sotto al tratto da' lo stesso alone e
+// non costa niente.
+const ALONE = 'rgba(95,244,255,.28)';
+function alone(x1, y1, x2, y2, spessore){
+  return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${ALONE}" stroke-width="${spessore + 6}" stroke-linecap="round"/>`;
+}
 function tratto(x1, y1, x2, y2, colore, spessore){
   return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="rgba(0,0,0,.6)" stroke-width="${spessore + 2}" stroke-linecap="round"/>`
        + `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${colore}" stroke-width="${spessore}" stroke-linecap="round"/>`;
@@ -996,13 +1012,14 @@ export function disegna(){
 
   _ov.querySelector('.prosp-orizzonte').innerHTML = orizzonte
     ? (()=>{ const a = aSchermo(orizzonte.a, t), b = aSchermo(orizzonte.b, t);
-             return `<g class="prosp-alone">${tratto(a.x, a.y, b.x, b.y, ORO, 3.2)}</g>`; })()
+             return alone(a.x, a.y, b.x, b.y, 3.2) + tratto(a.x, a.y, b.x, b.y, ORO, 3.2); })()
     : '';
 
   let punti = '';
   for(const f of fuochi){
     const c = aSchermo(f, t);
-    punti += `<rect class="prosp-alone" x="${c.x-6}" y="${c.y-6}" width="12" height="12" fill="${ORO}" stroke="#000" stroke-width="1.5"/>`;
+    punti += `<rect x="${c.x-10}" y="${c.y-10}" width="20" height="20" fill="${ALONE}"/>`
+          +  `<rect x="${c.x-6}" y="${c.y-6}" width="12" height="12" fill="${ORO}" stroke="#000" stroke-width="1.5"/>`;
   }
   _ov.querySelector('.prosp-punti').innerHTML = punti;
 
@@ -1038,8 +1055,10 @@ function mirino(q, riq){
   const S = 10, L = Math.min(22, q.w / 3, q.h / 3), T = 3;
   const squadra = (x, y, sx, sy)=>
     `<path d="M${x} ${y + sy*L} V${y} H${x + sx*L}" fill="none" stroke="#126d8c" stroke-width="${T}" transform="translate(1.5 1.5)"/>`
-    + `<path class="prosp-alone" d="M${x} ${y + sy*L} V${y} H${x + sx*L}" fill="none" stroke="${SABBIA}" stroke-width="${T}" stroke-linecap="square"/>`;
-  const tacca = (x1, y1, x2, y2)=> `<line class="prosp-alone" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${SABBIA}" stroke-width="${T}"/>`;
+    + `<path d="M${x} ${y + sy*L} V${y} H${x + sx*L}" fill="none" stroke="${ALONE}" stroke-width="${T + 5}" stroke-linecap="square"/>`
+    + `<path d="M${x} ${y + sy*L} V${y} H${x + sx*L}" fill="none" stroke="${SABBIA}" stroke-width="${T}" stroke-linecap="square"/>`;
+  const tacca = (x1, y1, x2, y2)=> `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${ALONE}" stroke-width="${T + 5}"/>`
+    + `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${SABBIA}" stroke-width="${T}"/>`;
   const x0 = q.x - S, y0 = q.y - S, x1 = q.x + q.w + S, y1 = q.y + q.h + S, mx = q.x + q.w/2, my = q.y + q.h/2;
   const pw = _img && _img.naturalWidth ? Math.round(riq.w * _img.naturalWidth) : 0;
   const ph = _img && _img.naturalHeight ? Math.round(riq.h * _img.naturalHeight) : 0;
