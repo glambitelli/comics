@@ -167,9 +167,14 @@
 .arch-boot{position:absolute;inset:0;z-index:16;background:var(--vga-blu);padding:10px 12px;white-space:pre;line-height:14px;pointer-events:none}
 .arch-boot > div:first-child{transform:scale(.64);transform-origin:0 0}
 /* il germano di Inkflow sotto le righe dell'avvio: in un punto fisso dello
-   schermo (non scende col testo), pixel netti ingranditi tre volte (quattro
-   era "leggermente" troppo), col bagliore al neon del Pip-Boy */
-.arch-anatra{display:block;margin:0 auto;width:calc(var(--aw,34px)*3);image-rendering:pixelated;
+   schermo (non scende col testo), pixel netti ingranditi 8/3 di volta
+   (quattro era "leggermente" troppo, tre di nuovo "un pelo" troppo quando
+   sotto e' arrivata la barra di caricamento). 8/3 e non 2,6 o 2,75: sul
+   telefono di Giovanni (3 pixel veri per pixel CSS) fa esattamente 8 pixel
+   veri per pixel del germano, tutti uguali; con un numero qualunque alcuni
+   verrebbero larghi 7 e altri 8, e il disegno a pixel si storpia.
+   Col bagliore al neon del Pip-Boy. */
+.arch-anatra{display:block;margin:0 auto;width:calc(var(--aw,34px)*8/3);image-rendering:pixelated;
   filter:drop-shadow(0 0 2px rgba(95,244,255,.9)) drop-shadow(0 0 8px rgba(95,244,255,.45)) drop-shadow(0 0 18px rgba(95,244,255,.2))}
 /* IL MARCHIO: germano, QUACK e le righe piccole, in un blocco fisso in basso.
    Le righe del BIOS sopra sono piu' piccole (vedi .arch-boot) perche' ci
