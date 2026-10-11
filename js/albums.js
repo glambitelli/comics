@@ -442,7 +442,19 @@ const PDF_LATO = 2400;
 async function pdfSource(file){
   const pdfjs = await import('./vendor/pdfjs/pdf.min.js');
   pdfjs.GlobalWorkerOptions.workerSrc = new URL('./vendor/pdfjs/pdf.worker.min.js', import.meta.url).href;
-  const doc = await pdfjs.getDocument({ data: new Uint8Array(await file.arrayBuffer()), isEvalSupported: false }).promise;
+  // I PEZZI A PARTE DI PDF.JS, e senza le pagine escono BIANCHE. Il primo PDF
+  // vero (Vinland Saga 01, 464 pagine) si apriva, contava le pagine giuste e
+  // le mostrava tutte bianche, copertina compresa: le scansioni dentro molti
+  // PDF di fumetti sono in JPEG 2000, e pdf.js le decodifica con openjpeg.wasm
+  // — che va indicato a mano, se no l'immagine non si disegna e resta il
+  // fondo. Accanto, i profili colore (le scansioni in CMYK) e i caratteri
+  // standard (le pagine col testo vero). Ognuno si scarica solo se una pagina
+  // ne ha bisogno. Prova: test/suite/lettore-pdf-scansioni.js.
+  const cartella = new URL('./vendor/pdfjs/', import.meta.url).href;
+  const doc = await pdfjs.getDocument({
+    data: new Uint8Array(await file.arrayBuffer()), isEvalSupported: false,
+    wasmUrl: cartella + 'wasm/', iccUrl: cartella + 'iccs/', standardFontDataUrl: cartella + 'standard_fonts/',
+  }).promise;
   const n = doc.numPages;
   // Nomi finti ma ordinati ("pagina-0001.jpg"): sono quello che il lettore
   // usa per riconoscere le tavole, e l'estensione gli dice che e' un JPEG.
@@ -784,7 +796,13 @@ function chiudiSorgente(src){
 // che e' il momento in cui la sorgente e' gia' aperta fra le mani.
 export async function completaSchedaAlbo(a, sorgenteAperta){
   if(!a || !a.id) return false;
-  if(a.cover && a.pageCount) return false;
+  // LE COPERTINE BIANCHE DEI PRIMI PDF. Prima che pdf.js avesse i suoi
+  // decodificatori (vedi pdfSource), un PDF fatto di scansioni JPEG 2000 dava
+  // pagine bianche: e alla prima apertura la scheda si e' presa per copertina
+  // proprio una di quelle. Una scheda PDF senza il segno copertinaPdf: 2 la
+  // rifa' una volta sola, adesso che la pagina si vede.
+  const pdfVecchio = /\.pdf$/i.test(a.sourceName || '') && a.copertinaPdf !== 2;
+  if(a.cover && a.pageCount && !pdfVecchio) return false;
   const src = sorgenteAperta || await sbircia({
     id: a.driveFileId, name: a.sourceName || a.title || 'albo', size: a.sourceSize || 0,
   });
@@ -792,8 +810,8 @@ export async function completaSchedaAlbo(a, sorgenteAperta){
   try{
     const campi = {};
     if(!a.pageCount) campi.pageCount = src.pages.length;
-    if(!a.cover){
-      try{ const url = await copertinaDa(src); if(url) campi.cover = url; }
+    if(!a.cover || pdfVecchio){
+      try{ const url = await copertinaDa(src); if(url){ campi.cover = url; if(pdfVecchio) campi.copertinaPdf = 2; } }
       catch(e){ console.warn('copertina tardiva fallita per', a.title, e.message); }
     }
     if(!Object.keys(campi).length) return false;
@@ -835,6 +853,8 @@ export async function createAlbumFromDriveFile(folderId, driveFile){
   await createAlbumDoc({
     folderId, title: name.replace(/\.(cbz|cbr|pdf)$/i,''), cover, pageCount,
     sourceName: name, sourceSize: size, lastPage: 0,
+    // una copertina PDF fatta da qui in poi e' gia' buona (vedi completaSchedaAlbo)
+    ...(cover && /\.pdf$/i.test(name) ? { copertinaPdf: 2 } : {}),
     driveFileId: driveFile.id,
   });
 }
