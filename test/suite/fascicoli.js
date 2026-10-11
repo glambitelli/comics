@@ -61,8 +61,10 @@ module.exports = () => suite("Projects — i progetti come fascicoli sulla scriv
       sotto: !!document.querySelector('.fasc-indice, #fasc-conta, #fasc-vista'),
       centro: centro ? {
         i: +centro.dataset.i,
-        tit: (centro.querySelector('.fasc-tit b') || {}).textContent || '',
-        etich: (centro.querySelector('.fasc-etich') || {}).textContent || '',
+        tit: (centro.querySelector('.fasc-tit') || {}).textContent || '',
+        // sulla copertina c'e' scritto solo il titolo: niente ente, fase, numero
+        altro: Array.from(centro.querySelectorAll('.fasc-stampa :is(span,b,i)'))
+          .filter(e=> !e.closest('.fasc-tit') && e.children.length === 0 && e.textContent.trim()).map(e=> e.textContent),
         sx: Math.round(r.left), dx: Math.round(r.right), alto: Math.round(r.height),
       } : null,
     };
@@ -76,7 +78,8 @@ module.exports = () => suite("Projects — i progetti come fascicoli sulla scriv
   ok('piu\' il posto per uno nuovo, in fondo', s.nuovo === 1, s);
   ok('e sotto la fila nient\'altro', !s.sotto, s);
   ok('al centro c\'e\' il primo, col suo titolo', s.centro && s.centro.i === 0 && /kara/i.test(s.centro.tit), s.centro);
-  ok('e il numero sull\'etichetta e\' quello della linguetta', s.centro && s.centro.etich.trim() === 'P-0001', s.centro);
+  ok('il titolo sta tra virgolette', s.centro && /^\u201cKara\u201d$/.test(s.centro.tit.trim()), s.centro);
+  ok('e sulla copertina non c\'e\' scritto altro', s.centro && s.centro.altro.length === 0, s.centro);
 
   sezione('otto fascicoli di fila sono otto copertine diverse');
   // "voglio che siano uno diverso dall'altro": da due foto, specchiate e

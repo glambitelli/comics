@@ -32,24 +32,35 @@ import { calcPct, getPhaseIndex } from './progress.js';
 import { openProject } from './project.js';
 import { esc } from './testo.js';
 
-// Le due cartelle, con dove sta la finestrella dell'etichetta (in frazioni
-// della foto ritagliata, misurate a mano sulle due immagini).
+// LE CARTELLE, dall'11 ottobre 2026 nuove e pulite come quella del
+// riferimento. Le prime due erano invecchiate, macchiate e strappate — colpa
+// del prompt, che chiedeva "aged and worn": "sembra un documento di cento
+// anni fa, invece l'originale e' fresco". Queste tre vengono dal prompt
+// rifatto (versioni A, B e C), ritagliate dal grigio tenendo i fogli bianchi
+// che spuntano (scratchpad: taglia2.py).
+// Per ognuna: le proporzioni e quanto e' larga la copertina vera e propria — a destra ci sono la linguetta e i fogli, e le
+// scritte vanno centrate sulla copertina, non sulla foto intera. Misurate
+// sulle foto ritagliate, in frazioni della larghezza e dell'altezza.
 const CARTELLE = [
-  { src:'img/fascicoli/cartella-1.webp', r:645/900, fin:{ x:.33, y:.073, w:.35, h:.08 } },
-  { src:'img/fascicoli/cartella-2.webp', r:647/900, fin:{ x:.33, y:.05,  w:.33, h:.057 } },
+  { src:'img/fascicoli/cartella-1.webp', r:570/739, cop:.908 },
+  { src:'img/fascicoli/cartella-2.webp', r:619/783, cop:.895 },
+  { src:'img/fascicoli/cartella-3.webp', r:648/848, cop:.912 },
 ];
-// Otto fascicoli diversi da due foto: quale foto, specchiata o no, e un tono.
-// I toni restano nella famiglia del cartone: piu' scuro, piu' caldo, piu'
-// sbiadito — mai un colore che il cartone non avrebbe.
+// Otto fascicoli diversi da tre foto: quale foto, specchiata o no (la
+// linguetta passa a sinistra), e un filo di tono. Pochissimo: il cartone e'
+// nuovo, e un filtro forte lo faceva sembrare sporco. Tutti un po' piu' caldi
+// e piu' bassi della foto di studio, che e' illuminata a giorno, mentre la
+// scrivania ha una lampada sola.
+const LAMPADA = 'brightness(.9) sepia(.08)';
 const VARIANTI = [
-  { c:0, flip:false, f:'none',                                         r:-1.1 },
-  { c:1, flip:false, f:'brightness(.93) sepia(.1)',                    r: .8 },
-  { c:0, flip:true,  f:'brightness(.88) saturate(1.08)',               r:-.4 },
-  { c:1, flip:true,  f:'brightness(1.04) saturate(.85)',               r:1.2 },
-  { c:0, flip:false, f:'brightness(.82) sepia(.18) saturate(1.1)',     r:-.8 },
-  { c:1, flip:false, f:'brightness(.97) hue-rotate(-6deg)',            r: .5 },
-  { c:0, flip:true,  f:'brightness(1.02) saturate(.9) sepia(.08)',     r:-1.3 },
-  { c:1, flip:true,  f:'brightness(.86) saturate(1.12)',               r: .9 },
+  { c:0, flip:false, f:LAMPADA,                              r:-1.1 },
+  { c:1, flip:false, f:LAMPADA,                              r: .8 },
+  { c:2, flip:false, f:LAMPADA,                              r:-.4 },
+  { c:0, flip:true,  f:LAMPADA + ' brightness(.96)',         r:1.2 },
+  { c:1, flip:true,  f:LAMPADA + ' saturate(1.06)',          r:-.8 },
+  { c:2, flip:true,  f:LAMPADA + ' brightness(1.03)',        r: .5 },
+  { c:1, flip:false, f:LAMPADA + ' brightness(.95)',         r:-1.3 },
+  { c:0, flip:false, f:LAMPADA + ' saturate(.94)',           r: .9 },
 ];
 const CHIAVE_VISTA = 'inkflow-progetti-vista';
 let _c = 0;           // il fascicolo al centro
@@ -73,40 +84,24 @@ export function aggiornaVista(){
   if(on) disegnaFascicoli();
 }
 
-function numero(i){
-  // Il numero di fascicolo e' il posto nella fila: P-0001 e' il primo a
-  // sinistra. La prima versione contava dal piu' vecchio, e il terzo della
-  // fila portava scritto P-0007.
-  return 'P-' + String(i + 1).padStart(4, '0');
-}
-
 function copertina(p, i){
   const v = VARIANTI[i % VARIANTI.length], c = CARTELLE[v.c];
-  const fase = PHASE_NAMES[getPhaseIndex(p)] || '';
   const titolo = esc(p.title || 'Senza titolo');
   // la finestrella, se la foto e' specchiata, sta dall'altra parte
-  const fx = v.flip ? 1 - c.fin.x - c.fin.w : c.fin.x;
-  // LA COPERTINA E' QUELLA DEL FASCICOLO FBI DEL RIFERIMENTO, riga per riga:
-  // l'ente su tre righe al centro, "Titolo" piccolo con il nome in rosso
-  // sottolineato, il sigillo piccolo, e sotto due colonne di righe da
-  // riempire a mano. La prima versione aveva scritte grandi, in maiuscolo e
-  // allineate a sinistra, piu' un timbro della percentuale: il fascicolo
-  // sembrava minuscolo sotto le scritte ("il font e' troppo grande rispetto
-  // al fascicolo"). Le righe sotto sono quasi tutte vuote apposta: e' un
-  // modulo, non una scheda riassuntiva.
+  // la copertina vera e propria: specchiata, la linguetta sta a sinistra
+  const cx = v.flip ? 1 - c.cop : 0;
+  // SULLA COPERTINA SOLO IL TITOLO, tra virgolette, battuto a macchina.
+  // Prima c'erano anche l'ente su tre righe ("INKFLOW STUDIO DI NARRATIVA
+  // DISEGNATA"), "Titolo", la fase, le tavole e il numero nella finestrella:
+  // "ma che cazzo e'... scrivi al massimo il titolo". Restano il sigillo blu
+  // e le righe vuote del modulo, che sono disegno e non testo.
   return `<div class="fasc" data-i="${i}" style="--storto:${v.r}deg;--asp:${c.r}">
     <img class="fasc-foto" src="${c.src}" alt="" draggable="false" style="transform:${v.flip ? 'scaleX(-1)' : 'none'};filter:${v.f}">
     <div class="fasc-stampa" aria-hidden="true">
-      <span class="fasc-etich" style="left:${fx*100}%;top:${c.fin.y*100}%;width:${c.fin.w*100}%;height:${c.fin.h*100}%">${numero(i)}</span>
-      <span class="fasc-ente">INKFLOW STUDIO<br>DI<br>NARRATIVA DISEGNATA</span>
-      <span class="fasc-tit"><i>Titolo</i><b>${titolo}</b></span>
-      ${SIGILLO}
-      <span class="fasc-righe">
-        <span><i>Fase</i>${esc(fase)}</span><span></span>
-        <span><i>Tavole</i>${p.numTav || 0}</span><span></span>
-        <span></span><span></span>
-        <span></span><span></span>
-        <span></span><span></span>
+      <span class="fasc-cop" style="left:${cx*100}%;width:${c.cop*100}%">
+        <span class="fasc-tit">&ldquo;${titolo}&rdquo;</span>
+        ${SIGILLO}
+        <span class="fasc-righe">${'<span></span>'.repeat(10)}</span>
       </span>
     </div>
     <span class="fasc-nome">${titolo}</span>
