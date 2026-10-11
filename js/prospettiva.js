@@ -728,7 +728,6 @@ function agganciaTratto(svg){
     // Col dito giu' la riga di scansione del mirino si spegne: e' l'unica
     // cosa che si muove da sola, e mentre si traccia si guarda la linea.
     _ov.classList.add('prosp-tocco');
-    _agganciato.clear();
     try{ svg.setPointerCapture(e.pointerId); }catch(err){}
     e.preventDefault();
     // Il secondo dito annulla il tratto appena cominciato: chi apre due dita
@@ -800,14 +799,12 @@ function agganciaTratto(svg){
       const p = aImmagine(e.clientX, e.clientY, t);
       const px = p.x - _trascinaRiq.sx, py = p.y - _trascinaRiq.sy;
       if(_trascinaRiq.mx){
-        let nx = versoIlFermo(px, _trascinaRiq.fx, RIQ_MIN);
-        nx = calamita('x', nx, nx < _trascinaRiq.fx ? -1 : 1, _riquadro.y, _riquadro.y + _riquadro.h, t);
+        const nx = versoIlFermo(px, _trascinaRiq.fx, RIQ_MIN);
         _riquadro.x = Math.min(nx, _trascinaRiq.fx);
         _riquadro.w = Math.abs(nx - _trascinaRiq.fx);
       }
       if(_trascinaRiq.my){
-        let ny = versoIlFermo(py, _trascinaRiq.fy, RIQ_MIN);
-        ny = calamita('y', ny, ny < _trascinaRiq.fy ? -1 : 1, _riquadro.x, _riquadro.x + _riquadro.w, t);
+        const ny = versoIlFermo(py, _trascinaRiq.fy, RIQ_MIN);
         _riquadro.y = Math.min(ny, _trascinaRiq.fy);
         _riquadro.h = Math.abs(ny - _trascinaRiq.fy);
       }
@@ -855,8 +852,13 @@ function agganciaTratto(svg){
           x: Math.min(_bozzaRiq.a.x, _bozzaRiq.b.x), y: Math.min(_bozzaRiq.a.y, _bozzaRiq.b.y),
           w: Math.abs(_bozzaRiq.b.x - _bozzaRiq.a.x), h: Math.abs(_bozzaRiq.b.y - _bozzaRiq.a.y),
         };
-        _riquadro = calamitaRiquadro(_riquadro, t);
         prendiIlTavolo();
+      } else if(Math.hypot(b.x - a.x, b.y - a.y) < MIN_PX){
+        // UN TOCCO, NON UN RIQUADRO: si prova a riconoscere la vignetta sotto
+        // il dito (vedi trovaVignetta). Se la si trova la si prende; se no
+        // non succede niente, e la si riquadra a mano come sempre.
+        const v = trovaVignetta(_bozzaRiq.a);
+        if(v){ _riquadro = v; prendiIlTavolo(); try{ navigator.vibrate && navigator.vibrate(8); }catch(e){} }
       }
       _bozzaRiq = null;
     } else if(_bozza && t){
@@ -1095,7 +1097,7 @@ function scriviBarra(linee, fuochi, orizzonte){
   const targa = _ov.querySelector('.prosp-targa');
   const dillo = t =>{ invito.textContent = t; targa.hidden = true; };
 
-  if(riq) return dillo('Riquadra la vignetta');
+  if(riq) return dillo(_mappa ? 'Riquadra la vignetta o toccala' : 'Riquadra la vignetta');
   if(!fuochi.length){
     if(linee.length >= 2 && !_bozza) return dillo('Linee parallele: nessuna fuga');
     return dillo(linee.length === 1 ? 'Ancora una linea' : 'Traccia due linee in profondità');
@@ -1233,32 +1235,29 @@ function strisciaDati(c, W, y, h, misure){
 // Quindi, per il solo disegno da salvare, l'immagine si scarica di nuovo
 // chiedendola "in chiaro" (CORS: Cloudinary lo permette) e si disegna quella.
 // L'<img> a schermo resta la stessa: serve a misurare dove sono le linee.
-// ── IL MAGNETE DEL RIQUADRO (10 ottobre 2026) ──
-// "Mi piacerebbe che quando vado a ritagliare la vignetta venga riconosciuta
-// la forma del quadrato sotto, e il ritaglio si adatti — un magnete non troppo
-// forte — invece di stare la' ad aggiustare il millimetro" (Giovanni).
+// ── LA VIGNETTA SI RICONOSCE DA SOLA, AL TOCCO (11 ottobre 2026) ──
+// Giovanni voleva non dover aggiustare il riquadro al millimetro. La prima
+// risposta, il 10 ottobre, e' stata un MAGNETE sul trascinamento: i lati si
+// attaccavano ai bordi d'inchiostro vicini. Bocciato il giorno dopo: "e'
+// terribile, lo preferivo prima" — dove la pagina non si leggeva bene il lato
+// saltava sopra o sotto e non si riusciva piu' a metterlo dove si voleva.
+// "O riesci a leggere la vignetta e fargliela contornare da sola, oppure devo
+// farlo io a mano." Quindi adesso le due cose sono DUE GESTI diversi:
+// trascinando si riquadra a mano, liberi come prima, senza nessun aiuto;
+// TOCCANDO una vignetta, lo strumento prova a trovarne i quattro bordi e la
+// riquadra da solo. Se non e' sicuro, non fa niente.
 // COME SI TROVA UN BORDO DI VIGNETTA. Il bordo e' una riga d'inchiostro
 // LUNGA e DRITTA: corre per tutto il lato della vignetta. Un palazzo, un
 // braccio, una scritta hanno tratti scuri anche loro, ma non tengono la
-// stessa colonna per tutta l'altezza del riquadro. Quindi, per un lato
-// verticale, si guarda ogni colonna vicina al lato e si conta che frazione
-// della sua altezza — l'altezza del riquadro, non della pagina — e' scura:
-// il bordo vero sta sopra SOGLIA_BORDO, quasi tutto il resto sotto.
-// NON TROPPO FORTE: aggancia solo entro RAGGIO_MAGNETE pixel di SCHERMO dal
-// dito (con lo zoom la presa resta la stessa sotto il polpastrello), e solo a
-// righe che superano la soglia; altrimenti il lato va dove lo porti.
-// E SI PRENDE IL BORDO INTERO: se l'inchiostro e' largo piu' colonne si
-// scivola fino all'ultima verso l'esterno, cosi' la vignetta salvata ha la
-// sua cornice tutta, non mezza.
+// stessa colonna per tutta l'altezza della vignetta.
 // La pagina si legge una volta sola, all'apertura, ridotta a LATO_MAPPA pixel:
-// una matrice di "scuro si / scuro no" da qualche centinaio di KB, e ogni
-// aggancio poi costa poche migliaia di letture. Se l'immagine arriva da un
-// altro dominio e non si lascia leggere (vedi sorgentePulita), il magnete
-// semplicemente non c'e'.
-const LATO_MAPPA = 900, RAGGIO_MAGNETE = 14, SOGLIA_BORDO = .55, SCURO = 110;
+// una matrice di "scuro si / scuro no". Se l'immagine arriva da un altro
+// dominio e non si lascia leggere (vedi sorgentePulita), il tocco non fa
+// niente e l'invito in barra non lo propone.
+const LATO_MAPPA = 900, SCURO = 110;
 let _mappa = null;   // { W, H, scuro: Uint8Array }
 let _mappaDi = null; // l'immagine a cui si riferisce
-async function preparaMagnete(img){
+async function preparaMappa(img){
   if(_mappaDi === img && _mappa) return;
   _mappa = null; _mappaDi = img;
   try{
@@ -1292,53 +1291,74 @@ function scurezza(asse, c, r0, r1){
   }
   return n ? sc / n : 0;
 }
-// Dove andrebbe un lato a 'pos' (in frazioni d'immagine) con il magnete:
-// verso = -1 per il lato sinistro/alto, +1 per il destro/basso; da..a e' il
-// tratto del lato opposto (lo stesso riquadro) su cui si misura la riga.
-function calamita(asse, pos, verso, da, a, t){
+// Cerca i quattro bordi della vignetta che contiene il punto p (in frazioni
+// d'immagine). Si parte da una finestra piccola intorno al dito: per ogni
+// direzione si raccolgono le righe quasi tutte scure IN QUELLA FINESTRA, dalla
+// piu' vicina. Poi si verifica: un bordo vero dev'essere scuro per quasi tutto
+// il lato della vignetta trovata, non solo vicino al dito. Se una candidata
+// non regge, si prova la successiva piu' lontana; si ripete finche' i quattro
+// lati non si confermano a vicenda, o si rinuncia.
+const BORDO_PIENO = .8, BORDO_LATO = .85;
+function trovaVignetta(p){
   const M = _mappa;
-  if(!M || !t || !(a > da)) return pos;
-  const o = aSchermo({ x:0, y:0 }, t), u = aSchermo({ x:1, y:1 }, t);
-  const schermoPerUnita = asse === 'x' ? (u.x - o.x) : (u.y - o.y);
-  const lungo = asse === 'x' ? M.W : M.H, largo = asse === 'x' ? M.H : M.W;
-  if(!(schermoPerUnita > 0)) return pos;
-  const raggio = Math.max(1, Math.round(RAGGIO_MAGNETE / schermoPerUnita * lungo));
-  // Si misura sul tratto centrale del lato: gli angoli di una vignetta sono
-  // il posto dove si incrociano i bordi dell'altra direzione.
-  const marg = (a - da) * .12;
-  const r0 = Math.max(0, Math.floor((da + marg) * largo)), r1 = Math.min(largo, Math.ceil((a - marg) * largo));
-  if(r1 - r0 < 6) return pos;
-  const c0 = Math.round(pos * lungo);
-  let meglio = -1, valore = SOGLIA_BORDO;
-  for(let c = c0 - raggio; c <= c0 + raggio; c++){
-    // a parita' di scurezza vince la piu' vicina al dito
-    const v = scurezza(asse, c, r0, r1) - Math.abs(c - c0) / (raggio * 40);
-    if(v > valore){ valore = v; meglio = c; }
+  if(!M || !p) return null;
+  const px = Math.round(p.x * M.W), py = Math.round(p.y * M.H);
+  if(px < 1 || py < 1 || px >= M.W - 1 || py >= M.H - 1) return null;
+  // le candidate di una direzione: righe scure nella finestra, dalla piu' vicina
+  const candidate = (asse, verso, r0, r1)=>{
+    const lim = asse === 'x' ? M.W : M.H, da = asse === 'x' ? px : py;
+    const out = [];
+    for(let c = da + verso; c >= 0 && c < lim; c += verso){
+      if(scurezza(asse, c, r0, r1) >= BORDO_PIENO){
+        // tutta la riga d'inchiostro, fino al suo lato esterno
+        let e = c;
+        while(e + verso >= 0 && e + verso < lim && scurezza(asse, e + verso, r0, r1) >= BORDO_PIENO * .8) e += verso;
+        // DI LA' DAL BORDO C'E' IL BIANCO DEL MARGINE. Si prende il lato
+        // esterno di tutta la massa scura — se il disegno tocca il bordo, il
+        // nero del disegno e quello del bordo sono una riga sola, e conta dove
+        // finisce — e la si tiene solo se subito oltre c'e' il chiaro: un
+        // palazzo pieno in mezzo alla vignetta ha anche lui il chiaro oltre,
+        // ma non regge la verifica sul lato intero qui sotto.
+        const oltre = e + verso * 2;
+        const margine = oltre < 0 || oltre >= lim || scurezza(asse, oltre, r0, r1) < .35;
+        if(margine) out.push(e);
+        c = e;
+        if(out.length >= 6) break;
+      }
+    }
+    return out;
+  };
+  const fw = Math.max(6, Math.round(M.H * .03)), fh = Math.max(6, Math.round(M.W * .03));
+  const sx = candidate('x', -1, Math.max(0, py - fw), Math.min(M.H, py + fw));
+  const dx = candidate('x',  1, Math.max(0, py - fw), Math.min(M.H, py + fw));
+  const su = candidate('y', -1, Math.max(0, px - fh), Math.min(M.W, px + fh));
+  const giu = candidate('y',  1, Math.max(0, px - fh), Math.min(M.W, px + fh));
+  if(!sx.length || !dx.length || !su.length || !giu.length) return null;
+  // Il bordo vero e' scuro per (quasi) tutto il lato, e oltre ha il margine
+  // chiaro per tutto il lato: la massa nera di un disegno non fa ne' l'una
+  // ne' l'altra cosa da cima a fondo.
+  const regge = (asse, c, verso, a, b)=>{
+    const m = Math.round((b - a) * .1);
+    if(b - a <= 8 || scurezza(asse, c, a + m, b - m) < BORDO_LATO) return false;
+    const lim = asse === 'x' ? M.W : M.H, oltre = c + verso * 2;
+    return oltre < 0 || oltre >= lim || scurezza(asse, oltre, a + m, b - m) < .3;
+  };
+  let i = [0, 0, 0, 0];
+  for(let giro = 0; giro < 24; giro++){
+    const L = sx[i[0]], R = dx[i[1]], T = su[i[2]], B = giu[i[3]];
+    if(L === undefined || R === undefined || T === undefined || B === undefined) return null;
+    const ok = [regge('x', L, -1, T, B), regge('x', R, 1, T, B), regge('y', T, -1, L, R), regge('y', B, 1, L, R)];
+    if(ok.every(Boolean)){
+      const w = (R + 1 - L) / M.W, h = (B + 1 - T) / M.H;
+      // una "vignetta" grande quanto un francobollo o quanto tutta la pagina
+      // non e' quello che si cercava
+      if(w < .04 || h < .04 || (w > .97 && h > .97)) return null;
+      return { x: L / M.W, y: T / M.H, w, h };
+    }
+    // si allarga il primo lato che non regge
+    i[ok.indexOf(false)]++;
   }
-  if(meglio < 0) return pos;
-  // fino in fondo all'inchiostro, verso l'esterno
-  let c = meglio;
-  while(scurezza(asse, c + verso, r0, r1) > SOGLIA_BORDO * .8 && Math.abs(c + verso - meglio) < 12) c += verso;
-  const nuovo = (c + (verso > 0 ? 1 : 0)) / lungo;
-  if(Math.abs(nuovo - pos) > 1e-6 && !_agganciato.has(asse + verso)){
-    _agganciato.add(asse + verso);
-    try{ navigator.vibrate && navigator.vibrate(6); }catch(e){}
-  }
-  return nuovo;
-}
-// Un colpetto di vibrazione quando il lato si attacca, uno solo per lato e
-// per trascinamento: si azzera a ogni dito che si appoggia.
-const _agganciato = new Set();
-// Il riquadro appena disegnato: tutti e quattro i lati, perche' anche il
-// punto da cui si e' partiti era a occhio.
-function calamitaRiquadro(r, t){
-  if(!_mappa) return r;
-  const x0 = calamita('x', r.x, -1, r.y, r.y + r.h, t);
-  const x1 = calamita('x', r.x + r.w, 1, r.y, r.y + r.h, t);
-  const y0 = calamita('y', r.y, -1, x0, x1, t);
-  const y1 = calamita('y', r.y + r.h, 1, x0, x1, t);
-  if(x1 - x0 < RIQ_MIN || y1 - y0 < RIQ_MIN) return r;
-  return { x:x0, y:y0, w:x1 - x0, h:y1 - y0 };
+  return null;
 }
 
 async function sorgentePulita(){
@@ -1570,7 +1590,7 @@ export function apriProspettiva(img, opzioni){
   // fin dal primo istante, invece di restare appesi a come il lettore la
   // stava mostrando (vedi la nota sopra trasforma()).
   prendiIlTavolo();
-  preparaMagnete(img);
+  preparaMappa(img);
   window.addEventListener('resize', riadatta);
   window.addEventListener('orientationchange', riadatta);
   document.addEventListener('keydown', tasti);

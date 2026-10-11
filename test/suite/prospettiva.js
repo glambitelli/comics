@@ -1150,41 +1150,59 @@ module.exports = () => suite("Prospettiva — il righello per leggere l'orizzont
      sulMirino.lato.w > sulMirino.angolo.w + 0.02 && Math.abs(sulMirino.lato.y - sulMirino.angolo.y) < 1e-9, sulMirino);
   ok('e nessuna linea parte per sbaglio', sulMirino.linee === 0, sulMirino);
 
-  sezione('il magnete: il riquadro si attacca al bordo della vignetta');
-  // CHIESTO DA GIOVANNI IL 10 OTTOBRE 2026: "che venga riconosciuta la forma
-  // del quadrato sotto, e il ritaglio si adatti — un magnete non troppo forte".
-  // Una pagina bianca con UNA vignetta: un rettangolo d'inchiostro spesso
-  // 6px, da 0.2 a 0.7 in larghezza e da 0.2 a 0.6 in altezza. Si disegna il
-  // riquadro a occhio, un po' dentro, e si guarda dove finisce.
-  const magnete = await page.evaluate(async ()=>{
+  sezione('toccando una vignetta, il riquadro la prende da solo');
+  // CHIESTO DA GIOVANNI (10-11 ottobre 2026): niente piu' riquadro aggiustato
+  // al millimetro. Prima e' stato un magnete sul trascinamento, bocciato
+  // ("terribile, lo preferivo prima"): adesso trascinando si e' liberi, e un
+  // TOCCO dentro la vignetta la riconosce e la riquadra da sola.
+  // Una pagina bianca con una vignetta d'inchiostro spesso 6px (da 0.2 a 0.7
+  // in larghezza, da 0.2 a 0.6 in altezza) e dentro un tratto verticale lungo
+  // — un palazzo — che NON deve essere preso per un bordo.
+  const tocchi = await page.evaluate(async ()=>{
     const P = window.P;
     const c = document.createElement('canvas'); c.width = 900; c.height = 1200;
     const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, 900, 1200);
     x.strokeStyle = '#000'; x.lineWidth = 6; x.strokeRect(180, 240, 450, 480);
+    x.lineWidth = 5; x.beginPath(); x.moveTo(330, 420); x.lineTo(330, 700); x.stroke();
     const im = new Image(); im.src = c.toDataURL('image/png'); await im.decode();
     im.style.cssText = 'position:fixed;left:0;top:0;width:300px;opacity:0'; document.body.appendChild(im);
-    P.chiudiProspettiva();
-    P.apriProspettiva(im);
-    await new Promise(r=> setTimeout(r, 300));
-    const svg = document.querySelector('.prosp-svg');
-    const r = document.querySelector('.prosp-tavolo').getBoundingClientRect();
-    const a = (fx, fy)=> [r.left + r.width * fx, r.top + r.height * fy];
-    const tocco = (tipo, [cx, cy])=> svg.dispatchEvent(new PointerEvent(tipo, {
+    const svg = ()=> document.querySelector('.prosp-svg');
+    const tocco = (tipo, [cx, cy])=> svg().dispatchEvent(new PointerEvent(tipo, {
       pointerId: 51, clientX: cx, clientY: cy, bubbles:true, cancelable:true }));
-    tocco('pointerdown', a(0.212, 0.212));
-    tocco('pointermove', a(0.5, 0.4));
-    tocco('pointermove', a(0.69, 0.59));
-    tocco('pointerup',   a(0.69, 0.59));
+    P.chiudiProspettiva(); P.apriProspettiva(im);
+    await new Promise(r=> setTimeout(r, 300));
+    let r = document.querySelector('.prosp-tavolo').getBoundingClientRect();
+    const a = (fx, fy)=> [r.left + r.width * fx, r.top + r.height * fy];
+    const invito = document.querySelector('.prosp-invito').textContent;
+    tocco('pointerdown', a(0.42, 0.35)); tocco('pointerup', a(0.42, 0.35));
     await new Promise(res=> setTimeout(res, 60));
-    const riq = { ...P.corniceAttiva() };
+    const preso = P.faseRiquadro() ? null : { ...P.corniceAttiva() };
+    // e a mano si resta liberi: un riquadro disegnato un po' dentro resta li'
+    P.chiudiProspettiva(); P.apriProspettiva(im);
+    await new Promise(res=> setTimeout(res, 300));
+    r = document.querySelector('.prosp-tavolo').getBoundingClientRect();
+    tocco('pointerdown', a(0.212, 0.212)); tocco('pointermove', a(0.5, 0.4));
+    tocco('pointermove', a(0.69, 0.59)); tocco('pointerup', a(0.69, 0.59));
+    await new Promise(res=> setTimeout(res, 60));
+    const aMano = { ...P.corniceAttiva() };
+    // fuori da ogni vignetta il tocco non fa niente
+    P.chiudiProspettiva(); P.apriProspettiva(im);
+    await new Promise(res=> setTimeout(res, 300));
+    r = document.querySelector('.prosp-tavolo').getBoundingClientRect();
+    tocco('pointerdown', a(0.85, 0.85)); tocco('pointerup', a(0.85, 0.85));
+    await new Promise(res=> setTimeout(res, 60));
+    const fuori = P.faseRiquadro();
     P.chiudiProspettiva(); im.remove();
-    return { riq, larghezzaASchermo: r.width };
+    return { invito, preso, aMano, fuori };
   });
   const vicino = (v, atteso)=> Math.abs(v - atteso) < 0.008;
-  ok('il lato sinistro si attacca al bordo', vicino(magnete.riq.x, 177/900), magnete);
-  ok('quello in alto anche', vicino(magnete.riq.y, 237/1200), magnete);
-  ok('e quelli a destra e in basso, col bordo dentro',
-     vicino(magnete.riq.x + magnete.riq.w, 633/900) && vicino(magnete.riq.y + magnete.riq.h, 723/1200), magnete);
+  ok('l\'invito dice che si puo\' toccare', /tocca/i.test(tocchi.invito), tocchi.invito);
+  ok('un tocco dentro la vignetta la riquadra, col bordo intero',
+     tocchi.preso && vicino(tocchi.preso.x, 177/900) && vicino(tocchi.preso.y, 237/1200)
+     && vicino(tocchi.preso.x + tocchi.preso.w, 633/900) && vicino(tocchi.preso.y + tocchi.preso.h, 723/1200), tocchi);
+  ok('a mano il riquadro resta dove lo si mette, senza magnete',
+     Math.abs(tocchi.aMano.x - 0.212) < 0.004 && Math.abs(tocchi.aMano.y - 0.212) < 0.004, tocchi.aMano);
+  ok('fuori da ogni vignetta il tocco non fa niente', tocchi.fuori === true, tocchi);
 
   sezione('e un lato solo si stringe senza toccare gli altri tre, gia\' giusti');
   // IL CASO PRECISO SEGNALATO DA GIOVANNI IL 16 SETTEMBRE 2026: un riquadro
