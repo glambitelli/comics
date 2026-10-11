@@ -1246,16 +1246,27 @@ function strisciaDati(c, W, y, h, misure){
 // trascinando si riquadra a mano, liberi come prima, senza nessun aiuto;
 // TOCCANDO una vignetta, lo strumento prova a trovarne i quattro bordi e la
 // riquadra da solo. Se non e' sicuro, non fa niente.
-// COME SI TROVA UN BORDO DI VIGNETTA. Il bordo e' una riga d'inchiostro
-// LUNGA e DRITTA: corre per tutto il lato della vignetta. Un palazzo, un
-// braccio, una scritta hanno tratti scuri anche loro, ma non tengono la
-// stessa colonna per tutta l'altezza della vignetta.
-// La pagina si legge una volta sola, all'apertura, ridotta a LATO_MAPPA pixel:
-// una matrice di "scuro si / scuro no". Se l'immagine arriva da un altro
-// dominio e non si lascia leggere (vedi sorgentePulita), il tocco non fa
-// niente e l'invito in barra non lo propone.
-const LATO_MAPPA = 900, SCURO = 110;
-let _mappa = null;   // { W, H, scuro: Uint8Array }
+// COME SI TROVA UNA VIGNETTA: DAL BIANCO CHE LE STA INTORNO. La prima
+// versione cercava i quattro bordi come righe d'inchiostro lunghe e dritte.
+// Provata su una tavola vera di Akira (11 ottobre 2026) ne prendeva giuste
+// poche: i bordi sottili, ridotti per la mappa, diventavano grigi; il
+// disegno che tocca il bordo li confondeva; e a volte il tocco non faceva
+// niente. Adesso si fa come fanno i programmi che leggono i fumetti: si
+// cerca il MARGINE — il bianco della pagina, e i corridoi bianchi fra una
+// vignetta e l'altra, che sono tutti collegati al bordo del foglio — e la
+// vignetta e' la zona chiusa, separata da quel bianco, in cui cade il dito.
+// Il bianco DENTRO una vignetta (un cielo, un fumetto) non e' margine: il
+// bordo della vignetta lo chiude, e dal bordo del foglio non ci si arriva.
+// Per non far passare il bianco da un buco del bordo — una riga sottile
+// ridotta a mezzo pixel — l'inchiostro si ingrossa di un pixel prima di
+// cercare. E il riquadro finale si prende sulle righe e colonne PIENE della
+// zona trovata: un fumetto che sborda nel margine allungherebbe la zona di
+// un pezzetto, ma quel pezzetto e' stretto e non conta.
+// La pagina si legge una volta sola, all'apertura, ridotta a LATO_MAPPA pixel.
+// Se l'immagine arriva da un altro dominio e non si lascia leggere (vedi
+// sorgentePulita), il tocco non fa niente e l'invito in barra non lo propone.
+const LATO_MAPPA = 1000, CHIARO = 200;
+let _mappa = null;   // { W, H, margine: Uint8Array (1 = bianco collegato al bordo del foglio) }
 // A COSA SI RIFERISCE LA MAPPA: l'indirizzo della pagina, non l'elemento
 // <img>. Il lettore RIUSA le sue tre immagini da una pagina all'altra (vedi
 // il nastro in albums.js): con l'elemento come chiave, sfogliando e riaprendo
@@ -1278,107 +1289,121 @@ async function preparaMappa(img){
     try{ c.drawImage(img, 0, 0, W, H); d = c.getImageData(0, 0, W, H).data; }
     catch(e){ const pulita = await sorgentePulita(); if(_mappaDi !== chiave) return;
               c.clearRect(0, 0, W, H); c.drawImage(pulita, 0, 0, W, H); d = c.getImageData(0, 0, W, H).data; }
-    const scuro = new Uint8Array(W * H);
-    for(let i = 0, j = 0; j < scuro.length; i += 4, j++){
-      scuro[j] = (d[i] * .3 + d[i+1] * .59 + d[i+2] * .11) < SCURO ? 1 : 0;
+    const N = W * H;
+    // l'inchiostro (tutto quello che non e' quasi bianco), ingrossato di un pixel
+    const ink = new Uint8Array(N);
+    for(let i = 0, j = 0; j < N; i += 4, j++) ink[j] = (d[i] * .3 + d[i+1] * .59 + d[i+2] * .11) < CHIARO ? 1 : 0;
+    const muro = new Uint8Array(N);
+    for(let y = 0; y < H; y++) for(let x = 0; x < W; x++){
+      if(!ink[y * W + x]) continue;
+      for(let dy = -1; dy <= 1; dy++) for(let dx = -1; dx <= 1; dx++){
+        const xx = x + dx, yy = y + dy;
+        if(xx >= 0 && yy >= 0 && xx < W && yy < H) muro[yy * W + xx] = 1;
+      }
+    }
+    // il margine: il bianco raggiungibile dal bordo del foglio
+    const margine = new Uint8Array(N);
+    const coda = new Int32Array(N); let testa = 0, fondo = 0;
+    const semina = i=>{ if(!muro[i] && !margine[i]){ margine[i] = 1; coda[fondo++] = i; } };
+    for(let x = 0; x < W; x++){ semina(x); semina((H - 1) * W + x); }
+    for(let y = 0; y < H; y++){ semina(y * W); semina(y * W + W - 1); }
+    while(testa < fondo){
+      const i = coda[testa++], x = i % W;
+      if(x > 0) semina(i - 1);
+      if(x < W - 1) semina(i + 1);
+      if(i >= W) semina(i - W);
+      if(i < N - W) semina(i + W);
     }
     if(_mappaDi === chiave){
-      _mappa = { W, H, scuro };
+      _mappa = { W, H, margine };
       // la barra lo dice appena si puo' toccare ("…o toccala"), senza
       // aspettare che il dito muova qualcosa
       if(prospettivaAperta() && faseRiquadro()) disegna();
     }
   }catch(e){ _mappa = null; }
 }
-// Quanto e' scura una riga (asse 'x': la colonna c, fra le righe r0 e r1;
-// asse 'y': la riga c, fra le colonne r0 e r1), da 0 a 1.
-function scurezza(asse, c, r0, r1){
-  const M = _mappa;
-  const lim = asse === 'x' ? M.W : M.H;
-  if(c < 0 || c >= lim) return 0;
-  const passo = Math.max(1, Math.floor((r1 - r0) / 240));
-  let n = 0, sc = 0;
-  for(let r = r0; r < r1; r += passo){
-    n++; sc += asse === 'x' ? M.scuro[r * M.W + c] : M.scuro[c * M.W + r];
-  }
-  return n ? sc / n : 0;
-}
-// Cerca i quattro bordi della vignetta che contiene il punto p (in frazioni
-// d'immagine). Si parte da una finestra piccola intorno al dito: per ogni
-// direzione si raccolgono le righe quasi tutte scure IN QUELLA FINESTRA, dalla
-// piu' vicina. Poi si verifica: un bordo vero dev'essere scuro per quasi tutto
-// il lato della vignetta trovata, non solo vicino al dito. Se una candidata
-// non regge, si prova la successiva piu' lontana; si ripete finche' i quattro
-// lati non si confermano a vicenda, o si rinuncia.
-const BORDO_PIENO = .8, BORDO_LATO = .85;
+
+// La vignetta sotto il punto p (in frazioni d'immagine), o null se non la si
+// trova con sicurezza.
 function trovaVignetta(p){
   const M = _mappa;
   if(!M || !p) return null;
-  const px = Math.round(p.x * M.W), py = Math.round(p.y * M.H);
-  if(px < 1 || py < 1 || px >= M.W - 1 || py >= M.H - 1) return null;
-  // le candidate di una direzione: righe scure nella finestra, dalla piu' vicina
-  const candidate = (asse, verso, r0, r1)=>{
-    const lim = asse === 'x' ? M.W : M.H, da = asse === 'x' ? px : py;
-    const out = [];
-    for(let c = da + verso; c >= 0 && c < lim; c += verso){
-      if(scurezza(asse, c, r0, r1) >= BORDO_PIENO){
-        // tutta la riga d'inchiostro, fino al suo lato esterno
-        let e = c;
-        while(e + verso >= 0 && e + verso < lim && scurezza(asse, e + verso, r0, r1) >= BORDO_PIENO * .8) e += verso;
-        // DI LA' DAL BORDO C'E' IL BIANCO DEL MARGINE. Si prende il lato
-        // esterno di tutta la massa scura — se il disegno tocca il bordo, il
-        // nero del disegno e quello del bordo sono una riga sola, e conta dove
-        // finisce — e la si tiene solo se subito oltre c'e' il chiaro: un
-        // palazzo pieno in mezzo alla vignetta ha anche lui il chiaro oltre,
-        // ma non regge la verifica sul lato intero qui sotto.
-        const oltre = e + verso * 2;
-        const margine = oltre < 0 || oltre >= lim || scurezza(asse, oltre, r0, r1) < .35;
-        if(margine) out.push(e);
-        c = e;
-        if(out.length >= 6) break;
+  const { W, H, margine } = M, N = W * H;
+  let px = Math.round(p.x * W), py = Math.round(p.y * H);
+  if(px < 0 || py < 0 || px >= W || py >= H) return null;
+  // il dito e' largo: se il punto preciso cade nel margine (o su un filo di
+  // margine entrato da un buco) si guarda qualche pixel intorno
+  if(margine[py * W + px]){
+    let trovato = false;
+    for(let r = 1; r <= 4 && !trovato; r++)
+      for(let dy = -r; dy <= r && !trovato; dy++) for(let dx = -r; dx <= r && !trovato; dx++){
+        const x = px + dx, y = py + dy;
+        if(x >= 0 && y >= 0 && x < W && y < H && !margine[y * W + x]){ px = x; py = y; trovato = true; }
       }
-    }
-    return out;
-  };
-  const fw = Math.max(6, Math.round(M.H * .03)), fh = Math.max(6, Math.round(M.W * .03));
-  const sx = candidate('x', -1, Math.max(0, py - fw), Math.min(M.H, py + fw));
-  const dx = candidate('x',  1, Math.max(0, py - fw), Math.min(M.H, py + fw));
-  const su = candidate('y', -1, Math.max(0, px - fh), Math.min(M.W, px + fh));
-  const giu = candidate('y',  1, Math.max(0, px - fh), Math.min(M.W, px + fh));
-  if(!sx.length || !dx.length || !su.length || !giu.length) return null;
-  // Il bordo vero e' scuro per (quasi) tutto il lato, e oltre ha il margine
-  // chiaro per tutto il lato: la massa nera di un disegno non fa ne' l'una
-  // ne' l'altra cosa da cima a fondo.
-  const regge = (asse, c, verso, a, b)=>{
-    const m = Math.round((b - a) * .1);
-    if(b - a <= 8 || scurezza(asse, c, a + m, b - m) < BORDO_LATO) return false;
-    const lim = asse === 'x' ? M.W : M.H, oltre = c + verso * 2;
-    return oltre < 0 || oltre >= lim || scurezza(asse, oltre, a + m, b - m) < .3;
-  };
-  let i = [0, 0, 0, 0];
-  for(let giro = 0; giro < 24; giro++){
-    const L = sx[i[0]], R = dx[i[1]], T = su[i[2]], B = giu[i[3]];
-    if(L === undefined || R === undefined || T === undefined || B === undefined) return null;
-    const ok = [regge('x', L, -1, T, B), regge('x', R, 1, T, B), regge('y', T, -1, L, R), regge('y', B, 1, L, R)];
-    if(ok.every(Boolean)){
-      const w = (R + 1 - L) / M.W, h = (B + 1 - T) / M.H;
-      // una "vignetta" grande quanto un francobollo o quanto tutta la pagina
-      // non e' quello che si cercava
-      if(w < .04 || h < .04 || (w > .97 && h > .97)) return null;
-      // UN PELO DI MARGINE intorno al bordo, perche' l'inchiostro che chiude la
-      // vignetta si veda tutto anche sul tavolo (Giovanni: "lasciami un pelo
-      // di margine, cosi' vedo anche il bordo"). Poco meno dell'1% del lato
-      // corto: il margine bianco fra due vignette e' quasi sempre piu' largo,
-      // quindi della vignetta accanto non si vede niente.
-      const pad = Math.max(2, Math.round(Math.min(M.W, M.H) * .008));
-      const x0 = Math.max(0, L - pad), y0 = Math.max(0, T - pad);
-      const x1 = Math.min(M.W, R + 1 + pad), y1 = Math.min(M.H, B + 1 + pad);
-      return { x: x0 / M.W, y: y0 / M.H, w: (x1 - x0) / M.W, h: (y1 - y0) / M.H };
-    }
-    // si allarga il primo lato che non regge
-    i[ok.indexOf(false)]++;
+    if(!trovato) return null;
   }
-  return null;
+  // tutta la zona chiusa che contiene il dito
+  const visto = new Uint8Array(N), coda = new Int32Array(N);
+  const col = new Int32Array(W), riga = new Int32Array(H);
+  let testa = 0, fondo = 0, n = 0;
+  const entra = i=>{ if(!margine[i] && !visto[i]){ visto[i] = 1; coda[fondo++] = i; } };
+  entra(py * W + px);
+  while(testa < fondo){
+    const i = coda[testa++], x = i % W, y = (i - x) / W;
+    col[x]++; riga[y]++; n++;
+    if(x > 0) entra(i - 1);
+    if(x < W - 1) entra(i + 1);
+    if(y > 0) entra(i - W);
+    if(y < H - 1) entra(i + W);
+  }
+  // troppo piccola (un fumetto staccato, il numero di pagina) o tutto il foglio
+  if(n < N * .004) return null;
+  // IL RIQUADRO SULLE COLONNE E RIGHE PIENE, attorno al dito. Un fumetto che
+  // esce nel margine allunga la zona di un pezzetto stretto; e se passa il
+  // margine ed entra nella vignetta accanto, le due zone diventano una sola,
+  // unite da un ponte basso quanto il fumetto. In tutti e due i casi quelle
+  // colonne sono poco piene rispetto a quelle della vignetta: si tengono solo
+  // le colonne (e poi le righe) piene almeno PIENEZZA della piu' piena, nel
+  // tratto continuo che contiene il dito. Due giri, perche' tagliate le
+  // colonne cambiano le righe e viceversa.
+  const PIENEZZA = .3;
+  let x0 = 0, x1 = W - 1, y0 = 0, y1 = H - 1;
+  const tratto = (v, len, da)=>{
+    let max = 0; for(let i = 0; i < len; i++) if(v[i] > max) max = v[i];
+    const soglia = max * PIENEZZA;
+    let c = da;
+    if(v[c] < soglia){   // il dito su una colonna povera: la piena piu' vicina
+      let m = -1;
+      for(let r = 1; r < len && m < 0; r++){
+        if(da - r >= 0 && v[da - r] >= soglia) m = da - r;
+        else if(da + r < len && v[da + r] >= soglia) m = da + r;
+      }
+      if(m < 0) return null; c = m;
+    }
+    let a = c, b = c;
+    while(a > 0 && v[a - 1] >= soglia) a--;
+    while(b < len - 1 && v[b + 1] >= soglia) b++;
+    return [a, b];
+  };
+  for(let giro = 0; giro < 2; giro++){
+    col.fill(0);
+    for(let k = 0; k < fondo; k++){ const i = coda[k], y = (i / W) | 0; if(y >= y0 && y <= y1) col[i - y * W]++; }
+    const tx = tratto(col, W, px); if(!tx) return null; [x0, x1] = tx;
+    riga.fill(0);
+    for(let k = 0; k < fondo; k++){ const i = coda[k], x = i % W; if(x >= x0 && x <= x1) riga[(i - x) / W]++; }
+    const ty = tratto(riga, H, py); if(!ty) return null; [y0, y1] = ty;
+  }
+  const w = (x1 + 1 - x0) / W, h = (y1 + 1 - y0) / H;
+  if(w < .04 || h < .04 || (w > .97 && h > .97)) return null;
+  // UN PELO DI MARGINE intorno al bordo, perche' l'inchiostro che chiude la
+  // vignetta si veda tutto anche sul tavolo (Giovanni: "lasciami un pelo
+  // di margine, cosi' vedo anche il bordo"). Poco meno dell'1% del lato
+  // corto: il margine bianco fra due vignette e' quasi sempre piu' largo,
+  // quindi della vignetta accanto non si vede niente.
+  const pad = Math.max(2, Math.round(Math.min(W, H) * .008));
+  const a0 = Math.max(0, x0 - pad), b0 = Math.max(0, y0 - pad);
+  const a1 = Math.min(W, x1 + 1 + pad), b1 = Math.min(H, y1 + 1 + pad);
+  return { x: a0 / W, y: b0 / H, w: (a1 - a0) / W, h: (b1 - b0) / H };
 }
 
 async function sorgentePulita(){

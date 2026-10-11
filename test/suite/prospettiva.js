@@ -1224,6 +1224,49 @@ module.exports = () => suite("Prospettiva — il righello per leggere l'orizzont
   ok('cambiata la pagina nella stessa immagine, si trova la vignetta nuova',
      tocchi.altraPagina && Math.abs(tocchi.altraPagina.x * 900 - 477) < 15 && Math.abs(tocchi.altraPagina.y * 1200 - 777) < 15, tocchi.altraPagina);
 
+  sezione('e sulle tavole vere: bordi sottili, disegno che li tocca, fumetti che sbordano');
+  // 11 OTTOBRE 2026, su una tavola di Akira: il primo metodo (i bordi come
+  // righe d'inchiostro lunghe) prendeva giuste poche vignette e a volte il
+  // tocco non faceva niente. Qui i tre casi che lo ingannavano, in una
+  // pagina sola: due vignette affiancate col margine stretto, bordi di un
+  // pixel e mezzo (ridotti per la mappa diventano grigi), una massa nera che
+  // tocca il bordo da dentro, e un fumetto che esce nel margine verso la
+  // vignetta accanto.
+  const veri = await page.evaluate(async ()=>{
+    const P = window.P;
+    const c = document.createElement('canvas'); c.width = 1200; c.height = 1700;
+    const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, 1200, 1700);
+    x.strokeStyle = '#000'; x.lineWidth = 1.5;
+    x.strokeRect(80, 100, 620, 700); x.strokeRect(724, 100, 396, 700);
+    x.fillStyle = '#000'; x.fillRect(560, 400, 140, 400);                 // nero che tocca il bordo destro
+    x.fillStyle = '#fff'; x.beginPath(); x.ellipse(690, 200, 70, 40, 0, 0, 7); x.fill();
+    x.lineWidth = 2; x.stroke();                                           // fumetto che sborda nel margine
+    const im = new Image(); im.src = c.toDataURL('image/png'); await im.decode();
+    im.style.cssText = 'position:fixed;left:0;top:0;width:300px;opacity:0'; document.body.appendChild(im);
+    const prova = async (fx, fy)=>{
+      P.chiudiProspettiva(); P.apriProspettiva(im);
+      await new Promise(r=> setTimeout(r, 300));
+      const r = document.querySelector('.prosp-tavolo').getBoundingClientRect();
+      const svg = document.querySelector('.prosp-svg');
+      const t = tipo=> svg.dispatchEvent(new PointerEvent(tipo, { pointerId: 61,
+        clientX: r.left + r.width * fx, clientY: r.top + r.height * fy, bubbles:true, cancelable:true }));
+      t('pointerdown'); t('pointerup');
+      await new Promise(res=> setTimeout(res, 60));
+      if(P.faseRiquadro()) return null;
+      const q = P.corniceAttiva();
+      return [q.x * 1200, q.y * 1700, (q.x + q.w) * 1200, (q.y + q.h) * 1700].map(Math.round);
+    };
+    const sinistra = await prova(0.2, 0.3), destra = await prova(0.75, 0.35), margine = await prova(0.594, 0.5);
+    P.chiudiProspettiva(); im.remove();
+    return { sinistra, destra, margine };
+  });
+  const dentro = (q, x0, y0, x1, y1)=> q && q[0] <= x0 && q[0] > x0 - 25 && q[1] <= y0 && q[1] > y0 - 25
+    && q[2] >= x1 && q[2] < x1 + 25 && q[3] >= y1 && q[3] < y1 + 25;
+  ok('la vignetta a sinistra, col nero che tocca il bordo e il fumetto che sborda',
+     dentro(veri.sinistra, 80, 100, 700, 800), veri);
+  ok('e quella accanto, senza mangiarsi la prima', dentro(veri.destra, 724, 100, 1120, 800), veri);
+  ok('e nel margine stretto fra le due non succede niente', veri.margine === null, veri);
+
   sezione('e un lato solo si stringe senza toccare gli altri tre, gia\' giusti');
   // IL CASO PRECISO SEGNALATO DA GIOVANNI IL 16 SETTEMBRE 2026: un riquadro
   // giusto su tre lati e un filo troppo largo sul quarto (si vedeva ancora un
