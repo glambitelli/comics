@@ -37,6 +37,7 @@ import { albumGiaScaricato, getDriveAlbumFile, ensureDriveConnected, isDownloadC
          eraGiaScaricato } from './drive.js';
 import { openRemoteZipSource, openBlobZipSource } from './zipremote.js';
 import { haptic } from './state.js';
+import { segnaErrore } from './registro.js';
 import { escAttr } from './testo.js';
 import { actionMenu, promptModal } from './dialogs.js';
 import { iconaPixel, disegnaGermano, ANATRA, ANATRA_PASSO } from './germano.js';
@@ -451,8 +452,24 @@ async function pdfSource(file){
   // standard (le pagine col testo vero). Ognuno si scarica solo se una pagina
   // ne ha bisogno. Prova: test/suite/lettore-pdf-scansioni.js.
   const cartella = new URL('./vendor/pdfjs/', import.meta.url).href;
+  // A PEZZI DAL FILE, NON TUTTO IN MEMORIA. La prima versione passava a
+  // pdf.js il PDF intero (file.arrayBuffer()): su Vinland Saga 01, 464 pagine,
+  // sono centinaia di megabyte copiati nella pagina e poi di nuovo nel worker
+  // — e la copertina, fatta in un altro momento, ne apriva un'altra copia. Sul
+  // telefono di Giovanni la copertina e' arrivata, poi il lettore e' rimasto
+  // sul pixel che lampeggia: il worker senza piu' memoria muore senza dire
+  // niente, e la pagina chiesta non arriva mai. Ora pdf.js chiede i byte che
+  // gli servono, un pezzo alla volta, e li si taglia dal file (Blob.slice non
+  // copia niente finche' non si legge).
+  const trasporto = new pdfjs.PDFDataRangeTransport(file.size, null);
+  trasporto.requestDataRange = (da, a)=>{
+    file.slice(da, a).arrayBuffer()
+      .then(b => trasporto.onDataRange(da, new Uint8Array(b)))
+      .catch(e => segnaErrore('PDF: lettura dei byte ' + da + '-' + a + ' fallita: ' + (e && e.message), 'albi'));
+  };
   const doc = await pdfjs.getDocument({
-    data: new Uint8Array(await file.arrayBuffer()), isEvalSupported: false,
+    range: trasporto, length: file.size, rangeChunkSize: 1 << 20,
+    disableAutoFetch: true, disableStream: true, isEvalSupported: false,
     wasmUrl: cartella + 'wasm/', iccUrl: cartella + 'iccs/', standardFontDataUrl: cartella + 'standard_fonts/',
   }).promise;
   const n = doc.numPages;
@@ -463,26 +480,38 @@ async function pdfSource(file){
   for(let i = 1; i <= n; i++) pages.push({ name: nome(i), url: null, blob: null });
   return {
     pages,
+    // Una pagina che non si disegna lo DICE: nel registro degli errori
+    // (Impostazioni › Diagnostica), con il numero e il motivo. E se non arriva
+    // entro 30 secondi — il worker morto non risponde piu', non da' errore —
+    // si smette di aspettarla e si scrive anche quello.
     async getData(name){
       const m = /pagina-(\d+)\.jpg$/.exec(name);
       if(!m) return null;
-      const pag = await doc.getPage(+m[1]);
-      const v1 = pag.getViewport({ scale: 1 });
-      const scala = PDF_LATO / Math.max(v1.width, v1.height);
-      const v = pag.getViewport({ scale: scala });
-      const tela = document.createElement('canvas');
-      tela.width = Math.round(v.width); tela.height = Math.round(v.height);
-      const ctx = tela.getContext('2d');
-      // fondo bianco: una pagina PDF senza sfondo verrebbe nera nel JPEG
-      ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, tela.width, tela.height);
-      await pag.render({ canvasContext: ctx, viewport: v }).promise;
-      pag.cleanup();
-      const blob = await new Promise(r => tela.toBlob(r, 'image/jpeg', .9));
-      tela.width = tela.height = 0;   // la memoria della tela si libera subito
-      return blob;
+      let timer = 0;
+      const scaduta = new Promise(r => { timer = setTimeout(()=>{
+        segnaErrore('PDF: la pagina ' + m[1] + ' non si e\' disegnata in 30 secondi', 'albi'); r(null); }, 30000); });
+      try{ return await Promise.race([disegna(+m[1]), scaduta]); }
+      catch(e){ segnaErrore('PDF: pagina ' + m[1] + ' illeggibile: ' + (e && e.message || e), 'albi'); throw e; }
+      finally{ clearTimeout(timer); }
     },
     close(){ try{ doc.destroy(); }catch(e){} },
   };
+  async function disegna(numero){
+    const pag = await doc.getPage(numero);
+    const v1 = pag.getViewport({ scale: 1 });
+    const scala = PDF_LATO / Math.max(v1.width, v1.height);
+    const v = pag.getViewport({ scale: scala });
+    const tela = document.createElement('canvas');
+    tela.width = Math.round(v.width); tela.height = Math.round(v.height);
+    const ctx = tela.getContext('2d');
+    // fondo bianco: una pagina PDF senza sfondo verrebbe nera nel JPEG
+    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, tela.width, tela.height);
+    await pag.render({ canvasContext: ctx, viewport: v }).promise;
+    pag.cleanup();
+    const blob = await new Promise(r => tela.toBlob(r, 'image/jpeg', .9));
+    tela.width = tela.height = 0;   // la memoria della tela si libera subito
+    return blob;
+  }
 }
 
 // Riconosce il formato dalla firma dei byte (ZIP = "PK\x03\x04", RAR =
