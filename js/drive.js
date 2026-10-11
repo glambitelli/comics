@@ -433,6 +433,14 @@ async function driveFetch(url){
   return res.json();
 }
 
+// Un nome di cartella come lo legge una persona: senza accenti, tutto
+// minuscolo, le parole in ordine alfabetico, e qualunque spazio (anche quello
+// "speciale" U+00A0, o due di fila) vale uno spazio solo.
+export function nomeAOcchio(nome){
+  return String(nome || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase().split(/[^a-z0-9]+/).filter(Boolean).sort().join(' ');
+}
+
 // Trova (con cache) l'ID della sottocartella dedicata a una cartella-autore,
 // cercandola per nome dentro la cartella radice. Se non esiste ancora su
 // Drive torna null: niente sync per quella cartella finché l'utente non la crea.
@@ -446,7 +454,25 @@ async function findAuthorSubfolderId(folderName){
     q, fields: 'files(id,name)', spaces: 'drive', pageSize: '10',
   });
   const data = await driveFetch(url);
-  const hit = (data.files || []).find(f => f.name.trim().toLowerCase() === key) || (data.files || [])[0] || null;
+  let hit = (data.files || []).find(f => f.name.trim().toLowerCase() === key) || (data.files || [])[0] || null;
+  // SE IL NOME ESATTO NON C'E', SI GUARDANO TUTTE LE CARTELLE e si confrontano
+  // i nomi "a occhio": maiuscole, accenti, spazi in piu' e ordine delle parole
+  // non contano. L'11 ottobre 2026 «YUKIMURA Makoto» c'era, al posto giusto
+  // accanto a KON Satoshi e OTOMO Katsuhiro, e Inkflow diceva «Su Drive
+  // manca»: la ricerca di Drive vuole il nome identico carattere per
+  // carattere, e basta uno spazio in fondo o lo spazio "speciale" che certe
+  // tastiere del telefono mettono fra due parole perche' non lo trovi. A
+  // guardarli i due nomi erano uguali, ed e' quello che conta.
+  // (un nome fatto solo di caratteri non latini "a occhio" resterebbe vuoto
+  // e combacerebbe con qualunque altro: li' vale solo il nome esatto)
+  if(!hit && nomeAOcchio(folderName)){
+    const tutte = 'https://www.googleapis.com/drive/v3/files?' + new URLSearchParams({
+      q: `'${DRIVE_ROOT_FOLDER_ID}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`,
+      fields: 'files(id,name)', spaces: 'drive', pageSize: '1000',
+    });
+    const chiave = nomeAOcchio(folderName);
+    hit = ((await driveFetch(tutte)).files || []).find(f => nomeAOcchio(f.name) === chiave) || null;
+  }
   // Mettiamo in cache solo un ID trovato davvero: se la sottocartella non
   // esiste ancora, ricontrolliamo ad ogni sync invece di darla per persa per
   // tutta la sessione — altrimenti crearla dopo il primo tentativo non
