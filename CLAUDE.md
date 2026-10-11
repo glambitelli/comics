@@ -28,13 +28,18 @@ La cartella `test/` non finisce sul sito: il workflow di Pages la esclude.
 
 ## Come chiudere ogni messaggio
 
-Alla fine di **ogni** risposta, un resoconto brevissimo in due parti:
+Alla fine di **ogni** risposta, un resoconto brevissimo:
 
 1. **Cosa ho fatto** — due o tre righe, non un elenco lungo.
 2. **Come lo provi** — i passi concreti sul telefono o sul browser: dove
    andare, cosa toccare, cosa dovresti vedere. Se serve aspettare il deploy,
    dirlo.
-3. **Il link**, sempre, in fondo: <https://glambitelli.github.io/comics/>.
+3. **La versione**, sempre, quando si e' pubblicato qualcosa: il numero della
+   cache in `sw.js` cosi' come lo mostra l'app, cioe' "1.0.0 · v452" (si legge
+   in Impostazioni › Diagnostica › Versione installata). Giovanni la confronta
+   per capire se sul telefono e' arrivato l'aggiornamento ("dimmi sempre che
+   versione e', cosi' controllo se e' la versione aggiornata").
+4. **Il link**, sempre, in fondo: <https://glambitelli.github.io/comics/>.
    Anche quando sembra ovvio. Giovanni legge le risposte dal telefono e la
    differenza fra "vai su Inkflow" e un link da toccare e' se la prova la fa
    subito o la rimanda.
