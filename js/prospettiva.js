@@ -1256,10 +1256,17 @@ function strisciaDati(c, W, y, h, misure){
 // niente e l'invito in barra non lo propone.
 const LATO_MAPPA = 900, SCURO = 110;
 let _mappa = null;   // { W, H, scuro: Uint8Array }
-let _mappaDi = null; // l'immagine a cui si riferisce
+// A COSA SI RIFERISCE LA MAPPA: l'indirizzo della pagina, non l'elemento
+// <img>. Il lettore RIUSA le sue tre immagini da una pagina all'altra (vedi
+// il nastro in albums.js): con l'elemento come chiave, sfogliando e riaprendo
+// la prospettiva la mappa restava quella della pagina di prima, e il tocco
+// cercava le vignette di un'altra tavola — su Akira prendeva tre vignette
+// invece di una (Giovanni, 11 ottobre 2026).
+let _mappaDi = null;
 async function preparaMappa(img){
-  if(_mappaDi === img && _mappa) return;
-  _mappa = null; _mappaDi = img;
+  const chiave = (img.currentSrc || img.src || '') + '|' + img.naturalWidth + 'x' + img.naturalHeight;
+  if(_mappaDi === chiave && _mappa) return;
+  _mappa = null; _mappaDi = chiave;
   try{
     const NW = img.naturalWidth, NH = img.naturalHeight;
     if(!NW || !NH) return;
@@ -1269,13 +1276,13 @@ async function preparaMappa(img){
     const c = tela.getContext('2d', { willReadFrequently:true });
     let d;
     try{ c.drawImage(img, 0, 0, W, H); d = c.getImageData(0, 0, W, H).data; }
-    catch(e){ const pulita = await sorgentePulita(); if(_mappaDi !== img) return;
+    catch(e){ const pulita = await sorgentePulita(); if(_mappaDi !== chiave) return;
               c.clearRect(0, 0, W, H); c.drawImage(pulita, 0, 0, W, H); d = c.getImageData(0, 0, W, H).data; }
     const scuro = new Uint8Array(W * H);
     for(let i = 0, j = 0; j < scuro.length; i += 4, j++){
       scuro[j] = (d[i] * .3 + d[i+1] * .59 + d[i+2] * .11) < SCURO ? 1 : 0;
     }
-    if(_mappaDi === img) _mappa = { W, H, scuro };
+    if(_mappaDi === chiave) _mappa = { W, H, scuro };
   }catch(e){ _mappa = null; }
 }
 // Quanto e' scura una riga (asse 'x': la colonna c, fra le righe r0 e r1;
@@ -1353,7 +1360,15 @@ function trovaVignetta(p){
       // una "vignetta" grande quanto un francobollo o quanto tutta la pagina
       // non e' quello che si cercava
       if(w < .04 || h < .04 || (w > .97 && h > .97)) return null;
-      return { x: L / M.W, y: T / M.H, w, h };
+      // UN PELO DI MARGINE intorno al bordo, perche' l'inchiostro che chiude la
+      // vignetta si veda tutto anche sul tavolo (Giovanni: "lasciami un pelo
+      // di margine, cosi' vedo anche il bordo"). Poco meno dell'1% del lato
+      // corto: il margine bianco fra due vignette e' quasi sempre piu' largo,
+      // quindi della vignetta accanto non si vede niente.
+      const pad = Math.max(2, Math.round(Math.min(M.W, M.H) * .008));
+      const x0 = Math.max(0, L - pad), y0 = Math.max(0, T - pad);
+      const x1 = Math.min(M.W, R + 1 + pad), y1 = Math.min(M.H, B + 1 + pad);
+      return { x: x0 / M.W, y: y0 / M.H, w: (x1 - x0) / M.W, h: (y1 - y0) / M.H };
     }
     // si allarga il primo lato che non regge
     i[ok.indexOf(false)]++;

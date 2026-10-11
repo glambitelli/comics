@@ -1192,17 +1192,37 @@ module.exports = () => suite("Prospettiva — il righello per leggere l'orizzont
     tocco('pointerdown', a(0.85, 0.85)); tocco('pointerup', a(0.85, 0.85));
     await new Promise(res=> setTimeout(res, 60));
     const fuori = P.faseRiquadro();
+    // LA STESSA <img> CON UN'ALTRA PAGINA, come fa il lettore sfogliando: la
+    // vignetta adesso sta in basso a destra, e il tocco deve trovare quella.
+    P.chiudiProspettiva();
+    x.fillStyle = '#fff'; x.fillRect(0, 0, 900, 1200);
+    x.lineWidth = 6; x.strokeRect(480, 780, 300, 300);
+    im.src = c.toDataURL('image/png'); await im.decode();
+    P.apriProspettiva(im);
+    await new Promise(res=> setTimeout(res, 300));
+    r = document.querySelector('.prosp-tavolo').getBoundingClientRect();
+    tocco('pointerdown', a(0.7, 0.77)); tocco('pointerup', a(0.7, 0.77));
+    await new Promise(res=> setTimeout(res, 60));
+    const altraPagina = P.faseRiquadro() ? null : { ...P.corniceAttiva() };
     P.chiudiProspettiva(); im.remove();
-    return { invito, preso, aMano, fuori };
+    return { invito, preso, aMano, fuori, altraPagina };
   });
   const vicino = (v, atteso)=> Math.abs(v - atteso) < 0.008;
   ok('l\'invito dice che si puo\' toccare', /tocca/i.test(tocchi.invito), tocchi.invito);
-  ok('un tocco dentro la vignetta la riquadra, col bordo intero',
-     tocchi.preso && vicino(tocchi.preso.x, 177/900) && vicino(tocchi.preso.y, 237/1200)
-     && vicino(tocchi.preso.x + tocchi.preso.w, 633/900) && vicino(tocchi.preso.y + tocchi.preso.h, 723/1200), tocchi);
+  // Il bordo d'inchiostro va da 177 a 633 in larghezza e da 237 a 723 in
+  // altezza; il riquadro lo prende tutto e ci lascia intorno un pelo di
+  // margine (11 ottobre 2026: "lasciami un pelo di margine"), meno di 15px.
+  const fuoriDi = (v, bordo, verso)=> verso * (v - bordo) > 0 && verso * (v - bordo) < 15;
+  ok('un tocco dentro la vignetta la riquadra, col bordo intero e un pelo di margine',
+     tocchi.preso && fuoriDi(tocchi.preso.x * 900, 177, -1) && fuoriDi(tocchi.preso.y * 1200, 237, -1)
+     && fuoriDi((tocchi.preso.x + tocchi.preso.w) * 900, 633, 1) && fuoriDi((tocchi.preso.y + tocchi.preso.h) * 1200, 723, 1), tocchi);
   ok('a mano il riquadro resta dove lo si mette, senza magnete',
      Math.abs(tocchi.aMano.x - 0.212) < 0.004 && Math.abs(tocchi.aMano.y - 0.212) < 0.004, tocchi.aMano);
   ok('fuori da ogni vignetta il tocco non fa niente', tocchi.fuori === true, tocchi);
+  // 11 ottobre 2026: la mappa restava quella della pagina di prima, perche'
+  // il lettore riusa le stesse <img> sfogliando.
+  ok('cambiata la pagina nella stessa immagine, si trova la vignetta nuova',
+     tocchi.altraPagina && Math.abs(tocchi.altraPagina.x * 900 - 477) < 15 && Math.abs(tocchi.altraPagina.y * 1200 - 777) < 15, tocchi.altraPagina);
 
   sezione('e un lato solo si stringe senza toccare gli altri tre, gia\' giusti');
   // IL CASO PRECISO SEGNALATO DA GIOVANNI IL 16 SETTEMBRE 2026: un riquadro
