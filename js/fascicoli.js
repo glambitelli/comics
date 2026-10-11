@@ -31,6 +31,21 @@ import { projects, PHASE_NAMES } from './state.js';
 import { calcPct, getPhaseIndex } from './progress.js';
 import { openProject } from './project.js';
 import { esc } from './testo.js';
+import { suonaRumore, preparaRumori } from './sound.js';
+
+// I RUMORI DEI FASCICOLI (11 ottobre 2026), scelti da Giovanni e tagliati qui
+// (sfx/fascicoli/):
+//  · scorre — il cartone che striscia sul tavolo, a ogni fascicolo che
+//    scivola. Preso da una registrazione di carta trascinata, senza
+//    l'introduzione, abbassato di quasi quattro semitoni e col filtro sopra i
+//    3,2 kHz: com'era "da' fastidio all'orecchio" (il centro del suono stava a
+//    6800 Hz, ora a 3150). Accorciato a un secondo scarso: si sente a ogni
+//    swipe.
+//  · apri / chiudi — la copertina che si alza e che ricade, dallo stesso file
+//    di effetti: il primo dei due rumori (piu' secco e acuto) e' l'apertura, il
+//    secondo (piu' sordo) la chiusura.
+const RUMORI = { scorre:'./sfx/fascicoli/scorre.mp3', apri:'./sfx/fascicoli/apri.mp3', chiudi:'./sfx/fascicoli/chiudi.mp3' };
+let _aperto = false;   // un progetto aperto DA QUI: quando si chiude, chiude il fascicolo
 
 // LE CARTELLE, dall'11 ottobre 2026 nuove e pulite come quella del
 // riferimento. Le prime due erano invecchiate, macchiate e strappate — colpa
@@ -172,8 +187,32 @@ function posa(box, trasc, subito){
   });
 }
 
+// La chiusura: quando la schermata del progetto aperto da qui si spegne —
+// col tasto Indietro, dal menu, verso qualunque altra schermata — il
+// fascicolo si richiude. Si guarda la schermata e non i pulsanti perche' le
+// strade per uscire da un progetto sono tante, e il rumore deve esserci in
+// tutte.
+let _osservato = false;
+function osservaChiusura(){
+  if(_osservato) return;
+  const scr = document.getElementById('screen-project');
+  if(!scr || !window.MutationObserver) return;
+  _osservato = true;
+  new MutationObserver(()=>{
+    if(_aperto && !scr.classList.contains('active')){ _aperto = false; suonaRumore(RUMORI.chiudi, .85); }
+  }).observe(scr, { attributes:true, attributeFilter:['class'] });
+}
+
 function monta(box, n){
-  const vai = i=>{ _c = Math.max(0, Math.min(n, i)); posa(box, 0); };
+  osservaChiusura();
+  if(!monta._pronti){ monta._pronti = true;
+    window.addEventListener('pointerdown', ()=> preparaRumori(Object.values(RUMORI)), { once:true, passive:true }); }
+  const vai = i=>{
+    const prima = _c;
+    _c = Math.max(0, Math.min(n, i));
+    if(_c !== prima) suonaRumore(RUMORI.scorre, .7);
+    posa(box, 0);
+  };
   const palco = box.querySelector('.fasc-palco');
   let x0 = null, dx = 0, mosso = false;
   palco.addEventListener('pointerdown', e=>{ x0 = e.clientX; dx = 0; mosso = false; try{ palco.setPointerCapture(e.pointerId); }catch(err){} });
@@ -194,6 +233,8 @@ function monta(box, n){
     const i = +f.dataset.i;
     if(i !== _c){ vai(i); return; }
     if(i >= projects.length){ if(window.openNewModal) window.openNewModal(); return; }
+    suonaRumore(RUMORI.apri, .85);
+    _aperto = true;
     openProject(projects[i].id);
   };
   palco.addEventListener('pointerup', fine);

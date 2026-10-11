@@ -112,15 +112,23 @@ module.exports = () => suite("Projects — i progetti come fascicoli sulla scriv
     await page.mouse.move(a, 380, { steps: 8 }); await page.mouse.up();
     await page.waitForTimeout(500);
   };
+  // i rumori chiesti finora (il resto dell'app ne chiede altri all'avvio)
+  const rumori = ()=> page.evaluate(async ()=>{ const { __rumoriChiesti } = await import('/js/sound.js'); return __rumoriChiesti.splice(0); });
+  await rumori();
   await swipe(280, 100);
   s = await stato();
   ok('verso sinistra: il secondo', s.centro && s.centro.i === 1, s.centro);
+  const rScorre = await rumori();
+  ok('e il cartone striscia sul tavolo', rScorre.includes('scorre.mp3'), rScorre);
   await swipe(100, 280);
   s = await stato();
   ok('verso destra: si torna al primo', s.centro && s.centro.i === 0, s.centro);
+  await rumori();
   await swipe(180, 160);
   s = await stato();
   ok('uno spostamento piccolo non cambia fascicolo', s.centro && s.centro.i === 0, s.centro);
+  const rFermo = await rumori();
+  ok('e allora non fa rumore', !rFermo.includes('scorre.mp3'), rFermo);
 
   sezione('in fondo alla fila, il posto per un fascicolo nuovo');
   await page.evaluate(n=> window.__fascicoli.vai(n), TITOLI.length);
@@ -143,10 +151,14 @@ module.exports = () => suite("Projects — i progetti come fascicoli sulla scriv
     return { attivo: document.getElementById('screen-project').classList.contains('active'), id: st.currentId };
   });
   ok('si apre Ruggine', aperto.attivo && aperto.id === 'p2', aperto);
+  const rApri = await rumori();
+  ok('con il rumore della copertina che si alza', rApri.includes('apri.mp3'), rApri);
 
   sezione('Scene e Jobs restano come sono');
   await page.evaluate(()=> window.openProjects());
   await page.waitForTimeout(500);
+  const rChiudi = await rumori();
+  ok('(uscendo dal progetto il fascicolo si richiude, e si sente)', rChiudi.includes('chiudi.mp3'), rChiudi);
   await page.evaluate(()=> window.setScaffaleProgetti('scene'));
   await page.waitForTimeout(400);
   s = await stato();
