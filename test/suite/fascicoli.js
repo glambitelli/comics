@@ -119,7 +119,8 @@ module.exports = () => suite("Projects — i progetti come fascicoli sulla scriv
   s = await stato();
   ok('verso sinistra: il secondo', s.centro && s.centro.i === 1, s.centro);
   const rScorre = await rumori();
-  ok('e il cartone striscia sul tavolo', rScorre.includes('scorre.mp3'), rScorre);
+  // lo strisciare del cartone c'e' stato ed e' stato tolto: scorrendo, silenzio
+  ok('e scorrendo non fa rumore', !rScorre.some(r => /fascicoli|scorre/.test(r)), rScorre);
   await swipe(100, 280);
   s = await stato();
   ok('verso destra: si torna al primo', s.centro && s.centro.i === 0, s.centro);

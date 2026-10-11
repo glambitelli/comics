@@ -34,17 +34,15 @@ import { esc } from './testo.js';
 import { suonaRumore, preparaRumori } from './sound.js';
 
 // I RUMORI DEI FASCICOLI (11 ottobre 2026), scelti da Giovanni e tagliati qui
-// (sfx/fascicoli/):
-//  · scorre — il cartone che striscia sul tavolo, a ogni fascicolo che
-//    scivola. Preso da una registrazione di carta trascinata, senza
-//    l'introduzione, abbassato di quasi quattro semitoni e col filtro sopra i
-//    3,2 kHz: com'era "da' fastidio all'orecchio" (il centro del suono stava a
-//    6800 Hz, ora a 3150). Accorciato a un secondo scarso: si sente a ogni
-//    swipe.
-//  · apri / chiudi — la copertina che si alza e che ricade, dallo stesso file
-//    di effetti: il primo dei due rumori (piu' secco e acuto) e' l'apertura, il
-//    secondo (piu' sordo) la chiusura.
-const RUMORI = { scorre:'./sfx/fascicoli/scorre.mp3', apri:'./sfx/fascicoli/apri.mp3', chiudi:'./sfx/fascicoli/chiudi.mp3' };
+// (sfx/fascicoli/): la copertina che si alza e quella che ricade, dallo stesso
+// file di effetti — il primo dei due rumori (piu' secco e acuto) e'
+// l'apertura, il secondo (piu' sordo) la chiusura.
+// NIENTE RUMORE MENTRE SCORRONO. C'e' stato per un giorno: un cartone
+// trascinato sul tavolo, preso da una registrazione di carta. Com'era "da'
+// fastidio all'orecchio"; abbassato e allungato "sembra un cadavere
+// trascinato"; tre versioni corte e leggere non sono piaciute nemmeno quelle.
+// Tolto: "poi ci ragioniamo".
+const RUMORI = { apri:'./sfx/fascicoli/apri.mp3', chiudi:'./sfx/fascicoli/chiudi.mp3' };
 let _aperto = false;   // un progetto aperto DA QUI: quando si chiude, chiude il fascicolo
 
 // LE CARTELLE, dall'11 ottobre 2026 nuove e pulite come quella del
@@ -208,9 +206,7 @@ function monta(box, n){
   if(!monta._pronti){ monta._pronti = true;
     window.addEventListener('pointerdown', ()=> preparaRumori(Object.values(RUMORI)), { once:true, passive:true }); }
   const vai = i=>{
-    const prima = _c;
     _c = Math.max(0, Math.min(n, i));
-    if(_c !== prima) suonaRumore(RUMORI.scorre, .7);
     posa(box, 0);
   };
   const palco = box.querySelector('.fasc-palco');
