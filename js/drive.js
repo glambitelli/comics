@@ -55,7 +55,9 @@ const TOKEN_KEY = 'inkflow-drive-token';
 // era collegato e va semplicemente rinnovato, e chi non ha mai collegato
 // niente e a cui non si deve aprire nessuna finestra senza che l'abbia chiesto.
 const LINKED_KEY = 'inkflow-drive-linked';
-const ALBUM_EXT_RE = /\.(cbz|cbr)$/i;
+// Dall'11 ottobre 2026 anche i PDF: si sfogliano come gli altri (vedi
+// pdfSource in js/albums.js).
+const ALBUM_EXT_RE = /\.(cbz|cbr|pdf)$/i;
 
 let _token = null;             // { access_token, expiresAt, email }
 const _folderCache = new Map(); // nome cartella-autore (lowercase) → id sottocartella Drive (o null)

@@ -18,7 +18,7 @@ const FIXTURES = path.join(__dirname, 'fixtures');
 // Gli albi .cbz sono binari e si ricostruiscono in un istante: fuori dal
 // repository, rigenerati qui se mancano (checkout pulito, macchina nuova).
 function assicuraAlbi(){
-  const attesi = ['pagine.cbz', 'tavole.cbz', 'alta.cbz', 'pesante.cbz'];
+  const attesi = ['pagine.cbz', 'tavole.cbz', 'alta.cbz', 'pesante.cbz', 'pagine.pdf'];
   if(attesi.every(f => fs.existsSync(path.join(FIXTURES, f)))) return;
   console.log('Mancano gli albi di prova, li rigenero.');
   execFileSync(process.execPath, [path.join(__dirname, 'crea-albi.js')], { stdio: 'inherit' });

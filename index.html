@@ -648,16 +648,16 @@
         </div>
         <button class="albums-drive-btn" id="albums-drive-btn" onclick="window.connectDriveAndSync()" type="button">Collega</button>
       </div>
-      <button class="albums-open-btn" onclick="window.openAlbumPicker()" type="button" title="Apri un .cbz o .cbr dal dispositivo — per ciò che non è su Drive">
+      <button class="albums-open-btn" onclick="window.openAlbumPicker()" type="button" title="Apri un .cbz, un .cbr o un PDF dal dispositivo — per ciò che non è su Drive">
         <svg viewBox="0 0 24 24" width="15" height="15"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>
         <span>Apri un albo dal dispositivo</span>
       </button>
-      <input type="file" id="album-file-input" accept=".cbz,.cbr,application/zip,application/vnd.comicbook+zip,application/vnd.rar,application/x-rar-compressed" style="display:none">
+      <input type="file" id="album-file-input" accept=".cbz,.cbr,.pdf,application/pdf,application/zip,application/vnd.comicbook+zip,application/vnd.rar,application/x-rar-compressed" style="display:none">
       <div id="refs-albums-grid" class="refs-albums-grid"></div>
       <div class="refs-empty-state refs-albums-empty">
         <svg viewBox="0 0 24 24" style="width:34px;height:34px;opacity:.3"><path d="M4 5.5a1.5 1.5 0 0 1 1.5-1.5H11v16H5.5A1.5 1.5 0 0 1 4 18.5Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M20 5.5A1.5 1.5 0 0 0 18.5 4H13v16h5.5a1.5 1.5 0 0 0 1.5-1.5Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
         <div>Sfoglia un albo</div>
-        <div class="refs-empty-sub">Apri un .cbz o .cbr dal dispositivo, leggilo qui, e ritaglia le tavole che ti servono: diventano Frammenti di questo autore</div>
+        <div class="refs-empty-sub">Apri un .cbz, un .cbr o un PDF dal dispositivo, leggilo qui, e ritaglia le tavole che ti servono: diventano Frammenti di questo autore</div>
       </div>
       <div id="refs-albums-noresults" class="refs-empty-state">
         <svg viewBox="0 0 24 24" style="width:34px;height:34px;opacity:.3"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M15.2 15.2 20.5 20.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
@@ -1218,7 +1218,7 @@
       </button>
       <div class="settings-card aiuto-corpo" id="aiuto-corpo" hidden>
         <h4>Gli albi da Google Drive</h4>
-        <p>Inkflow cerca su Drive una cartella che si chiami <b>esattamente</b> come quella qui dentro. Se l'artista qui è <em>KON Satoshi</em>, su Drive la cartella deve chiamarsi <em>KON Satoshi</em> — non “Kon”, non “Satoshi Kon”. Dentro ci vanno i file <b>.cbz</b> o <b>.cbr</b>; il loro nome non conta, quello puoi cambiarlo quando vuoi.</p>
+        <p>Inkflow cerca su Drive una cartella che si chiami <b>esattamente</b> come quella qui dentro. Se l'artista qui è <em>KON Satoshi</em>, su Drive la cartella deve chiamarsi <em>KON Satoshi</em> — non “Kon”, non “Satoshi Kon”. Dentro ci vanno i file <b>.cbz</b>, <b>.cbr</b> o <b>.pdf</b>; il loro nome non conta, quello puoi cambiarlo quando vuoi.</p>
         <p>Le cartelle devono stare tutte dentro la cartella-radice che hai collegato, non in sottocartelle più profonde. E gli albi arrivano quando <b>apri la cartella e vai su “Albi”</b>: ricaricare l'app dalla home non guarda niente.</p>
         <p>Se una cartella su Drive non c'è, lo scaffale te lo dice col nome che sta cercando.</p>
 

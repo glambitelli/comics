@@ -414,6 +414,65 @@ async function extractRarPages(file){
   };
 }
 
+// ── I PDF (11 ottobre 2026) ──
+// Un fumetto in PDF si sfoglia come un .cbr: una tavola per pagina, con lo
+// stesso lettore, lo stesso zoom e lo stesso ritaglio. Prima Inkflow leggeva
+// solo .cbz e .cbr, e un PDF messo su Drive veniva scartato ("Saltato…").
+//
+// Lo legge pdf.js (Mozilla, licenza Apache 2.0, in js/vendor/pdfjs), caricato
+// come libarchive SOLO al primo PDF aperto: chi non ne apre mai non scarica
+// il suo milione e mezzo di byte. Gira in un worker suo. I due file sono
+// quelli della build "legacy" di pdfjs-dist 5.4.296, rinominati da .mjs a
+// .js: alcuni server (il banco delle prove, per dirne uno) mandano i .mjs
+// senza il tipo giusto, e il browser rifiuta un worker modulo che non si
+// presenta come JavaScript.
+//
+// Anche qui la lettura e' PIGRA: all'apertura si conta solo il numero delle
+// pagine; ogni pagina diventa un'immagine quando la si guarda (o la si sta per
+// guardare: e' la stessa fila con le precedenze delle altre sorgenti). Il
+// resto del lettore riceve un JPEG come da un .cbz e non sa che era un PDF.
+//
+// LA RISOLUZIONE. Una pagina PDF non ha pixel: va "stampata" a una misura.
+// Il lato lungo a 2400 pixel: su un telefono di 360x800 pixel CSS con
+// densita' 3 la tavola intera ne usa circa 2400 in altezza, quindi a schermo
+// pieno e' nitida, e ingrandita resta leggibile. Piu' grande costa memoria
+// (una tela da 2400x1700 sono gia' 16 MB mentre si disegna) senza che
+// l'occhio lo veda. E' anche la misura da cui parte il ritaglio.
+const PDF_LATO = 2400;
+async function pdfSource(file){
+  const pdfjs = await import('./vendor/pdfjs/pdf.min.js');
+  pdfjs.GlobalWorkerOptions.workerSrc = new URL('./vendor/pdfjs/pdf.worker.min.js', import.meta.url).href;
+  const doc = await pdfjs.getDocument({ data: new Uint8Array(await file.arrayBuffer()), isEvalSupported: false }).promise;
+  const n = doc.numPages;
+  // Nomi finti ma ordinati ("pagina-0001.jpg"): sono quello che il lettore
+  // usa per riconoscere le tavole, e l'estensione gli dice che e' un JPEG.
+  const nome = i => 'pagina-' + String(i).padStart(4, '0') + '.jpg';
+  const pages = [];
+  for(let i = 1; i <= n; i++) pages.push({ name: nome(i), url: null, blob: null });
+  return {
+    pages,
+    async getData(name){
+      const m = /pagina-(\d+)\.jpg$/.exec(name);
+      if(!m) return null;
+      const pag = await doc.getPage(+m[1]);
+      const v1 = pag.getViewport({ scale: 1 });
+      const scala = PDF_LATO / Math.max(v1.width, v1.height);
+      const v = pag.getViewport({ scale: scala });
+      const tela = document.createElement('canvas');
+      tela.width = Math.round(v.width); tela.height = Math.round(v.height);
+      const ctx = tela.getContext('2d');
+      // fondo bianco: una pagina PDF senza sfondo verrebbe nera nel JPEG
+      ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, tela.width, tela.height);
+      await pag.render({ canvasContext: ctx, viewport: v }).promise;
+      pag.cleanup();
+      const blob = await new Promise(r => tela.toBlob(r, 'image/jpeg', .9));
+      tela.width = tela.height = 0;   // la memoria della tela si libera subito
+      return blob;
+    },
+    close(){ try{ doc.destroy(); }catch(e){} },
+  };
+}
+
 // Riconosce il formato dalla firma dei byte (ZIP = "PK\x03\x04", RAR =
 // "Rar!\x1a\x07") e ne ricava la sorgente pagine. Condivisa tra l'apertura da
 // file locale e quella da Google Drive: a valle nessuna delle due sa più da
@@ -429,6 +488,11 @@ async function extractPagesForFile(file){
 
   const isZip = head[0] === 0x50 && head[1] === 0x4B;
   const isRar = head[0] === 0x52 && head[1] === 0x61 && head[2] === 0x72 && head[3] === 0x21;
+  const isPdf = head[0] === 0x25 && head[1] === 0x50 && head[2] === 0x44 && head[3] === 0x46;   // "%PDF"
+  if(isPdf){
+    try{ return await pdfSource(file); }
+    catch(e){ console.error('pdf', e); throw new Error('Questo PDF è illeggibile, danneggiato o protetto da password.'); }
+  }
 
   // LA FIRMA VINCE SULL'ESTENSIONE. Un mucchio di albi in giro si chiamano
   // .cbr ma dentro sono ZIP (chi li impacchetta cambia formato e non rinomina).
@@ -458,7 +522,7 @@ async function extractPagesForFile(file){
     try{ return await extractRarPages(file); }
     catch(e){ console.error('rar', e); throw new Error('Questo .cbr è illeggibile, danneggiato o cifrato.'); }
   }
-  throw new Error('Formato non riconosciuto: serve un .cbz o .cbr.');
+  throw new Error('Formato non riconosciuto: serve un .cbz, un .cbr o un PDF.');
 }
 
 // ── APERTURA ALBO (file locale) ─────────────────────────────────────────────
@@ -476,7 +540,7 @@ export async function openAlbumFromFile(file){
   // apriva solo a fine estrazione, quindi il glifo — pensato apposta per
   // questa attesa — non compariva mai, e il messaggio di stato restava sulla
   // schermata References invece che nel lettore.
-  openReaderShell(file.name.replace(/\.(cbz|cbr|zip|rar)$/i, ''));
+  openReaderShell(file.name.replace(/\.(cbz|cbr|zip|rar|pdf)$/i, ''));
   detachCurrentAlbum();   // via le tavole dell'albo precedente (vedi la funzione)
   toast('', false, true); // solo il glifo: il testo generico è ridondante col titolo già in barra
   let src;
@@ -488,7 +552,7 @@ export async function openAlbumFromFile(file){
   clearPages();
   _source = src;
   _pages = src.pages;
-  _albumName = file.name.replace(/\.(cbz|cbr|zip|rar)$/i, '');
+  _albumName = file.name.replace(/\.(cbz|cbr|zip|rar|pdf)$/i, '');
   _albumSig  = file.name + ':' + file.size;
   _currentAlbumId = null;
 
@@ -769,7 +833,7 @@ export async function createAlbumFromDriveFile(folderId, driveFile){
   }
 
   await createAlbumDoc({
-    folderId, title: name.replace(/\.(cbz|cbr)$/i,''), cover, pageCount,
+    folderId, title: name.replace(/\.(cbz|cbr|pdf)$/i,''), cover, pageCount,
     sourceName: name, sourceSize: size, lastPage: 0,
     driveFileId: driveFile.id,
   });
@@ -884,7 +948,7 @@ export async function openAlbumFromDrive(albumId){
   clearPages();
   _source = src;
   _pages = src.pages;
-  _albumName = a.title || file.name.replace(/\.(cbz|cbr)$/i,'');
+  _albumName = a.title || file.name.replace(/\.(cbz|cbr|pdf)$/i,'');
   _albumSig = file.name + ':' + file.size;
   _currentAlbumId = a.id;
   _idx = clampIdx(a.lastPage || 0);

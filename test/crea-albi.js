@@ -83,6 +83,42 @@ function scrivi(dest, n, w, h){
   console.log('  ' + path.basename(dest) + ' — ' + n + ' tavole' + (w ? ' da ' + w + 'x' + h : ' larghe quanto il loro indice'));
 }
 
+// UN PDF DI PROVA (11 ottobre 2026), per il lettore che apre anche i PDF
+// (test/suite/lettore-pdf.js). Scritto a mano, senza librerie: tre pagine
+// 660x1000 punti, ognuna con tre vignette a filo nero e un riquadro colorato
+// diverso. Niente testo apposta: il testo vorrebbe un carattere, e pdf.js per
+// i caratteri standard va a cercare file che il banco non ha. Con sole forme
+// ogni pagina si disegna uguale ovunque.
+function scriviPdf(dest){
+  const colori = ['0.9 0.35 0.24', '0.24 0.55 0.86', '0.31 0.67 0.35'];
+  const ogg = [];   // testo di ogni oggetto, numerati da 1
+  const pagine = colori.map((c, i)=>{
+    const flusso = [
+      c + ' rg 60 700 540 240 re f',                       // il riquadro colorato
+      '0 g 8 w 30 670 600 300 re S 30 30 290 610 re S 350 30 280 610 re S',
+    ].join('\n');
+    return flusso;
+  });
+  // 1 catalogo, 2 albero delle pagine, poi per ogni pagina: pagina + contenuto
+  ogg[0] = '<< /Type /Catalog /Pages 2 0 R >>';
+  const kids = pagine.map((_, i)=> (3 + i * 2) + ' 0 R').join(' ');
+  ogg[1] = '<< /Type /Pages /Kids [' + kids + '] /Count ' + pagine.length + ' >>';
+  pagine.forEach((f, i)=>{
+    ogg[2 + i * 2] = '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 660 1000] /Contents ' + (4 + i * 2) + ' 0 R >>';
+    ogg[3 + i * 2] = '<< /Length ' + Buffer.byteLength(f) + ' >>\nstream\n' + f + '\nendstream';
+  });
+  let out = '%PDF-1.4\n';
+  const posti = [];
+  ogg.forEach((o, i)=>{ posti.push(Buffer.byteLength(out)); out += (i + 1) + ' 0 obj\n' + o + '\nendobj\n'; });
+  const xref = Buffer.byteLength(out);
+  out += 'xref\n0 ' + (ogg.length + 1) + '\n0000000000 65535 f \n'
+    + posti.map(p => String(p).padStart(10, '0') + ' 00000 n \n').join('')
+    + 'trailer\n<< /Size ' + (ogg.length + 1) + ' /Root 1 0 R >>\nstartxref\n' + xref + '\n%%EOF\n';
+  fs.mkdirSync(path.dirname(dest), { recursive: true });
+  fs.writeFileSync(dest, out);
+  console.log('  ' + path.basename(dest) + ' — ' + pagine.length + ' pagine');
+}
+
 if(process.argv[2]){
   scrivi(process.argv[2], parseInt(process.argv[3]||'12',10),
          parseInt(process.argv[4]||'0',10), parseInt(process.argv[5]||'0',10));
@@ -93,4 +129,5 @@ if(process.argv[2]){
   scrivi(path.join(dir, 'tavole.cbz'), 5, 1400, 2000); // proporzioni da fumetto
   scrivi(path.join(dir, 'alta.cbz'),   5, 1000, 2600); // vincolata in altezza: si sposta davvero
   scrivi(path.join(dir, 'pesante.cbz'), 6, 2480, 3508);// scansione vera, per la memoria
+  scriviPdf(path.join(dir, 'pagine.pdf'));               // il lettore apre anche i PDF
 }

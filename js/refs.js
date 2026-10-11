@@ -1669,7 +1669,7 @@ function renderScaffaleDrive(){
     if(titolo) titolo.textContent = quanti === 1
       ? 'Saltato «' + _scartatiDrive[0] + '»'
       : 'Saltati ' + quanti + ' file su Drive';
-    esitoDrive('Un albo deve finire per .cbz o .cbr' +
+    esitoDrive('Un albo deve finire per .cbz, .cbr o .pdf' +
       (quanti > 1 ? ': ' + _scartatiDrive.join(', ') : '.'));
     if(btn) btn.hidden = true;
     return;
