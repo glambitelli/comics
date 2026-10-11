@@ -38,13 +38,14 @@ import { esc } from './testo.js';
 // anni fa, invece l'originale e' fresco". Queste tre vengono dal prompt
 // rifatto (versioni A, B e C), ritagliate dal grigio tenendo i fogli bianchi
 // che spuntano (scratchpad: taglia2.py).
-// Per ognuna: le proporzioni e quanto e' larga la copertina vera e propria — a destra ci sono la linguetta e i fogli, e le
+// Per ognuna: le proporzioni, la finestrella dell'etichetta e quanto e' larga
+// la copertina vera e propria — a destra ci sono la linguetta e i fogli, e le
 // scritte vanno centrate sulla copertina, non sulla foto intera. Misurate
 // sulle foto ritagliate, in frazioni della larghezza e dell'altezza.
 const CARTELLE = [
-  { src:'img/fascicoli/cartella-1.webp', r:570/739, cop:.908 },
-  { src:'img/fascicoli/cartella-2.webp', r:619/783, cop:.895 },
-  { src:'img/fascicoli/cartella-3.webp', r:648/848, cop:.912 },
+  { src:'img/fascicoli/cartella-1.webp', r:570/739, fin:{ x:.311, y:.054, w:.286, h:.045 }, cop:.908 },
+  { src:'img/fascicoli/cartella-2.webp', r:619/783, fin:{ x:.302, y:.056, w:.291, h:.045 }, cop:.895 },
+  { src:'img/fascicoli/cartella-3.webp', r:648/848, fin:{ x:.310, y:.055, w:.292, h:.046 }, cop:.912 },
 ];
 // Otto fascicoli diversi da tre foto: quale foto, specchiata o no (la
 // linguetta passa a sinistra), e un filo di tono. Pochissimo: il cartone e'
@@ -84,24 +85,38 @@ export function aggiornaVista(){
   if(on) disegnaFascicoli();
 }
 
+function numero(i){
+  // Il numero di fascicolo e' il posto nella fila: P-0001 e' il primo a
+  // sinistra.
+  return 'P-' + String(i + 1).padStart(4, '0');
+}
+
 function copertina(p, i){
   const v = VARIANTI[i % VARIANTI.length], c = CARTELLE[v.c];
   const titolo = esc(p.title || 'Senza titolo');
   // la finestrella, se la foto e' specchiata, sta dall'altra parte
-  // la copertina vera e propria: specchiata, la linguetta sta a sinistra
+  const fase = PHASE_NAMES[getPhaseIndex(p)] || '';
+  // specchiata, la finestrella e la linguetta stanno dall'altra parte
+  const fx = v.flip ? 1 - c.fin.x - c.fin.w : c.fin.x;
   const cx = v.flip ? 1 - c.cop : 0;
-  // SULLA COPERTINA SOLO IL TITOLO, tra virgolette, battuto a macchina.
-  // Prima c'erano anche l'ente su tre righe ("INKFLOW STUDIO DI NARRATIVA
-  // DISEGNATA"), "Titolo", la fase, le tavole e il numero nella finestrella:
-  // "ma che cazzo e'... scrivi al massimo il titolo". Restano il sigillo blu
-  // e le righe vuote del modulo, che sono disegno e non testo.
+  // SULLA COPERTINA: il numero nella finestrella, il titolo tra virgolette
+  // battuto a macchina, il sigillo blu, e sotto le righe del modulo con la
+  // fase e le tavole. Tolta invece l'intestazione su tre righe ("INKFLOW
+  // STUDIO DI NARRATIVA DISEGNATA"): copiata pari pari dal "FEDERAL BUREAU OF
+  // INVESTIGATION" del riferimento, era un ente inventato e brutto. Anche la
+  // parola "Titolo" davanti al titolo: le virgolette bastano.
   return `<div class="fasc" data-i="${i}" style="--storto:${v.r}deg;--asp:${c.r}">
     <img class="fasc-foto" src="${c.src}" alt="" draggable="false" style="transform:${v.flip ? 'scaleX(-1)' : 'none'};filter:${v.f}">
     <div class="fasc-stampa" aria-hidden="true">
+      <span class="fasc-etich" style="left:${fx*100}%;top:${c.fin.y*100}%;width:${c.fin.w*100}%;height:${c.fin.h*100}%">${numero(i)}</span>
       <span class="fasc-cop" style="left:${cx*100}%;width:${c.cop*100}%">
         <span class="fasc-tit">&ldquo;${titolo}&rdquo;</span>
         ${SIGILLO}
-        <span class="fasc-righe">${'<span></span>'.repeat(10)}</span>
+        <span class="fasc-righe">
+          <span><i>Fase</i>${esc(fase)}</span><span></span>
+          <span><i>Tavole</i>${p.numTav || 0}</span><span></span>
+          ${'<span></span>'.repeat(6)}
+        </span>
       </span>
     </div>
     <span class="fasc-nome">${titolo}</span>

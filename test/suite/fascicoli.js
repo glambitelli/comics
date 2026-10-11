@@ -62,9 +62,12 @@ module.exports = () => suite("Projects — i progetti come fascicoli sulla scriv
       centro: centro ? {
         i: +centro.dataset.i,
         tit: (centro.querySelector('.fasc-tit') || {}).textContent || '',
-        // sulla copertina c'e' scritto solo il titolo: niente ente, fase, numero
-        altro: Array.from(centro.querySelectorAll('.fasc-stampa :is(span,b,i)'))
-          .filter(e=> !e.closest('.fasc-tit') && e.children.length === 0 && e.textContent.trim()).map(e=> e.textContent),
+        etich: (centro.querySelector('.fasc-etich') || {}).textContent || '',
+        righe: (centro.querySelector('.fasc-righe') || {}).textContent || '',
+        // l'intestazione inventata ("INKFLOW STUDIO DI NARRATIVA DISEGNATA") non torna
+        // (il sigillo, che "INKFLOW STUDIO" ce l'ha nel giro, resta: si guarda fuori)
+        ente: (()=>{ const st = centro.querySelector('.fasc-stampa'); if(!st) return false; const c = st.cloneNode(true);
+          c.querySelectorAll('svg').forEach(x=> x.remove()); return /narrativa|inkflow/i.test(c.textContent); })(),
         sx: Math.round(r.left), dx: Math.round(r.right), alto: Math.round(r.height),
       } : null,
     };
@@ -79,7 +82,9 @@ module.exports = () => suite("Projects — i progetti come fascicoli sulla scriv
   ok('e sotto la fila nient\'altro', !s.sotto, s);
   ok('al centro c\'e\' il primo, col suo titolo', s.centro && s.centro.i === 0 && /kara/i.test(s.centro.tit), s.centro);
   ok('il titolo sta tra virgolette', s.centro && /^\u201cKara\u201d$/.test(s.centro.tit.trim()), s.centro);
-  ok('e sulla copertina non c\'e\' scritto altro', s.centro && s.centro.altro.length === 0, s.centro);
+  ok('il numero nella finestrella', s.centro && s.centro.etich.trim() === 'P-0001', s.centro);
+  ok('la fase e le tavole sulle righe', s.centro && /Fase\s*Sviluppo/.test(s.centro.righe) && /Tavole\s*10/.test(s.centro.righe), s.centro);
+  ok('e niente intestazione inventata', s.centro && !s.centro.ente, s.centro);
 
   sezione('otto fascicoli di fila sono otto copertine diverse');
   // "voglio che siano uno diverso dall'altro": da due foto, specchiate e

@@ -96,8 +96,8 @@ body:not(.is-touch):not(.evening-mode) #screen-projects.vista-fascicoli .project
    messe accanto al ritaglio del riferimento otto famiglie libere (Courier
    Prime, Cutive, Kreon, Rokkitt, Zilla Slab...), la piu' vicina e' Special
    Elite. Poi anche cosi' le scritte erano troppe e troppo grandi: dall'11
-   ottobre resta solo il titolo, piccolo, ed e' quello che fa sembrare grande
-   la cartella.
+   ottobre via l'intestazione inventata: restano il numero, il titolo, la fase
+   e le tavole, tutto piccolo, ed e' quello che fa sembrare grande la cartella.
    "multiply": l'inchiostro prende il colore e le macchie del cartone sotto.
    Le misure sono in cqw (centesimi della larghezza del fascicolo), cosi'
    restano al loro posto su qualsiasi telefono. */
@@ -108,6 +108,12 @@ body:not(.is-touch):not(.evening-mode) #screen-projects.vista-fascicoli .project
 /* La copertina vera e propria, senza linguetta e fogli: le scritte si
    centrano qui dentro. */
 .fasc-cop{position:absolute;top:0;bottom:0}
+/* Il numero nella finestrella, piccolo e scuro come un'etichetta battuta a
+   macchina. */
+.fasc-etich{
+  position:absolute;display:flex;align-items:center;justify-content:center;
+  font-size:3.3cqw;letter-spacing:.06em;color:#4a3a2e;
+}
 /* Il titolo: piccolo, poco sotto la finestrella, rosso come il nastro della
    macchina. 4,2cqw su un fascicolo largo 270px fa circa 11px: a quella
    misura la cartella resta grande e il titolo si legge. */
@@ -123,7 +129,8 @@ body:not(.is-touch):not(.evening-mode) #screen-projects.vista-fascicoli .project
   transform:translateX(-50%) rotate(-3deg);color:#2a62d0;opacity:.92;
   font-family:'Special Elite','Courier New',serif;
 }
-/* Le due colonne di righe da riempire, vuote come sull'originale. */
+/* Le due colonne di righe del modulo: sulle prime due la fase e le tavole,
+   scritte piccole sopra la riga; le altre vuote, come sull'originale. */
 .fasc-righe{
   position:absolute;left:12%;right:12%;top:68%;
   display:grid;grid-template-columns:1fr 1fr;column-gap:10%;row-gap:0;
@@ -132,6 +139,7 @@ body:not(.is-touch):not(.evening-mode) #screen-projects.vista-fascicoli .project
   height:5.4cqw;border-bottom:.25cqw solid rgba(110,70,50,.75);
   font-size:2.9cqw;line-height:5.6cqw;white-space:nowrap;overflow:hidden;
 }
+.fasc-righe i{font-style:normal;opacity:.75;margin-right:1.4cqw}
 .fasc-nome{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 
 /* ── IL POSTO VUOTO IN FONDO ──
