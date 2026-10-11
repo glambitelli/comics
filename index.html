@@ -12,7 +12,7 @@
 <title>Inkflow</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Castoro&family=Courier+Prime:wght@400;700&family=Lora:ital,wght@0,400;0,600;1,400&family=Nunito:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Castoro&family=Courier+Prime:wght@400;700&family=Special+Elite&family=Lora:ital,wght@0,400;0,600;1,400&family=Nunito:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <!-- I quattro fogli qui sotto (lettore, galleria, scriptment, statistiche)
      valgono da soli metà del CSS dell'app, e servono a schermate che si aprono
      con un tocco DOPO l'avvio. Caricati come tutti gli altri fermavano il
@@ -30,6 +30,7 @@
 <link rel="stylesheet" href="css/settings.css">
 <link rel="stylesheet" href="css/idee.css">
 <link rel="stylesheet" href="css/scene.css">
+<link rel="stylesheet" href="css/fascicoli.css">
 <link rel="stylesheet" href="css/tempo.css">
 <link rel="stylesheet" href="css/scrivania.css">
 <link rel="stylesheet" href="css/jobs.css">
@@ -355,6 +356,11 @@
          vengono, e rinominarla avrebbe voluto dire toccare dieci punti per
          cambiare una parola. -->
     <div id="projects-pane-progetti">
+      <!-- LA SCRIVANIA COI FASCICOLI, dall'11 ottobre 2026: la disegna
+           js/fascicoli.js. L'elenco qui sotto resta, dietro l'interruttore
+           "Elenco" / "Fascicoli". -->
+      <div class="fascicoli" id="fascicoli"></div>
+      <button type="button" class="fasc-torna" id="fasc-torna" onclick="__fascicoli.scegliVista('fascicoli')">Vedi come fascicoli</button>
       <!-- Attaccata alla lista che filtra: compare da sola quando i progetti
            sono tanti (vedi SOGLIA_CERCA in home.js). -->
       <div id="search-bar" class="home-search" style="display:none">

@@ -31,6 +31,10 @@ module.exports = () => suite("Projects — la ricerca progetti compare quando se
   // spenta, dove tutto e' alto e largo zero.
   await page.evaluate(()=> window.openProjects());
   await page.waitForTimeout(500);
+  // Dall'11 ottobre 2026 lo scaffale si apre sulla scrivania coi fascicoli
+  // (prove in fascicoli.js): la ricerca e le schede stanno nella vista a
+  // elenco, che si sceglie dall'interruttore "Elenco".
+  await page.evaluate(()=> window.__fascicoli.scegliVista('elenco'));
 
   // I moduli si prendono con un import dinamico DALLA PAGINA: stesso URL,
   // quindi stessa istanza già caricata dall'app — non una copia.

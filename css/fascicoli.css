@@ -1,0 +1,151 @@
+/* ── I PROGETTI COME FASCICOLI SULLA SCRIVANIA ──
+   Il perche' per esteso sta in cima a js/fascicoli.js. Qui le misure.
+   Tutto vive sotto #screen-projects.vista-fascicoli: la classe la mette
+   aggiornaVista() solo quando lo scaffale Progetti e' quello a video e la
+   vista scelta e' questa. Sulle Scene e sui Jobs non cambia niente. */
+
+/* Fuori dalla vista a fascicoli la scrivania non esiste. */
+.fascicoli{display:none}
+#screen-projects.vista-fascicoli .fascicoli{display:flex}
+
+/* L'interruttore per tornarci, dall'elenco: una riga di testo e basta. */
+.fasc-torna{
+  display:block;margin:0 auto 12px;background:none;border:none;cursor:pointer;
+  font:13px 'Special Elite','Courier New',serif;letter-spacing:.04em;
+  color:var(--ink3);text-decoration:underline;text-underline-offset:3px;
+}
+#screen-projects.vista-fascicoli .fasc-torna{display:none}
+
+/* ── IL PIANO ──
+   La foto della scrivania sta sotto tutta la schermata, intestazione compresa:
+   tagliata a meta' sotto un'intestazione bianca sembrava un riquadro incollato,
+   non una stanza. "cover" tiene il sottomano verde al centro anche su un
+   telefono piu' stretto della foto (768x1376, cioe' 0,56; un telefono e' 0,45:
+   si perdono i lati di legno, il sottomano resta). */
+#screen-projects.vista-fascicoli{
+  background:#1b120c url(../img/fascicoli/scrivania.webp) center 62%/cover no-repeat;
+}
+/* L'intestazione diventa una targhetta scura: stesso marchio, stessa altezza
+   (il marchio "Inkflow" non deve saltare passando da una schermata all'altra),
+   ma niente bianco in mezzo a una stanza illuminata da una lampada sola. */
+#screen-projects.vista-fascicoli .projects-header{
+  background:linear-gradient(180deg,rgba(14,9,6,.88),rgba(14,9,6,.55));
+  border-bottom-color:rgba(214,170,98,.55);
+}
+#screen-projects.vista-fascicoli .projects-header::before{opacity:.55}
+#screen-projects.vista-fascicoli .projects-header .section-title{color:#f1e4c8}
+#screen-projects.vista-fascicoli .projects-header .section-sub{color:#bda57e}
+#screen-projects.vista-fascicoli .projects-tabs{background:none;padding-top:10px}
+#screen-projects.vista-fascicoli .projects-tabs .seg-vasca{background:rgba(14,9,6,.55)}
+#screen-projects.vista-fascicoli .projects-tabs .seg-tab{color:#d8c4a0}
+#screen-projects.vista-fascicoli .projects-tabs .seg-tab.active{color:var(--ink)}
+/* Niente scorrimento verticale: i fascicoli si scorrono di lato, e la pagina
+   ferma sotto il dito evita che uno swipe un po' storto sposti tutto. */
+#screen-projects.vista-fascicoli .projects-scroll{
+  background:none;overflow:hidden;padding:0 0 calc(8px + var(--safe-bot));
+  display:flex;flex-direction:column;
+}
+body.is-touch #screen-projects.vista-fascicoli .projects-scroll{padding-bottom:calc(96px + var(--safe-bot))}
+/* Col mouse, in basso a destra, oltre alla fila di tondi c'e' la capsula del
+   cronometro (vedi tempo.css), che comincia 150px sopra il fondo. Gli 85px
+   delle altre schermate qui non bastano: li' sotto la capsula finisce
+   l'ultima riga di un elenco che scorre via, qui il fascicolo accanto, che
+   resta fermo — la prova di navigazione a 1100x760 lo trovava sotto. */
+body:not(.is-touch):not(.evening-mode) #screen-projects.vista-fascicoli .projects-scroll{padding-bottom:calc(160px + var(--safe-bot))}
+#screen-projects.vista-fascicoli #projects-pane-progetti{flex:1;display:flex;flex-direction:column;min-height:0}
+#screen-projects.vista-fascicoli #projects-pane-progetti > :not(.fascicoli){display:none!important}
+
+.fascicoli{flex:1;min-height:0;flex-direction:column;align-items:center;user-select:none;-webkit-user-select:none}
+
+/* ── LA FILA ──
+   Il palco e' alto quanto lo spazio che resta, fino a 460px: su un telefono
+   da 360x800 un fascicolo viene circa 260 di largo, e i vicini sporgono di
+   una cinquantina di pixel per parte — abbastanza per capire che ci sono,
+   non abbastanza da leggerli. touch-action:pan-y lascia al browser solo lo
+   scorrimento in verticale; quello in orizzontale lo gestiamo noi. */
+.fasc-palco{
+  position:relative;width:100%;flex:1;min-height:220px;max-height:520px;
+  margin:auto 0;touch-action:pan-y;overflow:visible;
+}
+.fasc{
+  position:absolute;left:50%;top:4%;height:min(92%, calc(76vw / var(--asp, .72)));
+  aspect-ratio:var(--asp, .72);padding:0;border:none;background:none;
+  container-type:inline-size;cursor:pointer;
+  transition:transform .38s cubic-bezier(.2,.8,.2,1), filter .38s;
+  /* Posati, non sollevati: un'ombra corta e stretta, quella di un cartone
+     spesso due millimetri sotto una lampada alta. Un'ombra lunga li faceva
+     galleggiare (il primo bozzetto, scartato per questo). */
+  filter:drop-shadow(0 2px 2px rgba(0,0,0,.55)) drop-shadow(0 6px 10px rgba(0,0,0,.28));
+}
+/* Quelli accanto stanno un filo piu' in ombra: la lampada illumina il centro
+   del sottomano, non tutta la scrivania. */
+.fasc:not(.al-centro){filter:drop-shadow(0 2px 2px rgba(0,0,0,.55)) brightness(.78)}
+/* Solo il vicino per parte. Su un telefono gli altri sono comunque fuori dallo
+   schermo; su uno schermo largo la fila intera faceva una vetrina di cartelle,
+   non una scrivania con un fascicolo davanti. Si spengono con una dissolvenza,
+   cosi' durante lo swipe quello che arriva non salta fuori di colpo. */
+.fasc[aria-hidden="true"]{opacity:0;pointer-events:none}
+.fasc{transition:transform .38s cubic-bezier(.2,.8,.2,1), filter .38s, opacity .3s}
+.fasc-foto{position:absolute;inset:0;width:100%;height:100%;object-fit:fill;pointer-events:none}
+
+/* ── LE SCRITTE STAMPATE ──
+   Copiate dal fascicolo FBI del riferimento, non reinventate. La prima
+   versione era in Courier grosso, maiuscolo, allineato a sinistra: "il font fa
+   schifo, e' troppo grande rispetto al fascicolo". Il riferimento ha una
+   macchina da scrivere con grazie squadrate e l'inchiostro che sbava un poco:
+   messe accanto al ritaglio del riferimento otto famiglie libere (Courier
+   Prime, Cutive, Kreon, Rokkitt, Zilla Slab...), la piu' vicina e' Special
+   Elite. Piccola, tutto centrato: l'ente e' alto circa il 3,5% della
+   larghezza della cartella, ed e' quello che la fa sembrare grande.
+   "multiply": l'inchiostro prende il colore e le macchie del cartone sotto.
+   Le misure sono in cqw (centesimi della larghezza del fascicolo), cosi'
+   restano al loro posto su qualsiasi telefono. */
+.fasc-stampa{
+  position:absolute;inset:0;pointer-events:none;mix-blend-mode:multiply;
+  font-family:'Special Elite','Courier Prime','Courier New',serif;color:#3b2c22;
+}
+.fasc-etich{
+  position:absolute;display:flex;align-items:center;justify-content:center;
+  font-size:3.6cqw;letter-spacing:.06em;color:#4a3a2e;
+}
+.fasc-ente{
+  position:absolute;left:0;right:0;top:25%;text-align:center;
+  font-size:4.2cqw;line-height:1.7;letter-spacing:.04em;color:#2c1f17;
+}
+.fasc-tit{
+  position:absolute;left:18%;right:18%;top:41%;display:flex;align-items:baseline;gap:1.2cqw;
+  border-bottom:.25cqw solid #9b2f25;padding-bottom:.3cqw;white-space:nowrap;overflow:hidden;
+}
+.fasc-stampa i{font-style:normal;font-size:2.7cqw;opacity:.85;flex:none}
+/* Il titolo in rosso, minuscolo come nel riferimento: e' scritto a macchina
+   con il nastro rosso, non stampato. */
+.fasc-tit b{font-weight:400;font-size:4.3cqw;color:#9b2f25;overflow:hidden;text-overflow:ellipsis}
+/* IL SIGILLO BLU. Piccolo come quello del riferimento (un quinto della
+   cartella), un filo storto: un timbro messo a mano. */
+.fasc-sigillo{
+  position:absolute;left:50%;top:50%;width:23%;height:auto;aspect-ratio:1;
+  transform:translateX(-50%) rotate(-3deg);color:#2a62d0;opacity:.92;
+  font-family:'Special Elite','Courier New',serif;
+}
+/* Le due colonne di righe da riempire. Le prime due portano la fase e le
+   tavole, scritte piccole sopra la riga; le altre restano vuote. */
+.fasc-righe{
+  position:absolute;left:12%;right:12%;top:68%;
+  display:grid;grid-template-columns:1fr 1fr;column-gap:10%;row-gap:0;
+}
+.fasc-righe > span{
+  height:5.4cqw;border-bottom:.25cqw solid rgba(110,70,50,.75);
+  font-size:2.9cqw;line-height:5.6cqw;white-space:nowrap;overflow:hidden;
+}
+.fasc-righe i{margin-right:1.4cqw}
+.fasc-nome{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+/* ── IL POSTO VUOTO IN FONDO ──
+   Non una cartella finta: il segno tratteggiato di dove ne andrebbe una. */
+.fasc-nuovo{
+  aspect-ratio:.72;border:2px dashed rgba(232,214,180,.55);border-radius:6px;
+  background:rgba(14,9,6,.25);color:#e8d6b4;filter:none!important;
+  font:15px/1.5 'Special Elite','Courier New',serif;letter-spacing:.06em;
+  display:flex;align-items:center;justify-content:center;text-align:center;
+}
+.fasc-nuovo:not(.al-centro){opacity:.6}

@@ -124,6 +124,12 @@ export function renderHome(){
     card.appendChild(menuBtn);
     scroll.insertBefore(card, newBtn);
   });
+  // I fascicoli sulla scrivania sono gli stessi progetti: quando l'elenco
+  // cambia (un progetto nuovo, uno rinominato, uno avanzato da un altro
+  // telefono) si ridisegnano anche loro. Passa da window e non da un import:
+  // fascicoli.js importa gia' state.js e project.js, e un giro di import
+  // all'indietro fra moduli e' il modo piu' facile di trovarsi un undefined.
+  if(window.__fascicoli) window.__fascicoli.aggiornaVista();
 }
 
 let _activeMenu = null;

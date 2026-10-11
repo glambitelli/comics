@@ -16,6 +16,7 @@ import { montaLaPolaroid } from './polaroid.js';
 import { montaArchivio } from './archivio.js';
 import { disegnaMappa, disegnaBiglietto, travasaLaFrase, montaLaLuce, sfumaLaCima } from './scrivania.js';
 import { renderHome, openNewModal, closeModal, createProject, openCardMenu, exportProjectJSON, confirmDeleteProject, openColorPicker, closeColorPicker, selectProjectColor, filterProjects, attachCardDrag, applyProjectOrder, startSandstorm, getScriptment } from './home.js';
+import { aggiornaVista as aggiornaFascicoli } from './fascicoli.js';
 import { openProject, restoreProject, goHome, confirmDeleteCurrent, closeConfirm, confirmMicrotask } from './project.js';
 import { enterEveningMode as enterEveningImpl, exitEveningMode as exitEveningImpl } from './evening.js';
 // ── CARICAMENTO PIGRO DEI MODULI PESANTI ──────────────────────────────────
@@ -220,6 +221,9 @@ async function mostraScaffale(quale){
   // cambiato da un'altra schermata (rinominato, cancellato, avanzato di una
   // tavola) mentre questa stava ferma sotto.
   renderHome(); attachCardDrag();
+  // La scrivania si accende solo sullo scaffale Progetti: sulle Scene e sui
+  // Jobs torna la carta di sempre.
+  aggiornaFascicoli();
   const m = await trackResolved('./scene.js');
   m.initScene();
   // I lavori si accendono qui, non all'avvio: chi non apre mai questo
