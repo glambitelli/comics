@@ -228,8 +228,23 @@
 #screen-refs .seg-tab{flex:none;padding:2px 4px;line-height:16px;border-radius:0;transition:none;white-space:nowrap}
 #screen-refs .seg-tab.active{background:var(--vga-bianco);color:var(--vga-blu)!important}
 #screen-refs .seg-tab.active *{color:var(--vga-blu)!important}
-#screen-refs .refs-tab-n{opacity:.7;margin-left:2px}
-#screen-refs .refs-tabs .seg-vasca{flex-wrap:wrap;gap:6px 12px}
+/* LE SCHEDE DI UNA CARTELLA SU UNA RIGA SOLA (11 ottobre 2026): Albi |
+   Frammenti | Tavole | Prospettiva, divise da una barretta. I numeri accanto
+   ai nomi non ci sono piu' — "alla fine non mi interessano" (Giovanni) — e
+   senza di loro le quattro schede stanno in una riga anche sul telefono da
+   360 punti, invece di andare a capo con Prospettiva da sola sotto. I
+   numeri restano nel codice (refs-tab-n) per chi li legge con la voce. */
+#screen-refs .refs-tab-n{display:none}
+#screen-refs .refs-tabs .seg-vasca{flex-wrap:nowrap;gap:0;overflow-x:auto;scrollbar-width:none}
+#screen-refs .refs-tabs .seg-vasca::-webkit-scrollbar{display:none}
+/* Il carattere scende di un filo solo dove serve: a 16px le quattro schede
+   chiedono circa 300 punti, e lo schermo del monitor su un telefono da 360
+   ne ha 255. Il conto: 30 lettere da mezzo corpo, piu' una cinquantina di punti fra margini
+   e barrette; lo schermo e' il 71% della larghezza. Da 412 in su resta 16. */
+#screen-refs .refs-tabs .seg-tab{padding:2px 2px;overflow:visible}
+#screen-refs .arch-crt .refs-tabs .seg-tab{font-size:min(16px, calc((71vw - 50px) / 15))!important}
+#screen-refs .refs-tabs .seg-tab + .seg-tab{margin-left:9px;position:relative}
+#screen-refs .refs-tabs .seg-tab + .seg-tab::before{content:'';position:absolute;left:-5px;top:3px;bottom:3px;width:1px;background:var(--vga-bianco);opacity:.8}
 
 /* LE CARTELLE: "► COGNOME" e sotto il nome, come le voci del BIOS */
 #screen-refs .refs-scheda{background:none!important;border:0!important;box-shadow:none!important;border-radius:0!important;margin:0 0 6px;overflow:visible}
