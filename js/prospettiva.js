@@ -1282,7 +1282,12 @@ async function preparaMappa(img){
     for(let i = 0, j = 0; j < scuro.length; i += 4, j++){
       scuro[j] = (d[i] * .3 + d[i+1] * .59 + d[i+2] * .11) < SCURO ? 1 : 0;
     }
-    if(_mappaDi === chiave) _mappa = { W, H, scuro };
+    if(_mappaDi === chiave){
+      _mappa = { W, H, scuro };
+      // la barra lo dice appena si puo' toccare ("…o toccala"), senza
+      // aspettare che il dito muova qualcosa
+      if(prospettivaAperta() && faseRiquadro()) disegna();
+    }
   }catch(e){ _mappa = null; }
 }
 // Quanto e' scura una riga (asse 'x': la colonna c, fra le righe r0 e r1;
