@@ -195,6 +195,33 @@
 #screen-refs .arch-crt .arch-quack-tm{font-size:16px!important;line-height:16px;letter-spacing:.06em!important;text-align:center;color:#2bb6d6;
   text-shadow:0 0 4px rgba(95,244,255,.5);transform:scale(.8);margin-top:2px}
 
+/* IL NOME DEL SISTEMA, piccolo e allineato a destra sotto QUACK, come "AN
+   LM-LINK PRODUCT" sotto SEVASTOLINK; il copyright resta centrato sotto la
+   barra. */
+#screen-refs .arch-crt .arch-quack-os{align-self:center;width:250px;text-align:right;margin-top:-2px}
+/* LA BARRA DI CARICAMENTO, alla Sevastolink: un rettangolo col filo sottile e
+   dentro il pieno che avanza A SCATTI e con delle soste, come un disco che
+   legge — una barra che scorre liscia sembra un'animazione, non un
+   caricamento. 3,97 secondi: dal tocco al beep, quando compare l'elenco
+   (SUONO_DOPO + BEEP in js/archivio.js). Se si cambia uno, va cambiato
+   anche l'altro. */
+.arch-carica{width:200px;max-width:70%;height:10px;margin:14px 0 6px;padding:2px;box-sizing:border-box;
+  border:1.5px solid #5ff4ff;box-shadow:0 0 6px rgba(95,244,255,.45),inset 0 0 4px rgba(95,244,255,.25)}
+.arch-carica i{display:block;height:100%;width:0;background:#5ff4ff;box-shadow:0 0 6px rgba(95,244,255,.8)}
+.arch-carica.va i{animation:arch-carica 3.97s linear forwards}
+@keyframes arch-carica{
+  0%{width:0}
+  8%{width:0;animation-timing-function:steps(3)}
+  22%{width:24%}
+  30%{width:24%;animation-timing-function:steps(2)}
+  40%{width:38%;animation-timing-function:steps(5)}
+  62%{width:71%}
+  74%{width:71%;animation-timing-function:steps(3)}
+  92%{width:94%}
+  97%{width:94%;animation-timing-function:steps(1,start)}
+  100%{width:100%}
+}
+
 /* ══ IL VESTITO DA BIOS ══
    Tutto quello che c'era dentro, con gli stessi id e lo stesso funzionamento:
    un carattere, bianco su blu, linee bianche, la scelta al contrario. */

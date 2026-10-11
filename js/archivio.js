@@ -72,8 +72,16 @@ export function montaArchivio(){
   // le righe del BIOS scendono sopra, una alla volta.
   const marchio = document.createElement('div');
   marchio.className = 'arch-marchio';
+  // LA BARRA DI CARICAMENTO (11 ottobre 2026), presa da Sevastolink, il
+  // terminale di Alien: Isolation — un rettangolo sottile vuoto che si
+  // riempie a scatti, fra il nome e la riga del copyright. Si riempie in
+  // tutto il tempo dell'avvio, e arriva in fondo sul beep, quando compare
+  // l'elenco (vedi BEEP piu' sotto): una barra che finisse prima o dopo
+  // direbbe una cosa falsa su quando il sistema e' pronto.
   marchio.innerHTML = '<div class="arch-quack" data-t="QUACK">QUACK</div>'
-    + '<div class="arch-quack-tm">QUACK OS&trade; v1.0<br>&copy; 2026 INKFLOW DATA SYSTEMS</div>';
+    + '<div class="arch-quack-tm arch-quack-os">QUACK OS&trade; v1.0</div>'
+    + '<div class="arch-carica" aria-hidden="true"><i></i></div>'
+    + '<div class="arch-quack-tm">&copy; 2026 INKFLOW DATA SYSTEMS</div>';
   marchio.prepend(anatra);
   boot.append(bootTesto, marchio);
   const quack = marchio.querySelector('.arch-quack');
@@ -116,6 +124,9 @@ export function montaArchivio(){
     let passo = 0; disegnaAnatra(0);
     _passi = setInterval(()=> disegnaAnatra(++passo), ANATRA_PASSO);
     glitch();
+    // la barra riparte da vuota a ogni avvio
+    const carica = marchio.querySelector('.arch-carica');
+    carica.classList.remove('va'); void carica.offsetWidth; carica.classList.add('va');
     setTimeout(()=> suonaRumore(RUMORI.boot, 1), SUONO_DOPO);
     _bootTimer = setInterval(()=>{
       n++;
