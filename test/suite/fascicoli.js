@@ -221,6 +221,31 @@ module.exports = () => suite("Projects — i progetti come fascicoli sulla scriv
   const torna = await page.evaluate(()=> ({ scrivania: document.getElementById('screen-projects').classList.contains('active'),
     cartella: !!document.querySelector('.fasc-interno'), tit: (document.querySelector('.fi-sx') || {}).textContent || '' }));
   ok('e Indietro dal progetto riporta alla cartella aperta', torna.scrivania && torna.cartella && /Ruggine/.test(torna.tit), torna);
+
+  sezione('il tasto Home porta a casa, anche dal progetto aperto dalla scheda');
+  // Il bug del 12 ottobre 2026: "premo Home e a volte torno nel progetto
+  // aperto", oppure da Projects Home riportava a Projects.
+  await page.click('#fi-foglio');
+  await page.waitForTimeout(500);
+  await page.evaluate(()=> window.goHome());
+  await page.waitForTimeout(900);
+  const casa = await page.evaluate(()=>({ home: document.getElementById('screen-home').classList.contains('active'),
+    progetto: document.getElementById('screen-project').classList.contains('active'),
+    scrivania: document.getElementById('screen-projects').classList.contains('active'),
+    stato: history.state && history.state.view }));
+  ok('Home porta alla Home', casa.home && !casa.progetto && !casa.scrivania, casa);
+  ok('e la cronologia e\' tornata in fondo', !casa.stato || casa.stato === 'home', casa);
+  await page.evaluate(()=> window.openProjects());
+  await page.waitForTimeout(600);
+  await page.evaluate(()=> window.goHome());
+  await page.waitForTimeout(700);
+  const casa2 = await page.evaluate(()=>({ home: document.getElementById('screen-home').classList.contains('active'),
+    scrivania: document.getElementById('screen-projects').classList.contains('active') }));
+  ok('anche da Projects, Home porta alla Home', casa2.home && !casa2.scrivania, casa2);
+  await page.evaluate(()=> window.openProjects());
+  await page.waitForTimeout(600);
+  await page.mouse.click(180, 380);
+  await page.waitForTimeout(500);
   await page.evaluate(()=> history.back());
   await page.waitForTimeout(500);
   await rumori();

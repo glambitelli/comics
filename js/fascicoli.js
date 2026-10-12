@@ -338,7 +338,11 @@ function monta(box, n){
     apriInterno(box, i);
     // Indietro (telefono o browser) lo richiude: si segna un passo nella
     // cronologia, e il gestore di popstate in main.js chiama chiudi().
-    try{ history.pushState({ view:'fascicolo', id:i }, ''); }catch(err){}
+    // Passa da __navSync e non da un pushState a mano: il passo deve portare
+    // il suo "depth" (quanti passi da qui alla Home), se no il tasto Home si
+    // fermava qui — o sul progetto aperto dalla scheda — invece di andare a
+    // casa (bug del 12 ottobre 2026).
+    if(window.__navSync) window.__navSync('fascicolo', i);
   });
 }
 

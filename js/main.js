@@ -799,7 +799,19 @@ window.exitEveningMode = _backOrHome;
 // corrente dalla Home: history.go(-depth) ci salta in un colpo solo, con un
 // unico evento popstate finale invece di N passaggi intermedi.
 const goHomeAlways = ()=>{
-  const depth = (history.state && typeof history.state.depth === 'number') ? history.state.depth : 0;
+  const st = history.state;
+  // UN PASSO SENZA "depth" (la galleria, il lettore, un foglio aperto: si
+  // segnano nella cronologia per conto loro): non si sa quanti passi ci siano
+  // sotto, quindi se ne toglie uno — il gestore di popstate chiude quello che
+  // era aperto — e si riprova da li'. Prima qui si andava a casa SENZA
+  // svuotare la cronologia, e il primo Indietro dopo riapriva il progetto o la
+  // cartella di prima: "premo Home e torno in un progetto" (12 ottobre 2026).
+  if(st && st.view && st.view !== 'home' && typeof st.depth !== 'number'){
+    addEventListener('popstate', ()=> setTimeout(goHomeAlways, 0), { once:true });
+    history.back();
+    return;
+  }
+  const depth = (st && typeof st.depth === 'number') ? st.depth : 0;
   if(depth > 0){ history.go(-depth); }
   else { if(document.body.classList.contains('evening-mode')) exitEveningImpl(); goHomeImpl(); }
 };
