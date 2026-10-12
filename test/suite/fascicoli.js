@@ -142,18 +142,66 @@ module.exports = () => suite("Projects — i progetti come fascicoli sulla scriv
   ok('e toccandolo si apre la scheda del progetto nuovo', modale);
   await page.evaluate(()=> document.getElementById('modal').classList.remove('open'));
 
-  sezione('un tocco sul fascicolo al centro apre il progetto');
+  sezione('un tocco sul fascicolo al centro lo apre sulla scrivania');
+  // Dal 12 ottobre 2026 il fascicolo si apre: dentro la scheda del progetto
+  // battuta a macchina, il post-it, la tessera. Il progetto vero si apre
+  // toccando il foglio.
+  await page.evaluate(async ()=>{
+    const st = await import('/js/state.js');
+    const p = st.projects[2];
+    p.microtask = 'chiudere gli sfondi della tav. 7';
+    p.steps = { moodboard: 1, soggetto: 1 };
+  });
   await page.evaluate(()=> window.__fascicoli.vai(2));
   await page.waitForTimeout(500);
+  await rumori();
   await page.mouse.click(180, 380);
+  await page.waitForTimeout(500);
+  const dentro = await page.evaluate(async ()=>{
+    const st = await import('/js/state.js');
+    const el = document.querySelector('.fasc-interno');
+    const r = el && el.querySelector('.fi-cartella').getBoundingClientRect();
+    return {
+      aperto: !!el, progetto: document.getElementById('screen-project').classList.contains('active'),
+      tit: el && el.querySelector('.fi-tit').textContent,
+      fatti: el ? el.querySelectorAll('.fi-passo.fatto').length : 0,
+      passi: el ? el.querySelectorAll('.fi-passo').length : 0,
+      postit: el && el.querySelector('.fi-postit p') ? el.querySelector('.fi-postit p').textContent : '',
+      tessera: el && el.querySelector('.fi-n').textContent,
+      carattere: el && getComputedStyle(el.querySelector('.fi-testo')).fontFamily,
+      corpo: el && parseFloat(getComputedStyle(el.querySelector('.fi-riga')).fontSize),
+      cartella: r && { sx: Math.round(r.left), dx: Math.round(r.right), alto: Math.round(r.height) },
+    };
+  });
+  ok('si apre il fascicolo, non ancora il progetto', dentro.aperto && !dentro.progetto, dentro);
+  ok('sulla scheda il titolo tra virgolette', /\u201cRuggine\u201d/.test(dentro.tit || ''), dentro);
+  ok('la pipeline con i passi fatti barrati', dentro.fatti === 2 && dentro.passi >= 8, dentro);
+  ok('il post-it porta il prossimo passo', /sfondi della tav\. 7/.test(dentro.postit), dentro);
+  ok('la tessera il numero del fascicolo', dentro.tessera === 'P-0003', dentro);
+  ok('a macchina da scrivere, e piccolo', /Cutive Mono/.test(dentro.carattere || '') && dentro.corpo <= 10, dentro);
+  ok('la cartella sta tutta nello schermo', dentro.cartella && dentro.cartella.sx >= 0 && dentro.cartella.dx <= 360, dentro);
+  const rApri = await rumori();
+  ok('con il rumore della copertina che si alza', rApri.includes('apri.mp3'), rApri);
+
+  sezione('"Chiudi" lo richiude');
+  await page.click('#fi-chiudi');
+  await page.waitForTimeout(300);
+  const chiuso = await page.evaluate(()=> !document.querySelector('.fasc-interno'));
+  ok('torna la fila dei fascicoli', chiuso);
+  const rChiudi0 = await rumori();
+  ok('con il rumore della copertina che ricade', rChiudi0.includes('chiudi.mp3'), rChiudi0);
+
+  sezione('toccando il foglio si apre il progetto');
+  await page.mouse.click(180, 380);
+  await page.waitForTimeout(400);
+  await page.click('#fi-foglio');
   await page.waitForTimeout(500);
   const aperto = await page.evaluate(async ()=>{
     const st = await import('/js/state.js');
     return { attivo: document.getElementById('screen-project').classList.contains('active'), id: st.currentId };
   });
   ok('si apre Ruggine', aperto.attivo && aperto.id === 'p2', aperto);
-  const rApri = await rumori();
-  ok('con il rumore della copertina che si alza', rApri.includes('apri.mp3'), rApri);
+  await rumori();
 
   sezione('Scene e Jobs restano come sono');
   await page.evaluate(()=> window.openProjects());

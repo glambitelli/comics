@@ -27,11 +27,12 @@
 // cercare fra tanti progetti e per il menu di ogni scheda, ed e' quello che
 // usano le prove della ricerca. Il link per tornarci stava sotto i fascicoli
 // ed e' stato tolto con il resto: tornera' quando c'e' l'interno.
-import { projects, PHASE_NAMES } from './state.js';
+import { projects, PHASE_NAMES, STEPS } from './state.js';
 import { calcPct, getPhaseIndex } from './progress.js';
 import { openProject } from './project.js';
 import { esc } from './testo.js';
 import { suonaRumore, preparaRumori } from './sound.js';
+import { cldResize } from './cloudinary.js';
 
 // I RUMORI DEI FASCICOLI (11 ottobre 2026), scelti da Giovanni e tagliati qui
 // (sfx/fascicoli/): la copertina che si alza e quella che ricade, dallo stesso
@@ -44,6 +45,7 @@ import { suonaRumore, preparaRumori } from './sound.js';
 // Tolto: "poi ci ragioniamo".
 const RUMORI = { apri:'./sfx/fascicoli/apri.mp3', chiudi:'./sfx/fascicoli/chiudi.mp3' };
 let _aperto = false;   // un progetto aperto DA QUI: quando si chiude, chiude il fascicolo
+let _interno = null;   // il fascicolo aperto sulla scrivania (indice), o null
 
 // LE CARTELLE, dall'11 ottobre 2026 nuove e pulite come quella del
 // riferimento. Le prime due erano invecchiate, macchiate e strappate — colpa
@@ -166,6 +168,11 @@ export function disegnaFascicoli(){
     </div>`;
   monta(box, n);
   posa(box, 0, true);
+  // Il ridisegno arriva anche da solo (un progetto cambiato su un altro
+  // telefono, il salvataggio di un altro campo): un fascicolo aperto non deve
+  // richiudersi sotto gli occhi per questo.
+  if(_interno !== null && projects[_interno]) apriInterno(box, _interno);
+  else _interno = null;
 }
 
 function posa(box, trasc, subito){
@@ -230,11 +237,106 @@ function monta(box, n){
     if(i !== _c){ vai(i); return; }
     if(i >= projects.length){ if(window.openNewModal) window.openNewModal(); return; }
     suonaRumore(RUMORI.apri, .85);
-    _aperto = true;
-    openProject(projects[i].id);
+    apriInterno(box, i);
   };
   palco.addEventListener('pointerup', fine);
   palco.addEventListener('pointercancel', ()=>{ x0 = null; posa(box, 0); });
+}
+
+// ── IL FASCICOLO APERTO (12 ottobre 2026) ──
+// Toccando il fascicolo al centro si apre sulla scrivania: la cartella aperta,
+// e dentro la scheda del progetto battuta a macchina, con la graffetta; sopra,
+// il post-it col prossimo passo, la Polaroid dell'ultima tavola e la tessera
+// col colore del progetto. E' un riassunto da guardare: il progetto vero si
+// apre toccando il foglio. Bozzetto scelto da Giovanni; i pezzi di carta sono
+// foto fatte con Firefly e ritagliate (img/fascicoli/), graffetta e tessera
+// invece sono disegnate qui — nei ritagli il metallo e la plastica trasparente
+// si confondevano col grigio del fondo.
+//
+// IL CARATTERE E' CUTIVE MONO, piccolo: scelto fra tre macchine da scrivere
+// messe a confronto sullo stesso foglio. Special Elite, la prima prova, "fa
+// veramente schifo, troppo grande come al solito".
+const GRAFFETTA = `<svg class="fi-graffetta" viewBox="0 0 30 80" aria-hidden="true">
+  <path d="M9 70 V14 a6 6 0 0 1 12 0 V62 a9 9 0 0 1 -18 0 V22" fill="none" stroke="#9aa0a6" stroke-width="2.6" stroke-linecap="round"/>
+  <path d="M9 70 V14 a6 6 0 0 1 12 0 V62 a9 9 0 0 1 -18 0 V22" fill="none" stroke="#eef1f3" stroke-width="1" stroke-linecap="round" transform="translate(-.6 -.6)"/></svg>`;
+const MESI = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
+function data(iso){
+  const d = iso ? new Date(iso) : null;
+  return d && !isNaN(d) ? d.getDate() + ' ' + MESI[d.getMonth()] + ' ' + d.getFullYear() : '';
+}
+
+function apriInterno(box, i){
+  const p = projects[i];
+  if(!p) return;
+  _interno = i;
+  const fase = PHASE_NAMES[getPhaseIndex(p)] || '';
+  const pct = calcPct(p);
+  const finite = Object.values(p.tavole || {}).filter(v => v >= 4).length;
+  const pieni = Math.round(pct / 10);
+  const riga = (nome, valore) => valore ? `<div class="fi-riga"><i>${nome}</i><span class="fi-pt"></span>${esc(String(valore))}</div>` : '';
+  const passi = STEPS.map(st => {
+    const fatto = !!(p.steps && p.steps[st.id]);
+    return `<div class="fi-passo${fatto ? ' fatto' : ''}"><b>[${fatto ? 'x' : '&nbsp;'}]</b>${esc(st.nome)}</div>`;
+  }).join('') + `<div class="fi-passo${finite && finite >= (p.numTav || 0) ? ' fatto' : ''}"><b>[${finite && finite >= (p.numTav || 0) ? 'x' : '&nbsp;'}]</b>Tavole ${finite}/${p.numTav || 0}</div>`;
+  let el = box.querySelector('.fasc-interno');
+  if(!el){ el = document.createElement('div'); el.className = 'fasc-interno'; box.appendChild(el); }
+  el.style.setProperty('--colore', p.color || '#c0503a');
+  el.innerHTML = `
+    <button type="button" class="fi-chiudi" id="fi-chiudi">&lsaquo; CHIUDI</button>
+    <div class="fi-cartella">
+      <img class="fi-fondo" src="img/fascicoli/interno.webp" alt="" draggable="false">
+      <button type="button" class="fi-foglio" id="fi-foglio" aria-label="Apri il progetto ${esc(p.title || '')}">
+        <img src="img/fascicoli/foglio.webp" alt="" draggable="false">
+        <span class="fi-testo">
+          <span class="fi-testa">SCHEDA DEL PROGETTO</span>
+          <span class="fi-tit">&ldquo;${esc(p.title || 'Senza titolo')}&rdquo;</span>
+          ${riga('Fase', fase)}${riga('Tavole', p.numTav || 0)}${riga('Scadenza', data(p.dateEnd))}
+          <span class="fi-sez">PIPELINE</span>
+          ${passi}
+          <span class="fi-sez">AVANZAMENTO ${pct}%</span>
+          <span class="fi-barra">${Array.from({ length: 10 }, (_, k) => `<span${k < pieni ? ' class="p"' : ''}></span>`).join('')}</span>
+        </span>
+      </button>
+      ${GRAFFETTA}
+      ${p.microtask ? `<div class="fi-postit"><img src="img/fascicoli/postit.webp" alt="" draggable="false"><p>${esc(p.microtask)}</p></div>` : ''}
+      <div class="fi-polaroid" hidden><img class="fi-cornice" src="img/fascicoli/polaroid.webp" alt="" draggable="false"><img class="fi-tav" alt=""><span class="fi-scritta"></span></div>
+      <div class="fi-tessera"><span class="fi-fascia"></span><span class="fi-buco"></span><span class="fi-n">P-${String(i + 1).padStart(4, '0')}</span><span class="fi-nome">${esc(p.title || '')}</span></div>
+    </div>
+    <div class="fi-invito">tocca il foglio per aprire il progetto</div>`;
+  box.classList.add('aperto');
+  el.querySelector('#fi-chiudi').addEventListener('click', ()=> chiudiInterno(box, true));
+  el.querySelector('#fi-foglio').addEventListener('click', ()=>{
+    _aperto = true;
+    chiudiInterno(box, false);
+    openProject(p.id);
+  });
+  polaroid(el, p);
+}
+
+function chiudiInterno(box, conRumore){
+  _interno = null;
+  box.classList.remove('aperto');
+  const el = box.querySelector('.fasc-interno');
+  if(el) el.remove();
+  if(conRumore) suonaRumore(RUMORI.chiudi, .85);
+}
+
+// LA POLAROID: l'ultima tavola collegata al progetto (o, se tavole non ce
+// ne sono, l'ultima immagine collegata). Se non c'e' niente non compare: una
+// cornice vuota sembrerebbe una foto che non si e' caricata.
+function polaroid(el, p){
+  import('./refs.js').then(m => {
+    const suoi = m.getRefs().filter(r => m.projectIdsOf(r).includes(p.id))
+      .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    const r = suoi.find(m.isTavola) || suoi[0];
+    const box = el.querySelector('.fi-polaroid');
+    if(!r || !box) return;
+    box.querySelector('.fi-tav').src = cldResize(r.url, 400);
+    // sotto, a penna, il giorno: come si fa sul bordo bianco di una Polaroid
+    const d = r.createdAt ? new Date(r.createdAt) : null;
+    box.querySelector('.fi-scritta').textContent = d && !isNaN(d) ? d.getDate() + ' ' + MESI[d.getMonth()] : '';
+    box.hidden = false;
+  }).catch(()=>{});
 }
 
 window.__fascicoli = { disegna: disegnaFascicoli, aggiornaVista, scegliVista, vai: i=>{ _c = i; disegnaFascicoli(); } };
