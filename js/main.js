@@ -191,7 +191,7 @@ async function openProjects(quale){
   // solo (vedi SCAFFALI), se no aggiungerne un quarto vorrebbe dire ricordarsi
   // di allungare anche questa riga.
   const dove = SCAFFALI.includes(quale) ? quale : _scaffaleProgetti;
-  if(window.__navSync) window.__navSync(dove === 'scene' ? 'scene' : 'projects');
+  if(window.__navSync) window.__navSync('projects');
   await mostraScaffale(dove);
 }
 // "scene" RESTA UN INGRESSO SUO, e non e' pignoleria: nella cronologia del
@@ -206,6 +206,12 @@ async function openScene(){ return openProjects('scene'); }
 // essere vero anche stando sui progetti, e senza il listener acceso sarebbe
 // uno zero per finta.
 async function mostraScaffale(quale){
+  // DAL 12 OTTOBRE 2026 si vede solo lo scaffale dei progetti: le Scene sono
+  // tolte, e i Jobs sono un'altra fila di cartelle sulla stessa scrivania (vedi
+  // js/fascicoli.js). Chi chiede 'jobs' (un link, la cronologia) trova la
+  // scrivania gia' girata sui Jobs; chi chiede 'scene' trova i progetti.
+  if(quale === 'jobs' && window.__fascicoli) window.__fascicoli.scegliScaffale('jobs');
+  if(quale === 'scene' || quale === 'jobs') quale = 'progetti';
   _scaffaleProgetti = SCAFFALI.includes(quale) ? quale : 'progetti';
   for(const nome of SCAFFALI){
     const pane = document.getElementById('projects-pane-' + nome);

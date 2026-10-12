@@ -16,6 +16,13 @@
 }
 #screen-projects.vista-fascicoli .fasc-torna{display:none}
 
+/* NIENTE INTESTAZIONE E NIENTE LINGUETTE (12 ottobre 2026): il marchio
+   "Inkflow" in cima e la barra "Progetti · Scene · Jobs" non servivano a
+   niente sulla scrivania ("quel contorno non serve a niente"). Le Scene sono
+   tolte, e Progetti/Jobs si cambiano con uno swipe in verticale. */
+#screen-projects.vista-fascicoli .projects-header,
+#screen-projects.vista-fascicoli .projects-tabs{display:none!important}
+
 /* ── IL PIANO ──
    La foto della scrivania sta sotto tutta la schermata, intestazione compresa:
    tagliata a meta' sotto un'intestazione bianca sembrava un riquadro incollato,
@@ -58,7 +65,9 @@ body:not(.is-touch):not(.evening-mode) #screen-projects.vista-fascicoli .project
 .fascicoli{flex:1;min-height:0;flex-direction:column;align-items:center;user-select:none;-webkit-user-select:none}
 
 /* ── LA FILA ──
-   Il palco e' alto quanto lo spazio che resta, fino a 460px: su un telefono
+   Il palco e' alto quanto lo spazio che resta, fino a 400px (e centrato in
+   altezza: senza l'intestazione, piu' alto lasciava il fascicolo in cima e
+   mezza scrivania vuota sotto): su un telefono
    da 360x800 un fascicolo viene circa 260 di largo, e i vicini sporgono di
    una cinquantina di pixel per parte — abbastanza per capire che ci sono,
    non abbastanza da leggerli. touch-action:none: qui il browser non deve
@@ -66,7 +75,7 @@ body:not(.is-touch):not(.evening-mode) #screen-projects.vista-fascicoli .project
    veniva a volte preso per l'inizio di uno scorrimento e annullato — il
    fascicolo si apriva solo tenendo premuto. Lo swipe lo gestiamo noi. */
 .fasc-palco{
-  position:relative;width:100%;flex:1;min-height:220px;max-height:520px;
+  position:relative;width:100%;flex:1;min-height:220px;max-height:400px;
   margin:auto 0;touch-action:none;overflow:visible;
 }
 .fasc{
@@ -166,12 +175,21 @@ body:not(.is-touch):not(.evening-mode) #screen-projects.vista-fascicoli .project
 .fasc-interno{position:absolute;inset:0;z-index:5}
 .fi-vista{position:absolute;inset:6px 0;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scrollbar-width:none;-webkit-overflow-scrolling:touch}
 .fi-vista::-webkit-scrollbar{display:none}
-.fi-spazio{position:relative;width:calc(1792px * var(--s, .4));height:calc(1200px * var(--s, .4));top:50%;transform:translateY(-50%)}
-.fi-spazio::before,.fi-spazio::after{content:'';position:absolute;top:0;bottom:0;width:50%;scroll-snap-align:start}
-.fi-spazio::before{left:0}.fi-spazio::after{left:50%}
-.fi-spread{position:absolute;left:0;top:0;width:1792px;height:1200px;transform-origin:0 0;transform:scale(var(--s, .4))}
-.fi-pagina{position:absolute;top:0;width:896px;height:1200px;overflow:hidden;filter:drop-shadow(0 6px 10px rgba(0,0,0,.45))}
-.fi-sx{left:0;cursor:pointer}.fi-dx{left:896px}
+/* LE DUE PAGINE SONO UNA CARTELLA SOLA. Ognuna delle due foto ha la sua
+   piega del cartone sul lato interno; messe solo una accanto all'altra
+   facevano due pieghe e uno spiraglio di scrivania in mezzo: "sembrano
+   staccate, come se fossero rotte". La pagina destra perde i suoi primi 95
+   pixel (la sua piega) e si sovrappone di una ventina di pixel al cartone
+   della sinistra (che finisce a 862, col suo bordo scuro): resta una piega
+   sola, quella della pagina sinistra, senza filo in mezzo. L'ombra e' una
+   sola, sotto tutta la cartella. Larghezza totale 745+896 = 1641. */
+.fi-spazio{position:relative;width:calc(1641px * var(--s, .4));height:calc(1200px * var(--s, .4));top:50%;transform:translateY(-50%)}
+.fi-spazio::before,.fi-spazio::after{content:'';position:absolute;top:0;bottom:0;width:1px;scroll-snap-align:start}
+.fi-spazio::before{left:0}.fi-spazio::after{left:calc(745px * var(--s, .4))}
+.fi-spread{position:absolute;left:0;top:0;width:1641px;height:1200px;transform-origin:0 0;transform:scale(var(--s, .4));
+  filter:drop-shadow(0 6px 10px rgba(0,0,0,.45))}
+.fi-pagina{position:absolute;top:0;width:896px;height:1200px;overflow:hidden}
+.fi-sx{left:0;cursor:pointer}.fi-dx{left:745px;clip-path:inset(0 0 0 95px)}
 .fi-fondo{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 /* quello stampato (etichette) e quello battuto (dati): "multiply", cosi'
    l'inchiostro prende la carta che ha sotto */

@@ -618,22 +618,17 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
   ok('e i due scaffali si chiamano Progetti e Scene',
      /^Progetti/.test(suProjects.nomi[0]) && /^Scene/.test(suProjects.nomi[1]), suProjects.nomi);
 
-  // L'INTERRUTTORE. Un tocco e si passa alle scene, col modo di cominciarne
-  // una gia' a schermo: e' il gesto per cui la sezione esiste.
+  // LE SCENE NON CI SONO PIU' (12 ottobre 2026): chi le chiede — un link, la
+  // cronologia del telefono — finisce sui progetti, non su uno scaffale vuoto.
   const suScene = await page.evaluate(async ()=>{
-    document.getElementById('projects-tab-scene').click();
+    window.setScaffaleProgetti('scene');
     await new Promise(r=> setTimeout(r, 400));
     return {
       scene: !document.getElementById('projects-pane-scene').hidden,
-      progetti: document.getElementById('projects-pane-progetti').hidden,
-      comincia: !!document.getElementById('scene-nuova'),
-      // Il cursore bianco si sposta sul secondo posto.
-      cursore: document.getElementById('projects-vasca').style.getPropertyValue('--i'),
+      progetti: !document.getElementById('projects-pane-progetti').hidden,
     };
   });
-  ok('l\'interruttore porta alle Scene', suScene.scene && suScene.progetti, suScene);
-  ok('col modo di cominciare gia\' a schermo', suScene.comincia, suScene);
-  ok('e il cursore si sposta sul secondo scaffale', suScene.cursore === '1', suScene);
+  ok('chiedere le Scene porta ai progetti', !suScene.scene && suScene.progetti, suScene);
 
   console.log('\n── e la home e\' rimasta in due: la citazione e il cronometro ──');
   // IL CUORE DEL RIASSETTO CHIESTO DA GIOVANNI IL 19 SETTEMBRE 2026. La home
@@ -995,13 +990,9 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
   const jobs = await page.evaluate(async ()=>{
     await window.openProjects('jobs');
     await new Promise(r=> setTimeout(r, 600));
-    const vede = n => { const el = document.getElementById('projects-pane-' + n);
-                        return !!el && !el.hidden; };
-    const scaffale = { jobs: vede('jobs'), progetti: vede('progetti'), scene: vede('scene'),
-      linguetta: document.getElementById('projects-tab-jobs').classList.contains('active'),
-      // Il cursore bianco deve sapere che le linguette sono tre: a due resta
-      // largo mezza vasca e sulla terza finisce fuori posto.
-      quante: getComputedStyle(document.getElementById('projects-vasca')).getPropertyValue('--n').trim() };
+    // Dal 12 ottobre 2026 i Jobs sono un'altra fila di cartelle sulla stessa
+    // scrivania dei progetti (js/fascicoli.js): chiederli gira la scrivania.
+    const scaffale = { scrivania: window.__fascicoli && window.__fascicoli.scaffale() };
     const j = await import('/js/jobs.js');
     j.__seminaJobs([{ id:'j1', titolo:'Nemesis #3', tavole:6,
                       rif:{ '2':[{url:'https://x/a.png', refId:'r1'}],
@@ -1032,11 +1023,7 @@ module.exports = () => suite("Navigazione — la barra in fondo fra una schermat
     return { scaffale, scheda, righe, dentro, tornato,
              dopoIndietro: document.getElementById('job-titolo').textContent.trim() };
   });
-  ok('c\'e\' il terzo scaffale e si apre',
-     jobs.scaffale.jobs && !jobs.scaffale.progetti && !jobs.scaffale.scene
-     && jobs.scaffale.linguetta, jobs.scaffale);
-  ok('e il cursore sa che le linguette sono tre',
-     jobs.scaffale.quante === '3', jobs.scaffale);
+  ok('chiedere i Jobs gira la scrivania sulle loro cartelle', jobs.scaffale.scrivania === 'jobs', jobs.scaffale);
   ok('la scheda di un lavoro dice titolo, tavole e quante ne hai preparate',
      /Nemesis #3/.test(jobs.scheda) && /6 tavole/.test(jobs.scheda)
      && /2 preparate/.test(jobs.scheda), jobs);

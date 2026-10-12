@@ -45,6 +45,14 @@ import { suonaRumore, preparaRumori } from './sound.js';
 const RUMORI = { apri:'./sfx/fascicoli/apri.mp3', chiudi:'./sfx/fascicoli/chiudi.mp3' };
 let _aperto = false;   // un progetto aperto DA QUI: quando si chiude, chiude il fascicolo
 let _interno = null;   // il fascicolo aperto sulla scrivania (indice), o null
+// DUE SCRIVANIE IN UNA (12 ottobre 2026): i progetti e i lavori su
+// commissione (Jobs) stanno sullo stesso tavolo, in due file di cartelle
+// diverse. Si passa dall'una all'altra con uno swipe in verticale: dal basso
+// verso l'alto ai Jobs, dall'alto verso il basso ai Progetti. Prima erano due
+// linguette scritte in cima ("Progetti · Scene · Jobs"); le Scene sono state
+// tolte, e le linguette con loro.
+let _scaffale = (()=>{ try{ return localStorage.getItem('inkflow-scrivania') === 'jobs' ? 'jobs' : 'progetti'; }catch(e){ return 'progetti'; } })();
+let _jobsMod = null;   // js/jobs.js, caricato da main.js all'apertura di Projects
 
 // LE CARTELLE, dall'11 ottobre 2026 nuove e pulite come quella del
 // riferimento. Le prime due erano invecchiate, macchiate e strappate — colpa
@@ -136,6 +144,39 @@ function copertina(p, i){
     <span class="fasc-nome">${titolo}</span>
   </div>`;
 }
+// LE CARTELLE DEI JOBS: le stesse foto, ma COLORATE, perche' a colpo
+// d'occhio si capisca che sono un'altra cosa (lavori su commissione, non
+// progetti propri). Sono un segnaposto: quelle vere arriveranno da Gemini.
+// Tre colori da cartelline d'ufficio — rosso, verde, blu scuro — ottenuti
+// ruotando la tinta del cartone.
+const COLORI_JOB = [
+  'sepia(.4) hue-rotate(-38deg) saturate(2.6) brightness(.6)',
+  'sepia(.3) hue-rotate(55deg) saturate(1.3) brightness(.7)',
+  'sepia(.3) hue-rotate(165deg) saturate(1.5) brightness(.68)',
+];
+function copertinaJob(j, i){
+  const v = VARIANTI[i % VARIANTI.length], c = CARTELLE[v.c];
+  const titolo = esc(j.titolo || 'Senza titolo');
+  const fx = v.flip ? 1 - c.fin.x - c.fin.w : c.fin.x;
+  const cx = v.flip ? 1 - c.cop : 0;
+  const fatte = _jobsMod ? _jobsMod.quanteTavolePreparate(j) : 0;
+  return `<div class="fasc fasc-job" data-i="${i}" style="--storto:${v.r}deg;--asp:${c.r}">
+    <img class="fasc-foto" src="${c.src}" alt="" draggable="false" style="transform:${v.flip ? 'scaleX(-1)' : 'none'};filter:${COLORI_JOB[i % COLORI_JOB.length]}">
+    <div class="fasc-stampa" aria-hidden="true">
+      <span class="fasc-etich" style="left:${fx*100}%;top:${c.fin.y*100}%;width:${c.fin.w*100}%;height:${c.fin.h*100}%">J-${String(i + 1).padStart(4, '0')}</span>
+      <span class="fasc-cop" style="left:${cx*100}%;width:${c.cop*100}%">
+        <span class="fasc-tit">&ldquo;${titolo}&rdquo;</span>
+        ${SIGILLO}
+        <span class="fasc-righe">
+          <span><i>Tavole</i>${j.tavole || 0}</span><span></span>
+          <span><i>Pronte</i>${fatte}</span><span></span>
+          ${'<span></span>'.repeat(6)}
+        </span>
+      </span>
+    </div>
+    <span class="fasc-nome">${titolo}</span>
+  </div>`;
+}
 // IL SIGILLO, inventato: niente stemmi veri. Un pennino al centro, il nome
 // intorno, inchiostro blu un po' consumato.
 // Il bordo a raggiera e' quello del sigillo del riferimento: un cerchio
@@ -155,24 +196,53 @@ const SIGILLO = `<svg class="fasc-sigillo" viewBox="0 0 100 100" aria-hidden="tr
 export function disegnaFascicoli(){
   const box = document.getElementById('fascicoli');
   if(!box) return;
-  const n = projects.length;
+  if(_scaffale === 'jobs' && !_jobsMod){
+    import('./jobs.js').then(m=>{ _jobsMod = m; disegnaFascicoli(); }).catch(()=>{});
+  }
+  const lista = elementi();
+  const n = lista.length;
   _c = Math.max(0, Math.min(_c, n));   // n = "nuovo fascicolo", in fondo
   // Solo la scrivania e i fascicoli. Sotto c'erano un contatore ("FASCICOLO 3
   // DI 9"), una fila di linguette numerate e il link all'elenco: tolti,
   // "disturbante" — su una scrivania vera non c'e' scritto niente.
+  const jobs = _scaffale === 'jobs';
+  box.dataset.scaffale = _scaffale;
   box.innerHTML = `
     <div class="fasc-palco" id="fasc-palco">
-      ${projects.map((p, i)=> copertina(p, i)).join('')}
-      <button type="button" class="fasc fasc-nuovo" data-i="${n}" aria-label="Nuovo progetto"><span>Nuovo<br>fascicolo</span></button>
+      ${lista.map((x, i)=> jobs ? copertinaJob(x, i) : copertina(x, i)).join('')}
+      <button type="button" class="fasc fasc-nuovo" data-i="${n}" aria-label="${jobs ? 'Nuovo lavoro' : 'Nuovo progetto'}"><span>Nuovo<br>fascicolo</span></button>
     </div>`;
   monta(box, n);
   posa(box, 0, true);
   // Il ridisegno arriva anche da solo (un progetto cambiato su un altro
   // telefono, il salvataggio di un altro campo): un fascicolo aperto non deve
   // richiudersi sotto gli occhi per questo.
-  if(_interno !== null && projects[_interno]) apriInterno(box, _interno);
+  if(!jobs && _interno !== null && projects[_interno]) apriInterno(box, _interno);
   else _interno = null;
 }
+function elementi(){
+  return _scaffale === 'jobs' ? (_jobsMod ? _jobsMod.tuttiIJobs() : []) : projects;
+}
+// Passare dall'una all'altra scrivania: la fila esce dal lato dello swipe ed
+// entra quella nuova dall'altro.
+function cambiaScaffale(verso){
+  if(verso === _scaffale) return;
+  const box = document.getElementById('fascicoli');
+  const palco = box && box.querySelector('.fasc-palco');
+  const su = verso === 'jobs';
+  const fatto = ()=>{
+    _scaffale = verso; _c = 0; _interno = null;
+    try{ localStorage.setItem('inkflow-scrivania', verso); }catch(e){}
+    disegnaFascicoli();
+    const nuovo = box && box.querySelector('.fasc-palco');
+    if(nuovo && nuovo.animate) nuovo.animate([{ transform:`translateY(${su ? 40 : -40}%)`, opacity:0 }, { transform:'none', opacity:1 }], { duration:260, easing:'cubic-bezier(.2,.8,.2,1)' });
+  };
+  suonaRumore(RUMORI.apri, .4);
+  if(palco && palco.animate){
+    palco.animate([{ transform:'none', opacity:1 }, { transform:`translateY(${su ? -40 : 40}%)`, opacity:0 }], { duration:180, easing:'ease-in', fill:'forwards' }).onfinish = fatto;
+  } else fatto();
+}
+export function scegliScaffale(v){ if(v === 'jobs' || v === 'progetti'){ _scaffale = v; _c = 0; try{ localStorage.setItem('inkflow-scrivania', v); }catch(e){} } }
 
 function posa(box, trasc, subito){
   const palco = box.querySelector('.fasc-palco');
@@ -223,17 +293,25 @@ function monta(box, n){
   // Ora i tocchi sono il click del browser, che sul telefono arriva sempre;
   // il dito qui sotto serve solo allo swipe, e un click subito dopo uno swipe
   // si ignora (e' il dito che si alza, non un tocco).
-  let x0 = null, dx = 0, mosso = false, finitoSwipe = 0;
-  palco.addEventListener('pointerdown', e=>{ x0 = e.clientX; dx = 0; mosso = false; });
+  // In orizzontale si scorre la fila; in VERTICALE si cambia scrivania (dal
+  // basso verso l'alto ai Jobs, al contrario ai Progetti). Il primo movimento
+  // deciso sceglie la direzione, e per quel gesto resta quella.
+  let x0 = null, y0 = 0, dx = 0, dy = 0, mosso = false, verticale = false, finitoSwipe = 0;
+  palco.addEventListener('pointerdown', e=>{ x0 = e.clientX; y0 = e.clientY; dx = dy = 0; mosso = verticale = false; });
   palco.addEventListener('pointermove', e=>{
     if(x0 === null) return;
-    dx = e.clientX - x0;
-    if(Math.abs(dx) > 8){ if(!mosso){ mosso = true; try{ palco.setPointerCapture(e.pointerId); }catch(err){} } }
+    dx = e.clientX - x0; dy = e.clientY - y0;
+    if(!mosso && !verticale){
+      if(Math.abs(dy) > 12 && Math.abs(dy) > Math.abs(dx)) verticale = true;
+      else if(Math.abs(dx) > 8) mosso = true;
+      if(mosso || verticale){ try{ palco.setPointerCapture(e.pointerId); }catch(err){} }
+    }
     if(mosso) posa(box, dx);
   });
   const fine = ()=>{
     if(x0 === null) return;
     const d = dx; x0 = null;
+    if(verticale){ finitoSwipe = Date.now(); if(Math.abs(dy) > 60) cambiaScaffale(dy < 0 ? 'jobs' : 'progetti'); return; }
     if(mosso){ finitoSwipe = Date.now(); vai(d < -50 ? _c + 1 : d > 50 ? _c - 1 : _c); }
   };
   palco.addEventListener('pointerup', fine);
@@ -245,6 +323,16 @@ function monta(box, n){
     if(!f) return;
     const i = +f.dataset.i;
     if(i !== _c){ vai(i); return; }
+    // sulla scrivania dei Jobs: il fascicolo apre il lavoro, il posto vuoto ne
+    // crea uno nuovo
+    if(_scaffale === 'jobs'){
+      if(!_jobsMod) return;
+      const lista = _jobsMod.tuttiIJobs();
+      if(i >= lista.length){ _jobsMod.nuovoJob().then(j=>{ if(j) disegnaFascicoli(); }); return; }
+      suonaRumore(RUMORI.apri, .85);
+      _jobsMod.apriJob(lista[i].id);
+      return;
+    }
     if(i >= projects.length){ if(window.openNewModal) window.openNewModal(); return; }
     suonaRumore(RUMORI.apri, .85);
     apriInterno(box, i);
@@ -431,4 +519,4 @@ function riapri(i){
   disegnaFascicoli();
 }
 
-window.__fascicoli = { chiudi: chiudiDaIndietro, riapri, disegna: disegnaFascicoli, aggiornaVista, scegliVista, vai: i=>{ _c = i; disegnaFascicoli(); } };
+window.__fascicoli = { chiudi: chiudiDaIndietro, riapri, scegliScaffale, cambiaScaffale, scaffale: ()=> _scaffale, disegna: disegnaFascicoli, aggiornaVista, scegliVista, vai: i=>{ _c = i; disegnaFascicoli(); } };

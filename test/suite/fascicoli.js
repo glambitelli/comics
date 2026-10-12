@@ -225,17 +225,40 @@ module.exports = () => suite("Projects — i progetti come fascicoli sulla scriv
   await page.waitForTimeout(500);
   await rumori();
 
-  sezione('Scene e Jobs restano come sono');
+  sezione('le Scene non ci sono piu\', i Jobs stanno sulla stessa scrivania');
   await page.evaluate(()=> window.openProjects());
   await page.waitForTimeout(500);
+  const testa = await page.evaluate(()=>({
+    intestazione: document.querySelector('#screen-projects .projects-header').getBoundingClientRect().height,
+    linguette: document.querySelector('#screen-projects .projects-tabs').getBoundingClientRect().height }));
+  ok('niente intestazione Inkflow ne\' linguette', testa.intestazione === 0 && testa.linguette === 0, testa);
   await page.evaluate(()=> window.setScaffaleProgetti('scene'));
   await page.waitForTimeout(400);
   s = await stato();
-  ok('sulle Scene la scrivania si spegne', !s.acceso, s);
-  await page.evaluate(()=> window.setScaffaleProgetti('progetti'));
-  await page.waitForTimeout(400);
+  ok('chiedere le Scene lascia i progetti', s.acceso && s.fascicoli === TITOLI.length, s);
+  // Lo swipe dal basso verso l'alto porta ai Jobs: altre cartelle, colorate
+  await page.evaluate(async ()=>{ const j = await import('/js/jobs.js');
+    j.__seminaJobs([{ id:'j1', titolo:'Nemesis #3', tavole:22, rif:{} }, { id:'j2', titolo:'Copertina', tavole:1, rif:{} }]); });
+  const su = async (da, a)=>{ await page.mouse.move(180, da); await page.mouse.down(); await page.mouse.move(180, a, { steps: 8 }); await page.mouse.up(); await page.waitForTimeout(700); };
+  await su(470, 250);
+  const jobs = await page.evaluate(()=>({ scaffale: window.__fascicoli.scaffale(),
+    job: document.querySelectorAll('.fasc-job').length, progetti: document.querySelectorAll('.fasc:not(.fasc-job):not(.fasc-nuovo)').length,
+    filtro: (document.querySelector('.fasc-job .fasc-foto') || {}).style ? document.querySelector('.fasc-job .fasc-foto').style.filter : '',
+    tit: (document.querySelector('.fasc-job .fasc-tit') || {}).textContent }));
+  ok('swipe verso l\'alto: le cartelle dei Jobs', jobs.scaffale === 'jobs' && jobs.job === 2 && jobs.progetti === 0, jobs);
+  ok('colorate, diverse da quelle dei progetti', /hue-rotate/.test(jobs.filtro), jobs);
+  ok('col titolo del lavoro', /Nemesis #3/.test(jobs.tit || ''), jobs);
+  await page.mouse.click(180, 380);
+  await page.waitForTimeout(500);
+  const apertoJob = await page.evaluate(()=> document.getElementById('screen-job').classList.contains('active'));
+  ok('toccando quella al centro si apre il lavoro', apertoJob);
+  await page.evaluate(()=> history.back());
+  await page.waitForTimeout(700);
+  const tornatoJobs = await page.evaluate(()=>({ scrivania: document.getElementById('screen-projects').classList.contains('active'), scaffale: window.__fascicoli.scaffale() }));
+  ok('Indietro riporta alla scrivania dei Jobs', tornatoJobs.scrivania && tornatoJobs.scaffale === 'jobs', tornatoJobs);
+  await su(250, 470);
   s = await stato();
-  ok('e torna sui Progetti', s.acceso && s.scrivania, s);
+  ok('swipe verso il basso: di nuovo i progetti', s.acceso && s.fascicoli === TITOLI.length && await page.evaluate(()=> window.__fascicoli.scaffale()) === 'progetti', s);
 
   sezione('l\'elenco di prima resta, e la scelta si ricorda');
   await page.evaluate(()=> window.__fascicoli.scegliVista('elenco'));

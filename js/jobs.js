@@ -153,6 +153,9 @@ export async function rinominaJob(id){
 
 // ── LO SCAFFALE ──
 export function renderJobs(){
+  // La scrivania dei Jobs (js/fascicoli.js) mostra gli stessi lavori come
+  // cartelle: quando l'elenco cambia, si ridisegna anche lei.
+  if(window.__fascicoli && window.__fascicoli.scaffale && window.__fascicoli.scaffale() === 'jobs') window.__fascicoli.aggiornaVista();
   const el = document.getElementById('jobs-lista');
   if(!el) return;
   if(!_jobs.length){
