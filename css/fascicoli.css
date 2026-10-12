@@ -16,11 +16,8 @@
 }
 #screen-projects.vista-fascicoli .fasc-torna{display:none}
 
-/* NIENTE INTESTAZIONE E NIENTE LINGUETTE (12 ottobre 2026): il marchio
-   "Inkflow" in cima e la barra "Progetti · Scene · Jobs" non servivano a
-   niente sulla scrivania ("quel contorno non serve a niente"). Le Scene sono
-   tolte, e Progetti/Jobs si cambiano con uno swipe in verticale. */
-#screen-projects.vista-fascicoli .projects-header,
+/* NIENTE LINGUETTE (12 ottobre 2026): le Scene sono tolte, e Progetti/Jobs
+   si cambiano con uno swipe in verticale. */
 #screen-projects.vista-fascicoli .projects-tabs{display:none!important}
 
 /* ── IL PIANO ──
@@ -32,16 +29,15 @@
 #screen-projects.vista-fascicoli{
   background:#1b120c url(../img/fascicoli/scrivania.webp) center 62%/cover no-repeat;
 }
-/* L'intestazione diventa una targhetta scura: stesso marchio, stessa altezza
-   (il marchio "Inkflow" non deve saltare passando da una schermata all'altra),
-   ma niente bianco in mezzo a una stanza illuminata da una lampada sola. */
-#screen-projects.vista-fascicoli .projects-header{
-  background:linear-gradient(180deg,rgba(14,9,6,.88),rgba(14,9,6,.55));
-  border-bottom-color:rgba(214,170,98,.55);
-}
-#screen-projects.vista-fascicoli .projects-header::before{opacity:.55}
-#screen-projects.vista-fascicoli .projects-header .section-title{color:#f1e4c8}
-#screen-projects.vista-fascicoli .projects-header .section-sub{color:#bda57e}
+/* L'INTESTAZIONE: restano "Inkflow ✦" e "projects", scritti direttamente
+   sulla scrivania come nell'archivio sul muro. Via il riquadro che li
+   conteneva — prima bianco, poi una targhetta scura col bordo dorato e il
+   filo colorato in cima: "quel contorno non serve a niente" (Giovanni, 12
+   ottobre 2026). Stesse misure di prima, cosi' il marchio non salta. */
+#screen-projects.vista-fascicoli .projects-header{background:none;border:none;box-shadow:none}
+#screen-projects.vista-fascicoli .projects-header::before{display:none}
+#screen-projects.vista-fascicoli .projects-header .section-title{color:#f1e4c8;text-shadow:0 1px 3px rgba(0,0,0,.8),0 0 14px rgba(0,0,0,.5)}
+#screen-projects.vista-fascicoli .projects-header .section-sub{color:#d2bd98;text-shadow:0 1px 3px rgba(0,0,0,.9)}
 #screen-projects.vista-fascicoli .projects-tabs{background:none;padding-top:10px}
 #screen-projects.vista-fascicoli .projects-tabs .seg-vasca{background:rgba(14,9,6,.55)}
 #screen-projects.vista-fascicoli .projects-tabs .seg-tab{color:#d8c4a0}

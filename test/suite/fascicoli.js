@@ -228,10 +228,15 @@ module.exports = () => suite("Projects — i progetti come fascicoli sulla scriv
   sezione('le Scene non ci sono piu\', i Jobs stanno sulla stessa scrivania');
   await page.evaluate(()=> window.openProjects());
   await page.waitForTimeout(500);
-  const testa = await page.evaluate(()=>({
-    intestazione: document.querySelector('#screen-projects .projects-header').getBoundingClientRect().height,
-    linguette: document.querySelector('#screen-projects .projects-tabs').getBoundingClientRect().height }));
-  ok('niente intestazione Inkflow ne\' linguette', testa.intestazione === 0 && testa.linguette === 0, testa);
+  const testa = await page.evaluate(()=>{
+    const h = document.querySelector('#screen-projects .projects-header'), cs = getComputedStyle(h);
+    return { marchio: h.querySelector('.section-title').getBoundingClientRect().height, sotto: (h.querySelector('.section-sub') || {}).textContent,
+      fondo: cs.backgroundImage + ' ' + cs.backgroundColor, bordo: cs.borderBottomWidth,
+      linguette: document.querySelector('#screen-projects .projects-tabs').getBoundingClientRect().height };
+  });
+  ok('restano "Inkflow" e "projects"', testa.marchio > 20 && /projects/.test(testa.sotto), testa);
+  ok('ma senza il riquadro intorno', /none/.test(testa.fondo) && /rgba\(0, 0, 0, 0\)|transparent/.test(testa.fondo) && testa.bordo === '0px', testa);
+  ok('e niente linguette', testa.linguette === 0, testa);
   await page.evaluate(()=> window.setScaffaleProgetti('scene'));
   await page.waitForTimeout(400);
   s = await stato();
