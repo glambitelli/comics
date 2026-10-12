@@ -179,8 +179,11 @@
 /* IL MARCHIO: germano, QUACK e le righe piccole, in un blocco fisso in basso.
    Le righe del BIOS sopra sono piu' piccole (vedi .arch-boot) perche' ci
    stia tutto: e' rimpicciolito il blocco, non il carattere, cosi' resta lo
-   stesso 8x16 del resto dello schermo. */
-.arch-marchio{position:absolute;left:0;right:0;top:54%;transform:translateY(-50%);display:flex;flex-direction:column;align-items:center;gap:4px;white-space:normal}
+   stesso 8x16 del resto dello schermo.
+   Al 58% dell'altezza, non piu' al 54%: con la barra di caricamento sotto,
+   il blocco stava alto rispetto allo spazio vuoto sotto le righe del BIOS
+   (Giovanni, 12 ottobre 2026: "abbassiamolo leggermente, piu' centrato"). */
+.arch-marchio{position:absolute;left:0;right:0;top:58%;transform:translateY(-50%);display:flex;flex-direction:column;align-items:center;gap:4px;white-space:normal}
 @font-face{font-family:'Quack Titolo';src:url(../font/russo-one-quack.woff2) format('woff2');font-display:block}
 /* QUACK, alla Blade Runner: inclinata, tagliata da righe orizzontali in basso
    come i titoli anni '80, azzurra al neon come il germano; ogni tanto due
