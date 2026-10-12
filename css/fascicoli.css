@@ -153,59 +153,44 @@ body:not(.is-touch):not(.evening-mode) #screen-projects.vista-fascicoli .project
 .fasc-nuovo:not(.al-centro){opacity:.6}
 
 /* ── IL FASCICOLO APERTO (12 ottobre 2026) ──
-   Il perche' sta in js/fascicoli.js (apriInterno). Copre la fila: quando un
-   fascicolo e' aperto, gli altri restano sotto. Le misure in cqw sono
-   centesimi della larghezza della cartella aperta, cosi' tutto resta al suo
-   posto su qualunque telefono. Il carattere e' Cutive Mono, piccolo: 2,55cqw
-   su una cartella di ~350px fa circa 9px. */
+   Il perche' sta in js/fascicoli.js (apriInterno). Due pagine da 896x1200
+   pixel affiancate, scalate (--s) perche' una pagina sia larga quanto lo
+   schermo; col dito si passa dall'una all'altra, e lo scorrimento si ferma
+   su una pagina intera (scroll-snap). Tutte le misure qui sotto sono pixel
+   delle due foto. */
+@font-face{font-family:'Macchina';src:url(../font/lucky-typewriter.ttf) format('truetype');font-display:swap}
 .fascicoli.aperto .fasc-palco{visibility:hidden}
-/* container-type:size: la cartella si misura sullo spazio che c'e' davvero
-   (larghezza E altezza), cosi' su un telefono basso si rimpicciolisce invece
-   di uscire sotto la barra. */
-.fasc-interno{position:absolute;inset:0;z-index:5;container-type:size;font-family:'Cutive Mono','Courier New',monospace}
 #screen-projects.vista-fascicoli .fascicoli{position:relative}
-.fi-chiudi{position:absolute;top:2px;left:14px;z-index:2;background:none;border:none;cursor:pointer;padding:6px 4px;
-  font:15px 'Cutive Mono','Courier New',monospace;letter-spacing:.08em;color:#fff6e0;text-shadow:0 0 2px #000,0 1px 4px #000,0 0 10px rgba(0,0,0,.7)}
-/* larga quanto si puo': tutto lo schermo meno un filo, ma non oltre 520px
-   (computer) e non piu' alta dello spazio meno le due righe sopra e sotto */
-.fi-cartella{position:absolute;left:50%;top:50%;width:min(100cqw - 14px, 520px, (100cqh - 64px) * 1001 / 1320);aspect-ratio:1001/1320;
-  transform:translate(-50%,-50%);container-type:inline-size;
-  filter:drop-shadow(0 3px 3px rgba(0,0,0,.6)) drop-shadow(0 10px 18px rgba(0,0,0,.35))}
-.fi-fondo{position:absolute;inset:0;width:100%;height:100%}
-.fi-foglio{position:absolute;left:16%;top:4%;width:76%;aspect-ratio:743/1000;transform:rotate(-1.2deg);
-  padding:0;border:none;background:none;cursor:pointer;text-align:left;
-  filter:drop-shadow(0 1px 1px rgba(0,0,0,.35)) drop-shadow(0 4px 6px rgba(0,0,0,.18))}
-.fi-foglio > img{position:absolute;inset:0;width:100%;height:100%}
-.fi-testo{position:absolute;inset:7% 8% 6% 9%;display:flex;flex-direction:column;color:#2b211a;mix-blend-mode:multiply;
-  font-family:'Cutive Mono','Courier New',monospace;font-size:2.55cqw;line-height:1.6}
-.fi-testa{font-size:2.3cqw;letter-spacing:.14em;border-bottom:.3cqw solid #2b211a;padding-bottom:1cqw;margin-bottom:2.2cqw}
-.fi-tit{color:#8e2a22;font-size:3.7cqw;margin:0 0 2cqw;max-width:72%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.fi-riga{display:flex;gap:1cqw;white-space:nowrap}
-.fi-riga i{font-style:normal;opacity:.75;flex:none}
-.fi-pt{flex:1;border-bottom:.25cqw dotted rgba(43,33,26,.5);transform:translateY(-1.2cqw)}
-.fi-sez{margin-top:3cqw;font-size:2.3cqw;letter-spacing:.14em;border-bottom:.25cqw solid rgba(43,33,26,.6);padding-bottom:.6cqw;margin-bottom:1.2cqw}
-.fi-passo{display:flex;gap:1.6cqw;white-space:nowrap}
-.fi-passo b{font-weight:400;flex:none}
-.fi-passo.fatto{text-decoration:line-through;text-decoration-color:rgba(43,33,26,.55);opacity:.8}
-.fi-barra{display:flex;gap:.5cqw;margin-top:1.2cqw;width:58%}
-.fi-barra span{flex:1;height:2.2cqw;border:.25cqw solid #2b211a}
-.fi-barra span.p{background:#2b211a}
-.fi-graffetta{position:absolute;left:58%;top:1.4%;width:6.5%;transform:rotate(6deg);pointer-events:none;filter:drop-shadow(1px 2px 1px rgba(0,0,0,.35))}
-.fi-postit{position:absolute;left:3%;bottom:1%;width:31%;transform:rotate(-5deg);pointer-events:none;
-  filter:drop-shadow(0 2px 2px rgba(0,0,0,.35)) drop-shadow(0 5px 8px rgba(0,0,0,.2))}
-.fi-postit img{display:block;width:100%}
-.fi-postit p{position:absolute;inset:16% 10% 10% 12%;margin:0;overflow:hidden;font-family:'Penna',cursive;font-size:4.4cqw;line-height:1.15;color:#1f2a55}
-.fi-polaroid{position:absolute;right:-1%;bottom:2%;width:36%;transform:rotate(5deg);pointer-events:none;
-  filter:drop-shadow(0 2px 2px rgba(0,0,0,.4)) drop-shadow(0 6px 10px rgba(0,0,0,.25))}
-.fi-polaroid[hidden]{display:none}
-.fi-cornice{display:block;width:100%}
-.fi-tav{position:absolute;left:7%;top:6%;width:86%;height:71%;object-fit:cover;background:#2c2c2e}
-.fi-scritta{position:absolute;left:0;right:0;bottom:4%;text-align:center;font-family:'Penna',cursive;font-size:4.6cqw;color:#1f2a55}
-.fi-tessera{position:absolute;right:-3%;top:-1%;width:22%;aspect-ratio:185/254;background:#f2f1ee;border-radius:2.2cqw;transform:rotate(7deg);
-  box-shadow:0 2px 2px rgba(0,0,0,.4),0 6px 10px rgba(0,0,0,.25);overflow:hidden;color:#2b211a;pointer-events:none;
-  display:flex;flex-direction:column;align-items:center}
-.fi-fascia{align-self:stretch;height:24%;background:var(--colore)}
-.fi-buco{position:absolute;left:50%;top:6%;width:24%;height:4%;transform:translateX(-50%);background:rgba(0,0,0,.25);border-radius:9px}
-.fi-n{font-size:2.2cqw;letter-spacing:.08em;margin-top:12%}
-.fi-nome{font-size:2.6cqw;margin-top:4%;max-width:90%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.fi-invito{position:absolute;left:0;right:0;bottom:2px;text-align:center;color:#c8b28c;font-size:13px;letter-spacing:.06em;text-shadow:0 1px 3px #000}
+.fasc-interno{position:absolute;inset:0;z-index:5}
+.fi-chiudi{position:absolute;top:0;left:12px;z-index:2;background:none;border:none;cursor:pointer;padding:6px 4px;
+  font:15px 'Macchina','Courier New',monospace;letter-spacing:.06em;color:#fff6e0;text-shadow:0 0 2px #000,0 1px 4px #000,0 0 10px rgba(0,0,0,.7)}
+.fi-vista{position:absolute;inset:32px 0 36px;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.fi-vista::-webkit-scrollbar{display:none}
+.fi-spazio{position:relative;width:calc(1792px * var(--s, .4));height:calc(1200px * var(--s, .4));top:50%;transform:translateY(-50%)}
+.fi-spazio::before,.fi-spazio::after{content:'';position:absolute;top:0;bottom:0;width:50%;scroll-snap-align:start}
+.fi-spazio::before{left:0}.fi-spazio::after{left:50%}
+.fi-spread{position:absolute;left:0;top:0;width:1792px;height:1200px;transform-origin:0 0;transform:scale(var(--s, .4))}
+.fi-pagina{position:absolute;top:0;width:896px;height:1200px;overflow:hidden;filter:drop-shadow(0 6px 10px rgba(0,0,0,.45))}
+.fi-sx{left:0;cursor:pointer}.fi-dx{left:896px}
+.fi-fondo{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+/* quello stampato (etichette) e quello battuto (dati): "multiply", cosi'
+   l'inchiostro prende la carta che ha sotto */
+.fi-et{position:absolute;font:8.5px/1 'Castoro',serif;letter-spacing:.09em;text-transform:uppercase;color:#2a2622;mix-blend-mode:multiply;pointer-events:none}
+.fi-mac{position:absolute;font:13px/1.15 'Macchina','Courier New',monospace;color:#1d1a17;mix-blend-mode:multiply;white-space:nowrap;pointer-events:none}
+.fi-mano{position:absolute;font:19px/1.15 'Penna',cursive;color:#20307e;mix-blend-mode:multiply;pointer-events:none}
+.fi-spunta{font-size:24px}
+.fi-inchiostro{position:absolute;mix-blend-mode:multiply;pointer-events:none;fill:none;stroke:#20307e;stroke-width:2;stroke-linecap:round}
+.fi-foto{position:absolute;overflow:hidden;mix-blend-mode:multiply}
+.fi-foto img{display:block;width:100%;height:100%;object-fit:cover;filter:grayscale(1) contrast(1.1)}
+.fi-sq{position:absolute;width:27px;height:27px;display:flex;align-items:center;justify-content:center;
+  font:9px 'Macchina','Courier New',monospace;color:#1d1a17;mix-blend-mode:multiply;pointer-events:none}
+.fi-sq.ok::after{content:'X';position:absolute;font:21px 'Macchina','Courier New',monospace}
+/* le stampe: l'immagine deformata sul quadrilatero del grigio e ritagliata
+   dalla sua maschera; la "luce" sopra riporta i riflessi della carta lucida */
+.fi-stampa{position:absolute;inset:0;-webkit-mask-size:100% 100%;mask-size:100% 100%;pointer-events:none}
+.fi-img{position:absolute;left:0;top:0;transform-origin:0 0;object-fit:cover;filter:grayscale(1) contrast(1.1)}
+.fi-luce{position:absolute;inset:0;width:100%;height:100%;mix-blend-mode:soft-light;opacity:.9}
+/* la tessera e' storta di 12,5 gradi nella foto: i suoi testi pure */
+.fi-fascia,.fi-tessera{position:absolute;transform-origin:0 0;transform:rotate(-12.5deg);pointer-events:none}
+.fi-fascia{display:flex;align-items:center;justify-content:center;font:13px 'Castoro',serif;letter-spacing:.22em;color:#fff;opacity:.92}
+.fi-invito{position:absolute;left:0;right:0;bottom:0;text-align:center;font:11px/1.35 'Macchina','Courier New',monospace;color:#c8b28c;text-shadow:0 1px 3px #000}

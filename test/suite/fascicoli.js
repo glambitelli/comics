@@ -158,28 +158,32 @@ module.exports = () => suite("Projects — i progetti come fascicoli sulla scriv
   await page.mouse.click(180, 380);
   await page.waitForTimeout(500);
   const dentro = await page.evaluate(async ()=>{
-    const st = await import('/js/state.js');
     const el = document.querySelector('.fasc-interno');
-    const r = el && el.querySelector('.fi-cartella').getBoundingClientRect();
+    const testo = sel => Array.from(el.querySelectorAll(sel)).map(e => e.textContent).join(' | ');
+    const sx = el && el.querySelector('.fi-sx').getBoundingClientRect();
+    const vista = el && el.querySelector('#fi-vista').getBoundingClientRect();
     return {
       aperto: !!el, progetto: document.getElementById('screen-project').classList.contains('active'),
-      tit: el && el.querySelector('.fi-tit').textContent,
-      fatti: el ? el.querySelectorAll('.fi-passo.fatto').length : 0,
-      passi: el ? el.querySelectorAll('.fi-passo').length : 0,
-      postit: el && el.querySelector('.fi-postit p') ? el.querySelector('.fi-postit p').textContent : '',
-      tessera: el && el.querySelector('.fi-n').textContent,
-      carattere: el && getComputedStyle(el.querySelector('.fi-testo')).fontFamily,
-      corpo: el && parseFloat(getComputedStyle(el.querySelector('.fi-riga')).fontSize),
-      cartella: r && { sx: Math.round(r.left), dx: Math.round(r.right), alto: Math.round(r.height) },
+      scheda: el && el.querySelector('.fi-sx').textContent.replace(/\s+/g, ' '),
+      rapporto: el && el.querySelector('.fi-dx').textContent.replace(/\s+/g, ' '),
+      spunte: el ? el.querySelectorAll('.fi-sx .fi-spunta').length : 0,
+      quadri: el ? el.querySelectorAll('.fi-sq').length : 0,
+      note: el ? testo('.fi-sx .fi-mano') : '',
+      fascia: el && el.querySelector('.fi-fascia').textContent,
+      // la prima riga e' l'intestazione stampata: si guarda la seconda, battuta
+      carattere: el && getComputedStyle(el.querySelectorAll('.fi-sx .fi-mac')[1]).fontFamily,
+      pagina: sx && vista && { largo: Math.round(sx.width), schermo: Math.round(vista.width), alto: Math.round(sx.height), spazio: Math.round(vista.height) },
     };
   });
   ok('si apre il fascicolo, non ancora il progetto', dentro.aperto && !dentro.progetto, dentro);
-  ok('sulla scheda il titolo tra virgolette', /\u201cRuggine\u201d/.test(dentro.tit || ''), dentro);
-  ok('la pipeline con i passi fatti barrati', dentro.fatti === 2 && dentro.passi >= 8, dentro);
-  ok('il post-it porta il prossimo passo', /sfondi della tav\. 7/.test(dentro.postit), dentro);
-  ok('la tessera il numero del fascicolo', dentro.tessera === 'P-0003', dentro);
-  ok('a macchina da scrivere, e piccolo', /Cutive Mono/.test(dentro.carattere || '') && dentro.corpo <= 10, dentro);
-  ok('la cartella sta tutta nello schermo', dentro.cartella && dentro.cartella.sx >= 0 && dentro.cartella.dx <= 360, dentro);
+  ok('la scheda porta titolo, numero e fase', /Ruggine/.test(dentro.scheda) && /P-0003/.test(dentro.scheda) && /Sviluppo/.test(dentro.scheda), dentro.scheda);
+  ok('i passi fatti hanno la spunta a penna', dentro.spunte === 2, dentro);
+  ok('un quadratino per tavola (Ruggine ne ha 12)', dentro.quadri === 12, dentro);
+  ok('nelle note a mano il prossimo passo', /sfondi della tav\. 7/.test(dentro.note), dentro.note);
+  ok('il rapporto dice fase e prossimo passo', /fase di sviluppo/.test(dentro.rapporto) && /Prossimo passo: personaggi/.test(dentro.rapporto), dentro.rapporto);
+  ok('sulla fascia della tessera il numero', dentro.fascia === 'P-0003', dentro);
+  ok('battuto con la macchina da scrivere', /Macchina/.test(dentro.carattere || ''), dentro);
+  ok('una pagina sta nello schermo', dentro.pagina && dentro.pagina.largo <= dentro.pagina.schermo + 1 && dentro.pagina.alto <= dentro.pagina.spazio + 1, dentro.pagina);
   const rApri = await rumori();
   ok('con il rumore della copertina che si alza', rApri.includes('apri.mp3'), rApri);
 

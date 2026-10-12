@@ -244,98 +244,205 @@ function monta(box, n){
 }
 
 // ── IL FASCICOLO APERTO (12 ottobre 2026) ──
-// Toccando il fascicolo al centro si apre sulla scrivania: la cartella aperta,
-// e dentro la scheda del progetto battuta a macchina, con la graffetta; sopra,
-// il post-it col prossimo passo, la Polaroid dell'ultima tavola e la tessera
-// col colore del progetto. E' un riassunto da guardare: il progetto vero si
-// apre toccando il foglio. Bozzetto scelto da Giovanni; i pezzi di carta sono
-// foto fatte con Firefly e ritagliate (img/fascicoli/), graffetta e tessera
-// invece sono disegnate qui — nei ritagli il metallo e la plastica trasparente
-// si confondevano col grigio del fondo.
+// Toccando il fascicolo al centro la cartella si apre sulla scrivania, in due
+// pagine affiancate come una cartella vera: a sinistra la SCHEDA (un modulo
+// stampato, compilato a macchina e annotato a penna), a destra il RAPPORTO
+// (un foglio battuto a macchina con due stampe fotografiche fermate dalle
+// graffette e la tessera nella busta di plastica). Sul telefono si vede una
+// pagina per volta e si passa all'altra col dito.
 //
-// IL CARATTERE E' CUTIVE MONO, piccolo: scelto fra tre macchine da scrivere
-// messe a confronto sullo stesso foglio. Special Elite, la prima prova, "fa
-// veramente schifo, troppo grande come al solito".
-const GRAFFETTA = `<svg class="fi-graffetta" viewBox="0 0 30 80" aria-hidden="true">
-  <path d="M9 70 V14 a6 6 0 0 1 12 0 V62 a9 9 0 0 1 -18 0 V22" fill="none" stroke="#9aa0a6" stroke-width="2.6" stroke-linecap="round"/>
-  <path d="M9 70 V14 a6 6 0 0 1 12 0 V62 a9 9 0 0 1 -18 0 V22" fill="none" stroke="#eef1f3" stroke-width="1" stroke-linecap="round" transform="translate(-.6 -.6)"/></svg>`;
+// PERCHE' COSI'. Il primo fascicolo aperto metteva su una cartella dei pezzi
+// ritagliati uno per uno (foglio, post-it, Polaroid) e ci scriveva sopra con
+// righe disegnate in codice: "sembra finto, non sembra reale; l'impaginazione
+// sembra fatta male". Il riferimento (un fascicolo FBI di scena) ha i moduli
+// a caselle stampati, i fogli impilati, le foto vere sopra il testo. Ora le
+// due pagine sono due foto fatte con Gemini da Giovanni, gia' composte: il
+// modulo stampato a righe sottili e SENZA SCRITTE, le stampe col riquadro
+// grigio, la tessera con la fascia blu vuota. Luce, ombre, graffette e busta
+// sono vere; qui si scrive soltanto, e si mettono le immagini al loro posto.
+// Dalla pagina sinistra sono state cancellate due figure umane che Gemini
+// aveva copiato dal riferimento (ricostruendo la carta).
+//
+// LE MISURE sono in pixel delle due foto (896x1200 ciascuna), prese con un
+// programmino sulle righe del modulo e sui bordi del grigio delle stampe: se
+// cambiano le foto, vanno rimisurate. Le stampe sono storte: l'immagine si
+// deforma con una matrice (calcolata dai quattro angoli del grigio) e la si
+// ritaglia con la maschera del grigio stesso, cosi' la graffetta e la stampa
+// di sopra restano davanti. Sopra, la "luce" della foto originale riporta i
+// riflessi della carta lucida.
+//
+// I CARATTERI: Lucky Typewriter per quello battuto a macchina (scelto da
+// Giovanni fra quattro; licenza in font/lucky-typewriter-LICENZA.txt, uso
+// non commerciale), Castoro per quello stampato, la penna di sempre per le
+// note a mano.
 const MESI = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
-function data(iso){
-  const d = iso ? new Date(iso) : null;
-  return d && !isNaN(d) ? d.getDate() + ' ' + MESI[d.getMonth()] + ' ' + d.getFullYear() : '';
-}
+const MESI_LUNGHI = ['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre'];
+function giorno(v){ const d = v ? new Date(v) : null; return d && !isNaN(d) ? d : null; }
+function breve(v){ const d = giorno(v); return d ? String(d.getDate()).padStart(2,'0') + '.' + String(d.getMonth()+1).padStart(2,'0') + '.' + String(d.getFullYear()).slice(2) : '—'; }
+function lunga(v){ const d = giorno(v); return d ? d.getDate() + ' ' + MESI_LUNGHI[d.getMonth()] : ''; }
+// le due stampe: matrici dai quattro angoli del grigio (vedi sopra)
+const STAMPE = [
+  { w:720, h:1000, m:'matrix3d(0.307167,0.089389,0,0.000004,-0.141641,0.231046,0,-0.000113,0,0,1,0,564,430,0,1)' },
+  { w:1000, h:720, m:'matrix3d(0.236,0.056,0,0,-0.055556,0.284722,0,0,0,0,1,0,521,782,0,1)' },
+];
+// i 16 quadratini delle tavole, colonne (x) e righe (y) del modulo
+const QX = [161,195,231,267,304,340,376,412], QY = [664,714];
 
 function apriInterno(box, i){
   const p = projects[i];
   if(!p) return;
   _interno = i;
+  const num = 'P-' + String(i + 1).padStart(4, '0');
   const fase = PHASE_NAMES[getPhaseIndex(p)] || '';
   const pct = calcPct(p);
-  const finite = Object.values(p.tavole || {}).filter(v => v >= 4).length;
-  const pieni = Math.round(pct / 10);
-  const riga = (nome, valore) => valore ? `<div class="fi-riga"><i>${nome}</i><span class="fi-pt"></span>${esc(String(valore))}</div>` : '';
-  const passi = STEPS.map(st => {
-    const fatto = !!(p.steps && p.steps[st.id]);
-    return `<div class="fi-passo${fatto ? ' fatto' : ''}"><b>[${fatto ? 'x' : '&nbsp;'}]</b>${esc(st.nome)}</div>`;
-  }).join('') + `<div class="fi-passo${finite && finite >= (p.numTav || 0) ? ' fatto' : ''}"><b>[${finite && finite >= (p.numTav || 0) ? 'x' : '&nbsp;'}]</b>Tavole ${finite}/${p.numTav || 0}</div>`;
+  const N = p.numTav || 0;
+  const stato = k => (p.tavole && p.tavole[k] != null) ? p.tavole[k] : 0;
+  const finite = Array.from({ length: N }, (_, k) => stato(k + 1)).filter(v => v >= 4).length;
+  let inCorso = 0;
+  for(let k = 1; k <= N; k++){ const v = stato(k); if(v > 0 && v < 4){ inCorso = k; break; } }
+  const fatto = st => !!(p.steps && p.steps[st.id]);
+  const prossimo = (STEPS.find(st => !fatto(st)) || {}).nome
+    || (finite < N ? 'Tavola ' + (finite + 1) : 'Finito');
+  const t = s => esc(String(s == null ? '' : s));
+  const mac = (x, y, testo, extra = '') => `<span class="fi-mac" style="left:${x}px;top:${y}px;${extra}">${testo}</span>`;
+  const et = (x, y, testo) => `<span class="fi-et" style="left:${x}px;top:${y}px">${testo}</span>`;
+
+  // ── pagina sinistra: la scheda ──
+  const passi = [...STEPS.map(st => ({ nome: st.nome === 'Struttura a 3 atti' ? 'Struttura' : st.nome, ok: fatto(st) })),
+    { nome: `Tavole ${finite}/${N}`, ok: N > 0 && finite >= N }];
+  const passiHtml = passi.map((ps, k) => {
+    const x = k < 4 ? 166 : 305, y = 505 + (k % 4) * 26.6;
+    return mac(x, y, '[&nbsp;] ' + t(ps.nome)) + (ps.ok ? `<span class="fi-mano fi-spunta" style="left:${x + 1}px;top:${y - 8}px">&#10003;</span>` : '');
+  }).join('');
+  const quadri = [];
+  for(let k = 1; k <= Math.min(N, 16); k++){
+    const x = QX[(k - 1) % 8], y = QY[k > 8 ? 1 : 0];
+    quadri.push(`<span class="fi-sq${stato(k) >= 4 ? ' ok' : ''}" style="left:${x}px;top:${y}px">${String(k).padStart(2,'0')}</span>`);
+  }
+  let segno = '';
+  if(inCorso && inCorso <= 16){
+    const cx = QX[(inCorso - 1) % 8] + 13.5, cy = QY[inCorso > 8 ? 1 : 0] + 13.5;
+    segno = `<svg class="fi-inchiostro" style="left:0;top:0;width:896px;height:1200px" viewBox="0 0 896 1200" aria-hidden="true">
+      <ellipse cx="${cx}" cy="${cy}" rx="20" ry="18"/>
+      <path d="M500 590 C 480 640, ${cx + 90} ${cy - 10}, ${cx + 24} ${cy - 4}"/>
+      <path d="M${cx + 34} ${cy - 14} L${cx + 23} ${cy - 4} L${cx + 35} ${cy + 5}"/></svg>
+      <span class="fi-mano" style="left:470px;top:530px;transform:rotate(-4deg)">la tav. ${inCorso}<br>e' in corso</span>`;
+  }
+  const oltre = N > 16 ? mac(162, 744, `+ ${N - 16} (17-${N})`, 'font-size:10px') : '';
+  const barra = 'X'.repeat(Math.round(pct / 10)) + '&middot;'.repeat(10 - Math.round(pct / 10));
+  const note = [p.microtask, ...(String(p.notes || '').split('\n'))].map(r => (r || '').trim()).filter(Boolean).slice(0, 2);
+  const sinistra = `
+    <img class="fi-fondo" src="img/fascicoli/pagina-sx.webp" alt="" draggable="false">
+    ${mac(155, 250, 'SCHEDA DI PROGETTO', 'width:335px;text-align:center;font:15px/1 Castoro,serif;letter-spacing:.16em')}
+    ${mac(155, 276, 'N. ' + num, 'width:335px;text-align:center')}
+    ${et(159, 310, 'Titolo')}${mac(172, 322, t(p.title || 'Senza titolo'), 'max-width:148px;overflow:hidden;text-overflow:ellipsis')}
+    ${et(329, 310, 'Tav.')}${mac(338, 322, N)}
+    ${et(384, 310, 'Fase')}${mac(392, 322, t(fase), 'font-size:12px')}
+    ${et(159, 345, 'Aperto il')}${mac(168, 356, breve(p.createdAt), 'font-size:12px')}
+    ${et(261, 345, 'Consegna')}${mac(270, 356, breve(p.dateEnd), 'font-size:12px')}
+    ${et(377, 345, 'Avanz.')}${mac(400, 356, pct + ' %')}
+    ${et(159, 377, 'Prossimo passo')}${mac(176, 396, t(prossimo))}
+    ${et(159, 447, 'Lavorazione')}${mac(236, 455, barra, 'letter-spacing:2px')}
+    <span class="fi-foto" data-ref="0" style="left:523px;top:238px;width:130px;height:221px"></span>
+    ${et(162, 487, 'Passi')}${passiHtml}
+    ${N ? et(162, 652, 'Tavole') : ''}${quadri.join('')}${oltre}${segno}
+    ${et(163, 768, 'Riferimenti')}
+    <span class="fi-foto" data-ref="1" style="left:165px;top:784px;width:68px;height:64px"></span>
+    <span class="fi-foto" data-ref="2" style="left:237px;top:784px;width:67px;height:64px"></span>
+    <span class="fi-foto" data-ref="3" style="left:308px;top:784px;width:66px;height:64px"></span>
+    <span class="fi-foto" data-ref="4" style="left:379px;top:784px;width:65px;height:64px"></span>
+    <span class="fi-foto" data-ref="5" style="left:449px;top:784px;width:66px;height:64px"></span>
+    <span class="fi-mac fi-conti" style="left:534px;top:767px;font-size:11px;line-height:22px"></span>
+    ${et(163, 856, 'Note')}
+    ${note.map((r, k) => `<span class="fi-mano" style="left:172px;top:${870 + k * 44}px;max-width:480px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${t(r)}</span>`).join('')}`;
+
+  // ── pagina destra: il rapporto ──
+  const fatti = STEPS.filter(fatto).map(st => st.nome.toLowerCase());
+  const riga1 = `Il progetto e' in fase di ${t(fase.toLowerCase())}.` +
+    (fatti.length ? `<br>Completati: ${t(fatti.slice(0, 3).join(', '))}${fatti.length > 3 ? ' e altri ' + (fatti.length - 3) : ''}.` : '') +
+    `<br>Prossimo passo: ${t(prossimo.toLowerCase())}.`;
+  const riga2 = (N ? `${finite} tavole finite su ${N}${inCorso ? `, la ${inCorso} in lavorazione` : ''}.` : 'Tavole non ancora definite.') +
+    (lunga(p.dateEnd) ? `<br>Consegna prevista il ${lunga(p.dateEnd)}.` : '');
+  const destra = `
+    <img class="fi-fondo" src="img/fascicoli/pagina-dx.webp" alt="" draggable="false">
+    ${mac(262, 186, 'RAPPORTO DI LAVORAZIONE', 'width:516px;text-align:center;font:14px/1 Castoro,serif;letter-spacing:.16em')}
+    ${et(315, 221, 'Progetto')}${mac(320, 243, t(p.title || ''), 'max-width:74px;overflow:hidden;text-overflow:ellipsis')}
+    ${et(408, 221, 'Avanzamento')}${mac(425, 243, pct + ' %')}
+    ${et(503, 221, 'Tavole')}${mac(512, 243, N ? finite + ' di ' + N : '—')}
+    ${et(597, 221, 'Consegna')}${mac(604, 243, breve(p.dateEnd))}
+    ${mac(298, 306, riga1, 'white-space:normal;width:440px;line-height:1.75')}
+    ${mac(298, 380, riga2, 'white-space:normal;width:250px;line-height:1.75')}
+    ${STAMPE.map((st, k) => `<span class="fi-stampa" data-ref="${6 + k}" style="-webkit-mask-image:url(img/fascicoli/stampa-${k + 1}-maschera.png);mask-image:url(img/fascicoli/stampa-${k + 1}-maschera.png)">
+      <img class="fi-img" alt="" style="width:${st.w}px;height:${st.h}px;transform:${st.m}">
+      <img class="fi-luce" src="img/fascicoli/stampa-${k + 1}-luce.webp" alt=""></span>`).reverse().join('')}
+    <span class="fi-fascia" style="left:178px;top:815px;width:176px;height:33px">${num}</span>
+    <span class="fi-tessera" style="left:184px;top:851px;width:179px;height:204px">
+      <span class="fi-foto" data-ref="0" style="left:12px;top:14px;width:62px;height:80px"></span>
+      ${mac(84, 18, t((p.title || '').toUpperCase()), 'max-width:90px;overflow:hidden;text-overflow:ellipsis')}
+      ${mac(84, 38, `${t(fase)}<br>${N} tavole<br>dal ${breve(p.createdAt)}`, 'font-size:10px;line-height:1.45')}
+      <span class="fi-mano fi-firma" style="left:16px;top:118px;font-size:22px"></span>
+      <span class="fi-et" style="left:16px;top:150px;opacity:.7">Firma</span>
+    </span>`;
+
   let el = box.querySelector('.fasc-interno');
   if(!el){ el = document.createElement('div'); el.className = 'fasc-interno'; box.appendChild(el); }
-  el.style.setProperty('--colore', p.color || '#c0503a');
   el.innerHTML = `
     <button type="button" class="fi-chiudi" id="fi-chiudi">&lsaquo; CHIUDI</button>
-    <div class="fi-cartella">
-      <img class="fi-fondo" src="img/fascicoli/interno.webp" alt="" draggable="false">
-      <button type="button" class="fi-foglio" id="fi-foglio" aria-label="Apri il progetto ${esc(p.title || '')}">
-        <img src="img/fascicoli/foglio.webp" alt="" draggable="false">
-        <span class="fi-testo">
-          <span class="fi-testa">SCHEDA DEL PROGETTO</span>
-          <span class="fi-tit">&ldquo;${esc(p.title || 'Senza titolo')}&rdquo;</span>
-          ${riga('Fase', fase)}${riga('Tavole', p.numTav || 0)}${riga('Scadenza', data(p.dateEnd))}
-          <span class="fi-sez">PIPELINE</span>
-          ${passi}
-          <span class="fi-sez">AVANZAMENTO ${pct}%</span>
-          <span class="fi-barra">${Array.from({ length: 10 }, (_, k) => `<span${k < pieni ? ' class="p"' : ''}></span>`).join('')}</span>
-        </span>
-      </button>
-      ${GRAFFETTA}
-      ${p.microtask ? `<div class="fi-postit"><img src="img/fascicoli/postit.webp" alt="" draggable="false"><p>${esc(p.microtask)}</p></div>` : ''}
-      <div class="fi-polaroid" hidden><img class="fi-cornice" src="img/fascicoli/polaroid.webp" alt="" draggable="false"><img class="fi-tav" alt=""><span class="fi-scritta"></span></div>
-      <div class="fi-tessera"><span class="fi-fascia"></span><span class="fi-buco"></span><span class="fi-n">P-${String(i + 1).padStart(4, '0')}</span><span class="fi-nome">${esc(p.title || '')}</span></div>
-    </div>
-    <div class="fi-invito">tocca il foglio per aprire il progetto</div>`;
+    <div class="fi-vista" id="fi-vista"><div class="fi-spazio"><div class="fi-spread">
+      <div class="fi-pagina fi-sx" id="fi-foglio" role="button" tabindex="0" aria-label="Apri il progetto ${t(p.title || '')}">${sinistra}</div>
+      <div class="fi-pagina fi-dx">${destra}</div>
+    </div></div></div>
+    <div class="fi-invito">&larr; scheda &middot; rapporto &rarr;<br>tocca la scheda per aprire il progetto</div>`;
   box.classList.add('aperto');
+  // la scala: ogni pagina larga quanto lo schermo, senza uscire in altezza
+  const vista = el.querySelector('#fi-vista');
+  const scala = ()=> el.style.setProperty('--s', Math.min(vista.clientWidth / 896, vista.clientHeight / 1200) || .4);
+  scala();
+  if(window.ResizeObserver){ const ro = new ResizeObserver(scala); ro.observe(vista); el._ro = ro; }
   el.querySelector('#fi-chiudi').addEventListener('click', ()=> chiudiInterno(box, true));
-  el.querySelector('#fi-foglio').addEventListener('click', ()=>{
-    _aperto = true;
-    chiudiInterno(box, false);
-    openProject(p.id);
-  });
-  polaroid(el, p);
+  const apri = ()=>{ _aperto = true; chiudiInterno(box, false); openProject(p.id); };
+  el.querySelector('#fi-foglio').addEventListener('click', apri);
+  el.querySelector('#fi-foglio').addEventListener('keydown', e=>{ if(e.key === 'Enter') apri(); });
+  riempiImmagini(el, p);
+  import('./auth.js').then(m=>{
+    const u = m.utente && m.utente();
+    const nome = u && (u.displayName || '').split(' ')[0];
+    const f = el.querySelector('.fi-firma'); if(f && nome) f.textContent = nome;
+  }).catch(()=>{});
 }
 
 function chiudiInterno(box, conRumore){
   _interno = null;
   box.classList.remove('aperto');
   const el = box.querySelector('.fasc-interno');
-  if(el) el.remove();
+  if(el){ if(el._ro) el._ro.disconnect(); el.remove(); }
   if(conRumore) suonaRumore(RUMORI.chiudi, .85);
 }
 
-// LA POLAROID: l'ultima tavola collegata al progetto (o, se tavole non ce
-// ne sono, l'ultima immagine collegata). Se non c'e' niente non compare: una
-// cornice vuota sembrerebbe una foto che non si e' caricata.
-function polaroid(el, p){
+// LE IMMAGINI DEL PROGETTO: quelle collegate in References, la piu' recente
+// per prima e le tavole davanti a tutto. La 0 va nel riquadro della foto e
+// sulla tessera, dalla 1 alla 5 nei riquadri dei riferimenti, la 6 e la 7
+// nelle due stampe. Dove non c'e' niente il riquadro resta vuoto (e le stampe
+// grigie, come una foto non ancora sviluppata). Accanto, quante sono per tipo.
+function riempiImmagini(el, p){
   import('./refs.js').then(m => {
     const suoi = m.getRefs().filter(r => m.projectIdsOf(r).includes(p.id))
-      .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-    const r = suoi.find(m.isTavola) || suoi[0];
-    const box = el.querySelector('.fi-polaroid');
-    if(!r || !box) return;
-    box.querySelector('.fi-tav').src = cldResize(r.url, 400);
-    // sotto, a penna, il giorno: come si fa sul bordo bianco di una Polaroid
-    const d = r.createdAt ? new Date(r.createdAt) : null;
-    box.querySelector('.fi-scritta').textContent = d && !isNaN(d) ? d.getDate() + ' ' + MESI[d.getMonth()] : '';
-    box.hidden = false;
+      .sort((a, b) => (m.isTavola(b) - m.isTavola(a)) || ((b.createdAt || 0) - (a.createdAt || 0)));
+    const conti = el.querySelector('.fi-conti');
+    if(conti){
+      const tav = suoi.filter(m.isTavola).length, pro = suoi.filter(m.isProspettiva).length;
+      conti.innerHTML = `Frammenti ${suoi.length - tav - pro}<br>Tavole &nbsp;&nbsp;&nbsp;${tav}<br>Prosp. &nbsp;&nbsp;&nbsp;${pro}`;
+    }
+    const scelte = [suoi[0], suoi[1], suoi[2], suoi[3], suoi[4], suoi[5], suoi[1] || suoi[0], suoi[2] || suoi[0]];
+    el.querySelectorAll('.fi-foto[data-ref]').forEach(f => {
+      const r = scelte[+f.dataset.ref];
+      if(r) f.innerHTML = `<img src="${cldResize(r.url, 300)}" alt="" draggable="false">`;
+    });
+    el.querySelectorAll('.fi-stampa[data-ref]').forEach(s => {
+      const r = scelte[+s.dataset.ref];
+      if(r) s.querySelector('.fi-img').src = cldResize(r.url, 900);
+      else s.querySelector('.fi-img').remove();
+    });
   }).catch(()=>{});
 }
 
