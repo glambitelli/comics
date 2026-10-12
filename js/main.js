@@ -616,6 +616,10 @@ async function showScreen(view, id){
     else if(view === 'stats'){ await openStats(); }
     else if(view === 'idee'){ await openIdee(); }
     else if(view === 'projects'){ await openProjects('progetti'); }
+    // IL FASCICOLO APERTO sulla scrivania (js/fascicoli.js): si torna qui con
+    // Indietro dal progetto aperto toccando la scheda. Prima la scrivania,
+    // poi la cartella che si riapre.
+    else if(view === 'fascicolo'){ await openProjects('progetti'); if(window.__fascicoli) window.__fascicoli.riapri(id); }
     else if(view === 'scene'){ await openScene(); }
     else if(view === 'refs'){ await openRefsScreen(); }
     else if(view === 'refs-folder' && id){ await openRefsScreenAtFolder(id); }
@@ -663,6 +667,13 @@ window.addEventListener('popstate', e=>{
   // di un riferimento nelle Scene (225): con la scelta controllata per prima, un
   // Indietro con la galleria aperta risaliva un livello nella scelta — sotto —
   // lasciando la galleria a schermo.
+  // Il fascicolo aperto sulla scrivania: Indietro lo richiude (col suo
+  // rumore) e lascia la fila dei fascicoli. Non c'e' un tasto "Chiudi": si
+  // torna indietro come da qualunque altra cosa aperta (Giovanni, 12 ottobre
+  // 2026: "devo tornare indietro col tasto indietro del telefono").
+  if(document.querySelector('.fasc-interno') && window.__fascicoli && window.__fascicoli.chiudi){
+    window.__fascicoli.chiudi(); return;
+  }
   const lb = document.getElementById('refs-lightbox');
   if(lb && lb.classList.contains('open') && window.chiudiGalleriaUI){
     window.chiudiGalleriaUI(); return;

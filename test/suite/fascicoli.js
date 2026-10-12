@@ -187,15 +187,26 @@ module.exports = () => suite("Projects — i progetti come fascicoli sulla scriv
   const rApri = await rumori();
   ok('con il rumore della copertina che si alza', rApri.includes('apri.mp3'), rApri);
 
-  sezione('"Chiudi" lo richiude');
-  await page.click('#fi-chiudi');
-  await page.waitForTimeout(300);
-  const chiuso = await page.evaluate(()=> !document.querySelector('.fasc-interno'));
-  ok('torna la fila dei fascicoli', chiuso);
+  sezione('niente scritte intorno al fascicolo aperto');
+  const scritte = await page.evaluate(()=> ({
+    chiudi: !!document.querySelector('#fi-chiudi'), invito: !!document.querySelector('.fi-invito'),
+    immagini: document.querySelectorAll('.fasc-interno img:not(.fi-fondo)').length,
+  }));
+  ok('ne\' "Chiudi" ne\' istruzioni in basso', !scritte.chiudi && !scritte.invito, scritte);
+  ok('e nessuna immagine dei riferimenti dentro', scritte.immagini === 0, scritte);
+
+  sezione('Indietro lo richiude');
+  // Il tasto Indietro del telefono e quello del browser fanno la stessa cosa:
+  // tolgono un passo dalla cronologia.
+  await page.evaluate(()=> history.back());
+  await page.waitForTimeout(500);
+  const chiuso = await page.evaluate(()=> ({ via: !document.querySelector('.fasc-interno'),
+    scrivania: document.getElementById('screen-projects').classList.contains('active') }));
+  ok('torna la fila dei fascicoli, sempre sulla scrivania', chiuso.via && chiuso.scrivania, chiuso);
   const rChiudi0 = await rumori();
   ok('con il rumore della copertina che ricade', rChiudi0.includes('chiudi.mp3'), rChiudi0);
 
-  sezione('toccando il foglio si apre il progetto');
+  sezione('toccando la scheda si apre il progetto');
   await page.mouse.click(180, 380);
   await page.waitForTimeout(400);
   await page.click('#fi-foglio');
@@ -205,13 +216,18 @@ module.exports = () => suite("Projects — i progetti come fascicoli sulla scriv
     return { attivo: document.getElementById('screen-project').classList.contains('active'), id: st.currentId };
   });
   ok('si apre Ruggine', aperto.attivo && aperto.id === 'p2', aperto);
+  await page.evaluate(()=> history.back());
+  await page.waitForTimeout(900);
+  const torna = await page.evaluate(()=> ({ scrivania: document.getElementById('screen-projects').classList.contains('active'),
+    cartella: !!document.querySelector('.fasc-interno'), tit: (document.querySelector('.fi-sx') || {}).textContent || '' }));
+  ok('e Indietro dal progetto riporta alla cartella aperta', torna.scrivania && torna.cartella && /Ruggine/.test(torna.tit), torna);
+  await page.evaluate(()=> history.back());
+  await page.waitForTimeout(500);
   await rumori();
 
   sezione('Scene e Jobs restano come sono');
   await page.evaluate(()=> window.openProjects());
   await page.waitForTimeout(500);
-  const rChiudi = await rumori();
-  ok('(uscendo dal progetto il fascicolo si richiude, e si sente)', rChiudi.includes('chiudi.mp3'), rChiudi);
   await page.evaluate(()=> window.setScaffaleProgetti('scene'));
   await page.waitForTimeout(400);
   s = await stato();

@@ -61,11 +61,13 @@ body:not(.is-touch):not(.evening-mode) #screen-projects.vista-fascicoli .project
    Il palco e' alto quanto lo spazio che resta, fino a 460px: su un telefono
    da 360x800 un fascicolo viene circa 260 di largo, e i vicini sporgono di
    una cinquantina di pixel per parte — abbastanza per capire che ci sono,
-   non abbastanza da leggerli. touch-action:pan-y lascia al browser solo lo
-   scorrimento in verticale; quello in orizzontale lo gestiamo noi. */
+   non abbastanza da leggerli. touch-action:none: qui il browser non deve
+   scorrere niente (la scrivania sta ferma), e con pan-y un tocco veloce
+   veniva a volte preso per l'inizio di uno scorrimento e annullato — il
+   fascicolo si apriva solo tenendo premuto. Lo swipe lo gestiamo noi. */
 .fasc-palco{
   position:relative;width:100%;flex:1;min-height:220px;max-height:520px;
-  margin:auto 0;touch-action:pan-y;overflow:visible;
+  margin:auto 0;touch-action:none;overflow:visible;
 }
 .fasc{
   position:absolute;left:50%;top:4%;height:min(92%, calc(76vw / var(--asp, .72)));
@@ -162,9 +164,7 @@ body:not(.is-touch):not(.evening-mode) #screen-projects.vista-fascicoli .project
 .fascicoli.aperto .fasc-palco{visibility:hidden}
 #screen-projects.vista-fascicoli .fascicoli{position:relative}
 .fasc-interno{position:absolute;inset:0;z-index:5}
-.fi-chiudi{position:absolute;top:0;left:12px;z-index:2;background:none;border:none;cursor:pointer;padding:6px 4px;
-  font:15px 'Macchina','Courier New',monospace;letter-spacing:.06em;color:#fff6e0;text-shadow:0 0 2px #000,0 1px 4px #000,0 0 10px rgba(0,0,0,.7)}
-.fi-vista{position:absolute;inset:32px 0 36px;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.fi-vista{position:absolute;inset:6px 0;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scrollbar-width:none;-webkit-overflow-scrolling:touch}
 .fi-vista::-webkit-scrollbar{display:none}
 .fi-spazio{position:relative;width:calc(1792px * var(--s, .4));height:calc(1200px * var(--s, .4));top:50%;transform:translateY(-50%)}
 .fi-spazio::before,.fi-spazio::after{content:'';position:absolute;top:0;bottom:0;width:50%;scroll-snap-align:start}
@@ -180,17 +180,9 @@ body:not(.is-touch):not(.evening-mode) #screen-projects.vista-fascicoli .project
 .fi-mano{position:absolute;font:19px/1.15 'Penna',cursive;color:#20307e;mix-blend-mode:multiply;pointer-events:none}
 .fi-spunta{font-size:24px}
 .fi-inchiostro{position:absolute;mix-blend-mode:multiply;pointer-events:none;fill:none;stroke:#20307e;stroke-width:2;stroke-linecap:round}
-.fi-foto{position:absolute;overflow:hidden;mix-blend-mode:multiply}
-.fi-foto img{display:block;width:100%;height:100%;object-fit:cover;filter:grayscale(1) contrast(1.1)}
 .fi-sq{position:absolute;width:27px;height:27px;display:flex;align-items:center;justify-content:center;
   font:9px 'Macchina','Courier New',monospace;color:#1d1a17;mix-blend-mode:multiply;pointer-events:none}
 .fi-sq.ok::after{content:'X';position:absolute;font:21px 'Macchina','Courier New',monospace}
-/* le stampe: l'immagine deformata sul quadrilatero del grigio e ritagliata
-   dalla sua maschera; la "luce" sopra riporta i riflessi della carta lucida */
-.fi-stampa{position:absolute;inset:0;-webkit-mask-size:100% 100%;mask-size:100% 100%;pointer-events:none}
-.fi-img{position:absolute;left:0;top:0;transform-origin:0 0;object-fit:cover;filter:grayscale(1) contrast(1.1)}
-.fi-luce{position:absolute;inset:0;width:100%;height:100%;mix-blend-mode:soft-light;opacity:.9}
 /* la tessera e' storta di 12,5 gradi nella foto: i suoi testi pure */
 .fi-fascia,.fi-tessera{position:absolute;transform-origin:0 0;transform:rotate(-12.5deg);pointer-events:none}
 .fi-fascia{display:flex;align-items:center;justify-content:center;font:13px 'Castoro',serif;letter-spacing:.22em;color:#fff;opacity:.92}
-.fi-invito{position:absolute;left:0;right:0;bottom:0;text-align:center;font:11px/1.35 'Macchina','Courier New',monospace;color:#c8b28c;text-shadow:0 1px 3px #000}

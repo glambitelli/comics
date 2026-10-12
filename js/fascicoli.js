@@ -32,7 +32,6 @@ import { calcPct, getPhaseIndex } from './progress.js';
 import { openProject } from './project.js';
 import { esc } from './testo.js';
 import { suonaRumore, preparaRumori } from './sound.js';
-import { cldResize } from './cloudinary.js';
 
 // I RUMORI DEI FASCICOLI (11 ottobre 2026), scelti da Giovanni e tagliati qui
 // (sfx/fascicoli/): la copertina che si alza e quella che ricade, dallo stesso
@@ -217,30 +216,42 @@ function monta(box, n){
     posa(box, 0);
   };
   const palco = box.querySelector('.fasc-palco');
-  let x0 = null, dx = 0, mosso = false;
-  palco.addEventListener('pointerdown', e=>{ x0 = e.clientX; dx = 0; mosso = false; try{ palco.setPointerCapture(e.pointerId); }catch(err){} });
+  // UN TOCCO SOLO PER APRIRE. Il tocco prima si riconosceva a mano dal
+  // pointerup, e sul telefono un tocco veloce spesso non arrivava: il
+  // browser lo prendeva per l'inizio di uno scorrimento e lo annullava, e il
+  // fascicolo si apriva solo "tenendo premuto" (Giovanni, 12 ottobre 2026).
+  // Ora i tocchi sono il click del browser, che sul telefono arriva sempre;
+  // il dito qui sotto serve solo allo swipe, e un click subito dopo uno swipe
+  // si ignora (e' il dito che si alza, non un tocco).
+  let x0 = null, dx = 0, mosso = false, finitoSwipe = 0;
+  palco.addEventListener('pointerdown', e=>{ x0 = e.clientX; dx = 0; mosso = false; });
   palco.addEventListener('pointermove', e=>{
     if(x0 === null) return;
     dx = e.clientX - x0;
-    if(Math.abs(dx) > 8) mosso = true;
+    if(Math.abs(dx) > 8){ if(!mosso){ mosso = true; try{ palco.setPointerCapture(e.pointerId); }catch(err){} } }
     if(mosso) posa(box, dx);
   });
-  const fine = e=>{
+  const fine = ()=>{
     if(x0 === null) return;
     const d = dx; x0 = null;
-    if(mosso){ vai(d < -50 ? _c + 1 : d > 50 ? _c - 1 : _c); return; }
+    if(mosso){ finitoSwipe = Date.now(); vai(d < -50 ? _c + 1 : d > 50 ? _c - 1 : _c); }
+  };
+  palco.addEventListener('pointerup', fine);
+  palco.addEventListener('pointercancel', ()=>{ if(mosso) finitoSwipe = Date.now(); x0 = null; posa(box, 0); });
+  palco.addEventListener('click', e=>{
+    if(Date.now() - finitoSwipe < 400) return;
     // un tocco: sul fascicolo al centro lo apre, su uno accanto ci va
-    const el = document.elementFromPoint(e.clientX, e.clientY);
-    const f = el && el.closest && el.closest('.fasc');
+    const f = e.target.closest && e.target.closest('.fasc');
     if(!f) return;
     const i = +f.dataset.i;
     if(i !== _c){ vai(i); return; }
     if(i >= projects.length){ if(window.openNewModal) window.openNewModal(); return; }
     suonaRumore(RUMORI.apri, .85);
     apriInterno(box, i);
-  };
-  palco.addEventListener('pointerup', fine);
-  palco.addEventListener('pointercancel', ()=>{ x0 = null; posa(box, 0); });
+    // Indietro (telefono o browser) lo richiude: si segna un passo nella
+    // cronologia, e il gestore di popstate in main.js chiama chiudi().
+    try{ history.pushState({ view:'fascicolo', id:i }, ''); }catch(err){}
+  });
 }
 
 // ── IL FASCICOLO APERTO (12 ottobre 2026) ──
@@ -249,7 +260,12 @@ function monta(box, n){
 // stampato, compilato a macchina e annotato a penna), a destra il RAPPORTO
 // (un foglio battuto a macchina con due stampe fotografiche fermate dalle
 // graffette e la tessera nella busta di plastica). Sul telefono si vede una
-// pagina per volta e si passa all'altra col dito.
+// pagina per volta e si passa all'altra col dito. Niente scritte intorno
+// (ne' "Chiudi" ne' le istruzioni): si chiude con Indietro, come tutto.
+// NIENTE IMMAGINI DEI RIFERIMENTI: nei riquadri e nelle stampe c'erano le
+// immagini collegate al progetto in References, ma sono tavole di altri
+// autori — "non le voglio vedere li', non sono immagini mie". Stampe e
+// riquadri restano vuoti finche' non ci sara' un posto per le sue.
 //
 // PERCHE' COSI'. Il primo fascicolo aperto metteva su una cartella dei pezzi
 // ritagliati uno per uno (foglio, post-it, Polaroid) e ci scriveva sopra con
@@ -280,11 +296,6 @@ const MESI_LUNGHI = ['gennaio','febbraio','marzo','aprile','maggio','giugno','lu
 function giorno(v){ const d = v ? new Date(v) : null; return d && !isNaN(d) ? d : null; }
 function breve(v){ const d = giorno(v); return d ? String(d.getDate()).padStart(2,'0') + '.' + String(d.getMonth()+1).padStart(2,'0') + '.' + String(d.getFullYear()).slice(2) : '—'; }
 function lunga(v){ const d = giorno(v); return d ? d.getDate() + ' ' + MESI_LUNGHI[d.getMonth()] : ''; }
-// le due stampe: matrici dai quattro angoli del grigio (vedi sopra)
-const STAMPE = [
-  { w:720, h:1000, m:'matrix3d(0.307167,0.089389,0,0.000004,-0.141641,0.231046,0,-0.000113,0,0,1,0,564,430,0,1)' },
-  { w:1000, h:720, m:'matrix3d(0.236,0.056,0,0,-0.055556,0.284722,0,0,0,0,1,0,521,782,0,1)' },
-];
 // i 16 quadratini delle tavole, colonne (x) e righe (y) del modulo
 const QX = [161,195,231,267,304,340,376,412], QY = [664,714];
 
@@ -343,16 +354,8 @@ function apriInterno(box, i){
     ${et(377, 345, 'Avanz.')}${mac(400, 356, pct + ' %')}
     ${et(159, 377, 'Prossimo passo')}${mac(176, 396, t(prossimo))}
     ${et(159, 447, 'Lavorazione')}${mac(236, 455, barra, 'letter-spacing:2px')}
-    <span class="fi-foto" data-ref="0" style="left:523px;top:238px;width:130px;height:221px"></span>
     ${et(162, 487, 'Passi')}${passiHtml}
     ${N ? et(162, 652, 'Tavole') : ''}${quadri.join('')}${oltre}${segno}
-    ${et(163, 768, 'Riferimenti')}
-    <span class="fi-foto" data-ref="1" style="left:165px;top:784px;width:68px;height:64px"></span>
-    <span class="fi-foto" data-ref="2" style="left:237px;top:784px;width:67px;height:64px"></span>
-    <span class="fi-foto" data-ref="3" style="left:308px;top:784px;width:66px;height:64px"></span>
-    <span class="fi-foto" data-ref="4" style="left:379px;top:784px;width:65px;height:64px"></span>
-    <span class="fi-foto" data-ref="5" style="left:449px;top:784px;width:66px;height:64px"></span>
-    <span class="fi-mac fi-conti" style="left:534px;top:767px;font-size:11px;line-height:22px"></span>
     ${et(163, 856, 'Note')}
     ${note.map((r, k) => `<span class="fi-mano" style="left:172px;top:${870 + k * 44}px;max-width:480px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${t(r)}</span>`).join('')}`;
 
@@ -372,14 +375,11 @@ function apriInterno(box, i){
     ${et(597, 221, 'Consegna')}${mac(604, 243, breve(p.dateEnd))}
     ${mac(298, 306, riga1, 'white-space:normal;width:440px;line-height:1.75')}
     ${mac(298, 380, riga2, 'white-space:normal;width:250px;line-height:1.75')}
-    ${STAMPE.map((st, k) => `<span class="fi-stampa" data-ref="${6 + k}" style="-webkit-mask-image:url(img/fascicoli/stampa-${k + 1}-maschera.png);mask-image:url(img/fascicoli/stampa-${k + 1}-maschera.png)">
-      <img class="fi-img" alt="" style="width:${st.w}px;height:${st.h}px;transform:${st.m}">
-      <img class="fi-luce" src="img/fascicoli/stampa-${k + 1}-luce.webp" alt=""></span>`).reverse().join('')}
+
     <span class="fi-fascia" style="left:178px;top:815px;width:176px;height:33px">${num}</span>
     <span class="fi-tessera" style="left:184px;top:851px;width:179px;height:204px">
-      <span class="fi-foto" data-ref="0" style="left:12px;top:14px;width:62px;height:80px"></span>
-      ${mac(84, 18, t((p.title || '').toUpperCase()), 'max-width:90px;overflow:hidden;text-overflow:ellipsis')}
-      ${mac(84, 38, `${t(fase)}<br>${N} tavole<br>dal ${breve(p.createdAt)}`, 'font-size:10px;line-height:1.45')}
+      ${mac(14, 18, t((p.title || '').toUpperCase()), 'max-width:150px;overflow:hidden;text-overflow:ellipsis')}
+      ${mac(14, 38, `${t(fase)}<br>${N} tavole<br>dal ${breve(p.createdAt)}`, 'font-size:10px;line-height:1.45')}
       <span class="fi-mano fi-firma" style="left:16px;top:118px;font-size:22px"></span>
       <span class="fi-et" style="left:16px;top:150px;opacity:.7">Firma</span>
     </span>`;
@@ -387,23 +387,22 @@ function apriInterno(box, i){
   let el = box.querySelector('.fasc-interno');
   if(!el){ el = document.createElement('div'); el.className = 'fasc-interno'; box.appendChild(el); }
   el.innerHTML = `
-    <button type="button" class="fi-chiudi" id="fi-chiudi">&lsaquo; CHIUDI</button>
     <div class="fi-vista" id="fi-vista"><div class="fi-spazio"><div class="fi-spread">
       <div class="fi-pagina fi-sx" id="fi-foglio" role="button" tabindex="0" aria-label="Apri il progetto ${t(p.title || '')}">${sinistra}</div>
       <div class="fi-pagina fi-dx">${destra}</div>
-    </div></div></div>
-    <div class="fi-invito">&larr; scheda &middot; rapporto &rarr;<br>tocca la scheda per aprire il progetto</div>`;
+    </div></div></div>`;
   box.classList.add('aperto');
   // la scala: ogni pagina larga quanto lo schermo, senza uscire in altezza
   const vista = el.querySelector('#fi-vista');
   const scala = ()=> el.style.setProperty('--s', Math.min(vista.clientWidth / 896, vista.clientHeight / 1200) || .4);
   scala();
   if(window.ResizeObserver){ const ro = new ResizeObserver(scala); ro.observe(vista); el._ro = ro; }
-  el.querySelector('#fi-chiudi').addEventListener('click', ()=> chiudiInterno(box, true));
-  const apri = ()=>{ _aperto = true; chiudiInterno(box, false); openProject(p.id); };
+  // Dalla scheda al progetto: la cartella si chiude senza rumore, e Indietro
+  // dal progetto riporta qui, alla cartella aperta (lo stato 'fascicolo'
+  // della cronologia resta sotto quello del progetto).
+  const apri = ()=>{ chiudiInterno(box, false); openProject(p.id); };
   el.querySelector('#fi-foglio').addEventListener('click', apri);
   el.querySelector('#fi-foglio').addEventListener('keydown', e=>{ if(e.key === 'Enter') apri(); });
-  riempiImmagini(el, p);
   import('./auth.js').then(m=>{
     const u = m.utente && m.utente();
     const nome = u && (u.displayName || '').split(' ')[0];
@@ -419,31 +418,17 @@ function chiudiInterno(box, conRumore){
   if(conRumore) suonaRumore(RUMORI.chiudi, .85);
 }
 
-// LE IMMAGINI DEL PROGETTO: quelle collegate in References, la piu' recente
-// per prima e le tavole davanti a tutto. La 0 va nel riquadro della foto e
-// sulla tessera, dalla 1 alla 5 nei riquadri dei riferimenti, la 6 e la 7
-// nelle due stampe. Dove non c'e' niente il riquadro resta vuoto (e le stampe
-// grigie, come una foto non ancora sviluppata). Accanto, quante sono per tipo.
-function riempiImmagini(el, p){
-  import('./refs.js').then(m => {
-    const suoi = m.getRefs().filter(r => m.projectIdsOf(r).includes(p.id))
-      .sort((a, b) => (m.isTavola(b) - m.isTavola(a)) || ((b.createdAt || 0) - (a.createdAt || 0)));
-    const conti = el.querySelector('.fi-conti');
-    if(conti){
-      const tav = suoi.filter(m.isTavola).length, pro = suoi.filter(m.isProspettiva).length;
-      conti.innerHTML = `Frammenti ${suoi.length - tav - pro}<br>Tavole &nbsp;&nbsp;&nbsp;${tav}<br>Prosp. &nbsp;&nbsp;&nbsp;${pro}`;
-    }
-    const scelte = [suoi[0], suoi[1], suoi[2], suoi[3], suoi[4], suoi[5], suoi[1] || suoi[0], suoi[2] || suoi[0]];
-    el.querySelectorAll('.fi-foto[data-ref]').forEach(f => {
-      const r = scelte[+f.dataset.ref];
-      if(r) f.innerHTML = `<img src="${cldResize(r.url, 300)}" alt="" draggable="false">`;
-    });
-    el.querySelectorAll('.fi-stampa[data-ref]').forEach(s => {
-      const r = scelte[+s.dataset.ref];
-      if(r) s.querySelector('.fi-img').src = cldResize(r.url, 900);
-      else s.querySelector('.fi-img').remove();
-    });
-  }).catch(()=>{});
+// Per main.js: Indietro chiude la cartella; tornando indietro dal progetto
+// la si riapre.
+function chiudiDaIndietro(){
+  const box = document.getElementById('fascicoli');
+  if(box && box.querySelector('.fasc-interno')) chiudiInterno(box, true);
+}
+function riapri(i){
+  i = +i;
+  if(!projects[i]) return;
+  _c = i; _interno = i;
+  disegnaFascicoli();
 }
 
-window.__fascicoli = { disegna: disegnaFascicoli, aggiornaVista, scegliVista, vai: i=>{ _c = i; disegnaFascicoli(); } };
+window.__fascicoli = { chiudi: chiudiDaIndietro, riapri, disegna: disegnaFascicoli, aggiornaVista, scegliVista, vai: i=>{ _c = i; disegnaFascicoli(); } };
