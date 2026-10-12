@@ -480,9 +480,17 @@ function apriInterno(box, i){
       <div class="fi-pagina fi-dx">${destra}</div>
     </div></div></div>`;
   box.classList.add('aperto');
-  // la scala: ogni pagina larga quanto lo schermo, senza uscire in altezza
+  // LA SCALA: aperta, la cartella e' GRANDE QUANTO DA CHIUSA. Prima ogni
+  // pagina si allargava a tutto lo schermo, un terzo buono piu' della
+  // copertina, e aprendola sembrava saltare in faccia ("non mi piace che si
+  // ingrandisce cosi' tanto"). Ora si misura il fascicolo chiuso al centro e
+  // il cartone della pagina (alto 1140 pixel della foto) prende la sua stessa
+  // altezza; lo schermo resta solo il limite massimo.
+  const chiuso = box.querySelector('.fasc.al-centro');
+  const altoChiuso = chiuso ? chiuso.getBoundingClientRect().height : 0;
   const vista = el.querySelector('#fi-vista');
-  const scala = ()=> el.style.setProperty('--s', Math.min(vista.clientWidth / 896, vista.clientHeight / 1200) || .4);
+  const scala = ()=> el.style.setProperty('--s', Math.min(vista.clientWidth / 896, vista.clientHeight / 1200,
+    altoChiuso ? altoChiuso / 1140 : 9) || .4);
   scala();
   if(window.ResizeObserver){ const ro = new ResizeObserver(scala); ro.observe(vista); el._ro = ro; }
   // Dalla scheda al progetto: la cartella si chiude senza rumore, e Indietro

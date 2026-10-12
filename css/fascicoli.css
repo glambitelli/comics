@@ -179,9 +179,15 @@ body:not(.is-touch):not(.evening-mode) #screen-projects.vista-fascicoli .project
    della sinistra (che finisce a 862, col suo bordo scuro): resta una piega
    sola, quella della pagina sinistra, senza filo in mezzo. L'ombra e' una
    sola, sotto tutta la cartella. Larghezza totale 745+896 = 1641. */
-.fi-spazio{position:relative;width:calc(1641px * var(--s, .4));height:calc(1200px * var(--s, .4));top:50%;transform:translateY(-50%)}
-.fi-spazio::before,.fi-spazio::after{content:'';position:absolute;top:0;bottom:0;width:1px;scroll-snap-align:start}
-.fi-spazio::before{left:0}.fi-spazio::after{left:calc(745px * var(--s, .4))}
+/* La pagina che si guarda sta AL CENTRO dello schermo: la cartella e' piu'
+   stretta dello schermo (e' grande quanto da chiusa), quindi lo scorrimento
+   si ferma col centro di una pagina al centro della vista. I margini ai lati
+   lasciano centrare anche la prima e l'ultima. Centri: 448 la sinistra,
+   745+95+400 = 1240 la destra (il suo cartone visibile va da 840 a 1641). */
+.fi-spazio{position:relative;width:calc(1641px * var(--s, .4));height:calc(1200px * var(--s, .4));top:50%;transform:translateY(-50%);
+  margin-inline:max(0px, calc(50% - 448px * var(--s, .4))) max(0px, calc(50% - 401px * var(--s, .4)))}
+.fi-spazio::before,.fi-spazio::after{content:'';position:absolute;top:0;bottom:0;width:1px;scroll-snap-align:center}
+.fi-spazio::before{left:calc(448px * var(--s, .4))}.fi-spazio::after{left:calc(1240px * var(--s, .4))}
 .fi-spread{position:absolute;left:0;top:0;width:1641px;height:1200px;transform-origin:0 0;transform:scale(var(--s, .4));
   filter:drop-shadow(0 6px 10px rgba(0,0,0,.45))}
 .fi-pagina{position:absolute;top:0;width:896px;height:1200px;overflow:hidden}
