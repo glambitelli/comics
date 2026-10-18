@@ -6,6 +6,7 @@ import { renderDeadline, renderVelocity, renderVelocityHistory, renderPhaseCalen
 import { renderTavole, renderSfide, renderTodos, resetTavSelection } from './pipeline.js';
 import { restoreStoryFields, autoResizeAll } from './story.js';
 import { restorePlanner } from './planner.js';
+import { montaCartella, aggiornaCartella } from './cartella.js';
 
 export function openProject(id){
   setCurrentId(id);
@@ -14,10 +15,14 @@ export function openProject(id){
   // Chiude TUTTE le schermate eventualmente aperte (non solo la home), altrimenti
   // aprendo un progetto da Stats o dalla modalità sera quella resta attiva sotto.
   document.querySelectorAll('.screen.active').forEach(el=>el.classList.remove('active'));
+  // Il progetto si apre DENTRO LA CARTELLA (js/cartella.js): i pezzi della
+  // pagina si spostano nei fogli la prima volta, poi restano li'.
+  montaCartella();
   document.getElementById('screen-project').classList.add('active');
   if(window.__navSync) window.__navSync('project', id);
   document.title = (p.title||'Progetto') + ' — Inkflow';
   restoreProject(p);
+  aggiornaCartella(p, true);
   if(window.applySupportState) window.applySupportState();
 }
 
@@ -79,7 +84,15 @@ export function restoreProject(p){
     refs.resetProjectRefPanel(p.id);
   });
   requestAnimationFrame(() => { renderVelocityHistory(p); renderPhaseCalendar(p); autoResizeAll(); });
+  aggiornaCartella(p, false);
 }
+
+// Per la cartella: i grafici del foglio CALENDARIO si ridisegnano quando il
+// foglio viene in cima (nascosto, la loro larghezza era zero).
+window.__ridisegnaGrafici = ()=>{
+  const p = getProject(currentId); if(!p) return;
+  renderVelocity(p); renderVelocityHistory(p); renderPhaseCalendar(p);
+};
 
 export function goHome(){
   document.getElementById('screen-project').classList.remove('active');

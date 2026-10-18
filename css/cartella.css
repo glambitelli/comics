@@ -1,0 +1,294 @@
+/* ── IL PROGETTO DENTRO LA CARTELLA (18 ottobre 2026) ──
+   Il perche' sta in cima a js/cartella.js. Qui le misure e il vestito: la
+   scrivania sotto, il cartone della cartella aperta, la pila di fogli con le
+   linguette, e i pezzi della vecchia pagina progetto (spostati qui dentro cosi'
+   come sono) ridipinti di carta: niente schede bianche con l'ombra, niente
+   pillole colorate. Quello che e' stampato e' in Castoro maiuscolo piccolo,
+   quello che e' scritto a macchina in Lucky Typewriter ('Macchina'), quello a
+   mano in penna blu ('Penna'), come sul fascicolo chiuso.
+   Tutto vive sotto #screen-project.cartella: i banchi di prova che caricano
+   la pagina vecchia da sola non hanno la classe e la vedono com'era. */
+
+.pc{display:none}
+#screen-project.cartella{
+  background:#1b120c url(../img/fascicoli/scrivania.webp) center 62%/cover no-repeat;
+}
+#screen-project.cartella > .proj-header,
+#screen-project.cartella > .proj-scroll{display:none}
+/* In fondo resta la fila di tondi dell'app (88px piu' la zona sicura): la
+   cartella finisce sopra, come i fascicoli sulla scrivania. */
+#screen-project.cartella .pc{
+  display:flex;flex-direction:column;flex:1;min-height:0;position:relative;
+  padding-bottom:calc(16px + var(--safe-bot));
+}
+body.is-touch #screen-project.cartella .pc{padding-bottom:calc(84px + var(--safe-bot))}
+/* APRENDOSI: la cartella arriva un poco piu' piccola e sale alla sua misura,
+   come quando la si apre davanti a se'. Corto (280ms): si deve vedere che si
+   apre, non aspettare che si apra. */
+#screen-project.cartella.active .pc-vista{animation:pc-apri .28s cubic-bezier(.2,.8,.2,1)}
+@keyframes pc-apri{from{transform:scale(.9);opacity:.2}to{transform:none;opacity:1}}
+
+/* IL TITOLO SUL LEGNO: chiaro, con l'ombra, come "Inkflow" sulla scrivania. */
+.pc-testa{padding:calc(14px + var(--safe-top)) 22px 2px;flex-shrink:0}
+.pc-titolo{
+  font:700 28px/1.05 'Castoro',serif;color:#f1e4c8;letter-spacing:-.005em;
+  text-shadow:0 1px 3px rgba(0,0,0,.85),0 0 14px rgba(0,0,0,.5);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.pc-sotto-titolo{
+  margin-top:4px;font:10px/1 'Castoro',serif;letter-spacing:.16em;text-transform:uppercase;
+  color:#d2bd98;text-shadow:0 1px 2px #000,0 0 8px rgba(0,0,0,.8);
+}
+
+/* ── LE DUE PAGINE ──
+   Una per schermo sul telefono, e lo scorrimento si ferma su una pagina
+   intera. Su uno schermo largo stanno tutte e due, affiancate. */
+.pc-vista{
+  flex:1;min-height:0;display:flex;overflow-x:auto;overflow-y:hidden;
+  scroll-snap-type:x mandatory;overscroll-behavior-x:contain;scrollbar-width:none;
+}
+.pc-vista::-webkit-scrollbar{display:none}
+.pc-pagina{flex:0 0 100%;position:relative;scroll-snap-align:center;scroll-snap-stop:always;min-height:0}
+@media (min-width:760px){
+  .pc-vista{justify-content:center}
+  .pc-pagina{flex-basis:min(460px,48%)}
+  .pc-punti{display:none}
+}
+/* Il cartone: la foto della cartella aperta (img/fascicoli/interno.webp), con
+   la piega a sinistra. La pagina sinistra e' la stessa foto specchiata, cosi'
+   le due pieghe stanno in mezzo, dove si incontrano. */
+.pc-cartone{
+  position:absolute;inset:10px 6px 2px;
+  background:url(../img/fascicoli/interno.webp) center/100% 100% no-repeat;
+  filter:drop-shadow(0 2px 2px rgba(0,0,0,.55)) drop-shadow(0 8px 14px rgba(0,0,0,.35));
+}
+.pc-sx .pc-cartone{transform:scaleX(-1);right:0}
+.pc-dx .pc-cartone{left:0}
+/* La pila dei fogli, staccata dalla piega quanto basta a non coprirla. */
+.pc-pila{position:absolute;top:46px;bottom:16px}
+.pc-sx .pc-pila{left:16px;right:calc(7% + 6px)}
+.pc-dx .pc-pila{left:calc(7% + 6px);right:16px}
+.pc-foglio,.pc-sotto{
+  position:absolute;inset:0;
+  background:#f4f2ec url(../img/fascicoli/foglio.webp) center/100% 100%;
+  box-shadow:0 1px 1px rgba(0,0,0,.25),0 4px 8px rgba(0,0,0,.18);
+}
+/* due fogli sotto, appena storti: una pila, non un foglio solo */
+.pc-sotto1{transform:translate(5px,4px) rotate(.8deg)}
+.pc-sotto2{transform:translate(-4px,7px) rotate(-.7deg)}
+/* La graffetta che tiene insieme la pila. */
+.pc-pila::after{
+  content:'';position:absolute;top:-14px;right:30px;width:13px;height:40px;z-index:3;pointer-events:none;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 80'%3E%3Cpath d='M9 70 V14 a6 6 0 0 1 12 0 V62 a9 9 0 0 1 -18 0 V22' fill='none' stroke='%239aa0a6' stroke-width='2.6' stroke-linecap='round'/%3E%3C/svg%3E") center/contain no-repeat;
+  filter:drop-shadow(1px 2px 1px rgba(0,0,0,.35));transform:rotate(7deg);
+}
+
+/* LE LINGUETTE: carta un filo piu' scura del foglio, attaccate in cima. Quella
+   scelta e' del colore del foglio e un pelo piu' alta: e' il foglio davanti.
+   Alte 26px e non 18 come nel bozzetto: si toccano col dito. Quando non ci
+   stanno (le cinque della destra su un telefono da 360) si stringono: meno
+   aria fra le lettere e ai lati, ma il nome resta intero — "SVILU…",
+   "TAV…", "SCR…" non si leggevano. */
+.pc-linguette{position:absolute;left:4px;right:4px;top:-25px;height:26px;display:flex;gap:2px;z-index:2}
+.pc-ling{
+  flex:0 1 auto;min-width:0;height:24px;margin-top:2px;padding:0 6px;
+  border:none;border-radius:5px 5px 0 0;background:#e4dccb;cursor:pointer;
+  font:8px/24px 'Castoro',serif;letter-spacing:.08em;text-transform:uppercase;color:#4a4036;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  box-shadow:0 -1px 2px rgba(0,0,0,.18);-webkit-tap-highlight-color:transparent;
+}
+.pc-ling.on{background:#f4f2ec;color:#1d1a17;height:26px;margin-top:0;line-height:26px;position:relative;z-index:1}
+.pc-dx .pc-ling{padding:0 4px;letter-spacing:.04em}
+
+/* ── IL FOGLIO ── ognuno scorre per conto suo, dentro la pila. */
+.pc-sheet{
+  position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;
+  padding:16px 15px 22px;color:#1d1a17;font:13px/1.35 'Macchina','Courier New',monospace;
+  scrollbar-width:thin;scrollbar-color:rgba(29,26,23,.25) transparent;
+}
+.pc-sheet[hidden]{display:none}
+#screen-project.cartella .pc-sheet *{font-family:'Macchina','Courier New',monospace!important;font-weight:400!important}
+/* la testata del foglio e le etichette: stampate */
+#screen-project.cartella .pc-sheet :is(.pc-testata,.pc-et,.sec-label,.support-toggle-h,.tav-s,.vel-unit,.countdown-unit,.tav-detail-title,.ghost-delete,.todo-clear,.tav-sel-act){
+  font-family:'Castoro',serif!important;
+}
+/* e quello a mano: penna blu */
+#screen-project.cartella .pc-sheet :is(.pc-mano,.mt-hint,.tav-hint,.todo-empty,.vel-alert,.pc-nota,.pc-vuoto){
+  font-family:'Penna',cursive!important;color:#20307e;
+}
+.pc-testata{
+  text-align:center;font-size:12px;letter-spacing:.16em;text-transform:uppercase;
+  border-bottom:1.2px solid #2a2622;padding-bottom:6px;margin-bottom:10px;
+}
+.pc-et{display:block;font-size:7.5px;line-height:1;letter-spacing:.1em;text-transform:uppercase;color:#3a332c}
+.pc-nota{font-size:15px;line-height:1.2;margin:2px 0 12px}
+.pc-vuoto{display:none;font-size:16px;line-height:1.25;text-align:center;margin-top:24px}
+#ref-panel[style*="none"] ~ .pc-vuoto{display:block}
+
+/* Le etichette di sezione della pagina vecchia (le pillole sabbia col
+   pallino d'oro) diventano la riga stampata di un modulo. */
+#screen-project.cartella .pc-sheet .sec-label{
+  display:block;background:none;border:0;border-bottom:1px solid rgba(42,38,34,.6);border-radius:0;
+  padding:0 0 3px;margin:14px 0 7px;font-size:8px;letter-spacing:.14em;color:#2a2622;
+}
+#screen-project.cartella .pc-sheet .sec-label::before,
+#screen-project.cartella .pc-sheet .sec-label::after{display:none}
+/* Le schede bianche con l'ombra, dentro un foglio, non hanno senso: e' tutto
+   la stessa carta. */
+#screen-project.cartella .pc-sheet :is(.todo-box,.velocity-block,.velocity-history-block,#phase-calendar-block,.phase-block,.sfide-box,.ref-panel,.microtask-box,.script-block,.tav-detail){
+  background:none!important;border:0!important;border-radius:0!important;box-shadow:none!important;
+  padding:0!important;margin:0 0 14px!important;overflow:visible!important;
+}
+#screen-project.cartella .pc-sheet > div{margin-bottom:6px!important}
+/* I campi: si scrive sulla riga, non dentro una casella. */
+#screen-project.cartella .pc-sheet :is(input[type=text],input[type=date],input:not([type]),textarea,.deadline-input){
+  background:transparent!important;border:0!important;border-bottom:1px solid rgba(29,26,23,.4)!important;
+  border-radius:0!important;box-shadow:none!important;color:#1d1a17!important;font-size:13px!important;
+}
+#screen-project.cartella .pc-sheet ::placeholder{font-family:'Penna',cursive;color:rgba(32,48,126,.55);font-size:15px}
+
+/* ── SCHEDA ── il modulo a caselle */
+.pc-griglia{display:grid;grid-template-columns:1.25fr 1fr;border-top:1.2px solid #2a2622;border-left:1.2px solid #2a2622}
+.pc-cella{border-right:1.2px solid #2a2622;border-bottom:1.2px solid #2a2622;padding:3px 6px 5px;min-width:0;min-height:34px}
+.pc-cella .pc-mac{display:block;font-size:13.5px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#1d1a17}
+.pc-tocca{cursor:pointer}.pc-tocca:active{background:rgba(29,26,23,.06)}
+#screen-project.cartella .pc-cella :is(.proj-title-edit){font-size:15px!important;max-width:none}
+#screen-project.cartella .pc-cella :is(input,.deadline-input){
+  border:0!important;padding:0!important;min-width:0!important;width:100%;height:auto;text-align:left;
+  font-size:13px!important;color:#1d1a17!important;
+}
+#screen-project.cartella .pc-cella #date-end-label{font-size:13px}
+.pc-barra{display:flex;align-items:center;gap:8px;margin:9px 0 2px}
+.pc-barra > span:first-child{flex:1}
+#screen-project.cartella .pc-barra .prog-bar{height:6px;background:none;border:1px solid #2a2622;border-radius:0}
+#screen-project.cartella .pc-barra .prog-fill{background:#2a2622;border-radius:0}
+.pc-piccolo{font-size:10px!important}
+#screen-project.cartella .pc-barra .prog-lbl{font-size:10px;color:#1d1a17}
+/* i giorni che mancano, segnati a mano sotto il modulo */
+#screen-project.cartella .countdown-box{gap:0;margin-top:6px;justify-content:flex-end}
+#screen-project.cartella .countdown-pill{border:0;flex:0 0 auto;min-width:0;padding:0 0 0 12px;text-align:right}
+#screen-project.cartella .countdown-num{font-family:'Penna',cursive!important;font-size:22px;color:#20307e!important;line-height:1}
+#screen-project.cartella .countdown-unit{font-size:7px;letter-spacing:.1em;color:#3a332c}
+/* la task di stasera: battuta in un riquadro, come sul modulo */
+#screen-project.cartella .pc-sheet .mt-label{display:none}
+#screen-project.cartella .pc-sheet textarea.mt-input{border:1.2px solid #2a2622!important;padding:7px 8px!important;min-height:38px;font-size:13.5px!important;line-height:1.35}
+#screen-project.cartella #microtask-confirm-btn{
+  background:none!important;color:#1d1a17!important;border:1.2px solid #2a2622!important;border-radius:0!important;
+  width:34px!important;height:34px!important;opacity:1!important;font-size:15px!important;
+}
+#screen-project.cartella .pc-sheet .mt-hint{font-size:14px;margin-top:4px;color:#20307e}
+/* le note: carta a righe */
+#screen-project.cartella .pc-sheet textarea.note-area{
+  border:0!important;padding:0 2px!important;min-height:110px;line-height:22px!important;font-size:13px!important;
+  background:repeating-linear-gradient(transparent 0 21px,rgba(42,38,34,.4) 21px 22px)!important;resize:none;
+}
+#screen-project.cartella .pc-sheet .save-hint{font-size:10px;color:#3a332c;opacity:.7}
+#screen-project.cartella .pc-sheet .export-row{display:flex;justify-content:center;gap:16px}
+#screen-project.cartella .pc-sheet .ghost-action{background:none;border:0;box-shadow:none;border-radius:0;flex:0 0 auto;padding:6px 4px;color:#1d1a17;font-size:12.5px;text-decoration:underline;text-underline-offset:3px}
+#screen-project.cartella .pc-sheet .ghost-delete{color:#9b2f25;font-size:10px;letter-spacing:.12em;text-transform:uppercase;opacity:.85}
+
+/* ── TO DO ── righe di un elenco battuto, col quadratino da spuntare a penna */
+#screen-project.cartella .todo-item{background:none;border:0;border-bottom:1px solid rgba(42,38,34,.45);border-radius:0;margin:0;padding:6px 0;gap:8px}
+#screen-project.cartella .todo-chk{width:13px;height:13px;border:1.2px solid #2a2622;border-radius:0;background:none!important;color:transparent;position:relative;overflow:visible}
+#screen-project.cartella .todo-item.done .todo-chk{color:transparent}
+#screen-project.cartella .todo-item.done .todo-chk::after{content:'\2713';position:absolute;left:-1px;top:-13px;font:22px/1 'Penna',cursive;color:#20307e}
+#screen-project.cartella .todo-text{font-size:13.5px;color:#1d1a17}
+#screen-project.cartella .todo-item.done .todo-text{color:#1d1a17;opacity:.6}
+#screen-project.cartella .todo-rm{color:#1d1a17;opacity:.45}
+#screen-project.cartella .todo-empty{font-size:15px;font-style:normal;padding:8px 0}
+#screen-project.cartella .todo-add{display:flex;gap:6px;margin-top:8px}
+#screen-project.cartella .todo-add-btn{background:none!important;border:1.2px solid #2a2622!important;border-radius:0!important;color:#1d1a17!important;box-shadow:none!important;width:32px;height:32px}
+#screen-project.cartella .todo-clear{background:none;border:0;color:#3a332c;font-size:9px;letter-spacing:.12em;text-transform:uppercase;text-decoration:underline}
+
+/* ── CALENDARIO ── i grafici restano quelli, su carta */
+#screen-project.cartella .pc-sheet :is(#phase-calendar-block,.velocity-block,.velocity-history-block) > div:not(.vel-row):not(#vel-alert):not(.chart-wrap):not(#phase-calendar-legend):not(#history-legend){
+  font-family:'Castoro',serif!important;font-size:8px!important;letter-spacing:.14em!important;color:#2a2622!important;
+  border-bottom:1px solid rgba(42,38,34,.6);padding-bottom:3px;margin:6px 0 8px!important;
+}
+#screen-project.cartella .vel-stat{border-right:1px solid rgba(42,38,34,.4)}
+#screen-project.cartella .vel-num{color:#1d1a17!important;font-size:15px}
+#screen-project.cartella .vel-unit{font-size:7px;color:#3a332c}
+#screen-project.cartella .vel-alert{background:none!important;padding:2px 0!important;font-size:15px!important;line-height:1.2!important;color:#20307e!important}
+#screen-project.cartella .pc-sheet canvas{mix-blend-mode:multiply}
+
+/* ── LE FASI ── il foglio E' la fase: via l'intestazione a fisarmonica */
+#screen-project.cartella .phase-hdr{display:none}
+#screen-project.cartella .phase-body{display:block!important;border:0}
+#screen-project.cartella :is(.step-item,.step-collapse){
+  background:none!important;border:0;border-bottom:1px dashed rgba(42,38,34,.3);border-radius:0;
+  padding:8px 0;gap:9px;margin:0;
+}
+#screen-project.cartella .step-chk{
+  width:14px;height:14px;border:1.2px solid #2a2622;border-radius:0;background:none!important;box-shadow:none!important;
+  color:transparent!important;margin-top:2px;position:relative;
+}
+#screen-project.cartella .step-chk.done::after{content:'\2713';position:absolute;left:-1px;top:-13px;font:23px/1 'Penna',cursive!important;color:#20307e}
+#screen-project.cartella .step-nm{font-size:14px;color:#1d1a17;margin-bottom:1px}
+#screen-project.cartella .step-nm.done{color:#1d1a17;text-decoration:none}
+#screen-project.cartella .step-ds{font-size:10.5px;line-height:1.4;color:#1d1a17;opacity:.72}
+/* "mattina"/"sera": un timbrino, non una pillola colorata */
+#screen-project.cartella .tag{background:none!important;color:#3a332c!important;border:1px solid rgba(42,38,34,.55);border-radius:0;font-size:8px;padding:0 3px;letter-spacing:.06em;text-transform:uppercase}
+#screen-project.cartella .support-toggle{background:none;border:0;border-bottom:1px solid rgba(42,38,34,.6);border-radius:0;margin:14px 0 4px;padding:6px 0 3px}
+#screen-project.cartella .support-toggle-h{font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;color:#2a2622}
+#screen-project.cartella .support-toggle-ico{color:#2a2622}
+#screen-project.cartella .support-body{border:0;margin:0;padding:0}
+#screen-project.cartella .support-chev{background:none;border:0;color:#2a2622}
+#screen-project.cartella .step-body{border:0;padding-left:0!important;padding-right:0!important}
+
+/* ── TAVOLE ── quadri del modulo; finita, il timbro OK */
+#screen-project.cartella .tav-hint{font-size:14px;line-height:1.2;padding:0 0 8px;color:#20307e}
+#screen-project.cartella .tav-grid{grid-template-columns:repeat(auto-fill,minmax(46px,1fr));gap:7px;padding:0 1px 10px}
+#screen-project.cartella .tav-btn{border:1.2px solid #2a2622;border-radius:0;background:none;box-shadow:none;gap:1px;overflow:visible}
+#screen-project.cartella .tav-n{font-size:14px;color:#1d1a17}
+#screen-project.cartella .tav-s{font-size:6.5px;letter-spacing:.08em;text-transform:uppercase;color:#3a332c}
+#screen-project.cartella .tav-fill{height:4px;background:#2a2622;left:3px;bottom:3px;max-width:calc(100% - 6px)}
+#screen-project.cartella .tav-btn.done-t .tav-fill{background:#2a2622}
+#screen-project.cartella .tav-btn.done-t::before{
+  content:'OK';position:absolute;right:-3px;top:-5px;font:12px/1 'Castoro',serif;color:#9b2f25;
+  border:1.4px solid #9b2f25;padding:1px 3px;transform:rotate(-12deg);opacity:.85;background:rgba(244,242,236,.6);
+}
+#screen-project.cartella .tav-btn.sel{outline:1.8px solid #20307e;outline-offset:2px;background:none}
+#screen-project.cartella .tav-btn.multi::after{color:#20307e;font-family:'Penna',cursive!important;font-size:16px;top:-4px}
+#screen-project.cartella .tav-detail{border-top:1px solid rgba(42,38,34,.6)!important;padding-top:6px!important}
+#screen-project.cartella .tav-detail-title{color:#2a2622;font-size:8.5px;letter-spacing:.14em}
+#screen-project.cartella .tav-sel-act{background:none;border:1px solid #2a2622;border-radius:0;color:#1d1a17;font-size:8px;letter-spacing:.1em;text-transform:uppercase}
+#screen-project.cartella .tav-pill{background:none;border:1.2px solid #2a2622;border-radius:0;color:#1d1a17;font-size:11.5px;padding:5px 9px}
+#screen-project.cartella .tav-pill.sel-p{background:#2a2622;color:#f4f2ec;border-color:#2a2622}
+#screen-project.cartella .tav-pill.done-p{background:none;color:#1d1a17;text-decoration:line-through;border-color:rgba(42,38,34,.5)}
+#screen-project.cartella .sfida-item{border-bottom:1px solid rgba(42,38,34,.4);padding:5px 0}
+#screen-project.cartella .sfida-bullet{color:#2a2622}
+#screen-project.cartella .sfida-item input{border:0!important}
+#screen-project.cartella .pc-sheet .new-btn{background:none;border:0;color:#20307e;font-family:'Penna',cursive!important;font-size:16px;padding:4px 0;box-shadow:none}
+
+/* ── SCRIPT ── */
+#screen-project.cartella .scriptment-open-btn{background:none;border:1.2px solid #2a2622;padding:14px 12px}
+#screen-project.cartella .scriptment-btn-h{color:#1d1a17;font-family:'Castoro',serif!important;font-size:12px;letter-spacing:.16em;text-transform:uppercase}
+#screen-project.cartella .scriptment-btn-h::after{content:' \2192'}
+#screen-project.cartella .extract-btn{background:none;border:1.2px solid #2a2622;border-top:0;color:#1d1a17;padding:8px}
+#screen-project.cartella .extract-btn.extract-done{background:none;color:#20307e}
+.pc-esporta{display:flex;justify-content:center;margin-top:10px}
+
+/* ── RIFERIMENTI ── le immagini collegate, fermate sul foglio come foto
+   stampate: il bordo bianco, un filo storte, la graffetta. Scelta "A" del
+   bozzetto. Il pannello resta quello di refs.js, aperto per forza (la
+   fisarmonica era per una pagina lunga). */
+#screen-project.cartella .ref-panel-toggle{display:none}
+#screen-project.cartella .ref-panel-body{display:block;padding:4px 0 0}
+#screen-project.cartella .ref-panel-grid{grid-template-columns:repeat(2,1fr);gap:22px 16px;padding:10px 4px}
+#screen-project.cartella .ref-panel-thumb{
+  position:relative;overflow:visible;border-radius:0;aspect-ratio:4/5;background:#fbfaf6;
+  border:0;padding:6px 6px 18px;box-shadow:0 1px 2px rgba(0,0,0,.3),0 4px 8px rgba(0,0,0,.18);transform:rotate(-2deg);
+}
+#screen-project.cartella .ref-panel-thumb:nth-child(2n){transform:rotate(1.6deg)}
+#screen-project.cartella .ref-panel-thumb:nth-child(3n){transform:rotate(-.8deg)}
+#screen-project.cartella .ref-panel-thumb::after{
+  content:'';position:absolute;top:-12px;left:22%;width:10px;height:32px;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 80'%3E%3Cpath d='M9 70 V14 a6 6 0 0 1 12 0 V62 a9 9 0 0 1 -18 0 V22' fill='none' stroke='%239aa0a6' stroke-width='2.6' stroke-linecap='round'/%3E%3C/svg%3E") center/contain no-repeat;
+  filter:drop-shadow(1px 1px 1px rgba(0,0,0,.35));
+}
+#screen-project.cartella .ref-panel-add{aspect-ratio:4/5;border:1.2px dashed rgba(42,38,34,.5);border-radius:0;color:#20307e}
+
+/* ── I DUE PALLINI ── quale pagina si guarda */
+.pc-punti{display:flex;justify-content:center;gap:8px;padding:9px 0 0;flex-shrink:0}
+.pc-punti i{width:6px;height:6px;border-radius:50%;background:rgba(241,228,200,.35);box-shadow:0 1px 2px rgba(0,0,0,.6)}
+.pc-punti i.on{background:#f1e4c8}

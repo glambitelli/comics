@@ -12,7 +12,8 @@
 //  - quello al centro sta intero nel telefono, e dei vicini si vede il bordo;
 //  - col dito si passa al successivo;
 //  - sotto la fila non c'e' niente (contatore e linguette tolti: "disturbante");
-//  - un tocco sul fascicolo al centro apre il progetto;
+//  - un tocco sul fascicolo al centro apre il progetto, dentro la cartella
+//    (le linguette, le due pagine, Indietro che torna alla scrivania);
 //  - l'elenco di prima resta nel codice, e la scelta resta.
 const fs = require('fs');
 const path = require('path');
@@ -142,11 +143,12 @@ module.exports = () => suite("Projects — i progetti come fascicoli sulla scriv
   ok('e toccandolo si apre la scheda del progetto nuovo', modale);
   await page.evaluate(()=> document.getElementById('modal').classList.remove('open'));
 
-  sezione('un tocco sul fascicolo al centro lo apre sulla scrivania');
-  // Dal 12 ottobre 2026 il fascicolo si apre: dentro la scheda del progetto
-  // battuta a macchina, il post-it, la tessera. Il progetto vero si apre
-  // toccando il foglio.
+  sezione('un tocco sul fascicolo apre il progetto, dentro la cartella');
+  // Dal 18 ottobre 2026 non c'e' piu' il fascicolo aperto con la scheda
+  // riassuntiva: il tocco apre il progetto a tutto schermo, come una cartella
+  // aperta sulla scrivania, e i fogli dentro SONO il progetto (js/cartella.js).
   await page.evaluate(async ()=>{
+    try{ localStorage.removeItem('inkflow-cartella-fogli'); }catch(e){}
     const st = await import('/js/state.js');
     const p = st.projects[2];
     p.microtask = 'chiudere gli sfondi della tav. 7';
@@ -156,77 +158,106 @@ module.exports = () => suite("Projects — i progetti come fascicoli sulla scriv
   await page.waitForTimeout(500);
   await rumori();
   await page.mouse.click(180, 380);
-  await page.waitForTimeout(500);
+  await page.waitForTimeout(700);
   const dentro = await page.evaluate(async ()=>{
-    const el = document.querySelector('.fasc-interno');
-    const testo = sel => Array.from(el.querySelectorAll(sel)).map(e => e.textContent).join(' | ');
-    const sx = el && el.querySelector('.fi-sx').getBoundingClientRect();
-    const vista = el && el.querySelector('#fi-vista').getBoundingClientRect();
+    const st = await import('/js/state.js');
+    const scr = document.getElementById('screen-project');
+    const vis = el => !!el && el.getClientRects().length > 0 && getComputedStyle(el).visibility !== 'hidden';
+    const sheet = id => document.querySelector(`.pc-sheet[data-f="${id}"]`);
+    const vista = document.getElementById('pc-vista').getBoundingClientRect();
+    const pag = document.querySelector('.pc-sx').getBoundingClientRect();
     return {
-      aperto: !!el, progetto: document.getElementById('screen-project').classList.contains('active'),
-      scheda: el && el.querySelector('.fi-sx').textContent.replace(/\s+/g, ' '),
-      rapporto: el && el.querySelector('.fi-dx').textContent.replace(/\s+/g, ' '),
-      spunte: el ? el.querySelectorAll('.fi-sx .fi-spunta').length : 0,
-      quadri: el ? el.querySelectorAll('.fi-sq').length : 0,
-      note: el ? testo('.fi-sx .fi-mano') : '',
-      fascia: el && el.querySelector('.fi-fascia').textContent,
-      // la prima riga e' l'intestazione stampata: si guarda la seconda, battuta
-      carattere: el && getComputedStyle(el.querySelectorAll('.fi-sx .fi-mac')[1]).fontFamily,
-      pagina: sx && vista && { largo: Math.round(sx.width), schermo: Math.round(vista.width), alto: Math.round(sx.height), spazio: Math.round(vista.height) },
+      attivo: scr.classList.contains('active'), cartella: scr.classList.contains('cartella'), id: st.currentId,
+      scrivania: /scrivania/.test(getComputedStyle(scr).backgroundImage),
+      testata: vis(scr.querySelector('.proj-header')),
+      titolo: document.getElementById('pc-titolo').textContent, numero: document.getElementById('pc-numero').textContent,
+      fase: document.getElementById('pc-fase').textContent,
+      sx: Array.from(document.querySelectorAll('.pc-sx .pc-ling')).map(b => b.dataset.f),
+      dx: Array.from(document.querySelectorAll('.pc-dx .pc-ling')).map(b => b.dataset.f),
+      schedaSu: vis(sheet('scheda')), todoSu: vis(sheet('todo')),
+      nellaScheda: sheet('scheda').contains(document.getElementById('proj-title')) && sheet('scheda').contains(document.getElementById('microtask')),
+      titoloScheda: document.getElementById('proj-title').textContent,
+      task: document.getElementById('microtask').value,
+      quadri: sheet('tavole').querySelectorAll('#tav-grid .tav-btn').length,
+      spunte: sheet('sviluppo').querySelectorAll('.step-chk.done').length + sheet('preprod').querySelectorAll('.step-chk.done').length,
+      calendario: sheet('calendario').contains(document.getElementById('velocity-block')),
+      rif: sheet('rif').contains(document.getElementById('ref-panel')),
+      script: !!sheet('script').querySelector('.scriptment-open-btn'),
+      carattere: getComputedStyle(document.getElementById('microtask')).fontFamily,
+      pagina: { largo: Math.round(pag.width), schermo: Math.round(vista.width) },
     };
   });
-  ok('si apre il fascicolo, non ancora il progetto', dentro.aperto && !dentro.progetto, dentro);
-  ok('la scheda porta titolo, numero e fase', /Ruggine/.test(dentro.scheda) && /P-0003/.test(dentro.scheda) && /Sviluppo/.test(dentro.scheda), dentro.scheda);
-  ok('i passi fatti hanno la spunta a penna', dentro.spunte === 2, dentro);
-  ok('un quadratino per tavola (Ruggine ne ha 12)', dentro.quadri === 12, dentro);
-  ok('nelle note a mano il prossimo passo', /sfondi della tav\. 7/.test(dentro.note), dentro.note);
-  ok('il rapporto dice fase e prossimo passo', /fase di sviluppo/.test(dentro.rapporto) && /Prossimo passo: personaggi/.test(dentro.rapporto), dentro.rapporto);
-  ok('sulla fascia della tessera il numero', dentro.fascia === 'P-0003', dentro);
-  ok('battuto con la macchina da scrivere', /Macchina/.test(dentro.carattere || ''), dentro);
-  ok('una pagina sta nello schermo', dentro.pagina && dentro.pagina.largo <= dentro.pagina.schermo + 1 && dentro.pagina.alto <= dentro.pagina.spazio + 1, dentro.pagina);
+  ok('si apre Ruggine, a tutto schermo', dentro.attivo && dentro.id === 'p2', dentro);
+  ok('dentro la cartella, con la scrivania intorno', dentro.cartella && dentro.scrivania && !dentro.testata, dentro);
+  ok('sul legno: titolo, numero e fase', dentro.titolo === 'Ruggine' && dentro.numero === 'P-0003' && dentro.fase === 'Sviluppo', dentro);
+  ok('a sinistra Scheda, To do, Calendario', dentro.sx.join() === 'scheda,todo,calendario', dentro.sx);
+  ok('a destra Sviluppo, Pre-prod., Tavole, Script, Riferimenti', dentro.dx.join() === 'sviluppo,preprod,tavole,script,rif', dentro.dx);
+  ok('sopra la pila c\'e\' la scheda, gli altri fogli sotto', dentro.schedaSu && !dentro.todoSu, dentro);
+  ok('nella scheda i pezzi veri del progetto (titolo, task)', dentro.nellaScheda && dentro.titoloScheda === 'Ruggine' && /sfondi della tav\. 7/.test(dentro.task), dentro);
+  ok('le spunte dei passi fatti', dentro.spunte === 2, dentro);
+  ok('un quadro per tavola (Ruggine ne ha 12)', dentro.quadri === 12, dentro);
+  ok('grafici nel calendario, scriptment e riferimenti nei loro fogli', dentro.calendario && dentro.script && dentro.rif, dentro);
+  ok('battuto con la macchina da scrivere', /Macchina/.test(dentro.carattere || ''), dentro.carattere);
+  ok('una pagina per schermo, sul telefono', Math.abs(dentro.pagina.largo - dentro.pagina.schermo) <= 1, dentro.pagina);
   const rApri = await rumori();
   ok('con il rumore della copertina che si alza', rApri.includes('apri.mp3'), rApri);
 
-  sezione('niente scritte intorno al fascicolo aperto');
-  const scritte = await page.evaluate(()=> ({
-    chiudi: !!document.querySelector('#fi-chiudi'), invito: !!document.querySelector('.fi-invito'),
-    immagini: document.querySelectorAll('.fasc-interno img:not(.fi-fondo)').length,
-  }));
-  ok('ne\' "Chiudi" ne\' istruzioni in basso', !scritte.chiudi && !scritte.invito, scritte);
-  ok('e nessuna immagine dei riferimenti dentro', scritte.immagini === 0, scritte);
+  sezione('le linguette scelgono il foglio, e i pezzi funzionano');
+  await page.click('.pc-sx .pc-ling[data-f="todo"]');
+  await page.waitForTimeout(200);
+  await page.fill('#todo-input', 'cercare foto di treni');
+  await page.click('.todo-add-btn');
+  await page.waitForTimeout(200);
+  const todo = await page.evaluate(async ()=>{
+    const st = await import('/js/state.js');
+    const vis = el => !!el && el.getClientRects().length > 0;
+    return { su: vis(document.querySelector('.pc-sheet[data-f="todo"]')), scheda: vis(document.querySelector('.pc-sheet[data-f="scheda"]')),
+      on: document.querySelector('.pc-sx .pc-ling.on').dataset.f,
+      todos: (st.getProject('p2').todos || []).map(t => t.text), righe: document.querySelectorAll('#todo-list .todo-item').length };
+  });
+  ok('"To do" porta sopra il suo foglio', todo.su && !todo.scheda && todo.on === 'todo', todo);
+  ok('e un\'attivita\' scritta li\' si aggiunge al progetto', todo.todos.includes('cercare foto di treni') && todo.righe === 1, todo);
 
-  sezione('Indietro lo richiude');
-  // Il tasto Indietro del telefono e quello del browser fanno la stessa cosa:
-  // tolgono un passo dalla cronologia.
+  sezione('col dito si passa alla pagina destra');
+  await page.evaluate(()=>{ const v = document.getElementById('pc-vista'); v.scrollTo({ left: v.scrollWidth }); });
+  await page.waitForTimeout(400);
+  await page.click('.pc-dx .pc-ling[data-f="tavole"]');
+  await page.waitForTimeout(200);
+  await page.click('#tav-grid .tav-btn[data-n="3"]');
+  await page.waitForTimeout(200);
+  const destra = await page.evaluate(()=>{
+    const v = document.getElementById('pc-vista'), r = document.querySelector('.pc-dx').getBoundingClientRect();
+    return { allineata: Math.abs(r.left - v.getBoundingClientRect().left) <= 1,
+      punti: Array.from(document.querySelectorAll('.pc-punti i')).map(i => i.classList.contains('on') ? 1 : 0).join(''),
+      dettaglio: document.getElementById('tav-detail').classList.contains('open'),
+      titolo: document.getElementById('tav-detail-title').textContent };
+  });
+  ok('la pagina destra riempie lo schermo', destra.allineata, destra);
+  ok('e il secondo pallino si accende', destra.punti === '01', destra);
+  ok('toccando una tavola si apre il suo dettaglio', destra.dettaglio && /3/.test(destra.titolo), destra);
+
+  sezione('Indietro richiude la cartella');
   await page.evaluate(()=> history.back());
-  await page.waitForTimeout(500);
-  const chiuso = await page.evaluate(()=> ({ via: !document.querySelector('.fasc-interno'),
-    scrivania: document.getElementById('screen-projects').classList.contains('active') }));
-  ok('torna la fila dei fascicoli, sempre sulla scrivania', chiuso.via && chiuso.scrivania, chiuso);
+  await page.waitForTimeout(700);
+  const chiuso = await page.evaluate(()=> ({
+    progetto: document.getElementById('screen-project').classList.contains('active'),
+    scrivania: document.getElementById('screen-projects').classList.contains('active'),
+    centro: (document.querySelector('.fasc.al-centro') || {}).dataset }));
+  ok('torna la scrivania, sullo stesso fascicolo', !chiuso.progetto && chiuso.scrivania && chiuso.centro && chiuso.centro.i === '2', chiuso);
   const rChiudi0 = await rumori();
   ok('con il rumore della copertina che ricade', rChiudi0.includes('chiudi.mp3'), rChiudi0);
 
-  sezione('toccando la scheda si apre il progetto');
+  sezione('riaperta, la cartella si ricorda i fogli e torna a sinistra');
   await page.mouse.click(180, 380);
-  await page.waitForTimeout(400);
-  await page.click('#fi-foglio');
-  await page.waitForTimeout(500);
-  const aperto = await page.evaluate(async ()=>{
-    const st = await import('/js/state.js');
-    return { attivo: document.getElementById('screen-project').classList.contains('active'), id: st.currentId };
-  });
-  ok('si apre Ruggine', aperto.attivo && aperto.id === 'p2', aperto);
-  await page.evaluate(()=> history.back());
-  await page.waitForTimeout(900);
-  const torna = await page.evaluate(()=> ({ scrivania: document.getElementById('screen-projects').classList.contains('active'),
-    cartella: !!document.querySelector('.fasc-interno'), tit: (document.querySelector('.fi-sx') || {}).textContent || '' }));
-  ok('e Indietro dal progetto riporta alla cartella aperta', torna.scrivania && torna.cartella && /Ruggine/.test(torna.tit), torna);
+  await page.waitForTimeout(600);
+  const riaperta = await page.evaluate(()=>({
+    sx: document.querySelector('.pc-sx .pc-ling.on').dataset.f, dx: document.querySelector('.pc-dx .pc-ling.on').dataset.f,
+    scroll: document.getElementById('pc-vista').scrollLeft }));
+  ok('To do e Tavole ancora sopra, e si parte dalla pagina sinistra', riaperta.sx === 'todo' && riaperta.dx === 'tavole' && riaperta.scroll === 0, riaperta);
 
-  sezione('il tasto Home porta a casa, anche dal progetto aperto dalla scheda');
+  sezione('il tasto Home porta a casa, anche dal progetto aperto dalla scrivania');
   // Il bug del 12 ottobre 2026: "premo Home e a volte torno nel progetto
   // aperto", oppure da Projects Home riportava a Projects.
-  await page.click('#fi-foglio');
-  await page.waitForTimeout(500);
   await page.evaluate(()=> window.goHome());
   await page.waitForTimeout(900);
   const casa = await page.evaluate(()=>({ home: document.getElementById('screen-home').classList.contains('active'),
@@ -242,12 +273,6 @@ module.exports = () => suite("Projects — i progetti come fascicoli sulla scriv
   const casa2 = await page.evaluate(()=>({ home: document.getElementById('screen-home').classList.contains('active'),
     scrivania: document.getElementById('screen-projects').classList.contains('active') }));
   ok('anche da Projects, Home porta alla Home', casa2.home && !casa2.scrivania, casa2);
-  await page.evaluate(()=> window.openProjects());
-  await page.waitForTimeout(600);
-  await page.mouse.click(180, 380);
-  await page.waitForTimeout(500);
-  await page.evaluate(()=> history.back());
-  await page.waitForTimeout(500);
   await rumori();
 
   sezione('le Scene non ci sono piu\', i Jobs stanno sulla stessa scrivania');

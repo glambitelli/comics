@@ -27,8 +27,8 @@
 // cercare fra tanti progetti e per il menu di ogni scheda, ed e' quello che
 // usano le prove della ricerca. Il link per tornarci stava sotto i fascicoli
 // ed e' stato tolto con il resto: tornera' quando c'e' l'interno.
-import { projects, PHASE_NAMES, STEPS } from './state.js';
-import { calcPct, getPhaseIndex } from './progress.js';
+import { projects, PHASE_NAMES } from './state.js';
+import { getPhaseIndex } from './progress.js';
 import { openProject } from './project.js';
 import { esc } from './testo.js';
 import { suonaRumore, preparaRumori } from './sound.js';
@@ -44,7 +44,6 @@ import { suonaRumore, preparaRumori } from './sound.js';
 // Tolto: "poi ci ragioniamo".
 const RUMORI = { apri:'./sfx/fascicoli/apri.mp3', chiudi:'./sfx/fascicoli/chiudi.mp3' };
 let _aperto = false;   // un progetto aperto DA QUI: quando si chiude, chiude il fascicolo
-let _interno = null;   // il fascicolo aperto sulla scrivania (indice), o null
 // DUE SCRIVANIE IN UNA (12 ottobre 2026): i progetti e i lavori su
 // commissione (Jobs) stanno sullo stesso tavolo, in due file di cartelle
 // diverse. Si passa dall'una all'altra con uno swipe in verticale: dal basso
@@ -214,11 +213,6 @@ export function disegnaFascicoli(){
     </div>`;
   monta(box, n);
   posa(box, 0, true);
-  // Il ridisegno arriva anche da solo (un progetto cambiato su un altro
-  // telefono, il salvataggio di un altro campo): un fascicolo aperto non deve
-  // richiudersi sotto gli occhi per questo.
-  if(!jobs && _interno !== null && projects[_interno]) apriInterno(box, _interno);
-  else _interno = null;
 }
 function elementi(){
   return _scaffale === 'jobs' ? (_jobsMod ? _jobsMod.tuttiIJobs() : []) : projects;
@@ -231,7 +225,7 @@ function cambiaScaffale(verso){
   const palco = box && box.querySelector('.fasc-palco');
   const su = verso === 'jobs';
   const fatto = ()=>{
-    _scaffale = verso; _c = 0; _interno = null;
+    _scaffale = verso; _c = 0;
     try{ localStorage.setItem('inkflow-scrivania', verso); }catch(e){}
     disegnaFascicoli();
     const nuovo = box && box.querySelector('.fasc-palco');
@@ -334,200 +328,26 @@ function monta(box, n){
       return;
     }
     if(i >= projects.length){ if(window.openNewModal) window.openNewModal(); return; }
+    // UN TOCCO E SEI DENTRO IL PROGETTO (18 ottobre 2026): la cartella si
+    // apre a tutto schermo e i fogli dentro sono il progetto (js/cartella.js).
+    // Prima c'era un passaggio in mezzo — il fascicolo aperto sulla scrivania
+    // con una scheda riassuntiva, e toccando la scheda la pagina del progetto
+    // — e le due cose non si somigliavano. Indietro riporta qui, e il
+    // fascicolo si richiude col suo rumore (osservaChiusura).
     suonaRumore(RUMORI.apri, .85);
-    apriInterno(box, i);
-    // Indietro (telefono o browser) lo richiude: si segna un passo nella
-    // cronologia, e il gestore di popstate in main.js chiama chiudi().
-    // Passa da __navSync e non da un pushState a mano: il passo deve portare
-    // il suo "depth" (quanti passi da qui alla Home), se no il tasto Home si
-    // fermava qui — o sul progetto aperto dalla scheda — invece di andare a
-    // casa (bug del 12 ottobre 2026).
-    if(window.__navSync) window.__navSync('fascicolo', i);
+    _aperto = true;
+    openProject(projects[i].id);
   });
 }
 
-// ── IL FASCICOLO APERTO (12 ottobre 2026) ──
-// Toccando il fascicolo al centro la cartella si apre sulla scrivania, in due
-// pagine affiancate come una cartella vera: a sinistra la SCHEDA (un modulo
-// stampato, compilato a macchina e annotato a penna), a destra il RAPPORTO
-// (un foglio battuto a macchina con due stampe fotografiche fermate dalle
-// graffette e la tessera nella busta di plastica). Sul telefono si vede una
-// pagina per volta e si passa all'altra col dito. Niente scritte intorno
-// (ne' "Chiudi" ne' le istruzioni): si chiude con Indietro, come tutto.
-// NIENTE IMMAGINI DEI RIFERIMENTI: nei riquadri e nelle stampe c'erano le
-// immagini collegate al progetto in References, ma sono tavole di altri
-// autori — "non le voglio vedere li', non sono immagini mie". Stampe e
-// riquadri restano vuoti finche' non ci sara' un posto per le sue.
-//
-// PERCHE' COSI'. Il primo fascicolo aperto metteva su una cartella dei pezzi
-// ritagliati uno per uno (foglio, post-it, Polaroid) e ci scriveva sopra con
-// righe disegnate in codice: "sembra finto, non sembra reale; l'impaginazione
-// sembra fatta male". Il riferimento (un fascicolo FBI di scena) ha i moduli
-// a caselle stampati, i fogli impilati, le foto vere sopra il testo. Ora le
-// due pagine sono due foto fatte con Gemini da Giovanni, gia' composte: il
-// modulo stampato a righe sottili e SENZA SCRITTE, le stampe col riquadro
-// grigio, la tessera con la fascia blu vuota. Luce, ombre, graffette e busta
-// sono vere; qui si scrive soltanto, e si mettono le immagini al loro posto.
-// Dalla pagina sinistra sono state cancellate due figure umane che Gemini
-// aveva copiato dal riferimento (ricostruendo la carta).
-//
-// LE MISURE sono in pixel delle due foto (896x1200 ciascuna), prese con un
-// programmino sulle righe del modulo e sui bordi del grigio delle stampe: se
-// cambiano le foto, vanno rimisurate. Le stampe sono storte: l'immagine si
-// deforma con una matrice (calcolata dai quattro angoli del grigio) e la si
-// ritaglia con la maschera del grigio stesso, cosi' la graffetta e la stampa
-// di sopra restano davanti. Sopra, la "luce" della foto originale riporta i
-// riflessi della carta lucida.
-//
-// I CARATTERI: Lucky Typewriter per quello battuto a macchina (scelto da
-// Giovanni fra quattro; licenza in font/lucky-typewriter-LICENZA.txt, uso
-// non commerciale), Castoro per quello stampato, la penna di sempre per le
-// note a mano.
-const MESI = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
-const MESI_LUNGHI = ['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre'];
-function giorno(v){ const d = v ? new Date(v) : null; return d && !isNaN(d) ? d : null; }
-function breve(v){ const d = giorno(v); return d ? String(d.getDate()).padStart(2,'0') + '.' + String(d.getMonth()+1).padStart(2,'0') + '.' + String(d.getFullYear()).slice(2) : '—'; }
-function lunga(v){ const d = giorno(v); return d ? d.getDate() + ' ' + MESI_LUNGHI[d.getMonth()] : ''; }
-// i 16 quadratini delle tavole, colonne (x) e righe (y) del modulo
-const QX = [161,195,231,267,304,340,376,412], QY = [664,714];
-
-function apriInterno(box, i){
-  const p = projects[i];
-  if(!p) return;
-  _interno = i;
-  const num = 'P-' + String(i + 1).padStart(4, '0');
-  const fase = PHASE_NAMES[getPhaseIndex(p)] || '';
-  const pct = calcPct(p);
-  const N = p.numTav || 0;
-  const stato = k => (p.tavole && p.tavole[k] != null) ? p.tavole[k] : 0;
-  const finite = Array.from({ length: N }, (_, k) => stato(k + 1)).filter(v => v >= 4).length;
-  let inCorso = 0;
-  for(let k = 1; k <= N; k++){ const v = stato(k); if(v > 0 && v < 4){ inCorso = k; break; } }
-  const fatto = st => !!(p.steps && p.steps[st.id]);
-  const prossimo = (STEPS.find(st => !fatto(st)) || {}).nome
-    || (finite < N ? 'Tavola ' + (finite + 1) : 'Finito');
-  const t = s => esc(String(s == null ? '' : s));
-  const mac = (x, y, testo, extra = '') => `<span class="fi-mac" style="left:${x}px;top:${y}px;${extra}">${testo}</span>`;
-  const et = (x, y, testo) => `<span class="fi-et" style="left:${x}px;top:${y}px">${testo}</span>`;
-
-  // ── pagina sinistra: la scheda ──
-  const passi = [...STEPS.map(st => ({ nome: st.nome === 'Struttura a 3 atti' ? 'Struttura' : st.nome, ok: fatto(st) })),
-    { nome: `Tavole ${finite}/${N}`, ok: N > 0 && finite >= N }];
-  const passiHtml = passi.map((ps, k) => {
-    const x = k < 4 ? 166 : 305, y = 505 + (k % 4) * 26.6;
-    return mac(x, y, '[&nbsp;] ' + t(ps.nome)) + (ps.ok ? `<span class="fi-mano fi-spunta" style="left:${x + 1}px;top:${y - 8}px">&#10003;</span>` : '');
-  }).join('');
-  const quadri = [];
-  for(let k = 1; k <= Math.min(N, 16); k++){
-    const x = QX[(k - 1) % 8], y = QY[k > 8 ? 1 : 0];
-    quadri.push(`<span class="fi-sq${stato(k) >= 4 ? ' ok' : ''}" style="left:${x}px;top:${y}px">${String(k).padStart(2,'0')}</span>`);
-  }
-  let segno = '';
-  if(inCorso && inCorso <= 16){
-    const cx = QX[(inCorso - 1) % 8] + 13.5, cy = QY[inCorso > 8 ? 1 : 0] + 13.5;
-    segno = `<svg class="fi-inchiostro" style="left:0;top:0;width:896px;height:1200px" viewBox="0 0 896 1200" aria-hidden="true">
-      <ellipse cx="${cx}" cy="${cy}" rx="20" ry="18"/>
-      <path d="M500 590 C 480 640, ${cx + 90} ${cy - 10}, ${cx + 24} ${cy - 4}"/>
-      <path d="M${cx + 34} ${cy - 14} L${cx + 23} ${cy - 4} L${cx + 35} ${cy + 5}"/></svg>
-      <span class="fi-mano" style="left:470px;top:530px;transform:rotate(-4deg)">la tav. ${inCorso}<br>e' in corso</span>`;
-  }
-  const oltre = N > 16 ? mac(162, 744, `+ ${N - 16} (17-${N})`, 'font-size:10px') : '';
-  const barra = 'X'.repeat(Math.round(pct / 10)) + '&middot;'.repeat(10 - Math.round(pct / 10));
-  const note = [p.microtask, ...(String(p.notes || '').split('\n'))].map(r => (r || '').trim()).filter(Boolean).slice(0, 2);
-  const sinistra = `
-    <img class="fi-fondo" src="img/fascicoli/pagina-sx.webp" alt="" draggable="false">
-    ${mac(155, 250, 'SCHEDA DI PROGETTO', 'width:335px;text-align:center;font:15px/1 Castoro,serif;letter-spacing:.16em')}
-    ${mac(155, 276, 'N. ' + num, 'width:335px;text-align:center')}
-    ${et(159, 310, 'Titolo')}${mac(172, 322, t(p.title || 'Senza titolo'), 'max-width:148px;overflow:hidden;text-overflow:ellipsis')}
-    ${et(329, 310, 'Tav.')}${mac(338, 322, N)}
-    ${et(384, 310, 'Fase')}${mac(392, 322, t(fase), 'font-size:12px')}
-    ${et(159, 345, 'Aperto il')}${mac(168, 356, breve(p.createdAt), 'font-size:12px')}
-    ${et(261, 345, 'Consegna')}${mac(270, 356, breve(p.dateEnd), 'font-size:12px')}
-    ${et(377, 345, 'Avanz.')}${mac(400, 356, pct + ' %')}
-    ${et(159, 377, 'Prossimo passo')}${mac(176, 396, t(prossimo))}
-    ${et(159, 447, 'Lavorazione')}${mac(236, 455, barra, 'letter-spacing:2px')}
-    ${et(162, 487, 'Passi')}${passiHtml}
-    ${N ? et(162, 652, 'Tavole') : ''}${quadri.join('')}${oltre}${segno}
-    ${et(163, 856, 'Note')}
-    ${note.map((r, k) => `<span class="fi-mano" style="left:172px;top:${870 + k * 44}px;max-width:480px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${t(r)}</span>`).join('')}`;
-
-  // ── pagina destra: il rapporto ──
-  const fatti = STEPS.filter(fatto).map(st => st.nome.toLowerCase());
-  const riga1 = `Il progetto e' in fase di ${t(fase.toLowerCase())}.` +
-    (fatti.length ? `<br>Completati: ${t(fatti.slice(0, 3).join(', '))}${fatti.length > 3 ? ' e altri ' + (fatti.length - 3) : ''}.` : '') +
-    `<br>Prossimo passo: ${t(prossimo.toLowerCase())}.`;
-  const riga2 = (N ? `${finite} tavole finite su ${N}${inCorso ? `, la ${inCorso} in lavorazione` : ''}.` : 'Tavole non ancora definite.') +
-    (lunga(p.dateEnd) ? `<br>Consegna prevista il ${lunga(p.dateEnd)}.` : '');
-  const destra = `
-    <img class="fi-fondo" src="img/fascicoli/pagina-dx.webp" alt="" draggable="false">
-    ${mac(262, 186, 'RAPPORTO DI LAVORAZIONE', 'width:516px;text-align:center;font:14px/1 Castoro,serif;letter-spacing:.16em')}
-    ${et(315, 221, 'Progetto')}${mac(320, 243, t(p.title || ''), 'max-width:74px;overflow:hidden;text-overflow:ellipsis')}
-    ${et(408, 221, 'Avanzamento')}${mac(425, 243, pct + ' %')}
-    ${et(503, 221, 'Tavole')}${mac(512, 243, N ? finite + ' di ' + N : '—')}
-    ${et(597, 221, 'Consegna')}${mac(604, 243, breve(p.dateEnd))}
-    ${mac(298, 306, riga1, 'white-space:normal;width:440px;line-height:1.75')}
-    ${mac(298, 380, riga2, 'white-space:normal;width:250px;line-height:1.75')}
-
-    <span class="fi-fascia" style="left:178px;top:815px;width:176px;height:33px">${num}</span>
-    <span class="fi-tessera" style="left:184px;top:851px;width:179px;height:204px">
-      ${mac(14, 18, t((p.title || '').toUpperCase()), 'max-width:150px;overflow:hidden;text-overflow:ellipsis')}
-      ${mac(14, 38, `${t(fase)}<br>${N} tavole<br>dal ${breve(p.createdAt)}`, 'font-size:10px;line-height:1.45')}
-      <span class="fi-mano fi-firma" style="left:16px;top:118px;font-size:22px"></span>
-      <span class="fi-et" style="left:16px;top:150px;opacity:.7">Firma</span>
-    </span>`;
-
-  let el = box.querySelector('.fasc-interno');
-  if(!el){ el = document.createElement('div'); el.className = 'fasc-interno'; box.appendChild(el); }
-  el.innerHTML = `
-    <div class="fi-vista" id="fi-vista"><div class="fi-spazio"><div class="fi-spread">
-      <div class="fi-pagina fi-sx" id="fi-foglio" role="button" tabindex="0" aria-label="Apri il progetto ${t(p.title || '')}">${sinistra}</div>
-      <div class="fi-pagina fi-dx">${destra}</div>
-    </div></div></div>`;
-  box.classList.add('aperto');
-  // LA SCALA: aperta, la cartella e' GRANDE QUANTO DA CHIUSA. Prima ogni
-  // pagina si allargava a tutto lo schermo, un terzo buono piu' della
-  // copertina, e aprendola sembrava saltare in faccia ("non mi piace che si
-  // ingrandisce cosi' tanto"). Ora si misura il fascicolo chiuso al centro e
-  // il cartone della pagina (alto 1140 pixel della foto) prende la sua stessa
-  // altezza; lo schermo resta solo il limite massimo.
-  const chiuso = box.querySelector('.fasc.al-centro');
-  const altoChiuso = chiuso ? chiuso.getBoundingClientRect().height : 0;
-  const vista = el.querySelector('#fi-vista');
-  const scala = ()=> el.style.setProperty('--s', Math.min(vista.clientWidth / 896, vista.clientHeight / 1200,
-    altoChiuso ? altoChiuso / 1140 : 9) || .4);
-  scala();
-  if(window.ResizeObserver){ const ro = new ResizeObserver(scala); ro.observe(vista); el._ro = ro; }
-  // Dalla scheda al progetto: la cartella si chiude senza rumore, e Indietro
-  // dal progetto riporta qui, alla cartella aperta (lo stato 'fascicolo'
-  // della cronologia resta sotto quello del progetto).
-  const apri = ()=>{ chiudiInterno(box, false); openProject(p.id); };
-  el.querySelector('#fi-foglio').addEventListener('click', apri);
-  el.querySelector('#fi-foglio').addEventListener('keydown', e=>{ if(e.key === 'Enter') apri(); });
-  import('./auth.js').then(m=>{
-    const u = m.utente && m.utente();
-    const nome = u && (u.displayName || '').split(' ')[0];
-    const f = el.querySelector('.fi-firma'); if(f && nome) f.textContent = nome;
-  }).catch(()=>{});
-}
-
-function chiudiInterno(box, conRumore){
-  _interno = null;
-  box.classList.remove('aperto');
-  const el = box.querySelector('.fasc-interno');
-  if(el){ if(el._ro) el._ro.disconnect(); el.remove(); }
-  if(conRumore) suonaRumore(RUMORI.chiudi, .85);
-}
-
-// Per main.js: Indietro chiude la cartella; tornando indietro dal progetto
-// la si riapre.
-function chiudiDaIndietro(){
-  const box = document.getElementById('fascicoli');
-  if(box && box.querySelector('.fasc-interno')) chiudiInterno(box, true);
-}
+// Per main.js. Il fascicolo aperto sulla scrivania non c'e' piu' (ora si apre
+// il progetto, dentro la cartella: js/cartella.js); restano i due nomi perche'
+// una voce 'fascicolo' rimasta nella cronologia di prima non si rompa:
+// riapri() riporta alla scrivania su quel fascicolo.
+function chiudiDaIndietro(){}
 function riapri(i){
   i = +i;
-  if(!projects[i]) return;
-  _c = i; _interno = i;
+  if(projects[i]) _c = i;
   disegnaFascicoli();
 }
 

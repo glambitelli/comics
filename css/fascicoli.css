@@ -159,50 +159,7 @@ body:not(.is-touch):not(.evening-mode) #screen-projects.vista-fascicoli .project
 }
 .fasc-nuovo:not(.al-centro){opacity:.6}
 
-/* ── IL FASCICOLO APERTO (12 ottobre 2026) ──
-   Il perche' sta in js/fascicoli.js (apriInterno). Due pagine da 896x1200
-   pixel affiancate, scalate (--s) perche' una pagina sia larga quanto lo
-   schermo; col dito si passa dall'una all'altra, e lo scorrimento si ferma
-   su una pagina intera (scroll-snap). Tutte le misure qui sotto sono pixel
-   delle due foto. */
+/* La macchina da scrivere della cartella aperta (css/cartella.css). Lucky
+   Typewriter, scelto da Giovanni fra quattro; licenza in
+   font/lucky-typewriter-LICENZA.txt, uso non commerciale. */
 @font-face{font-family:'Macchina';src:url(../font/lucky-typewriter.ttf) format('truetype');font-display:swap}
-.fascicoli.aperto .fasc-palco{visibility:hidden}
-#screen-projects.vista-fascicoli .fascicoli{position:relative}
-.fasc-interno{position:absolute;inset:0;z-index:5}
-.fi-vista{position:absolute;inset:6px 0;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scrollbar-width:none;-webkit-overflow-scrolling:touch}
-.fi-vista::-webkit-scrollbar{display:none}
-/* LE DUE PAGINE SONO UNA CARTELLA SOLA. Ognuna delle due foto ha la sua
-   piega del cartone sul lato interno; messe solo una accanto all'altra
-   facevano due pieghe e uno spiraglio di scrivania in mezzo: "sembrano
-   staccate, come se fossero rotte". La pagina destra perde i suoi primi 95
-   pixel (la sua piega) e si sovrappone di una ventina di pixel al cartone
-   della sinistra (che finisce a 862, col suo bordo scuro): resta una piega
-   sola, quella della pagina sinistra, senza filo in mezzo. L'ombra e' una
-   sola, sotto tutta la cartella. Larghezza totale 745+896 = 1641. */
-/* La pagina che si guarda sta AL CENTRO dello schermo: la cartella e' piu'
-   stretta dello schermo (e' grande quanto da chiusa), quindi lo scorrimento
-   si ferma col centro di una pagina al centro della vista. I margini ai lati
-   lasciano centrare anche la prima e l'ultima. Centri: 448 la sinistra,
-   745+95+400 = 1240 la destra (il suo cartone visibile va da 840 a 1641). */
-.fi-spazio{position:relative;width:calc(1641px * var(--s, .4));height:calc(1200px * var(--s, .4));top:50%;transform:translateY(-50%);
-  margin-inline:max(0px, calc(50% - 448px * var(--s, .4))) max(0px, calc(50% - 401px * var(--s, .4)))}
-.fi-spazio::before,.fi-spazio::after{content:'';position:absolute;top:0;bottom:0;width:1px;scroll-snap-align:center}
-.fi-spazio::before{left:calc(448px * var(--s, .4))}.fi-spazio::after{left:calc(1240px * var(--s, .4))}
-.fi-spread{position:absolute;left:0;top:0;width:1641px;height:1200px;transform-origin:0 0;transform:scale(var(--s, .4));
-  filter:drop-shadow(0 6px 10px rgba(0,0,0,.45))}
-.fi-pagina{position:absolute;top:0;width:896px;height:1200px;overflow:hidden}
-.fi-sx{left:0;cursor:pointer}.fi-dx{left:745px;clip-path:inset(0 0 0 95px)}
-.fi-fondo{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
-/* quello stampato (etichette) e quello battuto (dati): "multiply", cosi'
-   l'inchiostro prende la carta che ha sotto */
-.fi-et{position:absolute;font:8.5px/1 'Castoro',serif;letter-spacing:.09em;text-transform:uppercase;color:#2a2622;mix-blend-mode:multiply;pointer-events:none}
-.fi-mac{position:absolute;font:13px/1.15 'Macchina','Courier New',monospace;color:#1d1a17;mix-blend-mode:multiply;white-space:nowrap;pointer-events:none}
-.fi-mano{position:absolute;font:19px/1.15 'Penna',cursive;color:#20307e;mix-blend-mode:multiply;pointer-events:none}
-.fi-spunta{font-size:24px}
-.fi-inchiostro{position:absolute;mix-blend-mode:multiply;pointer-events:none;fill:none;stroke:#20307e;stroke-width:2;stroke-linecap:round}
-.fi-sq{position:absolute;width:27px;height:27px;display:flex;align-items:center;justify-content:center;
-  font:9px 'Macchina','Courier New',monospace;color:#1d1a17;mix-blend-mode:multiply;pointer-events:none}
-.fi-sq.ok::after{content:'X';position:absolute;font:21px 'Macchina','Courier New',monospace}
-/* la tessera e' storta di 12,5 gradi nella foto: i suoi testi pure */
-.fi-fascia,.fi-tessera{position:absolute;transform-origin:0 0;transform:rotate(-12.5deg);pointer-events:none}
-.fi-fascia{display:flex;align-items:center;justify-content:center;font:13px 'Castoro',serif;letter-spacing:.22em;color:#fff;opacity:.92}
