@@ -170,8 +170,7 @@ module.exports = () => suite("Projects — i progetti come fascicoli sulla scriv
       attivo: scr.classList.contains('active'), cartella: scr.classList.contains('cartella'), id: st.currentId,
       scrivania: /scrivania/.test(getComputedStyle(scr).backgroundImage),
       testata: vis(scr.querySelector('.proj-header')),
-      titolo: document.getElementById('pc-titolo').textContent, numero: document.getElementById('pc-numero').textContent,
-      fase: document.getElementById('pc-fase').textContent,
+      sulLegno: !!document.querySelector('.pc-testa, #pc-titolo'),
       sx: Array.from(document.querySelectorAll('.pc-sx .pc-ling')).map(b => b.dataset.f),
       dx: Array.from(document.querySelectorAll('.pc-dx .pc-ling')).map(b => b.dataset.f),
       schedaSu: vis(sheet('scheda')), todoSu: vis(sheet('todo')),
@@ -189,7 +188,9 @@ module.exports = () => suite("Projects — i progetti come fascicoli sulla scriv
   });
   ok('si apre Ruggine, a tutto schermo', dentro.attivo && dentro.id === 'p2', dentro);
   ok('dentro la cartella, con la scrivania intorno', dentro.cartella && dentro.scrivania && !dentro.testata, dentro);
-  ok('sul legno: titolo, numero e fase', dentro.titolo === 'Ruggine' && dentro.numero === 'P-0003' && dentro.fase === 'Sviluppo', dentro);
+  // il titolo scritto sul legno in cima c'e' stato un giorno: "non ci deve
+  // essere" (19 ottobre 2026), sta gia' nella scheda
+  ok('niente titolo sul legno, in cima', !dentro.sulLegno, dentro);
   ok('a sinistra Scheda, To do, Calendario', dentro.sx.join() === 'scheda,todo,calendario', dentro.sx);
   ok('a destra Sviluppo, Pre-prod., Tavole, Script, Riferimenti', dentro.dx.join() === 'sviluppo,preprod,tavole,script,rif', dentro.dx);
   ok('sopra la pila c\'e\' la scheda, gli altri fogli sotto', dentro.schedaSu && !dentro.todoSu, dentro);
@@ -218,23 +219,42 @@ module.exports = () => suite("Projects — i progetti come fascicoli sulla scriv
   ok('"To do" porta sopra il suo foglio', todo.su && !todo.scheda && todo.on === 'todo', todo);
   ok('e un\'attivita\' scritta li\' si aggiunge al progetto', todo.todos.includes('cercare foto di treni') && todo.righe === 1, todo);
 
-  sezione('col dito si passa alla pagina destra');
-  await page.evaluate(()=>{ const v = document.getElementById('pc-vista'); v.scrollTo({ left: v.scrollWidth }); });
-  await page.waitForTimeout(400);
+  sezione('lo swipe passa di foglio in foglio, e oltre l\'ultimo alla pagina destra');
+  // "Voglio anche poter cambiare sezione tramite swipe" (19 ottobre 2026)
+  const striscia = async verso=>{
+    const [da, a] = verso < 0 ? [280, 80] : [80, 280];
+    await page.mouse.move(da, 420); await page.mouse.down();
+    for(let k = 1; k <= 8; k++) await page.mouse.move(da + (a - da) * k / 8, 422);
+    await page.mouse.up(); await page.waitForTimeout(500);
+  };
+  const dove = ()=> page.evaluate(()=>{
+    const v = document.getElementById('pc-vista');
+    const lato = ['sx','dx'].find(l => Math.abs(document.querySelector('.pc-' + l).getBoundingClientRect().left - v.getBoundingClientRect().left) <= 1);
+    const vis = Array.from(document.querySelectorAll('.pc-' + lato + ' .pc-sheet')).filter(x => !x.hidden).map(x => x.dataset.f);
+    return { lato, foglio: vis.join(), punti: Array.from(document.querySelectorAll('.pc-punti i')).map(i => i.classList.contains('on') ? 1 : 0).join('') };
+  });
+  await striscia(-1);
+  let d = await dove();
+  ok('da To do, verso sinistra: Calendario', d.lato === 'sx' && d.foglio === 'calendario', d);
+  await striscia(-1);
+  d = await dove();
+  ok('ancora: si gira la pagina, e si apre su Sviluppo', d.lato === 'dx' && d.foglio === 'sviluppo', d);
+  ok('e il secondo pallino si accende', d.punti === '01', d);
+  await striscia(1);
+  d = await dove();
+  ok('all\'indietro: si torna a sinistra, su Calendario', d.lato === 'sx' && d.foglio === 'calendario' && d.punti === '10', d);
+  await striscia(-1);
   await page.click('.pc-dx .pc-ling[data-f="tavole"]');
   await page.waitForTimeout(200);
   await page.click('#tav-grid .tav-btn[data-n="3"]');
   await page.waitForTimeout(200);
-  const destra = await page.evaluate(()=>{
-    const v = document.getElementById('pc-vista'), r = document.querySelector('.pc-dx').getBoundingClientRect();
-    return { allineata: Math.abs(r.left - v.getBoundingClientRect().left) <= 1,
-      punti: Array.from(document.querySelectorAll('.pc-punti i')).map(i => i.classList.contains('on') ? 1 : 0).join(''),
+  const destra = await page.evaluate(()=>({
       dettaglio: document.getElementById('tav-detail').classList.contains('open'),
-      titolo: document.getElementById('tav-detail-title').textContent };
-  });
-  ok('la pagina destra riempie lo schermo', destra.allineata, destra);
-  ok('e il secondo pallino si accende', destra.punti === '01', destra);
-  ok('toccando una tavola si apre il suo dettaglio', destra.dettaglio && /3/.test(destra.titolo), destra);
+      titolo: document.getElementById('tav-detail-title').textContent }));
+  ok('le linguette vanno ancora, e toccando una tavola si apre il suo dettaglio', destra.dettaglio && /3/.test(destra.titolo), destra);
+  await striscia(1);
+  d = await dove();
+  ok('da Tavole, verso destra: Pre-prod.', d.lato === 'dx' && d.foglio === 'preprod', d);
 
   sezione('Indietro richiude la cartella');
   await page.evaluate(()=> history.back());
@@ -253,7 +273,7 @@ module.exports = () => suite("Projects — i progetti come fascicoli sulla scriv
   const riaperta = await page.evaluate(()=>({
     sx: document.querySelector('.pc-sx .pc-ling.on').dataset.f, dx: document.querySelector('.pc-dx .pc-ling.on').dataset.f,
     scroll: document.getElementById('pc-vista').scrollLeft }));
-  ok('To do e Tavole ancora sopra, e si parte dalla pagina sinistra', riaperta.sx === 'todo' && riaperta.dx === 'tavole' && riaperta.scroll === 0, riaperta);
+  ok('Calendario e Pre-prod. ancora sopra, e si parte dalla pagina sinistra', riaperta.sx === 'calendario' && riaperta.dx === 'preprod' && riaperta.scroll === 0, riaperta);
 
   sezione('il tasto Home porta a casa, anche dal progetto aperto dalla scrivania');
   // Il bug del 12 ottobre 2026: "premo Home e a volte torno nel progetto

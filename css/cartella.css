@@ -28,27 +28,18 @@ body.is-touch #screen-project.cartella .pc{padding-bottom:calc(84px + var(--safe
 #screen-project.cartella.active .pc-vista{animation:pc-apri .28s cubic-bezier(.2,.8,.2,1)}
 @keyframes pc-apri{from{transform:scale(.9);opacity:.2}to{transform:none;opacity:1}}
 
-/* IL TITOLO SUL LEGNO: chiaro, con l'ombra, come "Inkflow" sulla scrivania. */
-.pc-testa{padding:calc(14px + var(--safe-top)) 22px 2px;flex-shrink:0}
-.pc-titolo{
-  font:700 28px/1.05 'Castoro',serif;color:#f1e4c8;letter-spacing:-.005em;
-  text-shadow:0 1px 3px rgba(0,0,0,.85),0 0 14px rgba(0,0,0,.5);
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-}
-.pc-sotto-titolo{
-  margin-top:4px;font:10px/1 'Castoro',serif;letter-spacing:.16em;text-transform:uppercase;
-  color:#d2bd98;text-shadow:0 1px 2px #000,0 0 8px rgba(0,0,0,.8);
-}
-
 /* ── LE DUE PAGINE ──
-   Una per schermo sul telefono, e lo scorrimento si ferma su una pagina
-   intera. Su uno schermo largo stanno tutte e due, affiancate. */
+   Una per schermo sul telefono; su uno schermo largo tutte e due, affiancate.
+   La vista non scorre da sola: lo swipe passa di foglio in foglio e porta la
+   pagina quando serve (js/cartella.js, montaSwipe). pan-y: lo scorrimento in
+   verticale dentro il foglio resta del browser.
+   In cima niente titolo (tolto il 19 ottobre: "non ci deve essere"), solo
+   l'aria per la zona sicura del telefono. */
 .pc-vista{
-  flex:1;min-height:0;display:flex;overflow-x:auto;overflow-y:hidden;
-  scroll-snap-type:x mandatory;overscroll-behavior-x:contain;scrollbar-width:none;
+  flex:1;min-height:0;display:flex;overflow:hidden;touch-action:pan-y;
+  margin-top:calc(12px + var(--safe-top));
 }
-.pc-vista::-webkit-scrollbar{display:none}
-.pc-pagina{flex:0 0 100%;position:relative;scroll-snap-align:center;scroll-snap-stop:always;min-height:0}
+.pc-pagina{flex:0 0 100%;position:relative;min-height:0}
 @media (min-width:760px){
   .pc-vista{justify-content:center}
   .pc-pagina{flex-basis:min(460px,48%)}
@@ -88,17 +79,21 @@ body.is-touch #screen-project.cartella .pc{padding-bottom:calc(84px + var(--safe
    Alte 26px e non 18 come nel bozzetto: si toccano col dito. Quando non ci
    stanno (le cinque della destra su un telefono da 360) si stringono: meno
    aria fra le lettere e ai lati, ma il nome resta intero — "SVILU…",
-   "TAV…", "SCR…" non si leggevano. */
+   "TAV…", "SCR…" non si leggevano.
+   IL CARATTERE: prima Castoro stampato, maiuscolo spaziato — "i font delle
+   sezioni non mi piacciono" (19 ottobre 2026). Per ora la macchina da
+   scrivere, come un'etichetta battuta; le etichette vere arriveranno come
+   foto fatte con Gemini, e il nome ci si scrivera' sopra. */
 .pc-linguette{position:absolute;left:4px;right:4px;top:-25px;height:26px;display:flex;gap:2px;z-index:2}
 .pc-ling{
   flex:0 1 auto;min-width:0;height:24px;margin-top:2px;padding:0 6px;
   border:none;border-radius:5px 5px 0 0;background:#e4dccb;cursor:pointer;
-  font:8px/24px 'Castoro',serif;letter-spacing:.08em;text-transform:uppercase;color:#4a4036;
+  font:9px/24px 'Macchina','Courier New',monospace;letter-spacing:0;text-transform:uppercase;color:#3a332c;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
   box-shadow:0 -1px 2px rgba(0,0,0,.18);-webkit-tap-highlight-color:transparent;
 }
 .pc-ling.on{background:#f4f2ec;color:#1d1a17;height:26px;margin-top:0;line-height:26px;position:relative;z-index:1}
-.pc-dx .pc-ling{padding:0 4px;letter-spacing:.04em}
+.pc-dx .pc-ling{padding:0 4px}
 
 /* ── IL FOGLIO ── ognuno scorre per conto suo, dentro la pila. */
 .pc-sheet{

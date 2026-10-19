@@ -15,7 +15,6 @@
 //              TO DO, CALENDARIO (fasi e grafici dell'avanzamento);
 //   destra   — SVILUPPO, PRE-PROD., TAVOLE, SCRIPT, RIFERIMENTI (le immagini
 //              collegate, fermate sul foglio come foto: scelta "A").
-// Il titolo, il numero e la fase sono scritti sul legno, in cima.
 // Scelte da Giovanni sul bozzetto del 17 ottobre: linguette si', calendario e
 // grafici sotto la loro linguetta, riferimenti come foto sul foglio.
 //
@@ -27,8 +26,6 @@
 // vestito di carta e macchina da scrivere lo da' css/cartella.css.
 // La pagina vecchia resta in index.html com'era: i banchi di prova che la
 // caricano da soli (test/banco/progetto.html...) la trovano intatta.
-import { projects, PHASE_NAMES } from './state.js';
-import { getPhaseIndex } from './progress.js';
 
 const SINISTRA = [['scheda','Scheda'], ['todo','To do'], ['calendario','Calendario']];
 const DESTRA = [['sviluppo','Sviluppo'], ['preprod','Pre-prod.'], ['tavole','Tavole'], ['script','Script'], ['rif','Riferimenti']];
@@ -66,10 +63,6 @@ export function montaCartella(){
   const pc = document.createElement('div');
   pc.className = 'pc';
   pc.innerHTML = `
-    <div class="pc-testa">
-      <div class="pc-titolo" id="pc-titolo"></div>
-      <div class="pc-sotto-titolo"><span id="pc-numero"></span> &middot; <span id="pc-fase"></span></div>
-    </div>
     <div class="pc-vista" id="pc-vista">
       ${pagina('sx', SINISTRA)}
       ${pagina('dx', DESTRA)}
@@ -144,21 +137,82 @@ export function montaCartella(){
     const primo = pg.querySelector('.pc-ling').dataset.f;
     pg.querySelector('.pc-linguette').addEventListener('click', e=>{
       const b = e.target.closest('.pc-ling'); if(!b) return;
+      _lato = lato;
       scegliFoglio(pg, b.dataset.f, true);
     });
     scegliFoglio(pg, pg.querySelector(`.pc-ling[data-f="${scelti[lato]}"]`) ? scelti[lato] : primo, false);
   });
-
-  // I due pallini seguono lo scorrimento fra le pagine.
-  const vista = pc.querySelector('#pc-vista');
-  const punti = pc.querySelectorAll('.pc-punti i');
-  vista.addEventListener('scroll', ()=>{
-    const dx = vista.scrollLeft > vista.scrollWidth / 4;
-    punti[0].classList.toggle('on', !dx); punti[1].classList.toggle('on', dx);
-  }, { passive:true });
+  montaSwipe(pc.querySelector('#pc-vista'));
 }
 
-function scegliFoglio(pg, id, aMano){
+// ── LO SWIPE PASSA DA UN FOGLIO ALL'ALTRO (19 ottobre 2026) ──
+// "Voglio anche poter cambiare sezione tramite swipe" (Giovanni). Prima lo
+// swipe girava solo la PAGINA (lo scorrimento nativo con lo snap), e per
+// cambiare foglio bisognava centrare le linguette, piccole. Ora gli otto fogli
+// sono una fila sola: Scheda, To do, Calendario, poi — finita la pagina
+// sinistra — si passa alla destra, Sviluppo, Pre-prod., Tavole, Script,
+// Riferimenti. Il dito sposta il foglio di sopra mentre trascina; lasciato
+// oltre 50px si va avanti o indietro.
+// Lo scorrimento in verticale dentro il foglio resta al browser
+// (touch-action:pan-y); l'orizzontale lo gestiamo noi, e la vista non scorre
+// piu' da sola (overflow nascosto, la pagina la porta scrollTo).
+let _lato = 'sx';
+function montaSwipe(vista){
+  const punti = vista.parentNode.querySelectorAll('.pc-punti i');
+  const segna = ()=>{ punti[0].classList.toggle('on', _lato === 'sx'); punti[1].classList.toggle('on', _lato === 'dx'); };
+  vista._segna = segna;
+  let x0 = null, y0 = 0, dx = 0, oriz = false, finito = 0, pila = null;
+  vista.addEventListener('pointerdown', e=>{
+    // niente swipe partendo da un campo in cui si sta scrivendo (si
+    // selezionerebbe il testo) o dal grafico che scorre di lato per conto suo
+    const t = e.target;
+    if((t.matches && t.matches('input,textarea') && t === document.activeElement) || (t.closest && t.closest('.chart-wrap'))) return;
+    x0 = e.clientX; y0 = e.clientY; dx = 0; oriz = false; pila = null;
+  });
+  vista.addEventListener('pointermove', e=>{
+    if(x0 === null) return;
+    dx = e.clientX - x0; const dy = e.clientY - y0;
+    if(!oriz){
+      if(Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)){ x0 = null; return; }   // scorre il foglio
+      if(Math.abs(dx) < 10) return;
+      oriz = true;
+      try{ vista.setPointerCapture(e.pointerId); }catch(err){}
+      pila = vista.querySelector(`.pc-${_lato} .pc-foglio`);
+    }
+    if(pila){ pila.style.transition = 'none'; pila.style.transform = `translateX(${dx * .45}px) rotate(${dx * .006}deg)`; }
+  });
+  const fine = ()=>{
+    if(x0 === null) return;
+    x0 = null;
+    if(!oriz) return;
+    finito = Date.now();
+    if(pila){ pila.style.transition = 'transform .2s ease-out'; pila.style.transform = ''; }
+    if(Math.abs(dx) > 50) passo(vista, dx < 0 ? 1 : -1);
+  };
+  vista.addEventListener('pointerup', fine);
+  vista.addEventListener('pointercancel', fine);
+  // il click che arriva alzando il dito dopo uno swipe non e' un tocco
+  vista.addEventListener('click', e=>{ if(Date.now() - finito < 350){ e.stopPropagation(); e.preventDefault(); } }, true);
+}
+function passo(vista, verso){
+  const pg = vista.querySelector(`.pc-${_lato}`);
+  const ids = Array.from(pg.querySelectorAll('.pc-ling')).map(b => b.dataset.f);
+  const ora = (pg.querySelector('.pc-ling.on') || {}).dataset;
+  const i = ids.indexOf(ora && ora.f) + verso;
+  if(i >= 0 && i < ids.length){ scegliFoglio(pg, ids[i], true, verso); return; }
+  // oltre l'ultimo foglio della sinistra: la pagina destra, dal primo; prima
+  // del primo della destra: la sinistra, dall'ultimo. Agli estremi, niente.
+  const altro = _lato === 'sx' ? 'dx' : 'sx';
+  if((verso > 0) !== (_lato === 'sx')) return;
+  _lato = altro;
+  const pg2 = vista.querySelector(`.pc-${altro}`);
+  const ids2 = Array.from(pg2.querySelectorAll('.pc-ling')).map(b => b.dataset.f);
+  scegliFoglio(pg2, verso > 0 ? ids2[0] : ids2[ids2.length - 1], true, 0);
+  vista.scrollTo({ left: altro === 'dx' ? vista.scrollWidth : 0, behavior: 'smooth' });
+  if(vista._segna) vista._segna();
+}
+
+function scegliFoglio(pg, id, aMano, verso){
   pg.querySelectorAll('.pc-ling').forEach(b=>{
     const on = b.dataset.f === id;
     b.classList.toggle('on', on); b.setAttribute('aria-selected', String(on));
@@ -173,6 +227,8 @@ function scegliFoglio(pg, id, aMano){
     }catch(e){}
     if(window.playSfx) window.playSfx('tap');
   }
+  // arrivando con lo swipe, il foglio nuovo entra dal lato da cui viene
+  if(verso && sheet.animate) sheet.animate([{ transform:`translateX(${verso * 36}px)`, opacity:.25 }, { transform:'none', opacity:1 }], { duration:200, easing:'cubic-bezier(.2,.8,.2,1)' });
   // I grafici si disegnano sulla larghezza del loro riquadro: dentro un foglio
   // nascosto quella larghezza e' zero, e restavano vuoti. Si ridisegnano
   // quando il foglio viene in cima.
@@ -180,19 +236,15 @@ function scegliFoglio(pg, id, aMano){
   if(id === 'sviluppo' && window.autoResizeAll) requestAnimationFrame(window.autoResizeAll);
 }
 
-// Il titolo sul legno, il numero di fascicolo (il posto nella fila della
-// scrivania, come sulla copertina) e la fase. Si torna sempre alla pagina
-// sinistra: aprendo una cartella si guarda prima la scheda.
+// Aprendo una cartella si guarda prima la pagina sinistra, dall'alto. Il
+// titolo scritto sul legno in cima non c'e' piu': "non ci deve essere"
+// (Giovanni, 19 ottobre 2026) — il titolo sta gia' nella scheda.
 export function aggiornaCartella(p, inizio){
-  const t = document.getElementById('pc-titolo');
-  if(!t || !p) return;
-  t.textContent = p.title || 'Senza titolo';
-  const i = projects.indexOf(p);
-  document.getElementById('pc-numero').textContent = 'P-' + String((i < 0 ? 0 : i) + 1).padStart(4, '0');
-  document.getElementById('pc-fase').textContent = PHASE_NAMES[getPhaseIndex(p)] || '';
-  if(inizio){
-    const v = document.getElementById('pc-vista');
-    if(v) v.scrollLeft = 0;
-    document.querySelectorAll('#screen-project .pc-sheet').forEach(s=>{ s.scrollTop = 0; });
-  }
+  if(!p || !inizio) return;
+  const v = document.getElementById('pc-vista');
+  if(!v) return;
+  _lato = 'sx';
+  v.scrollLeft = 0;
+  if(v._segna) v._segna();
+  document.querySelectorAll('#screen-project .pc-sheet').forEach(s=>{ s.scrollTop = 0; });
 }
