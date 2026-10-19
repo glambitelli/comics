@@ -40,6 +40,7 @@ body.is-touch #screen-project.cartella .pc{padding-bottom:calc(84px + var(--safe
   margin-top:calc(12px + var(--safe-top));
 }
 .pc-pagina{flex:0 0 100%;position:relative;min-height:0}
+.pc-trascina{user-select:none;-webkit-user-select:none}
 @media (min-width:760px){
   .pc-vista{justify-content:center}
   .pc-pagina{flex-basis:min(460px,48%)}

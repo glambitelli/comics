@@ -219,8 +219,9 @@ module.exports = () => suite("Projects — i progetti come fascicoli sulla scriv
   ok('"To do" porta sopra il suo foglio', todo.su && !todo.scheda && todo.on === 'todo', todo);
   ok('e un\'attivita\' scritta li\' si aggiunge al progetto', todo.todos.includes('cercare foto di treni') && todo.righe === 1, todo);
 
-  sezione('lo swipe passa di foglio in foglio, e oltre l\'ultimo alla pagina destra');
-  // "Voglio anche poter cambiare sezione tramite swipe" (19 ottobre 2026)
+  sezione('lo swipe gira la cartella, il tocco sulle linguette sceglie il foglio');
+  // Lo swipe di foglio in foglio c'e' stato mezza giornata: "si mischia" con
+  // quello fra i due lati. Ora lo swipe cambia lato e basta (19 ottobre 2026).
   const striscia = async verso=>{
     const [da, a] = verso < 0 ? [280, 80] : [80, 280];
     await page.mouse.move(da, 420); await page.mouse.down();
@@ -235,14 +236,14 @@ module.exports = () => suite("Projects — i progetti come fascicoli sulla scriv
   });
   await striscia(-1);
   let d = await dove();
-  ok('da To do, verso sinistra: Calendario', d.lato === 'sx' && d.foglio === 'calendario', d);
+  ok('verso sinistra: il lato destro, sul suo primo foglio', d.lato === 'dx' && d.foglio === 'sviluppo', d);
+  ok('e il secondo pallino si accende', d.punti === '01', d);
   await striscia(-1);
   d = await dove();
-  ok('ancora: si gira la pagina, e si apre su Sviluppo', d.lato === 'dx' && d.foglio === 'sviluppo', d);
-  ok('e il secondo pallino si accende', d.punti === '01', d);
+  ok('ancora verso sinistra: resta li\', il foglio non cambia', d.lato === 'dx' && d.foglio === 'sviluppo', d);
   await striscia(1);
   d = await dove();
-  ok('all\'indietro: si torna a sinistra, su Calendario', d.lato === 'sx' && d.foglio === 'calendario' && d.punti === '10', d);
+  ok('verso destra: torna il lato sinistro, con To do sopra com\'era', d.lato === 'sx' && d.foglio === 'todo' && d.punti === '10', d);
   await striscia(-1);
   await page.click('.pc-dx .pc-ling[data-f="tavole"]');
   await page.waitForTimeout(200);
@@ -251,10 +252,7 @@ module.exports = () => suite("Projects — i progetti come fascicoli sulla scriv
   const destra = await page.evaluate(()=>({
       dettaglio: document.getElementById('tav-detail').classList.contains('open'),
       titolo: document.getElementById('tav-detail-title').textContent }));
-  ok('le linguette vanno ancora, e toccando una tavola si apre il suo dettaglio', destra.dettaglio && /3/.test(destra.titolo), destra);
-  await striscia(1);
-  d = await dove();
-  ok('da Tavole, verso destra: Pre-prod.', d.lato === 'dx' && d.foglio === 'preprod', d);
+  ok('il tocco su "Tavole" porta su il foglio, e una tavola apre il suo dettaglio', destra.dettaglio && /3/.test(destra.titolo), destra);
 
   sezione('Indietro richiude la cartella');
   await page.evaluate(()=> history.back());
@@ -273,7 +271,7 @@ module.exports = () => suite("Projects — i progetti come fascicoli sulla scriv
   const riaperta = await page.evaluate(()=>({
     sx: document.querySelector('.pc-sx .pc-ling.on').dataset.f, dx: document.querySelector('.pc-dx .pc-ling.on').dataset.f,
     scroll: document.getElementById('pc-vista').scrollLeft }));
-  ok('Calendario e Pre-prod. ancora sopra, e si parte dalla pagina sinistra', riaperta.sx === 'calendario' && riaperta.dx === 'preprod' && riaperta.scroll === 0, riaperta);
+  ok('To do e Tavole ancora sopra, e si parte dalla pagina sinistra', riaperta.sx === 'todo' && riaperta.dx === 'tavole' && riaperta.scroll === 0, riaperta);
 
   sezione('il tasto Home porta a casa, anche dal progetto aperto dalla scrivania');
   // Il bug del 12 ottobre 2026: "premo Home e a volte torno nel progetto
